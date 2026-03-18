@@ -1,10 +1,9 @@
 import "./style/global.scss";
 
 function App() {
-
   return (
     <>
-      <h1>hgjkkuhfe</h1>
+      <h1>hgjkkhgghghghghghghuhfe</h1>
     </>
   );
 }
