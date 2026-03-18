@@ -1,0 +1,22 @@
+//   @include variable.font-style($fs: , $fw:);
+
+//@include variable.font-style($fs: 18px, $fw: 500, $lh: 25.2px);
+
+//@include variable.d-flex($fd: column, $jc: space-between,$al:center);
+$color-white-0: #fff;
+
+// mixin
+@mixin d-flex($jc: flex-start, $al: flex-start, $fd: row) {
+  display: flex;
+  justify-content: $jc;
+  align-items: $al;
+  flex-direction: $fd;
+}
+
+// @include variable.d-flex();
+
+@mixin font-style($fs: normal, $fw: normal, $lh: normal) {
+  font-size: $fs;
+  font-weight: $fw;
+  line-height: $lh;
+}
