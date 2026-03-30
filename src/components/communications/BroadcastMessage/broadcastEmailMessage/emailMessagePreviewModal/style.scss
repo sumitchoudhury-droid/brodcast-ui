@@ -1,0 +1,195 @@
+@use "../../../../../style/variable.scss" as variable;
+
+/* --- Preview Drawer Styles --- */
+.previewDrawerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.previewDrawerContainer {
+  position: relative;
+  width: 60%;
+  height: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0px 30px rgba(0, 0, 0, 0.1);
+  transform: translateX(100%);
+  transition: transform 0.3s ease-out;
+
+  &.open {
+    transform: translateX(0);
+  }
+}
+
+.previewDrawerHeader {
+  padding: 18px 24px;
+  border-bottom: 1px solid #eaecf0;
+  @include variable.d-flex($al: center, $g: 22px);
+
+  .headerLeft {
+    @include variable.d-flex($al: center, $jc: space-between);
+    width: 97%;
+
+    h3 {
+      @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
+      color: variable.$color-black-8;
+    }
+  }
+
+  .deviceToggle {
+    @include variable.d-flex($al: center);
+    background: variable.$color-white-11;
+    border-radius: 14px;
+    padding: 3px;
+
+    .toggleBtn {
+      @include variable.d-flex($al: center, $jc: center);
+      padding: 8px 10px;
+      border: none;
+      background: transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      img {
+        width: 20px;
+        height: 20px;
+      }
+
+      &.active {
+        background: variable.$color-white-0;
+        border: 1px solid variable.$color-white-10;
+        box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+      }
+    }
+  }
+
+  .closeBtn {
+    background: transparent;
+    border: none;
+    color: #667085;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+}
+
+.previewDrawerContent {
+  flex: 1;
+  background: variable.$color-white-0;
+  padding: 24px 24px 48px 24px;
+  @include variable.d-flex($al: center, $jc: center);
+  overflow-y: auto;
+
+  .previewFrame {
+    background: transparent; // Allow template background to show
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    width: 100%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0; // Prevent content from shrinking in flex container
+
+    &.desktop {
+      width: 100%;
+      max-width: 1000px;
+      height: auto;
+    }
+
+    &.mobile {
+      width: 375px;
+      height: 600px;
+      margin: 0 auto;
+      border: 12px solid #101828;
+      border-radius: 40px;
+      position: relative;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 25px;
+        background: #101828;
+        border-bottom-left-radius: 15px;
+        border-bottom-right-radius: 15px;
+        z-index: 10;
+      }
+    }
+
+    .iframeWrapper {
+      width: 100%;
+      height: auto;
+      min-height: 100%;
+      background: #fff;
+      overflow-y: visible;
+
+      // In mobile view, the wrapper scrolls, not the container
+      &.mobile-scroll {
+        height: 100%;
+        overflow-y: auto;
+        scrollbar-width: thin;
+
+        &::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: #e4e7eb;
+          border-radius: 3px;
+        }
+      }
+
+      iframe {
+        display: block;
+      }
+    }
+  }
+}
+
+.previewDrawerFooter {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 24px;
+  background-color: variable.$color-white-0;
+  box-shadow: variable.$shadow-3;
+  @include variable.d-flex($al: center, $jc: flex-end);
+
+  .footerBtn {
+    @include variable.d-flex($al: center, $jc: center);
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: none;
+    background: variable.$secondary-color;
+    box-shadow: variable.$shadow-2;
+    color: variable.$color-white-0;
+    @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+    cursor: pointer;
+  }
+}

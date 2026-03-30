@@ -1,3 +1,23 @@
 {
-    "words": []
+    "words": [
+        "grapesjs",
+        "mjml",
+        "MJML",
+        "Cids",
+        "textnode",
+        "msword",
+        "openxmlformats",
+        "officedocument",
+        "wordprocessingml",
+        "utls",
+        "manipal",
+        "Intergy",
+        "resuable",
+        "Telehealth"
+    ],
+    "ignorePaths": [
+        "dist",
+        "node_modules",
+        "package-lock.json"
+    ]
 }

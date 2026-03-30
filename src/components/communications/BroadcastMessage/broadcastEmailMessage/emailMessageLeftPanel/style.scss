@@ -1,0 +1,164 @@
+@use "../../../../../style/variable.scss" as variable;
+
+.leftPanel {
+  width: 21.89%;
+  border: 1px solid variable.$color-white-7;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-sizing: border-box;
+  background: variable.$color-white-0;
+  font-family: "Inter", sans-serif;
+  overflow-y: auto;
+  border-radius: 10px;
+}
+
+.tabSwitcher {
+  display: flex;
+  background: variable.$color-white-8;
+  border-radius: 14px;
+  padding: 3px;
+  margin-bottom: 12px;
+  background-color: variable.$color-white-11;
+}
+
+.tab-btn {
+  flex: 1;
+  @include variable.d-flex($jc: center, $al: center);
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s ease;
+  @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+
+  &.active {
+    background: variable.$color-white-0;
+    box-shadow: variable.$shadow-1;
+    border: 1px solid variable.$color-white-10;
+    border-radius: 18px;
+    padding: 8px 12px;
+  }
+
+  .tabIcon {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+  }
+}
+
+.searchContainer {
+  margin-bottom: 12px;
+  border: 1px solid variable.$color-white-10;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: variable.$shadow-2;
+  @include variable.d-flex($al: center, $g: 8px);
+
+  .searchIcon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .searchInput {
+    width: 90%;
+    color: variable.$color-black-4;
+    box-sizing: border-box;
+    border: none;
+    @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+
+    &::placeholder {
+      color: variable.$color-white-12;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: transparent;
+    }
+  }
+}
+
+.gjs-blocks-c {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gjs-block-category {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin-bottom: 16px;
+  gap: 18px;
+}
+
+.gjs-block-category .gjs-title {
+  @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+  color: variable.$color-black-0;
+  padding: 0 0 0 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  cursor: default !important;
+  margin-bottom: 18px;
+}
+
+.gjs-block-category .gjs-caret-icon {
+  display: none !important;
+}
+
+.gjs-block-category .gjs-blocks-c {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+}
+
+.gjs-block {
+  width: 100% !important;
+  min-height: auto !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 0 12px 0 !important;
+  background: transparent !important;
+}
+
+.gjs-block:hover {
+  color: inherit !important;
+}
+
+.customBlock {
+  @include variable.d-flex($al: center, $g: 12px);
+  background: variable.$color-white-13;
+  border: 1px solid variable.$color-white-14;
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+  cursor: grab;
+
+  .icon {
+    height: 40px;
+    width: 40px;
+  }
+
+  .ComponentIcon {
+    height: 20px;
+    width: 20px;
+  }
+
+  .info {
+    @include variable.d-flex($g: 1px, $fd: column);
+
+    .title {
+      @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+      color: variable.$color-black-0;
+    }
+
+    .desc {
+      @include variable.font-style($fs: 10px, $fw: 400, $lh: 18px);
+      color: variable.$color-black-7;
+    }
+  }
+}

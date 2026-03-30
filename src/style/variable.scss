@@ -4,13 +4,53 @@
 
 //@include variable.d-flex($fd: column, $jc: space-between,$al:center);
 $color-white-0: #fff;
+$color-white-1: #f3f4f6;
+$color-white-2: #f9fafb;
+$color-white-3: #f3f4f6;
+$color-white-4: #e5e7eb;
+$color-white-5: #eaedf2;
+$color-white-6: #eaecf0;
+$color-white-7: #e4e4e4;
+$color-white-8: #f2f4f7;
+$color-white-9: #d0d5dd;
+$color-white-10: #e1e5ea;
+$color-white-11: #f8fafb;
+$color-white-12: #929fb1;
+$color-white-13: #f6f7f9;
+$color-white-14: #edf0f2;
+$color-black-0: #000;
+$color-black-1: #111827;
+$color-black-2: #6b7280;
+$color-black-3: #151515;
+$color-black-4: #101828;
+$color-black-5: #667085;
+$color-black-6: #181d25;
+$color-black-7: #888e9e;
+$color-black-8: #0f0f10;
+
+$primary-color: #107a6c;
+$secondary-color:
+  linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.17) 100%
+  ),
+  var(--Brand-Primary, #107a6c);
+$font-inter: "Inter", sans-serif;
+
+$shadow-1:
+  0px 1px 3px rgba(16, 24, 40, 0.1),
+  0px 1px 2px rgba(16, 24, 40, 0.06);
+$shadow-2: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+$shadow-3: 0 1px 2px 0 rgba(24, 35, 34, 0.05);
 
 // mixin
-@mixin d-flex($jc: flex-start, $al: flex-start, $fd: row) {
+@mixin d-flex($jc: flex-start, $al: flex-start, $fd: row, $g: 0px) {
   display: flex;
   justify-content: $jc;
   align-items: $al;
   flex-direction: $fd;
+  gap: $g;
 }
 
 // @include variable.d-flex();

@@ -1,11 +1,8 @@
+import { AppRoutes } from "./routes";
 import "./style/global.scss";
 
 function App() {
-  return (
-    <>
-      <h1>hgjkkhgghghghghghghuhfe</h1>
-    </>
-  );
+  return <AppRoutes />;
 }
 
 export default App;
