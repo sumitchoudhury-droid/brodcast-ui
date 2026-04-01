@@ -27,7 +27,7 @@
 
     .customDropdown {
       position: relative;
-      background: variable.$color-white-2;
+      background: variable.$color-white-0;
       border-radius: 10px;
       border: 1px solid variable.$color-white-6;
       cursor: pointer;
@@ -43,7 +43,7 @@
 
       &.open {
         border-color: variable.$color-white-9;
-        background: variable.$color-white-8;
+        background: variable.$color-white-0;
       }
 
       .dropdownTrigger {
@@ -104,6 +104,7 @@
 
           &.selected {
             background: variable.$color-white-8;
+
             p {
               font-weight: 600;
             }
@@ -114,7 +115,7 @@
 
     .dropdownControl {
       @include variable.d-flex($al: center, $jc: space-between);
-      background: variable.$color-white-2;
+      background: variable.$color-white-0;
       padding: 10px 12px;
       border-radius: 10px;
       border: 1px solid variable.$color-white-6;
@@ -140,11 +141,6 @@
         font-weight: 500;
         color: variable.$color-black-4;
       }
-
-      &:hover {
-        border-color: variable.$color-white-9;
-        background: variable.$color-white-8;
-      }
     }
 
     .textStyleActions {
@@ -160,7 +156,7 @@
 
       .colorControl {
         @include variable.d-flex($al: center, $g: 8px);
-        background: variable.$color-white-13;
+        background: variable.$color-white-0;
         padding: 10px 12px;
         border-radius: 6px;
         border: 1px solid variable.$color-white-14;
@@ -192,6 +188,12 @@
           color: variable.$color-black-0;
         }
 
+        .opacityValue {
+          @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+          color: variable.$color-black-5;
+          margin-left: auto;
+        }
+
         .hiddenColorInput {
           position: absolute;
           top: 0;
@@ -205,7 +207,7 @@
 
       .alignmentToggle {
         @include variable.d-flex($g: 4px);
-        background: variable.$color-white-2;
+        background: variable.$color-white-0;
         padding: 4px;
         border-radius: 8px;
         border: 1px solid variable.$color-white-6;

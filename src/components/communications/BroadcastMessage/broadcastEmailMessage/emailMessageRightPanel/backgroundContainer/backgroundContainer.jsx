@@ -1,4 +1,5 @@
 import "./style.scss";
+import { getOpacityFromColor } from "../../../../../../utils/colorUtils";
 
 export const BackgroundContainer = ({
   bgColor,
@@ -11,14 +12,7 @@ export const BackgroundContainer = ({
   bgRepeat,
   handleBgRepeatChange,
   bgSize,
-  handleBgSizeChange,
-  borderWidth,
-  borderStyle,
-  borderColor,
-  borderRadius,
-  handleBorderChange,
-  handleBorderRadiusChange,
-  borderColorInputRef
+  handleBgSizeChange
 }) => {
   return (
     <div className="backgroundContainer">
@@ -52,7 +46,9 @@ export const BackgroundContainer = ({
                 style={{ backgroundColor: bgColor }}
               ></div>
               <span className="hexValue">{bgColor.toUpperCase()}</span>
-              <span className="opacityValue">100%</span>
+              <span className="opacityValue">
+                {getOpacityFromColor(bgColor)}%
+              </span>
               <input
                 type="color"
                 ref={colorInputRef}
@@ -209,69 +205,6 @@ export const BackgroundContainer = ({
               />
             </button>
           )}
-        </div>
-      </div>
-      <div className="borderControls">
-        <p className="sectionLabel">Border</p>
-        <div className="borderRow">
-          <div className="borderStyleRow">
-            <div className="colorControlWrapper mini">
-              <div
-                className="colorControl mini"
-                onClick={() => borderColorInputRef.current?.click()}
-              >
-                <div
-                  className="colorPreview"
-                  style={{ backgroundColor: borderColor }}
-                ></div>
-                <span className="hexValue">{borderColor.toUpperCase()}</span>
-                <input
-                  type="color"
-                  ref={borderColorInputRef}
-                  className="hiddenColorInput"
-                  value={borderColor}
-                  onChange={(e) => handleBorderChange("color", e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="styleSelector">
-              <select
-                value={borderStyle}
-                onChange={(e) => handleBorderChange("style", e.target.value)}
-              >
-                <option value="solid">Solid</option>
-                <option value="dashed">Dashed</option>
-                <option value="dotted">Dotted</option>
-                <option value="none">None</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="borderRow inputs">
-          <div className="inputGroup">
-            <span className="inputLabel">Width</span>
-            <div className="inputWrapper">
-              <input
-                type="number"
-                value={borderWidth}
-                onChange={(e) => handleBorderChange("width", e.target.value)}
-                min="0"
-              />
-              <span className="unit">px</span>
-            </div>
-          </div>
-          <div className="inputGroup">
-            <span className="inputLabel">Radius</span>
-            <div className="inputWrapper">
-              <input
-                type="number"
-                value={borderRadius}
-                onChange={(e) => handleBorderRadiusChange(e.target.value)}
-                min="0"
-              />
-              <span className="unit">px</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -7,6 +7,8 @@ import LayoutContainer from "./layoutContainer/layoutContainer";
 import { DeviceSwitcher } from "./deviceSwitch/DeviceSwitcher";
 import { BackgroundContainer } from "./backgroundContainer/backgroundContainer";
 import { TextStyleContainer } from "./textStyleContainer/textStyleContainer";
+import BorderContainer from "./borderContainer";
+import { PaddingContainer } from "./paddingContainer";
 
 export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [showPreview, setShowPreview] = useState(false);
@@ -27,6 +29,19 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     fontWeight: "400",
     fontSize: "14",
     textAlign: "left"
+  });
+
+  const [padding, setPadding] = useState({
+    top: "0",
+    right: "0",
+    bottom: "0",
+    left: "0"
+  });
+  const [margin, setMargin] = useState({
+    top: "0",
+    right: "0",
+    bottom: "0",
+    left: "0"
   });
 
   const colorInputRef = useRef(null);
@@ -75,6 +90,46 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             textAlign: style["text-align"] || "left"
           });
         }
+
+        // Sync Padding
+        setPadding({
+          top:
+            style["padding-top"]?.replace("px", "") ||
+            style["padding"]?.split(" ")[0]?.replace("px", "") ||
+            "0",
+          right:
+            style["padding-right"]?.replace("px", "") ||
+            style["padding"]?.split(" ")[1]?.replace("px", "") ||
+            "0",
+          bottom:
+            style["padding-bottom"]?.replace("px", "") ||
+            style["padding"]?.split(" ")[2]?.replace("px", "") ||
+            "0",
+          left:
+            style["padding-left"]?.replace("px", "") ||
+            style["padding"]?.split(" ")[3]?.replace("px", "") ||
+            "0"
+        });
+
+        // Sync Margin
+        setMargin({
+          top:
+            style["margin-top"]?.replace("px", "") ||
+            style["margin"]?.split(" ")[0]?.replace("px", "") ||
+            "0",
+          right:
+            style["margin-right"]?.replace("px", "") ||
+            style["margin"]?.split(" ")[1]?.replace("px", "") ||
+            "0",
+          bottom:
+            style["margin-bottom"]?.replace("px", "") ||
+            style["margin"]?.split(" ")[2]?.replace("px", "") ||
+            "0",
+          left:
+            style["margin-left"]?.replace("px", "") ||
+            style["margin"]?.split(" ")[3]?.replace("px", "") ||
+            "0"
+        });
       }
     };
 
@@ -235,39 +290,63 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
   };
 
+  const handlePaddingChange = (side, value) => {
+    const newPadding = { ...padding, [side]: value };
+    setPadding(newPadding);
+    if (selectedComp) {
+      selectedComp.addStyle({ [`padding-${side}`]: `${value}px` });
+    }
+  };
+
+  const handleMarginChange = (side, value) => {
+    const newMargin = { ...margin, [side]: value };
+    setMargin(newMargin);
+    if (selectedComp) {
+      selectedComp.addStyle({ [`margin-${side}`]: `${value}px` });
+    }
+  };
+
   const handleSendTestMail = () => {
-    const editor = editorRef.current?.getEditor();
-    if (!editor) return;
+    try {
+      const editor = editorRef.current?.getEditor();
+      if (!editor) return;
 
-    const mjmlCode = editor.getHtml();
-    const compiledHtml = editorRef.current?.getCompiledHtml?.() || "";
-    const css = editor.getCss();
-
-    const payload = {
-      to: ["venkatasiva@sketchbrahma.com"],
-      cc: [],
-      bcc: [],
-      subject: "Test Broadcast Message",
-      template: {
-        templateName: "test_broadcast",
-        version: 1,
-        mjml: mjmlCode,
-        html: compiledHtml,
-        css: css
-      },
-      variables: {
-        username: "Siva",
-        company: "Sketch Brahma"
-      },
-      attachments: [],
-      metadata: {
-        createdBy: "admin_user",
-        source: "email-builder"
+      let htmlContent = editorRef.current?.getCompiledHtml?.() || "";
+      if (!htmlContent) {
+        const rawHtml = editor.getHtml();
+        if (
+          rawHtml &&
+          !rawHtml.includes("<mj-") &&
+          !rawHtml.includes("<mjml")
+        ) {
+          htmlContent = rawHtml;
+        }
       }
-    };
 
-    console.log("Payload to backend:", payload);
-    alert("Template has been sent to venkatasiva@sketchbrahma.com");
+      if (!htmlContent) {
+        alert("Could not compile MJML to HTML. Please try previewing first.");
+        return;
+      }
+
+      // Create a blob and trigger a download
+      const blob = new Blob([htmlContent], { type: "text/html" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "test-email-template.html";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Revoke the object URL to free up memory
+      setTimeout(() => URL.revokeObjectURL(link.href), 100);
+
+      alert(
+        "Test email template HTML has been downloaded! You can open it in your browser."
+      );
+    } catch (error) {
+      console.error("Error generating test email:", error);
+      alert("Failed to generate test email.");
+    }
   };
 
   const handlePreview = () => {
@@ -313,6 +392,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         {/* Layout Section */}
         <LayoutContainer handleAddLayout={handleAddLayout} />
 
+        <PaddingContainer
+          selectedComp={selectedComp}
+          padding={padding}
+          handlePaddingChange={handlePaddingChange}
+          margin={margin}
+          handleMarginChange={handleMarginChange}
+        />
+
         {/* Background Section */}
         <BackgroundContainer
           bgColor={bgColor}
@@ -326,13 +413,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           handleBgRepeatChange={handleBgRepeatChange}
           bgSize={bgSize}
           handleBgSizeChange={handleBgSizeChange}
-          borderWidth={borderWidth}
-          borderStyle={borderStyle}
-          borderColor={borderColor}
-          borderRadius={borderRadius}
-          handleBorderChange={handleBorderChange}
-          handleBorderRadiusChange={handleBorderRadiusChange}
-          borderColorInputRef={borderColorInputRef}
         />
 
         {/* Text Section / Font Settings */}
@@ -346,6 +426,16 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               textColorInputRef={textColorInputRef}
             />
           )}
+
+        <BorderContainer
+          borderWidth={borderWidth}
+          borderStyle={borderStyle}
+          borderColor={borderColor}
+          borderRadius={borderRadius}
+          handleBorderChange={handleBorderChange}
+          handleBorderRadiusChange={handleBorderRadiusChange}
+          borderColorInputRef={borderColorInputRef}
+        />
       </div>
 
       <div className="actionFooter">

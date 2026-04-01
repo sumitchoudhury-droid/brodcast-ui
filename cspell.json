@@ -18,7 +18,9 @@
         "Cpath",
         "Accountstatement",
         "APPDATE",
-        "APPTIME"
+        "APPTIME",
+        "RRGGBBAA",
+        "RGBA"
     ],
     "ignorePaths": [
         "dist",

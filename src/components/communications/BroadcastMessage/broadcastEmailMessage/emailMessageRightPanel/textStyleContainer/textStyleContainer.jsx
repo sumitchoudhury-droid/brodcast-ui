@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import chevronDown from "../../../../../../assets/mainScreen/chevronRight.svg";
 import "./style.scss";
+import { getOpacityFromColor } from "../../../../../../utils/colorUtils";
 
 export const TextStyleContainer = ({
   typography,
@@ -149,6 +150,9 @@ export const TextStyleContainer = ({
                 style={{ backgroundColor: textColor }}
               ></div>
               <span className="hexValue">{textColor.toUpperCase()}</span>
+              <span className="opacityValue">
+                {getOpacityFromColor(textColor)}%
+              </span>
               <input
                 type="color"
                 ref={textColorInputRef}
