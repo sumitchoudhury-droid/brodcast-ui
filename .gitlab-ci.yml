@@ -1,0 +1,33 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  AWS_DEFAULT_REGION: ap-southeast-1
+  S3_BUCKET_NAME: s3://checkin-asyst-brodcast
+
+build:
+  stage: build
+  image: node:22-alpine
+  script:
+    - npm install
+    - npm run build
+  only:
+    - dev-master
+  artifacts:
+    paths:
+      - dist
+
+deploy:
+  stage: deploy
+  image: 
+        name: amazon/aws-cli:2.13.13
+        entrypoint: [""]
+  script:
+    - aws --version
+    - aws s3 sync dist/ $S3_BUCKET_NAME/ --delete
+
+  only:
+    - dev-master
