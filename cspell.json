@@ -15,7 +15,10 @@
         "resuable",
         "Telehealth",
         "Csvg",
-        "Cpath"
+        "Cpath",
+        "Accountstatement",
+        "APPDATE",
+        "APPTIME"
     ],
     "ignorePaths": [
         "dist",

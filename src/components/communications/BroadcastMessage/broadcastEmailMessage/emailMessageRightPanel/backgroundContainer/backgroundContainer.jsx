@@ -57,7 +57,7 @@ export const BackgroundContainer = ({
                 type="color"
                 ref={colorInputRef}
                 className="hiddenColorInput"
-                value={bgColor.match(/^#[0-9a-f]{6}$/i) ? bgColor : "#FFFFFF"}
+                value={bgColor}
                 onChange={(e) => handleBgColorChange(e.target.value)}
               />
             </div>
@@ -229,11 +229,7 @@ export const BackgroundContainer = ({
                   type="color"
                   ref={borderColorInputRef}
                   className="hiddenColorInput"
-                  value={
-                    borderColor.match(/^#[0-9a-f]{6}$/i)
-                      ? borderColor
-                      : "#000000"
-                  }
+                  value={borderColor}
                   onChange={(e) => handleBorderChange("color", e.target.value)}
                 />
               </div>

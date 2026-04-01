@@ -1,4 +1,3 @@
-// components/LeftPanel.jsx
 import { useState } from "react";
 import leftPanelTemplate from "../../../../../assets/leftPanel/leftPanelTemplate.svg";
 import leftPanelBlock from "../../../../../assets/leftPanel/leftPanelBlock.svg";
@@ -18,7 +17,11 @@ import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg
 import leftPanelPlaceholders from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
 import "./style.scss";
 
-export default function LeftPanel({ editorRef }) {
+export default function LeftPanel({
+  editorRef,
+  showPlaceholders,
+  setShowPlaceholders
+}) {
   const [tab, setTab] = useState("blocks");
 
   const handleDragStart = (blockId) => (e) => {
@@ -133,13 +136,14 @@ export default function LeftPanel({ editorRef }) {
     }
   };
 
-  const createBlockItem = (blockId, title, desc) => (
+  const createBlockItem = (blockId, title, desc, onClick) => (
     <div
       key={blockId + title}
-      className="customBlock "
+      className={`customBlock ${blockId === "customPlaceholders" && showPlaceholders ? "active" : ""}`}
       draggable
       onDragStart={handleDragStart(blockId)}
       onDragEnd={handleDragEnd}
+      onClick={onClick}
     >
       {getIcon(blockId)}
       <div className="info">
@@ -233,7 +237,9 @@ export default function LeftPanel({ editorRef }) {
         <div className="gjs-block-category">
           <div className="gjs-title">Components</div>
           <div className="gjs-blocks-c">
-            {createBlockItem("customPlaceholders", "Placeholders")}
+            {createBlockItem("customPlaceholders", "Placeholders", null, () =>
+              setShowPlaceholders((prev) => !prev)
+            )}
             {createBlockItem("customHeader", "Header")}
             {createBlockItem("customContent", "Content")}
             {createBlockItem("customFeatures", "Features")}
