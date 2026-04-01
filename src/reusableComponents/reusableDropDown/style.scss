@@ -1,0 +1,167 @@
+@use "../../style/variable.scss" as variable;
+
+.dropdown {
+  @include variable.d-flex($fd: column, $al: flex-start, $jc: center, $g: 8px);
+  width: 100%;
+  position: relative;
+
+  .dropdownLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .dropdownSelectContainer {
+    position: relative;
+    width: 100%;
+    border: 1px solid variable.$color-green-0;
+    border-radius: 6px;
+    background-color: variable.$color-white-0;
+    transition: all 0.2s ease;
+
+    .dropdownSelectContainerValue {
+      @include variable.d-flex(
+        $fd: row,
+        $al: center,
+        $jc: space-between,
+        $g: 8px
+      );
+      padding: 8px 16px;
+      cursor: pointer;
+      user-select: none;
+
+      .dropdownSelectContainerValueImage {
+        @include variable.d-flex(
+          $fd: row,
+          $al: center,
+          $jc: flex-start,
+          $g: 6px
+        );
+        width: 90%;
+
+        .dropdownSelectContainerValueImageWrapper {
+          width: 20px;
+          height: 20px;
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+          }
+        }
+
+        .dropdownSelectContainerValueText {
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-green-0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          width: 90%;
+        }
+      }
+
+      .dropdownSelectContainerValueArrow {
+        width: 20px;
+        height: 20px;
+        transition: transform 0.3s ease;
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    .dropdownSelectContainerOptionsContainer {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background-color: variable.$color-white-0;
+      padding: 4px;
+      border: 1px solid variable.$color-white-5;
+      border-radius: 8px;
+      box-shadow: variable.$shadow-4;
+      z-index: 1000;
+      max-height: 300px;
+      overflow-y: auto;
+      animation: dropdownFadeIn 0.2s ease;
+
+      // Custom scrollbar
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+
+        &:hover {
+          background: #a8a8a8;
+        }
+      }
+    }
+
+    .dropdownSelectContainerOptions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      border-radius: 8px;
+
+      &:hover {
+        background-color: variable.$color-white-5;
+      }
+
+      .dropdownSelectContainerOptionsImage {
+        width: 20px;
+        height: 20px;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
+      .dropdownSelectContainerOptionsText {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+        color: variable.$color-black-8;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  // Disabled state
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+
+    .dropdownSelectContainer {
+      background-color: #f5f5f5;
+
+      .dropdownSelectContainerValue {
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Animation for dropdown
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

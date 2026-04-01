@@ -1,0 +1,351 @@
+@use "../../../../../../style/variable.scss" as variable;
+
+.backgroundContainer {
+  width: 100%;
+  @include variable.d-flex($fd: column, $g: 10px);
+  padding: 16px;
+
+  .backgroundContainerHeader {
+    width: 100%;
+    @include variable.d-flex($al: center, $jc: space-between);
+
+    p {
+      @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
+      color: variable.$color-black-6;
+      margin: 0;
+    }
+  }
+
+  .backgroundControls {
+    @include variable.d-flex($fd: column, $g: 12px);
+    width: 100%;
+
+    .backgroundControlsTop {
+      @include variable.d-flex($al: center, $g: 10px);
+      width: 100%;
+
+      .backgroundControlsTopRight {
+        @include variable.d-flex($al: center, $g: 10px);
+      }
+    }
+
+    .colorControlWrapper {
+      position: relative;
+      width: 100%;
+
+      &.tiny {
+        width: auto;
+      }
+    }
+
+    .colorControl {
+      @include variable.d-flex($al: center, $g: 12px);
+      background: variable.$color-white-13;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid variable.$color-white-14;
+      cursor: pointer;
+      position: relative;
+
+      &.mini {
+        border-radius: 6px;
+        gap: 8px;
+
+        .colorPreview {
+          width: 16px;
+          height: 16px;
+        }
+
+        .hexValue {
+          font-size: 12px;
+        }
+      }
+
+      .colorPreview {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 1px solid variable.$color-white-6;
+      }
+
+      .hexValue {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 24px);
+        color: variable.$color-black-0;
+      }
+
+      .opacityValue {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 24px);
+        color: variable.$color-black-5;
+        align-self: flex-end;
+      }
+
+      .hiddenColorInput {
+        position: absolute;
+        top: 300px;
+        left: -200px;
+        width: 0;
+        height: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+    }
+
+    .bgImageActions {
+      width: 100%;
+
+      .addBgImageBtn {
+        width: 100%;
+        @include variable.d-flex($al: center, $jc: center, $g: 8px);
+        padding: 10px;
+        background: variable.$color-white-0;
+        border: 1px dashed variable.$color-white-9;
+        border-radius: 8px;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: variable.$color-white-2;
+          border-color: variable.$color-black-7;
+        }
+      }
+
+      .bgImagePreviewContainer {
+        @include variable.d-flex($fd: column, $g: 12px);
+        width: 100%;
+
+        .bgImagePreview {
+          @include variable.d-flex($al: center, $g: 8px);
+          padding: 8px;
+          background: variable.$color-white-2;
+          border: 1px solid variable.$color-white-6;
+          border-radius: 8px;
+          width: 100%;
+
+          .imageThumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid variable.$color-white-6;
+          }
+
+          .fileName {
+            flex: 1;
+            font-size: 12px;
+            color: #344054;
+            font-weight: 500;
+          }
+
+          .iconBtnSmall {
+            padding: 4px;
+            color: variable.$color-black-5;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+
+            &:hover {
+              color: variable.$color-red-0;
+            }
+          }
+        }
+
+        .bgImageOptions {
+          @include variable.d-flex($fd: column, $g: 12px);
+          width: 100%;
+
+          .optionGroup {
+            @include variable.d-flex($al: center, $jc: space-between, $g: 8px);
+            width: 100%;
+
+            .optionLabel {
+              @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+              color: variable.$color-black-5;
+              margin: 0;
+            }
+
+            .segmentedControl {
+              @include variable.d-flex($al: center);
+              background: variable.$color-white-13;
+              border: 1px solid variable.$color-white-14;
+              border-radius: 6px;
+              padding: 2px;
+              overflow: hidden;
+
+              .segment {
+                @include variable.font-style($fs: 11px, $fw: 500, $lh: 16px);
+                color: variable.$color-black-5;
+                padding: 4px 8px;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                border-radius: 4px;
+                transition: all 0.2s;
+                min-width: 60px;
+                text-align: center;
+
+                &:hover {
+                  color: variable.$color-black-0;
+                }
+
+                &.active {
+                  background: variable.$color-white-0;
+                  color: variable.$color-blue-0;
+                  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .borderControls {
+    @include variable.d-flex($fd: column, $g: 12px);
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 16px;
+    border-top: 1px solid variable.$color-white-6;
+    position: relative;
+
+    .sectionLabel {
+      @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+      color: variable.$color-black-0;
+      margin: 0;
+      margin-bottom: 4px;
+    }
+
+    .borderRow {
+      @include variable.d-flex($al: center, $jc: space-between, $g: 12px);
+      width: 100%;
+
+      &.inputs {
+        @include variable.d-flex($al: center, $g: 12px);
+        width: 100%;
+      }
+
+      .borderStyleRow {
+        @include variable.d-flex($al: center, $g: 10px);
+        width: 100%;
+
+        .colorControlWrapper.mini {
+          flex: 1.2;
+
+          .colorControl.mini {
+            background: variable.$color-white-0;
+            border: 1px solid variable.$color-white-6;
+            padding: 8px 10px;
+            gap: 10px;
+            border-radius: 8px;
+            box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+
+            .colorPreview {
+              width: 16px;
+              height: 16px;
+              border: 1px solid variable.$color-white-6;
+            }
+
+            .hexValue {
+              @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+              color: variable.$color-black-0;
+            }
+          }
+        }
+
+        .styleSelector {
+          flex: 1;
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%23667085' stroke-width='1.66667' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+          }
+
+          select {
+            width: 100%;
+            appearance: none;
+            padding: 8px 30px 8px 12px;
+            background: variable.$color-white-0;
+            border: 1px solid variable.$color-white-6;
+            border-radius: 8px;
+            box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+            @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+            color: variable.$color-black-0;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &:focus {
+              outline: none;
+              border-color: variable.$color-blue-0;
+              box-shadow: 0 0 0 4px rgba(46, 144, 250, 0.1);
+            }
+          }
+        }
+      }
+
+      .inputGroup {
+        flex: 1;
+        @include variable.d-flex($fd: column, $g: 6px);
+
+        .inputLabel {
+          @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+          color: variable.$color-black-5;
+        }
+
+        .inputWrapper {
+          @include variable.d-flex($al: center, $g: 6px);
+          background: variable.$color-white-0;
+          border: 1px solid variable.$color-white-6;
+          border-radius: 8px;
+          padding: 8px 10px;
+          box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+          transition: all 0.2s;
+
+          &:focus-within {
+            border-color: variable.$color-blue-0;
+            box-shadow: 0 0 0 4px rgba(46, 144, 250, 0.1);
+          }
+
+          input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            @include variable.font-style($fs: 12px, $fw: 600, $lh: 18px);
+            color: variable.$color-black-0;
+            text-align: left;
+
+            &:focus {
+              outline: none;
+            }
+
+            &::-webkit-inner-spin-button,
+            &::-webkit-outer-spin-button {
+              -webkit-appearance: none;
+              margin: 0;
+            }
+          }
+
+          .unit {
+            font-size: 11px;
+            color: variable.$color-black-6;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+        }
+      }
+    }
+  }
+}

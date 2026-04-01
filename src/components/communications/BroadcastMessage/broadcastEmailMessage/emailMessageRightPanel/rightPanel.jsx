@@ -2,95 +2,11 @@ import { useState, useEffect, useRef } from "react";
 
 import "./style.scss";
 import PreviewModal from "../emailMessagePreviewModal/previewModal";
-
-const DeviceSwitcher = ({ handlePreview, isEditorEmpty, editorRef }) => {
-  const [activeDevice, setActiveDevice] = useState("desktop");
-
-  const setDevice = (device) => {
-    setActiveDevice(device);
-    editorRef.current?.setDevice(device === "desktop" ? "Desktop" : "Mobile");
-  };
-
-  return (
-    <div className="deviceSwitcherContainer">
-      <div className="deviceToggle">
-        <button
-          className={`deviceBtn ${activeDevice === "desktop" ? "active" : ""}`}
-          onClick={() => setDevice("desktop")}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
-          </svg>
-        </button>
-        <button
-          className={`deviceBtn ${activeDevice === "mobile" ? "active" : ""}`}
-          onClick={() => setDevice("mobile")}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-            <line x1="12" y1="18" x2="12" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <button
-        className="previewBtn"
-        onClick={handlePreview}
-        disabled={isEditorEmpty}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
-          fill="none"
-        >
-          <path
-            d="M8.33333 10C8.33333 10.442 8.50893 10.866 8.82149 11.1785C9.13405 11.4911 9.55797 11.6667 10 11.6667C10.442 11.6667 10.866 11.4911 11.1785 11.1785C11.4911 10.866 11.6667 10.442 11.6667 10C11.6667 9.55797 11.4911 9.13405 11.1785 8.82149C10.866 8.50893 10.442 8.33333 10 8.33333C9.55797 8.33333 9.13405 8.50893 8.82149 8.82149C8.50893 9.13405 8.33333 9.55797 8.33333 10Z"
-            stroke="#107A6C"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M17.5 10C15.5 13.3333 13 15 10 15C7 15 4.5 13.3333 2.5 10C4.5 6.66667 7 5 10 5C13 5 15.5 6.66667 17.5 10Z"
-            stroke="#107A6C"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <p>Preview</p>
-      </button>
-    </div>
-  );
-};
-
-const SectionHeader = ({ title, icon, onIconClick }) => (
-  <div className="section-header">
-    <span>{title}</span>
-    {icon && (
-      <div className="header-icon" onClick={onIconClick}>
-        {icon}
-      </div>
-    )}
-  </div>
-);
+import SignatureSection from "./signatureSection/SignatureSection";
+import LayoutContainer from "./layoutContainer/layoutContainer";
+import { DeviceSwitcher } from "./deviceSwitch/DeviceSwitcher";
+import { BackgroundContainer } from "./backgroundContainer/backgroundContainer";
+import { TextStyleContainer } from "./textStyleContainer/textStyleContainer";
 
 export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [showPreview, setShowPreview] = useState(false);
@@ -99,6 +15,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [bgColor, setBgColor] = useState("#FFFFFF");
   const [textColor, setTextColor] = useState("#000000");
   const [bgImage, setBgImage] = useState("");
+  const [bgRepeat, setBgRepeat] = useState("no-repeat");
+  const [bgSize, setBgSize] = useState("contain");
+  const [borderWidth, setBorderWidth] = useState("0");
+  const [borderStyle, setBorderStyle] = useState("solid");
+  const [borderColor, setBorderColor] = useState("#000000");
+  const [borderRadius, setBorderRadius] = useState("0");
+
   const [typography, setTypography] = useState({
     fontFamily: "Inter",
     fontWeight: "400",
@@ -109,6 +32,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const colorInputRef = useRef(null);
   const textColorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
+  const borderColorInputRef = useRef(null);
 
   useEffect(() => {
     const editor = editorRef.current?.getEditor();
@@ -127,6 +51,19 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setBgImage(
           style["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
         );
+        setBgRepeat(style["background-repeat"] || "no-repeat");
+        const currentSize = style["background-size"] || "contain";
+        setBgSize(currentSize === "100% 100%" ? "fill" : currentSize);
+
+        // Sync Border
+        const border = style["border"] || "0px solid #000000";
+        const borderParts = border.split(" ");
+        if (borderParts.length >= 3) {
+          setBorderWidth(borderParts[0].replace("px", ""));
+          setBorderStyle(borderParts[1]);
+          setBorderColor(borderParts[2]);
+        }
+        setBorderRadius(style["border-radius"]?.replace("px", "") || "0");
 
         // Sync Typography/Color
         if (selected.is("mj-text") || selected.is("mj-button")) {
@@ -181,11 +118,9 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (content) {
       const selected = editor.getSelected();
       if (selected) {
-        selected
-          .parent()
-          ?.append(content, {
-            at: selected.parent().components().indexOf(selected) + 1
-          });
+        selected.parent()?.append(content, {
+          at: selected.parent().components().indexOf(selected) + 1
+        });
       } else {
         editor.addComponents(content);
       }
@@ -220,7 +155,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       selectedComp.addStyle({
         "background-image": `url(${url})`,
         "background-repeat": "no-repeat",
-        "background-size": "cover",
+        "background-size": "contain",
         "background-position": "center"
       });
       e.target.value = "";
@@ -232,6 +167,51 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     setBgImage("");
     if (selectedComp) {
       selectedComp.addStyle({ "background-image": "none" });
+    }
+  };
+
+  const handleBgRepeatChange = (repeat) => {
+    setBgRepeat(repeat);
+    if (selectedComp) {
+      selectedComp.addStyle({ "background-repeat": repeat });
+    }
+  };
+
+  const handleBgSizeChange = (size) => {
+    const finalSize = size === "fill" ? "100% 100%" : size;
+    setBgSize(size);
+    if (selectedComp) {
+      selectedComp.addStyle({ "background-size": finalSize });
+    }
+  };
+
+  const handleBorderChange = (key, value) => {
+    let newWidth = borderWidth;
+    let newStyle = borderStyle;
+    let newColor = borderColor;
+
+    if (key === "width") {
+      newWidth = value;
+      setBorderWidth(value);
+    } else if (key === "style") {
+      newStyle = value;
+      setBorderStyle(value);
+    } else if (key === "color") {
+      newColor = value;
+      setBorderColor(value);
+    }
+
+    if (selectedComp) {
+      selectedComp.addStyle({
+        border: `${newWidth}px ${newStyle} ${newColor}`
+      });
+    }
+  };
+
+  const handleBorderRadiusChange = (radius) => {
+    setBorderRadius(radius);
+    if (selectedComp) {
+      selectedComp.addStyle({ "border-radius": `${radius}px` });
     }
   };
 
@@ -327,338 +307,45 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         editorRef={editorRef}
       />
 
-      <div className="panel-sections">
+      <div className="panelSections">
+        <SignatureSection />
+
         {/* Layout Section */}
-        <div className="panel-section">
-          <SectionHeader title="Layout" />
-          <div className="layout-grid">
-            <button
-              className="layout-icon-btn"
-              onClick={() => handleAddLayout("2-col")}
-              title="2-column"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#667085"
-                strokeWidth="1.5"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="12" y1="3" x2="12" y2="21"></line>
-              </svg>
-            </button>
-            <button
-              className="layout-icon-btn"
-              onClick={() => handleAddLayout("3-col")}
-              title="3-column"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#667085"
-                strokeWidth="1.5"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="8" y1="3" x2="8" y2="21"></line>
-                <line x1="16" y1="3" x2="16" y2="21"></line>
-              </svg>
-            </button>
-            <button
-              className="layout-icon-btn"
-              onClick={() => handleAddLayout("1-col")}
-              title="1-column"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#667085"
-                strokeWidth="1.5"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              </svg>
-            </button>
-            <button
-              className="layout-icon-btn"
-              onClick={() => handleAddLayout("30-70")}
-              title="30/70"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#667085"
-                strokeWidth="1.5"
-              >
-                <rect x="3" y="3" width="6" height="18" rx="1"></rect>
-                <rect x="11" y="3" width="10" height="18" rx="1"></rect>
-              </svg>
-            </button>
-            <button
-              className="layout-icon-btn"
-              onClick={() => handleAddLayout("70-30")}
-              title="70/30"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#667085"
-                strokeWidth="1.5"
-              >
-                <rect x="3" y="3" width="10" height="18" rx="1"></rect>
-                <rect x="15" y="3" width="6" height="18" rx="1"></rect>
-              </svg>
-            </button>
-            <button
-              className="layout-icon-btn"
-              onClick={() => handleAddLayout("2-row")}
-              title="2-row Stacked"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#667085"
-                strokeWidth="1.5"
-              >
-                <rect x="3" y="3" width="18" height="8" rx="1"></rect>
-                <rect x="3" y="13" width="18" height="8" rx="1"></rect>
-              </svg>
-            </button>
-          </div>
-        </div>
+        <LayoutContainer handleAddLayout={handleAddLayout} />
 
         {/* Background Section */}
-        <div className="panel-section">
-          <SectionHeader title="Background" />
-          <div className="background-controls">
-            <div className="color-control-wrapper">
-              <div
-                className="color-control"
-                onClick={() => colorInputRef.current?.click()}
-              >
-                <div
-                  className="color-preview"
-                  style={{ backgroundColor: bgColor }}
-                ></div>
-                <span className="hex-value">{bgColor.toUpperCase()}</span>
-                <span className="opacity-value">100%</span>
-                <input
-                  type="color"
-                  ref={colorInputRef}
-                  className="hidden-color-input"
-                  value={bgColor.match(/^#[0-9a-f]{6}$/i) ? bgColor : "#FFFFFF"}
-                  onChange={(e) => handleBgColorChange(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="bg-image-actions">
-              {bgImage ? (
-                <div className="bg-image-preview">
-                  <div
-                    className="image-thumb"
-                    style={{ backgroundImage: `url(${bgImage})` }}
-                  ></div>
-                  <span className="file-name">BG Image</span>
-                  <button
-                    className="icon-btn small"
-                    onClick={removeBgImage}
-                    title="Remove Background Image"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <button
-                  className="add-bg-img-btn"
-                  onClick={() => bgImageInputRef.current?.click()}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect
-                      x="3"
-                      y="3"
-                      width="18"
-                      height="18"
-                      rx="2"
-                      ry="2"
-                    ></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                  <span>Add BG Image</span>
-                  <input
-                    type="file"
-                    ref={bgImageInputRef}
-                    style={{ display: "none" }}
-                    accept="image/*"
-                    onChange={handleBgImageUpload}
-                  />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <BackgroundContainer
+          bgColor={bgColor}
+          handleBgColorChange={handleBgColorChange}
+          bgImage={bgImage}
+          removeBgImage={removeBgImage}
+          bgImageInputRef={bgImageInputRef}
+          handleBgImageUpload={handleBgImageUpload}
+          colorInputRef={colorInputRef}
+          bgRepeat={bgRepeat}
+          handleBgRepeatChange={handleBgRepeatChange}
+          bgSize={bgSize}
+          handleBgSizeChange={handleBgSizeChange}
+          borderWidth={borderWidth}
+          borderStyle={borderStyle}
+          borderColor={borderColor}
+          borderRadius={borderRadius}
+          handleBorderChange={handleBorderChange}
+          handleBorderRadiusChange={handleBorderRadiusChange}
+          borderColorInputRef={borderColorInputRef}
+        />
 
         {/* Text Section / Font Settings */}
         {selectedComp &&
           (selectedComp.is("mj-text") || selectedComp.is("mj-button")) && (
-            <div className="panel-section">
-              <SectionHeader title="Text" />
-              <div className="text-controls">
-                <div className="dropdown-control full-width">
-                  <select
-                    value={typography.fontFamily}
-                    onChange={(e) =>
-                      handleTypographyChange("fontFamily", e.target.value)
-                    }
-                  >
-                    <option value="Inter">Inter</option>
-                    <option value="Roboto">Roboto</option>
-                    <option value="Arial">Arial</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                  </select>
-                </div>
-                <div className="dropdown-row">
-                  <div className="dropdown-control flex-1">
-                    <select
-                      value={typography.fontWeight}
-                      onChange={(e) =>
-                        handleTypographyChange("fontWeight", e.target.value)
-                      }
-                    >
-                      <option value="400">Regular</option>
-                      <option value="500">Medium</option>
-                      <option value="600">SemiBold</option>
-                      <option value="700">Bold</option>
-                    </select>
-                  </div>
-                  <div className="dropdown-control flex-1">
-                    <input
-                      type="number"
-                      value={typography.fontSize}
-                      onChange={(e) =>
-                        handleTypographyChange("fontSize", e.target.value)
-                      }
-                      style={{
-                        width: "100%",
-                        border: "none",
-                        background: "transparent",
-                        outline: "none"
-                      }}
-                    />
-                    <span>px</span>
-                  </div>
-                </div>
-
-                <div className="text-style-actions">
-                  <div className="color-control-wrapper tiny">
-                    <div
-                      className="color-control mini"
-                      onClick={() => textColorInputRef.current?.click()}
-                    >
-                      <div
-                        className="color-preview"
-                        style={{ backgroundColor: textColor }}
-                      ></div>
-                      <span className="hex-value">
-                        {textColor.toUpperCase()}
-                      </span>
-                      <input
-                        type="color"
-                        ref={textColorInputRef}
-                        className="hidden-color-input"
-                        value={
-                          textColor.match(/^#[0-9a-f]{6}$/i)
-                            ? textColor
-                            : "#000000"
-                        }
-                        onChange={(e) => handleTextColorChange(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="alignment-toggle">
-                    <button
-                      className={
-                        typography.textAlign === "left" ? "active" : ""
-                      }
-                      onClick={() =>
-                        handleTypographyChange("textAlign", "left")
-                      }
-                    >
-                      L
-                    </button>
-                    <button
-                      className={
-                        typography.textAlign === "center" ? "active" : ""
-                      }
-                      onClick={() =>
-                        handleTypographyChange("textAlign", "center")
-                      }
-                    >
-                      C
-                    </button>
-                    <button
-                      className={
-                        typography.textAlign === "right" ? "active" : ""
-                      }
-                      onClick={() =>
-                        handleTypographyChange("textAlign", "right")
-                      }
-                    >
-                      R
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TextStyleContainer
+              typography={typography}
+              handleTypographyChange={handleTypographyChange}
+              textColor={textColor}
+              handleTextColorChange={handleTextColorChange}
+              textColorInputRef={textColorInputRef}
+            />
           )}
-
-        {/* Stroke Section (Placeholder) */}
-        <div className="panel-section">
-          <SectionHeader
-            title="Stroke"
-            icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#667085"
-                strokeWidth="2"
-              >
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            }
-          />
-        </div>
       </div>
 
       <div className="actionFooter">
