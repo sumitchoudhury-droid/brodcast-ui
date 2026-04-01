@@ -1,4 +1,4 @@
-import { ReusableButton } from "../../../../resuableButton";
+import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
 import "./style.scss";
 
 // components/Footer.jsx

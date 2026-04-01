@@ -1,0 +1,35 @@
+@use "../../../../../../style/variable.scss" as variable;
+
+.layoutContainer {
+  width: 100%;
+  @include variable.d-flex($fd: column, $g: 12px);
+  padding: 16px;
+  border-bottom: 1px solid variable.$color-white-6;
+
+  .layoutHeader {
+    @include variable.d-flex($al: center, $jc: space-between);
+
+    .layoutHeaderText {
+      color: variable.$color-black-6;
+      @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+      margin: 0;
+    }
+  }
+
+  .layoutGrid {
+    @include variable.d-flex($al: center, $jc: space-between);
+    width: 100%;
+    gap: 8px;
+    background: variable.$color-white-2;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid variable.$color-white-6;
+
+    .layoutIconBtn {
+      @include variable.d-flex($al: center, $jc: center);
+      cursor: pointer;
+      border: none;
+      background-color: transparent;
+    }
+  }
+}

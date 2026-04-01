@@ -12,7 +12,7 @@ export const TabsComponent = () => {
     const matchingTab = tabs.find((tab) =>
       currentPath.includes(tab.title.toLowerCase().replace(/\s+/g, "-"))
     );
-    return matchingTab ? matchingTab.id : currentPath === "/" ? 1 : null;
+    return matchingTab ? matchingTab.id : currentPath === "/" ? 6 : null;
   }, [location.pathname]);
 
   const handleTabClick = (tab) => {

@@ -6,21 +6,15 @@ import {
   useNavigate,
   useLocation
 } from "react-router-dom";
-import { SecureChat } from "../../components/communications/secureChat";
-import { NotificationConfiguration } from "../../components/communications/notificationConfiguration";
+import { PatientsMessages } from "../../components/communications/patientsMessages";
 import "./style.scss";
 import { BroadcastMessage } from "../../components/communications/BroadcastMessage";
 
 function Communications() {
   const CommunicationsData = useMemo(
     () => [
-      { id: 1, title: "Broadcast Message", path: "broadcast-message" },
-      { id: 2, title: "Secure Chat", path: "secure-chat" },
-      {
-        id: 3,
-        title: "Notification Configuration",
-        path: "notification-configuration"
-      }
+      { id: 1, title: "Patients Messages", path: "patients-messages" },
+      { id: 2, title: "Broadcast Message", path: "broadcast-message" }
     ],
     []
   );
@@ -35,14 +29,14 @@ function Communications() {
     );
     return matchingItem
       ? matchingItem.id
-      : currentPath.endsWith("/communications") ||
-          currentPath.endsWith("/communications/")
+      : currentPath.endsWith("/patient-communication") ||
+          currentPath.endsWith("/patient-communication/")
         ? 1
         : null;
   }, [location.pathname, CommunicationsData]);
 
   const handleTabClick = (item) => {
-    navigate(`/communications/${item.path}`);
+    navigate(`/patient-communication/${item.path}`);
   };
 
   return (
@@ -68,11 +62,7 @@ function Communications() {
             element={<Navigate to="broadcast-message" replace />}
           />
           <Route path="broadcast-message" element={<BroadcastMessage />} />
-          <Route path="secure-chat" element={<SecureChat />} />
-          <Route
-            path="notification-configuration"
-            element={<NotificationConfiguration />}
-          />
+          <Route path="patients-messages" element={<PatientsMessages />} />
         </Routes>
       </div>
     </div>
