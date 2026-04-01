@@ -4,7 +4,7 @@ import Communications from "../containers/communications";
 import { tabs } from "../utls/constants";
 
 const renderTabContent = (path, title) => {
-  if (path === "communications") {
+  if (path === "patient-communication") {
     return <Communications />;
   }
   return <h2>{title} Content</h2>;
@@ -13,20 +13,26 @@ const renderTabContent = (path, title) => {
 export const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/users" replace />} />
+      <Route
+        path="/"
+        element={<Navigate to="/patient-communication" replace />}
+      />
       <Route element={<MainScreen />}>
         {tabs.map((tab) => {
           const path = tab.title.toLowerCase().replace(/\s+/g, "-");
           return (
             <Route
               key={tab.id}
-              path={path === "communications" ? `${path}/*` : path}
+              path={path === "patient-communication" ? `${path}/*` : path}
               element={renderTabContent(path, tab.title)}
             />
           );
         })}
       </Route>
-      <Route path="*" element={<Navigate to="/users" replace />} />
+      <Route
+        path="*"
+        element={<Navigate to="/patient-communication" replace />}
+      />
     </Routes>
   );
 };

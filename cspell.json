@@ -13,7 +13,9 @@
         "manipal",
         "Intergy",
         "resuable",
-        "Telehealth"
+        "Telehealth",
+        "Csvg",
+        "Cpath"
     ],
     "ignorePaths": [
         "dist",

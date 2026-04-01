@@ -1,0 +1,87 @@
+@use "../../style/variable.scss" as variable;
+
+.reusableModal {
+  @include variable.d-flex($fd: row, $al: center, $jc: center, $g: 8px);
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+/* ---------- OVERLAY ---------- */
+
+.modalOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+/* ---------- MODAL BOX ---------- */
+
+.modalContent {
+  position: relative;
+  width: 480px;
+  max-width: 90%;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  animation: modalFade 0.25s ease;
+  z-index: 1;
+}
+
+/* ---------- HEADER ---------- */
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  box-shadow: variable.$shadow-3;
+}
+
+.modalTitle {
+  @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
+  color: variable.$color-black-0;
+}
+
+.modalClose {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+  color: #6b7280;
+
+  &:hover {
+    color: #111827;
+  }
+}
+
+/* ---------- BODY ---------- */
+
+.modalBody {
+  padding: 20px;
+  color: #374151;
+  font-size: 15px;
+}
+
+/* ---------- FOOTER ---------- */
+
+.modalFooter {
+  @include variable.d-flex($fd: row, $al: center, $jc: flex-end, $g: 12px);
+  padding: 16px 24px;
+  box-shadow: variable.$shadow-3;
+}
+
+/* ---------- ANIMATION ---------- */
+
+@keyframes modalFade {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

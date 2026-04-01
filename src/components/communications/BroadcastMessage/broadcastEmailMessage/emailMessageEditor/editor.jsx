@@ -205,6 +205,27 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 html, body { margin: 0; height: 100%; width: 100%; }
                 body { min-height: 100%; }
                 [data-gjs-type] { min-height: 20px; }
+                
+                /* Hide scrollbar track */
+                ::-webkit-scrollbar {
+                  width: 6px;
+                }
+                ::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                ::-webkit-scrollbar-thumb {
+                  background: #d1d5db;
+                  border-radius: 10px;
+                }
+                ::-webkit-scrollbar-thumb:hover {
+                  background: #9ca3af;
+                }
+                
+                /* For Firefox */
+                * {
+                  scrollbar-width: thin;
+                  scrollbar-color: #d1d5db transparent;
+                }
             `,
       plugins: [mjmlPlugin],
       pluginsOpts: {

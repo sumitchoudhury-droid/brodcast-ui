@@ -1,0 +1,42 @@
+@use "../../../../../../style/variable.scss" as variable;
+
+.signatureSectionContainer {
+  @include variable.d-flex($fd: column, $g: 16px);
+  padding: 16px;
+  width: 100%;
+}
+
+.importTemplateContainer {
+  @include variable.d-flex($al: center, $jc: center, $g: 8px);
+  border-radius: 6px;
+  border: 1px solid variable.$color-green-0;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+
+  &:hover {
+    background: rgba(variable.$color-green-0, 0.05);
+  }
+
+  .importTemplateContainerImage {
+    width: 20px;
+    height: 20px;
+  }
+
+  p {
+    @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+    color: variable.$color-green-0;
+    margin: 0;
+  }
+}
+
+.confirmUploadTemplateContainer {
+  @include variable.d-flex($fd: column, $g: 12px);
+
+  .confirmUploadTemplateContainerTitle {
+    @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+    color: variable.$color-black-6;
+    margin: 0;
+  }
+}
