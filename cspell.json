@@ -20,7 +20,10 @@
         "APPDATE",
         "APPTIME",
         "RRGGBBAA",
-        "RGBA"
+        "RGBA",
+        "Eastside",
+        "Riverbend",
+        "Maplewood"
     ],
     "ignorePaths": [
         "dist",

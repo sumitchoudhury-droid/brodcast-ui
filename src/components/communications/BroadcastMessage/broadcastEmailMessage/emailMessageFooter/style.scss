@@ -8,6 +8,7 @@
   padding: 16px 20px;
   z-index: 100;
   background-color: #fff;
+  z-index: 1299;
 }
 
 .footer {
@@ -21,4 +22,130 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.confirmBroadcastModal {
+  @include variable.d-flex($fd: column, $g: 22px);
+
+  .confirmBroadcastModalText {
+    @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+    color: variable.$color-black-9;
+
+    .bold {
+      color: variable.$color-black-6;
+      font-weight: 600;
+    }
+  }
+
+  .viewInvalidPatients {
+    @include variable.d-flex($fd: row, $g: 6px, $al: center);
+    cursor: pointer;
+
+    p {
+      @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+      color: variable.$color-black-9;
+      text-decoration-line: underline;
+      text-decoration-style: solid;
+      text-decoration-skip-ink: none;
+      text-decoration-thickness: auto;
+      text-underline-offset: auto;
+      text-underline-position: from-font;
+    }
+  }
+
+  .patientFilterSummary {
+    width: 100%;
+
+    .filterSummaryHeader {
+      @include variable.d-flex($fd: row, $al: center, $jc: space-between);
+      cursor: pointer;
+      border-bottom: 1px solid variable.$color-white-5;
+      background-color: variable.$color-white-0;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+      padding: 16px 0px;
+
+      p {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+        color: variable.$color-black-8;
+        margin: 0;
+      }
+
+      .chevronIcon {
+        transition: transform 0.3s ease;
+
+        &.expanded {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    .filterSummaryContent {
+      max-height: 0;
+      opacity: 0;
+      padding: 0;
+      overflow: hidden;
+      transition:
+        max-height 0.4s ease-in-out,
+        opacity 0.3s ease-in-out,
+        padding 0.4s ease-in-out;
+      @include variable.d-flex($fd: column, $g: 20px);
+
+      &.expanded {
+        max-height: 1000px;
+        opacity: 1;
+        padding: 16px 0;
+      }
+
+      .Section {
+        width: 100%;
+        @include variable.d-flex($fd: row, $g: 16px, $al: stretch);
+
+        .filterSection {
+          width: 49%;
+          @include variable.d-flex($fd: column, $jc: space-between, $g: 4px);
+
+          .filterLabel {
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+            color: variable.$color-white-12;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+          }
+
+          .filterValue {
+            @include variable.d-flex($fd: row, $al: center, $jc: space-between);
+            width: 100%;
+            gap: 8px;
+
+            p {
+              flex: 1;
+              min-width: 0;
+              margin: 0;
+              @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+              color: variable.$color-black-9;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              overflow: hidden;
+            }
+
+            .badge {
+              background-color: variable.$color-white-0;
+              padding: 5px;
+              border-radius: 8px;
+              @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+              color: variable.$color-black-6;
+              flex-shrink: 0;
+              border: 1px solid variable.$color-white-5;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .externalLinkIcon {
+    width: 16px;
+    height: 16px;
+  }
 }
