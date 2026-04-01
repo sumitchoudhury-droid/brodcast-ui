@@ -1,0 +1,148 @@
+@use "../../style/variable.scss";
+
+.toastWrapper {
+  position: fixed;
+  top: 40px;
+  right: 40px;
+  z-index: 10000;
+  @include variable.d-flex($fd: column, $g: 16px, $al: flex-end);
+  pointer-events: none;
+}
+
+.reusableToast {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 450px;
+  min-width: 380px;
+  padding: 20px;
+  border-radius: 12px;
+  @include variable.d-flex($al: flex-start, $g: 16px);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: right;
+  animation: toastSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  overflow: hidden;
+  z-index: 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -150% -150%;
+    z-index: -2;
+    background: conic-gradient(
+      from 0deg,
+      transparent,
+      variable.$color-white-9,
+      transparent 30%
+    );
+    animation: rotateBorder 4s linear infinite;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    background: variable.$color-white-0;
+    border-radius: 11px;
+    z-index: -1;
+  }
+
+  &.toastExit {
+    animation: toastSlideOut 0.3s ease-in forwards;
+  }
+
+  &.success {
+    box-shadow: 0 4px 10px 0 rgba(108, 233, 166, 0.2);
+
+    &::before {
+      background: conic-gradient(
+        from 0deg,
+        transparent,
+        variable.$color-green-1,
+        transparent 30%
+      );
+    }
+
+    &::after {
+      background-color: variable.$color-green-2;
+    }
+  }
+
+  &.error {
+    box-shadow: 0 4px 10px 0 rgba(253, 162, 155, 0.2);
+
+    &::before {
+      background: conic-gradient(
+        from 0deg,
+        transparent,
+        variable.$color-red-1,
+        transparent 30%
+      );
+    }
+
+    &::after {
+      background-color: variable.$color-red-2;
+    }
+  }
+
+  .toastIconBox {
+    width: 32px;
+    height: 32px;
+  }
+
+  .toastContent {
+    flex: 1;
+    @include variable.d-flex($fd: column, $g: 4px);
+
+    .toastTitle {
+      @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+      color: variable.$color-black-6;
+    }
+
+    .toastMessage {
+      @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+      color: variable.$color-black-9;
+    }
+  }
+
+  .toastCloseBtn {
+    cursor: pointer;
+    transition: color 0.2s;
+    background: transparent;
+    border: none;
+  }
+}
+
+@keyframes rotateBorder {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}

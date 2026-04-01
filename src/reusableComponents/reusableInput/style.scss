@@ -1,0 +1,54 @@
+@use "../../style/variable.scss" as variable;
+
+.inputWrapper {
+  @include variable.d-flex($fd: column, $g: 6px);
+  width: 100%;
+}
+
+.inputLabel {
+  @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+  color: variable.$color-black-6;
+}
+
+.required {
+  @include variable.font-style($fs: 10px, $fw: 400, $lh: 18px);
+  color: variable.$color-red-0;
+}
+
+.inputContainer {
+  display: flex;
+  align-items: center;
+  border: 1px solid variable.$color-white-10;
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: 0.2s ease;
+  width: 100%;
+}
+
+.inputField {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  background: transparent;
+
+  &::placeholder {
+    color: variable.$placeholder-color;
+  }
+}
+
+.leftIcon,
+.rightIcon {
+  display: flex;
+  align-items: center;
+  margin: 0 6px;
+}
+
+.inputError {
+  border-color: #ef4444;
+}
+
+.errorText {
+  font-size: 12px;
+  color: #ef4444;
+}

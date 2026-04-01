@@ -7,7 +7,7 @@
   width: 264px;
   height: 438px;
   background: variable.$color-white-0;
-  border: 1px solid variable.$color-white-15;
+  border: 1px solid variable.$color-white-10;
   border-radius: 10px;
   padding: 16px;
   z-index: 1001;
@@ -24,7 +24,7 @@
 
   .placeholderSearch {
     @include variable.d-flex($al: center, $g: 8px);
-    border: 1px solid variable.$color-white-15;
+    border: 1px solid variable.$color-white-10;
     border-radius: 8px;
     padding: 8px 12px;
     box-shadow: variable.$shadow-2;
@@ -70,7 +70,7 @@
       align-items: center;
       gap: 12px;
       padding: 8px;
-      border: 1px solid variable.$color-white-15;
+      border: 1px solid variable.$color-white-10;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;

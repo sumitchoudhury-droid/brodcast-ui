@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useToast } from "../../../../../hooks/useToast";
 
 import "./style.scss";
 import PreviewModal from "../emailMessagePreviewModal/previewModal";
@@ -9,9 +10,12 @@ import { BackgroundContainer } from "./backgroundContainer/backgroundContainer";
 import { TextStyleContainer } from "./textStyleContainer/textStyleContainer";
 import BorderContainer from "./borderContainer";
 import { PaddingContainer } from "./paddingContainer";
+import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
 
 export default function RightPanel({ editorRef, isEditorEmpty }) {
+  const toast = useToast();
   const [showPreview, setShowPreview] = useState(false);
+  const [showSendTestMail, setShowSendTestMail] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [selectedComp, setSelectedComp] = useState(null);
   const [bgColor, setBgColor] = useState("#FFFFFF");
@@ -23,6 +27,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [borderStyle, setBorderStyle] = useState("solid");
   const [borderColor, setBorderColor] = useState("#000000");
   const [borderRadius, setBorderRadius] = useState("0");
+  const [testEmail, setTestEmail] = useState("");
 
   const [typography, setTypography] = useState({
     fontFamily: "Inter",
@@ -307,6 +312,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   const handleSendTestMail = () => {
+    if (!testEmail) {
+      toast.error(
+        "Failed to Save Template",
+        "An error occurred while saving your template. Please try again."
+      );
+      return;
+    }
+
     try {
       const editor = editorRef.current?.getEditor();
       if (!editor) return;
@@ -324,28 +337,31 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       }
 
       if (!htmlContent) {
-        alert("Could not compile MJML to HTML. Please try previewing first.");
+        toast.error(
+          "Compile Error",
+          "Could not compile MJML to HTML. Please try previewing first."
+        );
         return;
       }
 
-      // Create a blob and trigger a download
-      const blob = new Blob([htmlContent], { type: "text/html" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "test-email-template.html";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Logic for actually sending the test email would go here
+      console.log(`Sending test email to: ${testEmail}`);
+      console.log("HTML Content:", htmlContent);
 
-      // Revoke the object URL to free up memory
-      setTimeout(() => URL.revokeObjectURL(link.href), 100);
-
-      alert(
-        "Test email template HTML has been downloaded! You can open it in your browser."
+      toast.success(
+        "Template Saved Successfully",
+        `Your template has been saved and published to library successfully. ${testEmail}!`
       );
-    } catch (error) {
-      console.error("Error generating test email:", error);
-      alert("Failed to generate test email.");
+
+      // Clear state and close modal
+      setShowSendTestMail(false);
+      setTestEmail("");
+    } catch (err) {
+      console.error("Error generating test email:", err);
+      toast.error(
+        "Failed to Save Template",
+        "An error occurred while saving your template. Please try again."
+      );
     }
   };
 
@@ -439,7 +455,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       </div>
 
       <div className="actionFooter">
-        <button className="sendTestBtn" onClick={handleSendTestMail}>
+        <button
+          className="sendTestBtn"
+          onClick={() => setShowSendTestMail(true)}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -464,6 +483,37 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         onClose={() => setShowPreview(false)}
         html={previewHtml}
       />
+
+      <ReusableModal
+        isOpen={showSendTestMail}
+        onClose={() => setShowSendTestMail(false)}
+        title="Send Test Mail"
+        confirmText="Send"
+        cancelText="Cancel"
+        confirmBtnVariant="primary"
+        cancelBtnVariant="secondary"
+        confirmBtnDisabled={isEditorEmpty || !testEmail}
+        onConfirm={handleSendTestMail}
+        onCancel={() => setShowSendTestMail(false)}
+      >
+        <div className="sendTestMailContainer">
+          <div className="emailInputContainer">
+            <label htmlFor="email" className="emailLabel">
+              Email
+            </label>
+            <p className="required">*</p>
+          </div>
+          <div className="emailInputWrapper">
+            <input
+              type="email"
+              placeholder="Enter email"
+              className="emailInput"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+            />
+          </div>
+        </div>
+      </ReusableModal>
     </div>
   );
 }
