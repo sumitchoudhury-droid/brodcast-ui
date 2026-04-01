@@ -516,6 +516,76 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       });
 
+      // ── Handle external drop of placeholders ──────────────────────────────
+      body.addEventListener("dragover", (e) => {
+        if (e.target.isContentEditable) return;
+        const textData = e.dataTransfer.types.includes("text/plain");
+        if (textData) {
+          let comp = editor.Components.getWrapper().find(e.target)[0];
+          if (comp) {
+            let current = comp;
+            while (current && current.get("type") !== "mj-text") {
+              current = current.parent();
+            }
+            if (current && current.get("type") === "mj-text") {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            } else {
+              let container = comp;
+              while (
+                container &&
+                !["mj-column", "mj-section", "mj-body"].includes(
+                  container.get("type")
+                )
+              ) {
+                container = container.parent();
+              }
+              if (container) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+              }
+            }
+          }
+        }
+      });
+
+      body.addEventListener("drop", (e) => {
+        if (e.target.isContentEditable) return;
+        const text = e.dataTransfer.getData("text/plain");
+        if (text && text.trim().startsWith("$")) {
+          let comp = editor.Components.getWrapper().find(e.target)[0];
+          if (comp) {
+            let current = comp;
+            while (current && current.get("type") !== "mj-text") {
+              current = current.parent();
+            }
+            if (current && current.get("type") === "mj-text") {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              const content = current.get("content") || "";
+              current.set("content", content + (content ? " " : "") + text);
+              editor.trigger("component:update", current);
+            } else {
+              // If not dropped on a text component, see if we can append a new text block to the column/section
+              let container = comp;
+              while (
+                container &&
+                !["mj-column", "mj-section", "mj-body"].includes(
+                  container.get("type")
+                )
+              ) {
+                container = container.parent();
+              }
+              if (container) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                container.append(`<mj-text>${text}</mj-text>`);
+              }
+            }
+          }
+        }
+      });
+
       // ── Empty-state overlay ───────────────────────────────────────────────
       const hasRealContent = () => {
         const wrapper = editor.getWrapper();

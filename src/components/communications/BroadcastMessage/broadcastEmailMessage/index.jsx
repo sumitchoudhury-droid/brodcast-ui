@@ -7,11 +7,13 @@ import LeftPanel from "./emailMessageLeftPanel/leftPanel";
 import Editor from "./emailMessageEditor/editor";
 import RightPanel from "./emailMessageRightPanel/rightPanel";
 import Footer from "./emailMessageFooter/footer";
+import { PlaceHolderSection } from "./emailMessageLeftPanel/placeHolderSection";
 
 export const BroadcastEmailMessage = () => {
   // Shared ref — Editor populates it, LeftPanel reads it
   const editorRef = useRef(null);
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
+  const [showPlaceholders, setShowPlaceholders] = useState(false);
 
   const handleLoadTemplate = (templateName) => {
     // TODO: load a real MJML string for the chosen template
@@ -30,7 +32,16 @@ export const BroadcastEmailMessage = () => {
       </div>
       <div className="builder">
         {/* Pass editorRef so LeftPanel can call editor.BlockManager.startDrag() */}
-        <LeftPanel editorRef={editorRef} onLoadTemplate={handleLoadTemplate} />
+        <LeftPanel
+          editorRef={editorRef}
+          onLoadTemplate={handleLoadTemplate}
+          showPlaceholders={showPlaceholders}
+          setShowPlaceholders={setShowPlaceholders}
+        />
+
+        {showPlaceholders && (
+          <PlaceHolderSection setShowPlaceholders={setShowPlaceholders} />
+        )}
 
         <div className="editorArea">
           {/* Editor populates editorRef.current once GrapesJS is ready */}

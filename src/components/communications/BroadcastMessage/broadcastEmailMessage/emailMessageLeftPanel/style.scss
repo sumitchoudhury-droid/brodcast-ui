@@ -11,6 +11,8 @@
   font-family: "Inter", sans-serif;
   overflow-y: auto;
   border-radius: 10px;
+  position: relative;
+  z-index: 1200;
 }
 
 .tabSwitcher {
@@ -136,7 +138,12 @@
   border-radius: 8px;
   padding: 8px 12px;
   transition: all 0.2s ease;
-  cursor: grab;
+  cursor: pointer;
+
+  &.active {
+    border-color: variable.$color-blue-0;
+    background-color: variable.$color-white-11;
+  }
 
   .icon {
     height: 40px;
