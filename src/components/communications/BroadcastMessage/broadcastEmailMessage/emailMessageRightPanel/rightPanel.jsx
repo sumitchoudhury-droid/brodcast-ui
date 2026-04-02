@@ -154,22 +154,22 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     let content = "";
     switch (layoutType) {
       case "1-col":
-        content = `<mj-section><mj-column padding="20px" background-color="#ffffff"></mj-column></mj-section>`;
+        content = `<mj-section full-width="full-width"><mj-column padding="20px" background-color="#ffffff"></mj-column></mj-section>`;
         break;
       case "2-col":
-        content = `<mj-section><mj-column width="50%" padding="20px"></mj-column><mj-column width="50%" padding="20px"></mj-column></mj-section>`;
+        content = `<mj-section full-width="full-width"><mj-column width="50%" padding="20px"></mj-column><mj-column width="50%" padding="20px"></mj-column></mj-section>`;
         break;
       case "3-col":
-        content = `<mj-section><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column></mj-section>`;
+        content = `<mj-section full-width="full-width"><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column></mj-section>`;
         break;
       case "30-70":
-        content = `<mj-section><mj-column width="30%" padding="10px"></mj-column><mj-column width="70%" padding="10px"></mj-column></mj-section>`;
+        content = `<mj-section full-width="full-width"><mj-column width="30%" padding="10px"></mj-column><mj-column width="70%" padding="10px"></mj-column></mj-section>`;
         break;
       case "70-30":
-        content = `<mj-section><mj-column width="70%" padding="10px"></mj-column><mj-column width="30%" padding="10px"></mj-column></mj-section>`;
+        content = `<mj-section full-width="full-width"><mj-column width="70%" padding="10px"></mj-column><mj-column width="30%" padding="10px"></mj-column></mj-section>`;
         break;
       case "2-row":
-        content = `<mj-section padding="0"><mj-column padding="10px"></mj-column></mj-section><mj-section padding="0"><mj-column padding="10px"></mj-column></mj-section>`;
+        content = `<mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section><mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section>`;
         break;
       default:
         break;
@@ -458,6 +458,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         <button
           className="sendTestBtn"
           onClick={() => setShowSendTestMail(true)}
+          disabled={isEditorEmpty}
+          style={{
+            cursor: isEditorEmpty ? "not-allowed" : "pointer",
+            opacity: isEditorEmpty ? 0.5 : 1
+          }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

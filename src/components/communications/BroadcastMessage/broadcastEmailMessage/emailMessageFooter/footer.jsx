@@ -101,7 +101,7 @@ export default function Footer() {
         onConfirm={handleConfirm}
         onCancel={handleCloseModal}
       >
-        <div className="modalContent">
+        <div className="saveTemplateContent">
           <ReusableInput
             label="Template Name"
             name="templateName"

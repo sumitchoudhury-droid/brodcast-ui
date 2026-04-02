@@ -9,7 +9,7 @@ import "../style.scss";
 
 const EMPTY_TEMPLATE = `
 <mjml>
-  <mj-body width="100%" background-color="#ffffff">
+  <mj-body width="600px" background-color="#ffffff">
   
   </mj-body>
 </mjml>
@@ -238,16 +238,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     // ─────────────────────────────────────────────────────────────────────────
     // STEP 1 — Override MJML component type defaults RIGHT AFTER plugin loads.
-    //
-    // grapesjs-mjml sets strict droppable/draggable rules on each type.
-    // We must override them on the type MODEL defaults — not on instances —
-    // so every component created from those types inherits the new rules.
-    //
-    // Key insight: GrapesJS sorter checks `model.get('droppable')` on the
-    // TARGET and `model.get('draggable')` on the DRAGGED component to decide
-    // if a drop is allowed. We set both to `true` so all targets accept all
-    // draggable blocks, then use the component:add handler (Step 2) to fix
-    // any invalid MJML nesting that results.
     // ─────────────────────────────────────────────────────────────────────────
     editor.on("load", () => {
       const typesToPatch = [
@@ -263,8 +253,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const typeObj = editor.Components.getType(typeName);
         if (!typeObj) return;
 
-        // Override defaults on the model prototype so ALL future instances
-        // and all already-created instances (via set) get these values
         editor.Components.addType(typeName, {
           model: {
             defaults: {
@@ -286,33 +274,19 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     // ─────────────────────────────────────────────────────────────────────────
     // STEP 2 — Fix invalid MJML nesting AFTER the sorter places the component.
-    //
-    // We use a debounced queue so that ALL component:add events from a single
-    // block drop are collected first, then processed once in a microtask.
-    // This prevents duplication: GrapesJS fires component:add for every node
-    // in a block's tree (section, column, text, etc). If we immediately
-    // clone+append leaves during the first event, GrapesJS still fires events
-    // for the original inner nodes AND the new clones, producing duplicates.
-    //
-    // The pendingFixups queue + queueMicrotask pattern ensures we process
-    // only the top-level dropped component after all its children are parsed.
     // ─────────────────────────────────────────────────────────────────────────
     const pendingFixups = [];
     let fixupScheduled = false;
 
     const processPendingFixups = () => {
       fixupScheduled = false;
-      // Take a snapshot and clear
       const items = pendingFixups.splice(0, pendingFixups.length);
 
-      // De-duplicate: only process top-level components (skip children that
-      // are part of a parent also in the queue, since the parent handler
-      // will move them).
       const itemCids = new Set(items.map((c) => c.cid));
       const topLevel = items.filter((comp) => {
         let p = comp.parent();
         while (p) {
-          if (itemCids.has(p.cid)) return false; // parent is also queued
+          if (itemCids.has(p.cid)) return false;
           p = p.parent();
         }
         return true;
@@ -321,7 +295,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       isUnwrapping.current = true;
       try {
         topLevel.forEach((component) => {
-          // Component may have been removed by a previous iteration
           if (!component.parent()) return;
 
           const type = component.get("type");
@@ -347,7 +320,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             });
             innerCols.forEach((col) => parent.append(col));
             if (directContent.length > 0) {
-              const newCol = parent.components().add(`<mj-column></mj-column>`);
+              const newCol = parent
+                .components()
+                .add(`<mj-column padding="0px"></mj-column>`);
               directContent.forEach((c) => newCol.append(c));
             }
             component.remove();
@@ -364,7 +339,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             component.remove();
             const newCol = parent
               .components()
-              .add(`<mj-column></mj-column>`, { at: idx });
+              .add(`<mj-column padding="0px"></mj-column>`, { at: idx });
             newCol.append(cloned);
             return;
           }
@@ -376,7 +351,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             component.remove();
             const newSection = parent
               .components()
-              .add(`<mj-section></mj-section>`, { at: idx });
+              .add(
+                `<mj-section full-width="full-width" padding="0px"></mj-section>`,
+                { at: idx }
+              );
             newSection.append(cloned);
             return;
           }
@@ -391,10 +369,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             component.remove();
             const newSection = parent
               .components()
-              .add(`<mj-section></mj-section>`, { at: idx });
+              .add(
+                `<mj-section full-width="full-width" padding="0px"></mj-section>`,
+                { at: idx }
+              );
             const newCol = newSection
               .components()
-              .add(`<mj-column></mj-column>`);
+              .add(`<mj-column padding="0px"></mj-column>`);
             newCol.append(cloned);
           }
         });
@@ -404,22 +385,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     };
 
     editor.on("component:add", (comp) => {
-      // Patch droppable/draggable on every new instance
       const type = comp.get("type");
       if (type && type !== "textnode" && type !== "text") {
         comp.set({ droppable: true, draggable: true });
       }
 
-      // Skip if we're currently doing our own restructuring
       if (isUnwrapping.current) return;
 
-      // Queue for deferred fixup processing
       if (type && type !== "textnode" && type !== "text") {
         pendingFixups.push(comp);
         if (!fixupScheduled) {
           fixupScheduled = true;
-          // Use setTimeout(0) to run after GrapesJS finishes processing
-          // all component:add events from the current block drop
           setTimeout(processPendingFixups, 0);
         }
       }
@@ -566,7 +542,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               current.set("content", content + (content ? " " : "") + text);
               editor.trigger("component:update", current);
             } else {
-              // If not dropped on a text component, see if we can append a new text block to the column/section
               let container = comp;
               while (
                 container &&
@@ -752,6 +727,33 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Unselect on outside click ──────────────────────────────────────────────
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      const editor = gjsInstance.current;
+      if (!editor) return;
+
+      const safeSelectors = [
+        ".editorArea",
+        ".rightPanel",
+        ".leftPanel",
+        ".placeholderSection",
+        ".reusable-modal",
+        ".gjs-mdl-container",
+        ".sp-container"
+      ];
+
+      const isSafe = safeSelectors.some((sel) => e.target.closest(sel));
+
+      if (!isSafe) {
+        editor.select(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div
@@ -782,8 +784,26 @@ function registerBlocks(editor) {
   const bm = editor.BlockManager;
   if (bm.getAll) bm.getAll().reset();
 
+  // ── FIX: SVG placeholder fills full width of its container ──────────────
+  // - viewBox kept at 600×200 for aspect ratio
+  // - width="100%" so it stretches to the column width
+  // - No fixed pixel width on mj-image so MJML renders it fluid
   const svgPlaceholder =
-    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='200' viewBox='0 0 600 200'><rect width='600' height='200' fill='%23F9FAFB'/><rect x='250' y='55' width='100' height='90' rx='4' fill='none' stroke='%2300A3FF' stroke-width='1' stroke-dasharray='4 4'/><g transform='translate(288, 70)' fill='none' stroke='%23475467' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7'/><line x1='16' y1='5' x2='22' y2='5'/><line x1='19' y1='2' x2='19' y2='8'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/></g><text x='300' y='130' text-anchor='middle' font-family='Inter, sans-serif' font-size='14' font-weight='500' fill='%23475467'>Add Image</text></svg>";
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="200" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
+        <rect width="600" height="200" fill="#F9FAFB"/>
+        <rect x="250" y="55" width="100" height="90" rx="4" fill="none" stroke="#00A3FF" stroke-width="1" stroke-dasharray="4 4"/>
+        <g transform="translate(288, 70)" fill="none" stroke="#404B5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/>
+          <line x1="16" y1="5" x2="22" y2="5"/>
+          <line x1="19" y1="2" x2="19" y2="8"/>
+          <circle cx="9" cy="9" r="2"/>
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+        </g>
+        <text x="300" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#404B5A">Add Image</text>
+      </svg>`
+    );
 
   const uploadIcon =
     "data:image/svg+xml;utf8," +
@@ -791,76 +811,77 @@ function registerBlocks(editor) {
       `<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M25.333 16l-6.012 7.155a1.667 1.667 0 1 0 2.358 2.357l7.011-7.155a3.333 3.333 0 1 0-4.714-4.714l-7.012 7.126a5 5 0 0 0 7.071 7.071L30.047 20.714" stroke="#555F75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
     );
 
-  // ── Frame blocks ──────────────────────────────────────────────────────────────
+  // ── Frame blocks ──────────────────────────────────────────────────────────
   bm.add("row", {
     label: "Frame - Row",
     category: "Blocks",
-    content: `<mj-section><mj-column padding="20px" background-color="#ffffff"></mj-column></mj-section>`
+    content: `<mj-section full-width="full-width" padding="0px"><mj-column padding="0px" background-color="#ffffff"></mj-column></mj-section>`
   });
 
   bm.add("column", {
     label: "Frame - Column",
     category: "Blocks",
-    content: `<mj-column padding="20px" background-color="#ffffff"></mj-column>`
+    content: `<mj-column padding="0px" background-color="#ffffff"></mj-column>`
   });
 
-  // ── Content blocks — wrapped in mj-section > mj-column for canvas drops.
-  //    The component:add handler unwraps when dropped into existing sections.
-
+  // ── Content blocks ────────────────────────────────────────────────────────
   bm.add("heading", {
     label: "Heading",
     category: "Content",
-    content: `<mj-section><mj-column><mj-text font-size="24px" font-weight="bold" color="#000000">Your Heading</mj-text></mj-column></mj-section>`
+    content: `<mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px">
+                Title goes here
+              </mj-text>`
   });
 
   bm.add("paragraph", {
     label: "Paragraph",
     category: "Content",
-    content: `<mj-section><mj-column><mj-text font-size="14px" color="#555555" line-height="1.6">Paragraph content</mj-text></mj-column></mj-section>`
+    content: `<mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px">Paragraph content</mj-text>`
   });
 
+  // ── FIX: removed width="600px" — mj-image is now fluid (fills column) ────
   bm.add("image", {
     label: "Image",
     category: "Content",
-    content: `<mj-section><mj-column><mj-image src="${svgPlaceholder}" /></mj-column></mj-section>`
+    content: `<mj-image src="${svgPlaceholder}" padding="0px" align="center" />`
   });
 
   bm.add("button", {
     label: "Button",
     category: "Content",
-    content: `<mj-section><mj-column><mj-button background-color="#00A3FF" color="#ffffff" border-radius="6px">Click Here</mj-button></mj-column></mj-section>`
+    content: `<mj-button background-color="#00A3FF" color="#ffffff" border-radius="6px" padding="0px">Click Here</mj-button>`
   });
 
   bm.add("divider", {
     label: "Divider",
     category: "Content",
-    content: `<mj-section><mj-column><mj-divider border-color="#dddddd" border-width="1px" padding="10px 0"/></mj-column></mj-section>`
+    content: `<mj-divider border-color="#dddddd" border-width="1px" padding="0px"/>`
   });
 
   bm.add("Attachment", {
     label: "Attachment",
     category: "Content",
     content: `
-            <mj-section data-type="attachment-placeholder" border="2px dashed #00A3FF" padding="0px 0px" background-color="#ffffff">
-                <mj-column>
-                    <mj-text align="center" padding="0">
+            <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #00A3FF" padding="0px 0px" background-color="#ffffff">
+                <mj-column padding="0px">
+                    <mj-text align="center" padding="0px">
                         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
                             <img src="${uploadIcon}" width="24" height="24" style="display:block;" />
-                            <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter,sans-serif;">Upload Attachment</span>
+                            <span style="font-size:14px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;line-height:20px;">Upload Attachment</span>
                         </div>
                     </mj-text>
                 </mj-column>
             </mj-section>`
   });
 
-  // ── Component blocks ──────────────────────────────────────────────────────────
+  // ── Component blocks ──────────────────────────────────────────────────────
   bm.add("custom-header", {
     label: "Header Banner",
     category: "Components",
     content: `
-            <mj-section background-color="#2f6f4e">
-                <mj-column>
-                    <mj-text align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="20px">
+            <mj-section full-width="full-width" padding="0px" background-color="#2f6f4e">
+                <mj-column padding="0px">
+                    <mj-text align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px">
                         Your Header Here
                     </mj-text>
                 </mj-column>
@@ -871,9 +892,9 @@ function registerBlocks(editor) {
     label: "Text Block",
     category: "Components",
     content: `
-            <mj-section background-color="#ffffff" padding="30px 40px">
-                <mj-column>
-                    <mj-text font-size="14px" color="#555555" line-height="1.6" padding="10px 0">
+            <mj-section full-width="full-width" background-color="#ffffff" padding="0px">
+                <mj-column padding="0px">
+                    <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px">
                         Add your content here. This is a paragraph of text.
                     </mj-text>
                 </mj-column>
@@ -884,22 +905,23 @@ function registerBlocks(editor) {
     label: "CTA Button",
     category: "Components",
     content: `
-            <mj-section>
-                <mj-column>
-                    <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" padding="14px 28px" href="#">
+            <mj-section full-width="full-width" padding="0px">
+                <mj-column padding="0px">
+                    <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" padding="0px" href="#">
                         Click Here
                     </mj-button>
                 </mj-column>
             </mj-section>`
   });
 
+  // ── FIX: removed width="600px" from mj-image here too ────────────────────
   bm.add("custom-image-block", {
     label: "Image Section",
     category: "Components",
     content: `
-            <mj-section background-color="#ffffff" padding="20px">
-                <mj-column>
-                    <mj-image src="${svgPlaceholder}" padding="0" />
+            <mj-section full-width="full-width" background-color="#ffffff" padding="0px">
+                <mj-column padding="0px">
+                    <mj-image src="${svgPlaceholder}" padding="0px" align="center" />
                 </mj-column>
             </mj-section>`
   });

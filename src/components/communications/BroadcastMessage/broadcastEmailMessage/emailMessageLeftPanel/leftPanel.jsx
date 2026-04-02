@@ -136,13 +136,19 @@ export default function LeftPanel({
     }
   };
 
-  const createBlockItem = (blockId, title, desc, onClick) => (
+  const createBlockItem = (
+    blockId,
+    title,
+    desc,
+    onClick,
+    isDraggable = true
+  ) => (
     <div
       key={blockId + title}
       className={`customBlock ${blockId === "customPlaceholders" && showPlaceholders ? "active" : ""}`}
-      draggable
-      onDragStart={handleDragStart(blockId)}
-      onDragEnd={handleDragEnd}
+      draggable={isDraggable}
+      onDragStart={isDraggable ? handleDragStart(blockId) : undefined}
+      onDragEnd={isDraggable ? handleDragEnd : undefined}
       onClick={onClick}
     >
       {getIcon(blockId)}
@@ -237,8 +243,12 @@ export default function LeftPanel({
         <div className="gjs-block-category">
           <div className="gjs-title">Components</div>
           <div className="gjs-blocks-c">
-            {createBlockItem("customPlaceholders", "Placeholders", null, () =>
-              setShowPlaceholders((prev) => !prev)
+            {createBlockItem(
+              "customPlaceholders",
+              "Placeholders",
+              null,
+              () => setShowPlaceholders((prev) => !prev),
+              false
             )}
             {createBlockItem("customHeader", "Header")}
             {createBlockItem("customContent", "Content")}
