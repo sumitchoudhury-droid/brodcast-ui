@@ -24,6 +24,10 @@
   gap: 10px;
 }
 
+.saveTemplateContent {
+  @include variable.d-flex($fd: column, $g: 22px);
+}
+
 .confirmBroadcastModal {
   @include variable.d-flex($fd: column, $g: 22px);
 

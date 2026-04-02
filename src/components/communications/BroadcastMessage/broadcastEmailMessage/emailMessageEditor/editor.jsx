@@ -752,6 +752,35 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Unselect on outside click ──────────────────────────────────────────────
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      const editor = gjsInstance.current;
+      if (!editor) return;
+
+      // Check if click is in a "safe" zone where we should keep the selection.
+      // These include the editor itself, the controls panels, and any modals.
+      const safeSelectors = [
+        ".editorArea",
+        ".rightPanel",
+        ".leftPanel",
+        ".placeholderSection",
+        ".reusable-modal",
+        ".gjs-mdl-container",
+        ".sp-container" // For any color pickers
+      ];
+
+      const isSafe = safeSelectors.some((sel) => e.target.closest(sel));
+
+      if (!isSafe) {
+        editor.select(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div

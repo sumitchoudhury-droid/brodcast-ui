@@ -25,12 +25,23 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
+    html, body { margin: 0; padding: 0; overflow: hidden; height: auto; }
+    #preview-root { width: 100%; height: auto; display: inline-block; vertical-align: top; }
   </style>
 </head>
-<body>${trimmed}</body>
+<body><div id="preview-root">${trimmed}</div></body>
 </html>`;
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !html || !iframeRef.current) return;
@@ -42,9 +53,10 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
       try {
         const doc = iframe.contentWindow?.document;
         if (!doc) return;
-        const height =
-          doc.documentElement.scrollHeight || doc.body?.scrollHeight || 600;
-        if (height > 0) {
+        const root = doc.getElementById("preview-root");
+        if (!root) return;
+        const height = root.offsetHeight || 600;
+        if (Math.abs(parseInt(iframe.style.height) - height) > 2) {
           iframe.style.height = `${height}px`;
         }
       } catch {
@@ -55,10 +67,11 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
     iframe.onload = () => {
       resizeIframe();
       try {
-        const body = iframe.contentWindow?.document?.body;
-        if (body) {
+        const root =
+          iframe.contentWindow?.document?.getElementById("preview-root");
+        if (root) {
           observer = new ResizeObserver(resizeIframe);
-          observer.observe(body);
+          observer.observe(root);
         }
       } catch {
         // Fallback for ResizeObserver support/safety
@@ -144,7 +157,7 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                 style={{
                   display: "block",
                   minHeight: "200px",
-                  height: selectedDevice === "Mobile" ? "auto" : "600px",
+                  height: "auto",
                   transition: "height 0.2s ease",
                   border: "none"
                 }}

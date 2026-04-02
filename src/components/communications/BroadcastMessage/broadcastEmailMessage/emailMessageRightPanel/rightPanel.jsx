@@ -458,6 +458,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         <button
           className="sendTestBtn"
           onClick={() => setShowSendTestMail(true)}
+          disabled={isEditorEmpty}
+          style={{
+            cursor: isEditorEmpty ? "not-allowed" : "pointer",
+            opacity: isEditorEmpty ? 0.5 : 1
+          }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
