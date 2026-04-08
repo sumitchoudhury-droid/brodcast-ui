@@ -57,6 +57,8 @@ function reconcileFramePlaceholders(editor, isReconciling) {
   isReconciling.current = true;
   try {
     const frameCols = [];
+    const wrapper = editor.getWrapper();
+    if (!wrapper) return;
     const collect = (comp) => {
       try {
         const dt = comp.getAttributes()?.["data-type"];
@@ -72,7 +74,7 @@ function reconcileFramePlaceholders(editor, isReconciling) {
         /* skip destroyed components */
       }
     };
-    collect(editor.getWrapper());
+    collect(wrapper);
 
     frameCols.forEach((col) => {
       let hasReal = false;
@@ -178,6 +180,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     const parent = targetComp.parent();
     const idx = parent.components().indexOf(targetComp);
+
+    // Clear selection before removing the component
+    editor.select(null);
     targetComp.remove();
 
     parent.components().add(sectionHtml, { at: idx });
@@ -211,6 +216,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           column = column.parent();
         }
         if (column) {
+          editor.select(null);
           column.components().reset();
           column.append(
             `<mj-image src="${event.target.result}" padding="0px" margin="0px" width="100%" align="center" />`
@@ -904,7 +910,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (e.target.isContentEditable) return;
         const textData = e.dataTransfer.types.includes("text/plain");
         if (textData) {
-          let comp = editor.Components.getWrapper().find(e.target)[0];
+          let targetEl =
+            e.target.closest && e.target.closest("[data-gjs-type]");
+          let comp =
+            targetEl && targetEl.id
+              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
+              : null;
           if (comp) {
             let current = comp;
             while (current && current.get("type") !== "mj-text") {
@@ -936,7 +947,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (e.target.isContentEditable) return;
         const text = e.dataTransfer.getData("text/plain");
         if (text && text.trim().startsWith("$")) {
-          let comp = editor.Components.getWrapper().find(e.target)[0];
+          let targetEl =
+            e.target.closest && e.target.closest("[data-gjs-type]");
+          let comp =
+            targetEl && targetEl.id
+              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
+              : null;
           if (comp) {
             let current = comp;
             while (current && current.get("type") !== "mj-text") {
