@@ -4,12 +4,13 @@ import mjmlPlugin from "grapesjs-mjml";
 import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
+import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 
 import "../style.scss";
 
 const EMPTY_TEMPLATE = `
 <mjml>
-  <mj-body width="600px" background-color="#ffffff">
+  <mj-body width="100%" background-color="#ffffff" padding="0px" margin="0px">
   
   </mj-body>
 </mjml>
@@ -39,12 +40,83 @@ function collectLeafContent(comp, results = []) {
   return results;
 }
 
+// Helper to clear frame placeholders from a container (no longer needed for component-based, but kept for compatibility)
+function clearFramePlaceholder(container) {
+  if (!container) return;
+  const placeholder = container
+    .components()
+    .find((c) => c.getAttributes()["data-type"] === "frame-placeholder-ui");
+  if (placeholder) {
+    placeholder.remove();
+  }
+}
+
+// Scan every frame column and sync placeholder visibility via data-is-empty attribute
+function reconcileFramePlaceholders(editor, isReconciling) {
+  if (isReconciling.current) return;
+  isReconciling.current = true;
+  try {
+    const frameCols = [];
+    const collect = (comp) => {
+      try {
+        const dt = comp.getAttributes()?.["data-type"];
+        if (
+          dt === "row-frame-column" ||
+          dt === "column-frame-column" ||
+          dt === "column-frame-section"
+        ) {
+          frameCols.push(comp);
+        }
+        comp.components().each(collect);
+      } catch {
+        /* skip destroyed components */
+      }
+    };
+    collect(editor.getWrapper());
+
+    frameCols.forEach((col) => {
+      let hasReal = false;
+
+      col.components().each((c) => {
+        const childDt = c.getAttributes()?.["data-type"];
+        const childType = c.get("type");
+
+        // Ignore placeholder component if it still exists from old versions
+        if (childDt === "frame-placeholder-ui") {
+          // c.remove(); // Optional: clean up old placeholders
+          return;
+        }
+
+        // Check if it's real content:
+        // - If it's a textnode, it must have non-whitespace content
+        // - Otherwise, it's real if it's not a textnode
+        if (childType === "textnode" || childType === "text") {
+          const content = c.get("content")?.trim();
+          if (content && content.length > 0) {
+            hasReal = true;
+          }
+        } else {
+          hasReal = true;
+        }
+      });
+
+      // Update the attribute instead of adding/removing components
+      const currentStatus = col.getAttributes()["data-is-empty"];
+      const newStatus = hasReal ? "false" : "true";
+      if (currentStatus !== newStatus) {
+        col.addAttributes({ "data-is-empty": newStatus });
+      }
+    });
+  } finally {
+    isReconciling.current = false;
+  }
+}
+
 export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const containerRef = useRef(null);
   const gjsInstance = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
-  const attachmentClickPending = useRef(false);
   const isUnwrapping = useRef(false);
 
   const handleFileChange = (e) => {
@@ -71,43 +143,46 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="white" stroke="#D0D5DD"/><path d="M16 8L8 16M8 8L16 16" stroke="#667085" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     )}`;
 
-    const fileColumnsHtml = files
+    const columnsHtml = files
       .map((file) => {
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
         const isDoc = /\.docx?$/i.test(file.name);
         const icon = isDoc ? docIcon : pdfIcon;
         const downloadId = Math.floor(Math.random() * 90000) + 10000;
-        return `
-<mj-column width="60%" vertical-align="top">
-  <mj-text padding="10px">
-    <div style="border:1px solid #EAEDF2;border-radius:8px;overflow:hidden;background-color:#ffffff;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-        <tr>
-          <td width="48" style="padding:12px 0 12px 12px;vertical-align:middle;">
-            <img src="${icon}" width="40" height="40" style="display:block;" />
-          </td>
-          <td style="padding:12px 8px;vertical-align:middle;">
-            <div style="font-size:14px;font-weight:600;color:#1D2939;font-family:Inter,sans-serif;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${file.name}</div>
-            <div style="font-size:12px;color:#667085;font-family:Inter,sans-serif;line-height:1.4;">${sizeMb} MB</div>
-          </td>
-          <td width="40" style="padding:12px 12px 12px 0;vertical-align:middle;text-align:right;">
-            <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block;cursor:pointer;margin-left:auto;" />
-          </td>
-        </tr>
-      </table>
-      <div style="padding:8px 12px 12px;border-top:1px solid #EAEDF2;font-size:14px;color:#404B5A;font-family:Inter,sans-serif;line-height:1.5;align-items:center;justify-content:center;display:flex;">
-        Download using Link:&nbsp;<a href="#" style="color:#00A3FF;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:250px;">https://manipal.care/dl${downloadId}</a>
+        return `<mj-column width="100%" vertical-align="top" padding="0px">
+    <mj-text padding="0px 0px 10px 0px" width="100%">
+      <div style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box;">
+        <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
+          <img src="${icon}" width="40" height="40" style="display:block; flex-shrink:0;" />
+          <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
+            <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.name}</p>
+            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeMb} MB</p>
+          </div>
+          <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;" />
+        </div>
+        <div style="display:flex; align-items:center; gap:4px; width:101%; box-sizing:border-box; justify-content:center;">
+          <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; flex-shrink:0;">Download using Link:</p>
+          <p style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">
+            https://manipal.care/dl${downloadId}
+          </p>
+        </div>
       </div>
-    </div>
-  </mj-text>
-</mj-column>`;
+    </mj-text>
+  </mj-column>`;
       })
       .join("");
 
-    targetComp.components(fileColumnsHtml);
-    targetComp.addAttributes({ border: "none", padding: "10px 10px" });
-    targetComp.addAttributes({ "data-type": "attachment-filled" });
-    editor.trigger("component:update", targetComp);
+    const sectionHtml = `<mj-section full-width="full-width" padding="4px 0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
+      ${columnsHtml}
+    </mj-section>`;
+
+    const parent = targetComp.parent();
+    const idx = parent.components().indexOf(targetComp);
+    targetComp.remove();
+
+    parent.components().add(sectionHtml, { at: idx });
+
+    editor.trigger("component:update", parent);
     e.target.value = "";
   };
 
@@ -119,6 +194,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       const editor = gjsInstance.current;
       const selected = editor.getSelected();
       if (selected) {
+        // Case 1: An mj-image is selected — update its src directly
         let target = selected;
         while (target && !target.is("mj-image")) {
           target = target.parent();
@@ -126,6 +202,45 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (target) {
           target.set("src", event.target.result);
           editor.trigger("component:update", target);
+          return;
+        }
+
+        // Case 2: The image placeholder div is inside an mj-column — replace with mj-image
+        let column = selected;
+        while (column && column.get("type") !== "mj-column") {
+          column = column.parent();
+        }
+        if (column) {
+          column.components().reset();
+          column.append(
+            `<mj-image src="${event.target.result}" padding="0px" margin="0px" width="100%" align="center" />`
+          );
+          editor.trigger("component:update", column);
+          return;
+        }
+      }
+
+      // Case 3: Nothing selected — find any column that has the placeholder and replace it
+      const allColumns = [];
+      const collectColumns = (comp) => {
+        if (comp.get("type") === "mj-column") allColumns.push(comp);
+        comp.components().each(collectColumns);
+      };
+      collectColumns(editor.getWrapper());
+
+      for (const col of allColumns) {
+        try {
+          const view = col.getView?.();
+          if (view?.el?.querySelector?.(".image-click-area")) {
+            col.components().reset();
+            col.append(
+              `<mj-image src="${event.target.result}" padding="0px" margin="0px" width="100%" align="center" />`
+            );
+            editor.trigger("component:update", col);
+            break;
+          }
+        } catch {
+          /* skip */
         }
       }
     };
@@ -202,10 +317,49 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       showDevices: false,
       panels: { defaults: [] },
       canvasCss: `
-                html, body { margin: 0; height: 100%; width: 100%; }
-                body { min-height: 100%; }
+                html, body { margin: 0; height: 100%; width: 100%; overflow-x: hidden; }
+                body { 
+                  min-height: 100%; 
+                  word-break: break-word; 
+                  overflow-wrap: break-word; 
+                }
                 [data-gjs-type] { min-height: 20px; }
-                
+
+                /* ── Bullet / ordered-list fix ─────────────────────────────────
+                   MJML renders mj-text content inside <td> elements. Browsers
+                   default to clipping <td> overflow which hides bullet markers
+                   that hang to the left of the text flow.
+                   - overflow:visible on td/th lets markers paint in the gutter.
+                   - overflow:visible on ul/ol prevents nested re-clipping.
+                   - display:list-item on li survives MJML's CSS reset.
+                   - margin-left (not padding-left) is used in convertToList so
+                     bullets render in the physical left gutter of the list box.
+                ──────────────────────────────────────────────────────────── */
+                td, th {
+                  overflow: visible !important;
+                }
+                ul, ol {
+                  overflow: visible !important;
+                  list-style-type: disc;
+                  padding-left: 0;
+                  margin-left: 20px;
+                }
+                ol {
+                  list-style-type: decimal;
+                }
+                li {
+                  display: list-item !important;
+                  overflow: visible !important;
+                }
+                .list-content-cell p, .list-content-cell div {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                }
+                  .list-item-row {
+                    display: flex !important;
+                    align-items: center !important;
+                  }
+
                 /* Hide scrollbar track */
                 ::-webkit-scrollbar {
                   width: 6px;
@@ -225,6 +379,90 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 * {
                   scrollbar-width: thin;
                   scrollbar-color: #d1d5db transparent;
+                }
+
+                /* Row Frame Placeholder Styles */
+                [data-type="row-frame-column"] {
+                  position: relative;
+                  min-height: 80px;
+                }
+
+                [data-type="row-frame-column"][data-is-empty="true"] {
+                  display: flex !important;
+                  flex-direction: column !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                  gap: 8px !important;
+                  background: white !important;
+                  border: none !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  min-height: 80px !important;
+                  text-align: center !important;
+                  box-sizing: border-box !important;
+                }
+
+                [data-type="row-frame-column"][data-is-empty="true"]::before {
+                  content: "";
+                  width: 20px;
+                  height: 20px;
+                  display: block;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+                  background-size: contain;
+                  background-repeat: no-repeat;
+                }
+
+                [data-type="row-frame-column"][data-is-empty="true"]::after {
+                  content: "Drag and drop items here to stack them in rows" !important;
+                  font-family: Inter, Arial, sans-serif !important;
+                  font-size: 14px !important;
+                  color: #4D5761 !important;
+                  font-weight: 500 !important;
+                  display: block !important;
+                }
+
+                /* Column Frame Placeholder Styles */
+                [data-type="column-frame-section"],
+                [data-type="column-frame-column"] {
+                  position: relative;
+                  min-height: 80px;
+                }
+
+                [data-type="column-frame-section"][data-is-empty="true"],
+                [data-type="column-frame-column"][data-is-empty="true"] {
+                  display: flex !important;
+                  flex-direction: column !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                  gap: 8px !important;
+                  background: white !important;
+                  border: none !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  min-height: 80px !important;
+                  text-align: center !important;
+                  box-sizing: border-box !important;
+                }
+
+                [data-type="column-frame-section"][data-is-empty="true"]::before,
+                [data-type="column-frame-column"][data-is-empty="true"]::before {
+                  content: "";
+                  width: 20px;
+                  height: 20px;
+                  display: block;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'><path d='M3.33301 9.99992H16.6663M3.33301 4.99992C3.33301 4.55789 3.5086 4.13397 3.82116 3.82141C4.13372 3.50885 4.55765 3.33325 4.99967 3.33325H14.9997C15.4417 3.33325 15.8656 3.50885 16.1782 3.82141C16.4907 4.13397 16.6663 4.55789 16.6663 4.99992V14.9999C16.6663 15.4419 16.4907 15.8659 16.1782 16.1784C15.8656 16.491 15.4417 16.6666 14.9997 16.6666H4.99967C4.55765 16.6666 4.13372 16.491 3.82116 16.1784C3.5086 15.8659 3.33301 15.4419 3.33301 14.9999V4.99992Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+                  background-size: contain;
+                  background-repeat: no-repeat;
+                }
+
+                [data-type="column-frame-section"][data-is-empty="true"]::after,
+                [data-type="column-frame-column"][data-is-empty="true"]::after {
+                  content: "Drag and drop items here to stack them in columns" !important;
+                  font-family: Inter, Arial, sans-serif !important;
+                  font-size: 14px !important;
+                  color: #4D5761 !important;
+                  font-weight: 500 !important;
+                  display: block !important;
                 }
             `,
       plugins: [mjmlPlugin],
@@ -249,22 +487,38 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         ...COLUMN_VALID_CHILDREN
       ];
 
+      const ZERO_PADDING_TYPES = new Set([
+        "mj-body",
+        "mj-section",
+        "mj-column",
+        "mj-hero",
+        "mj-wrapper",
+        ...COLUMN_VALID_CHILDREN
+      ]);
+
       typesToPatch.forEach((typeName) => {
         const typeObj = editor.Components.getType(typeName);
         if (!typeObj) return;
+
+        const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
+          ? { padding: "0px", margin: "0px", width: "100%" }
+          : {};
 
         editor.Components.addType(typeName, {
           model: {
             defaults: {
               ...typeObj.model.prototype.defaults,
               droppable: true,
-              draggable: true
+              draggable: true,
+              attributes: {
+                ...(typeObj.model.prototype.defaults.attributes || {}),
+                ...extraAttrs
+              }
             }
           }
         });
       });
 
-      // Also patch every already-existing component instance in the tree
       const patchInstance = (comp) => {
         comp.set({ droppable: true, draggable: true });
         comp.components().each(patchInstance);
@@ -277,6 +531,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     // ─────────────────────────────────────────────────────────────────────────
     const pendingFixups = [];
     let fixupScheduled = false;
+
+    // ── Frame placeholder reconciler (debounced) ──────────────────────────
+    const isReconciling = { current: false };
+    let reconcileTimer = null;
+    const scheduleReconcile = () => {
+      if (reconcileTimer) return;
+      reconcileTimer = setTimeout(() => {
+        reconcileTimer = null;
+        reconcileFramePlaceholders(editor, isReconciling);
+      }, 0);
+    };
 
     const processPendingFixups = () => {
       fixupScheduled = false;
@@ -305,6 +570,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           // ── Case 1: mj-section landed inside mj-column ───────────
           if (type === "mj-section" && parentType === "mj-column") {
             const leaves = collectLeafContent(component);
+            clearFramePlaceholder(parent);
             leaves.forEach((leaf) => parent.append(leaf.clone()));
             component.remove();
             return;
@@ -322,7 +588,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             if (directContent.length > 0) {
               const newCol = parent
                 .components()
-                .add(`<mj-column padding="0px"></mj-column>`);
+                .add(
+                  `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                );
               directContent.forEach((c) => newCol.append(c));
             }
             component.remove();
@@ -339,7 +607,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             component.remove();
             const newCol = parent
               .components()
-              .add(`<mj-column padding="0px"></mj-column>`, { at: idx });
+              .add(
+                `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`,
+                { at: idx }
+              );
+            newCol.addAttributes({
+              padding: "0px",
+              margin: "0px",
+              width: "100%"
+            });
             newCol.append(cloned);
             return;
           }
@@ -352,9 +628,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             const newSection = parent
               .components()
               .add(
-                `<mj-section full-width="full-width" padding="0px"></mj-section>`,
+                `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%"></mj-section>`,
                 { at: idx }
               );
+            newSection.addAttributes({
+              padding: "0px",
+              margin: "0px",
+              width: "100%",
+              "full-width": "full-width"
+            });
             newSection.append(cloned);
             return;
           }
@@ -370,22 +652,74 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             const newSection = parent
               .components()
               .add(
-                `<mj-section full-width="full-width" padding="0px"></mj-section>`,
+                `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%"></mj-section>`,
                 { at: idx }
               );
+            newSection.addAttributes({
+              padding: "0px",
+              margin: "0px",
+              width: "100%",
+              "full-width": "full-width"
+            });
             const newCol = newSection
               .components()
-              .add(`<mj-column padding="0px"></mj-column>`);
+              .add(
+                `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+              );
+            newCol.addAttributes({
+              padding: "0px",
+              margin: "0px",
+              width: "100%"
+            });
             newCol.append(cloned);
           }
         });
       } finally {
         isUnwrapping.current = false;
+        scheduleReconcile(); // Ensure placeholders are updated after all fixups
       }
     };
 
     editor.on("component:add", (comp) => {
       const type = comp.get("type");
+
+      // Auto-remove placeholder when something is added to its container
+      if (
+        comp.getAttributes()["data-type"] !== "frame-placeholder-ui" &&
+        type !== "textnode" &&
+        type !== "text"
+      ) {
+        let container = comp.parent();
+        while (container) {
+          const containerType = container.getAttributes()["data-type"];
+          if (
+            containerType === "row-frame-column" ||
+            containerType === "column-frame-column" ||
+            containerType === "column-frame-section"
+          ) {
+            clearFramePlaceholder(container);
+            break;
+          } else if (container.get("type") === "mj-column") {
+            const placeholder = container
+              .components()
+              .find(
+                (c) =>
+                  c.getAttributes()["data-type"] === "frame-placeholder-ui" &&
+                  c !== comp
+              );
+            if (placeholder) {
+              placeholder.remove();
+              break;
+            }
+          }
+          container = container.parent();
+        }
+
+        // Schedule a full reconcile to catch cases where the parent chain
+        // traversal above misses the frame column (e.g. section-in-section fixups)
+        scheduleReconcile();
+      }
+
       if (type && type !== "textnode" && type !== "text") {
         comp.set({ droppable: true, draggable: true });
       }
@@ -398,6 +732,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           fixupScheduled = true;
           setTimeout(processPendingFixups, 0);
         }
+      }
+    });
+
+    // Restore placeholder when a frame column becomes empty after a removal
+    editor.on("component:remove", (comp) => {
+      if (comp.getAttributes()["data-type"] !== "frame-placeholder-ui") {
+        scheduleReconcile();
       }
     });
 
@@ -449,46 +790,112 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       gjsRoot.appendChild(overlay);
     }
 
+    // ── Upload icon SVG (shared between attachment block and restore logic) ───
+    const uploadIconSvg =
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        `<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M25.333 16l-6.012 7.155a1.667 1.667 0 1 0 2.358 2.357l7.011-7.155a3.333 3.333 0 1 0-4.714-4.714l-7.012 7.126a5 5 0 0 0 7.071 7.071L30.047 20.714" stroke="#555F75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+      );
+
+    // ── Helper: restore empty attachment placeholder on a section ─────────────
+    const restoreAttachmentPlaceholder = (section) => {
+      section.addAttributes({
+        "data-type": "attachment-placeholder",
+        border: "2px dashed #00A3FF",
+        padding: "0px 0px"
+      });
+      section.components(`
+        <mj-column padding="0px" margin="0px" width="100%">
+          <mj-text align="center" padding="0px" margin="0px">
+            <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:8px;width:fit-content;margin:0 auto;cursor:pointer;">
+              <img src="${uploadIconSvg}" width="40" height="40" style="display:block;" />
+              <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
+              <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
+            </div>
+          </mj-text>
+        </mj-column>
+      `);
+      editor.trigger("component:update", section);
+    };
+
     editor.on("load", () => {
-      // ── Remove-file icon handler inside canvas iframe ─────────────────────
       const body = editor.Canvas.getBody();
+
+      // ── Canvas click handler ───────────────────────────────────────────────
       body.addEventListener("click", (e) => {
-        if (e.target.classList.contains("remove-file-icon")) {
-          const comp = editor.Components.getWrapper().find(e.target)[0];
-          if (comp) {
-            let column = comp;
-            while (column && column.get("type") !== "mj-column") {
-              column = column.parent();
+        // ── Image upload area click ───────────────────────────────────────
+        if (e.target.closest(".image-click-area")) {
+          const allColumns = [];
+          const collectCols = (comp) => {
+            if (comp.get("type") === "mj-column") allColumns.push(comp);
+            comp.components().each(collectCols);
+          };
+          collectCols(editor.getWrapper());
+          const clickedColumn = allColumns.find((col) => {
+            try {
+              const view = col.getView?.();
+              return view?.el?.contains?.(e.target);
+            } catch {
+              return false;
             }
-            if (column) {
-              const section = column.parent();
-              column.remove();
-              if (section && section.components().length === 0) {
-                section.addAttributes({
-                  "data-type": "attachment-placeholder",
-                  border: "2px dashed #00A3FF",
-                  padding: "30px 20px"
-                });
-                const uploadIcon =
-                  "data:image/svg+xml;utf8," +
-                  encodeURIComponent(
-                    `<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M25.333 16l-6.012 7.155a1.667 1.667 0 1 0 2.358 2.357l7.011-7.155a3.333 3.333 0 1 0-4.714-4.714l-7.012 7.126a5 5 0 0 0 7.071 7.071L30.047 20.714" stroke="#555F75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-                  );
-                section.components(`
-                                    <mj-column>
-                                        <mj-text align="center" padding="0">
-                                            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-                                                <img src="${uploadIcon}" width="40" height="40" style="display:block;" />
-                                                <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
-                                                <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
-                                            </div>
-                                        </mj-text>
-                                    </mj-column>
-                                `);
-                editor.trigger("component:update", section);
+          });
+          if (clickedColumn) editor.select(clickedColumn);
+          imageInputRef.current?.click();
+          return;
+        }
+
+        // ── Attachment upload area click ──────────────────────────────────
+        if (e.target.closest(".attachment-click-area")) {
+          fileInputRef.current?.click();
+          return;
+        }
+
+        // ── Remove file icon click ────────────────────────────────────────
+        if (e.target.classList.contains("remove-file-icon")) {
+          const allColumns = [];
+          const collectColumns = (comp) => {
+            if (comp.get("type") === "mj-column") allColumns.push(comp);
+            comp.components().each(collectColumns);
+          };
+          collectColumns(editor.getWrapper());
+
+          const targetColumn = allColumns.find((col) => {
+            try {
+              const view = col.getView?.();
+              return view?.el?.contains?.(e.target);
+            } catch {
+              return false;
+            }
+          });
+
+          if (!targetColumn) return;
+
+          const parentSection = targetColumn.parent();
+          targetColumn.remove();
+
+          if (parentSection && parentSection.components().length === 0) {
+            const grandParent = parentSection.parent();
+            parentSection.remove();
+
+            if (grandParent) {
+              const hasAttachments = grandParent
+                .components()
+                .some(
+                  (c) => c.getAttributes()["data-type"] === "attachment-filled"
+                );
+              if (!hasAttachments) {
+                restoreAttachmentPlaceholder(
+                  grandParent
+                    .components()
+                    .add(
+                      `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#ffffff"></mj-section>`
+                    )
+                );
               }
             }
           }
+
+          return;
         }
       });
 
@@ -536,11 +943,25 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               current = current.parent();
             }
             if (current && current.get("type") === "mj-text") {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-              const content = current.get("content") || "";
-              current.set("content", content + (content ? " " : "") + text);
-              editor.trigger("component:update", current);
+              if (
+                current.getAttributes()["data-type"] === "frame-placeholder-ui"
+              ) {
+                let container = current.parent();
+                current.remove();
+                if (container) {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
+                  container.append(
+                    `<mj-text padding="0px" margin="0px">${text}</mj-text>`
+                  );
+                }
+              } else {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                const content = current.get("content") || "";
+                current.set("content", content + (content ? " " : "") + text);
+                editor.trigger("component:update", current);
+              }
             } else {
               let container = comp;
               while (
@@ -554,7 +975,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               if (container) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "copy";
-                container.append(`<mj-text>${text}</mj-text>`);
+
+                clearFramePlaceholder(container);
+
+                container.append(
+                  `<mj-text padding="0px" margin="0px">${text}</mj-text>`
+                );
               }
             }
           }
@@ -611,10 +1037,21 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       // ── Background / style sync ───────────────────────────────────────────
       editor.on("component:update:style", (comp) => {
         const type = comp.get("type");
-        if (!["mj-section", "mj-hero", "mj-wrapper", "mj-body"].includes(type))
-          return;
+        const supportedTypes = [
+          "mj-section",
+          "mj-hero",
+          "mj-wrapper",
+          "mj-body",
+          "mj-column",
+          "mj-image",
+          "mj-button",
+          "mj-text"
+        ];
+        if (!supportedTypes.includes(type)) return;
+
         const style = comp.getStyle();
         const attributes = {};
+
         if (style["background-image"]) {
           const urlMatch = style["background-image"].match(
             /url\((['"]?)(.*?)\1\)/
@@ -632,6 +1069,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           attributes["background-size"] = style["background-size"];
         if (style["background-position"])
           attributes["background-position"] = style["background-position"];
+
+        if (style["width"]) attributes["width"] = style["width"];
+        if (style["height"]) attributes["height"] = style["height"];
+
         if (Object.keys(attributes).length > 0) {
           const currentAttrs = comp.getAttributes();
           const toUpdate = {};
@@ -651,27 +1092,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (!src || src.includes("data:image/svg")) {
           imageInputRef.current?.click();
         }
-      }
-    });
-
-    // ── Open file picker when attachment placeholder is clicked ───────────────
-    editor.on("component:selected", (cmp) => {
-      if (!cmp) return;
-      let current = cmp;
-      let isAttachment = false;
-      while (current) {
-        if (current.getAttributes()["data-type"] === "attachment-placeholder") {
-          isAttachment = true;
-          break;
-        }
-        current = current.parent();
-      }
-      if (isAttachment && !attachmentClickPending.current) {
-        attachmentClickPending.current = true;
-        setTimeout(() => {
-          fileInputRef.current?.click();
-          attachmentClickPending.current = false;
-        }, 0);
       }
     });
 
@@ -784,94 +1204,107 @@ function registerBlocks(editor) {
   const bm = editor.BlockManager;
   if (bm.getAll) bm.getAll().reset();
 
-  // ── FIX: SVG placeholder fills full width of its container ──────────────
-  // - viewBox kept at 600×200 for aspect ratio
-  // - width="100%" so it stretches to the column width
-  // - No fixed pixel width on mj-image so MJML renders it fluid
-  const svgPlaceholder =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="200" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
-        <rect width="600" height="200" fill="#F9FAFB"/>
-        <rect x="250" y="55" width="100" height="90" rx="4" fill="none" stroke="#00A3FF" stroke-width="1" stroke-dasharray="4 4"/>
-        <g transform="translate(288, 70)" fill="none" stroke="#404B5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/>
-          <line x1="16" y1="5" x2="22" y2="5"/>
-          <line x1="19" y1="2" x2="19" y2="8"/>
-          <circle cx="9" cy="9" r="2"/>
-          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-        </g>
-        <text x="300" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="500" fill="#404B5A">Add Image</text>
-      </svg>`
-    );
-
-  const uploadIcon =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M25.333 16l-6.012 7.155a1.667 1.667 0 1 0 2.358 2.357l7.011-7.155a3.333 3.333 0 1 0-4.714-4.714l-7.012 7.126a5 5 0 0 0 7.071 7.071L30.047 20.714" stroke="#555F75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-    );
-
   // ── Frame blocks ──────────────────────────────────────────────────────────
   bm.add("row", {
     label: "Frame - Row",
     category: "Blocks",
-    content: `<mj-section full-width="full-width" padding="0px"><mj-column padding="0px" background-color="#ffffff"></mj-column></mj-section>`
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+      <mj-column data-type="row-frame-column" data-is-empty="true" padding="0px" margin="0px" width="100%">
+      </mj-column>
+    </mj-section>`
   });
 
   bm.add("column", {
     label: "Frame - Column",
     category: "Blocks",
-    content: `<mj-column padding="0px" background-color="#ffffff"></mj-column>`
+    content: `<mj-section data-type="column-frame-section" data-is-empty="true" full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#ffffff">
+    </mj-section>`
   });
 
   // ── Content blocks ────────────────────────────────────────────────────────
   bm.add("heading", {
     label: "Heading",
     category: "Content",
-    content: `<mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px">
-                Title goes here
-              </mj-text>`
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+      <mj-column padding="0px" margin="0px" width="100%">
+        <mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
+          Title goes here
+        </mj-text>
+      </mj-column>
+    </mj-section>`
   });
 
   bm.add("paragraph", {
     label: "Paragraph",
     category: "Content",
-    content: `<mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px">Paragraph content</mj-text>`
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+      <mj-column padding="0px" margin="0px" width="100%">
+        <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+          Paragraph content
+        </mj-text>
+      </mj-column>
+    </mj-section>`
   });
 
-  // ── FIX: removed width="600px" — mj-image is now fluid (fills column) ────
   bm.add("image", {
     label: "Image",
     category: "Content",
-    content: `<mj-image src="${svgPlaceholder}" padding="0px" align="center" />`
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+      <mj-column padding="0px" margin="0px" width="100%" >
+        <mj-text padding="0px" margin="0px">
+          <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 190px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 2V8" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 11.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H12.5" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 14.9999L17.914 11.9139C17.5389 11.539 17.0303 11.3284 16.5 11.3284C15.9697 11.3284 15.4611 11.539 15.086 11.9139L6 20.9999" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 11C10.1046 11 11 10.1046 11 9C11 7.89543 10.1046 7 9 7C7.89543 7 7 7.89543 7 9C7 10.1046 7.89543 11 9 11Z" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter;">Add Image</span>
+          </div>
+        </mj-text>
+      </mj-column>
+    </mj-section>`
   });
 
   bm.add("button", {
     label: "Button",
     category: "Content",
-    content: `<mj-button background-color="#00A3FF" color="#ffffff" border-radius="6px" padding="0px">Click Here</mj-button>`
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+      <mj-column padding="0px" margin="0px" width="100%">
+        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center">
+          Click Here
+        </mj-button>
+      </mj-column>
+    </mj-section>`
   });
 
   bm.add("divider", {
     label: "Divider",
     category: "Content",
-    content: `<mj-divider border-color="#dddddd" border-width="1px" padding="0px"/>`
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+      <mj-column padding="0px" margin="0px" width="100%">
+        <mj-divider border-color="#dddddd" border-width="1px" padding="0px" margin="0px" />
+      </mj-column>
+    </mj-section>`
   });
 
   bm.add("Attachment", {
     label: "Attachment",
     category: "Content",
     content: `
-            <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #00A3FF" padding="0px 0px" background-color="#ffffff">
-                <mj-column padding="0px">
-                    <mj-text align="center" padding="0px">
-                        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-                            <img src="${uploadIcon}" width="24" height="24" style="display:block;" />
-                            <span style="font-size:14px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;line-height:20px;">Upload Attachment</span>
-                        </div>
-                    </mj-text>
-                </mj-column>
-            </mj-section>`
+      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="0px" margin="0px" width="100%" background-color="#ffffff" align="center" justify="center">
+        <mj-column padding="0px" margin="0px" width="100%">
+          <mj-text align="center" padding="10px" margin="0px">
+            <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
+             <svg xmlns="http://www.w3.org/2000/svg" width="19" height="21" viewBox="0 0 19 21" fill="none">
+  <path d="M12.112 4.9902L5.61201 11.4902C5.21418 11.888 4.99069 12.4276 4.99069 12.9902C4.99069 13.5528 5.21418 14.0924 5.61201 14.4902C6.00983 14.888 6.5494 15.1115 7.11201 15.1115C7.67462 15.1115 8.21418 14.888 8.61201 14.4902L15.112 7.9902C15.9077 7.19455 16.3546 6.11542 16.3546 4.9902C16.3546 3.86498 15.9077 2.78585 15.112 1.9902C14.3164 1.19455 13.2372 0.747559 12.112 0.747559C10.9868 0.747559 9.90766 1.19455 9.11201 1.9902L2.61201 8.4902C1.41853 9.68367 0.748047 11.3024 0.748047 12.9902C0.748047 14.678 1.41853 16.2967 2.61201 17.4902C3.80548 18.6837 5.42418 19.3542 7.11201 19.3542C8.79984 19.3542 10.4185 18.6837 11.612 17.4902L18.112 10.9902" stroke="#555F75" stroke-width="1.495" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+              <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter,sans-serif;">Upload Attachment</span>
+            </div>
+          </mj-text>
+        </mj-column>
+      </mj-section>`
   });
 
   // ── Component blocks ──────────────────────────────────────────────────────
@@ -879,50 +1312,52 @@ function registerBlocks(editor) {
     label: "Header Banner",
     category: "Components",
     content: `
-            <mj-section full-width="full-width" padding="0px" background-color="#2f6f4e">
-                <mj-column padding="0px">
-                    <mj-text align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px">
-                        Your Header Here
-                    </mj-text>
-                </mj-column>
-            </mj-section>`
+      <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
+        <mj-column padding="0px" margin="0px" width="100%">
+          <mj-text align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
+            Your Header Here
+          </mj-text>
+        </mj-column>
+      </mj-section>`
   });
 
   bm.add("custom-text-block", {
     label: "Text Block",
     category: "Components",
     content: `
-            <mj-section full-width="full-width" background-color="#ffffff" padding="0px">
-                <mj-column padding="0px">
-                    <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px">
-                        Add your content here. This is a paragraph of text.
-                    </mj-text>
-                </mj-column>
-            </mj-section>`
+      <mj-section full-width="full-width" background-color="#ffffff" padding="0px" margin="0px" width="100%">
+        <mj-column padding="0px" margin="0px" width="100%">
+          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+            Add your content here. This is a paragraph of text.
+          </mj-text>
+        </mj-column>
+      </mj-section>`
   });
 
   bm.add("custom-button-block", {
     label: "CTA Button",
     category: "Components",
     content: `
-            <mj-section full-width="full-width" padding="0px">
-                <mj-column padding="0px">
-                    <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" padding="0px" href="#">
-                        Click Here
-                    </mj-button>
-                </mj-column>
-            </mj-section>`
+      <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+        <mj-column padding="0px" margin="0px" width="100%">
+          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#">
+            Click Here
+          </mj-button>
+        </mj-column>
+      </mj-section>`
   });
 
-  // ── FIX: removed width="600px" from mj-image here too ────────────────────
   bm.add("custom-image-block", {
     label: "Image Section",
     category: "Components",
     content: `
-            <mj-section full-width="full-width" background-color="#ffffff" padding="0px">
-                <mj-column padding="0px">
-                    <mj-image src="${svgPlaceholder}" padding="0px" align="center" />
-                </mj-column>
-            </mj-section>`
+      <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
+        <mj-column padding="0px" margin="0px" width="100%">
+          <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center" />
+          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+            Add Image.
+          </mj-text>
+        </mj-column>
+      </mj-section>`
   });
 }

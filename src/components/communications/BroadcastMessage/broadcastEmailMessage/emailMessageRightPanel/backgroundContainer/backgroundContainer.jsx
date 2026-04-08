@@ -12,7 +12,13 @@ export const BackgroundContainer = ({
   bgRepeat,
   handleBgRepeatChange,
   bgSize,
-  handleBgSizeChange
+  handleBgSizeChange,
+  width,
+  widthUnit,
+  handleWidthChange,
+  height,
+  heightUnit,
+  handleHeightChange
 }) => {
   return (
     <div className="backgroundContainer">
@@ -104,6 +110,63 @@ export const BackgroundContainer = ({
                 </clipPath>
               </defs>
             </svg>
+          </div>
+        </div>
+        <div className="bgDimensions">
+          <div className="optionGroup">
+            <p className="optionLabel">Width</p>
+            <div className="dimensionInputWrapper">
+              <input
+                type="number"
+                className="dimensionInput"
+                value={width}
+                onChange={(e) => handleWidthChange(e.target.value)}
+              />
+              <div className="segmentedControl">
+                <button
+                  className={`segment ${widthUnit === "%" ? "active" : ""}`}
+                  style={{ minWidth: "30px" }}
+                  onClick={() => handleWidthChange(width, "%")}
+                >
+                  %
+                </button>
+                <button
+                  className={`segment ${widthUnit === "px" ? "active" : ""}`}
+                  style={{ minWidth: "30px" }}
+                  onClick={() => handleWidthChange(width, "px")}
+                >
+                  px
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="optionGroup">
+            <p className="optionLabel">Height</p>
+            <div className="dimensionInputWrapper">
+              <input
+                type="number"
+                className="dimensionInput"
+                value={height}
+                onChange={(e) => handleHeightChange(e.target.value)}
+              />
+              <div className="segmentedControl">
+                <button
+                  className={`segment ${heightUnit === "%" ? "active" : ""}`}
+                  style={{ minWidth: "30px" }}
+                  onClick={() => handleHeightChange(height, "%")}
+                >
+                  %
+                </button>
+                <button
+                  className={`segment ${heightUnit === "px" ? "active" : ""}`}
+                  style={{ minWidth: "30px" }}
+                  onClick={() => handleHeightChange(height, "px")}
+                >
+                  px
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div className="bgImageActions">

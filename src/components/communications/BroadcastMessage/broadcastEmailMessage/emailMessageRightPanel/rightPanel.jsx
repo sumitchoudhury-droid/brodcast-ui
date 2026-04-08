@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useToast } from "../../../../../hooks/useToast";
 
 import "./style.scss";
@@ -12,23 +12,449 @@ import BorderContainer from "./borderContainer";
 import { PaddingContainer } from "./paddingContainer";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas iframe helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getCanvasDoc(editor) {
+  try {
+    const frames = editor.Canvas.getFrames();
+    if (!frames?.length) return null;
+    const el = frames.at(0).view?.el;
+    return el?.contentDocument || el?.contentWindow?.document || null;
+  } catch {
+    return null;
+  }
+}
+
+function getCanvasSelection(editor) {
+  try {
+    const frames = editor.Canvas.getFrames();
+    if (!frames?.length) return null;
+    const win = frames.at(0).view?.el?.contentWindow;
+    return win?.getSelection() || null;
+  } catch {
+    return null;
+  }
+}
+
+function hasSelection(sel) {
+  return !!(sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed);
+}
+
+function execInCanvas(editor, command, value = null) {
+  const doc = getCanvasDoc(editor);
+  if (!doc) return false;
+  try {
+    doc.execCommand(command, false, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// syncContentToModel
+// ─────────────────────────────────────────────────────────────────────────────
+function syncContentToModel(editor) {
+  const selected = editor?.getSelected();
+  if (!selected) return;
+  const type = selected.get("type");
+  if (type !== "mj-text" && type !== "mj-button") return;
+  try {
+    const view = selected.getView?.();
+    const el = view?.el;
+    if (!el) return;
+    const editable = el.querySelector("[contenteditable]") || el;
+    const html = editable.innerHTML;
+    if (html !== undefined) {
+      selected.set("content", html, { silent: true });
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// focusFirstListCell
+// ─────────────────────────────────────────────────────────────────────────────
+function focusFirstListCell(editor) {
+  setTimeout(() => {
+    const comp = editor?.getSelected();
+    if (!comp) return;
+
+    const view = comp.getView?.();
+    const el = view?.el;
+    if (!el) return;
+
+    const canvasDoc = getCanvasDoc(editor);
+    if (!canvasDoc) return;
+
+    const editable = el.querySelector("[contenteditable]") || el;
+    if (!editable) return;
+
+    const cell = editable.querySelector(".list-content-cell");
+    if (!cell) return;
+
+    editable.focus();
+
+    const sel = canvasDoc.defaultView?.getSelection();
+    if (!sel) return;
+
+    const range = canvasDoc.createRange();
+    const firstChild = cell.firstChild;
+
+    if (!firstChild) {
+      range.setStart(cell, 0);
+      range.collapse(true);
+    } else if (firstChild.nodeName === "BR") {
+      range.setStartBefore(firstChild);
+      range.collapse(true);
+    } else {
+      range.selectNodeContents(cell);
+      range.collapse(true);
+    }
+
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }, 80);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// buildListHtml — div/span based (no tables)
+// ─────────────────────────────────────────────────────────────────────────────
+function buildListHtml({ tag, lines, color, fontSize, fontFamily }) {
+  const isOrdered = tag === "ol";
+
+  const rows = lines
+    .map((line, i) => {
+      const marker = isOrdered
+        ? `<span class="list-marker-cell" style="flex-shrink:0;width:20px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">${i + 1}.&nbsp;</span>`
+        : `<span class="list-marker-cell" style="flex-shrink:0;width:20px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">&bull;&nbsp;</span>`;
+
+      return `<div class="list-item-row" style="display:flex;align-items:center;width:100%;padding:0px 0;">
+        ${marker}
+        <span class="list-content-cell" style="flex:1;color:${color};font-size:${fontSize};font-family:${fontFamily};line-height:1.5;">${line}</span>
+      </div>`;
+    })
+    .join("\n");
+
+  return `<div data-list-type="${tag}" style="width:100%; display: flex; flex-direction: column;  align-items: center; justify-content: center;">${rows}</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// extractLinesFromContent
+// ─────────────────────────────────────────────────────────────────────────────
+function extractLinesFromContent(html, doc) {
+  const d = doc || window.document;
+  const tmp = d.createElement("div");
+
+  try {
+    tmp.innerHTML = html;
+  } catch {
+    const text = html.replace(/<[^>]+>/g, "").trim();
+    return text ? [text] : ["List item"];
+  }
+
+  // 1. Our div-based list format
+  const listRows = tmp.querySelectorAll(
+    "div.list-item-row, div[data-list-type] div.list-item-row"
+  );
+  if (listRows.length > 0) {
+    const lines = [];
+    listRows.forEach((row) => {
+      const cell = row.querySelector(".list-content-cell");
+      if (cell) lines.push(cell.innerHTML.trim());
+    });
+    const filtered = lines.filter(Boolean);
+    if (filtered.length > 0) return filtered;
+  }
+
+  // 2. Native <ul> / <ol>
+  const lis = tmp.querySelectorAll("li");
+  if (lis.length > 0) {
+    return Array.from(lis)
+      .map((li) => li.innerHTML.trim())
+      .filter(Boolean);
+  }
+
+  // 3. Headings and Paragraphs
+  const blocks = tmp.querySelectorAll("h1, h2, h3, h4, h5, h6, p, div");
+  if (blocks.length > 0) {
+    const lines = Array.from(blocks)
+      .map((b) => b.innerHTML.trim())
+      .filter(Boolean);
+    if (lines.length > 0) return lines;
+  }
+
+  // 4. Fallback: split on line breaks
+  let text = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/h[1-6]>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  return lines.length > 0 ? lines : [html.trim() || "List item"];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// setupBulletListKeyHandler — div-based
+// ─────────────────────────────────────────────────────────────────────────────
+function setupBulletListKeyHandler(editor) {
+  const doc = getCanvasDoc(editor);
+  if (!doc) return;
+
+  const handleKeyDown = (e) => {
+    const sel = doc.defaultView?.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+
+    let node = range.startContainer;
+    let li = null;
+    let divRow = null;
+
+    while (node && node !== doc.body) {
+      if (node.nodeName === "LI") {
+        li = node;
+        break;
+      }
+      if (
+        node.nodeName === "DIV" &&
+        node.classList?.contains("list-item-row")
+      ) {
+        divRow = node;
+        break;
+      }
+      node = node.parentNode;
+    }
+
+    if (!li && !divRow) return;
+
+    // ─── Case: Backspace ───────────────────────────────────────────────────
+    if (e.key === "Backspace") {
+      const contentCell = divRow?.querySelector(".list-content-cell") || li;
+      if (!contentCell) return;
+
+      const isAtStart = range.startOffset === 0 && range.collapsed;
+      if (!isAtStart) return;
+
+      const isCellEmpty =
+        contentCell.textContent.trim() === "" ||
+        contentCell.innerHTML === "<br>";
+
+      if (isCellEmpty) {
+        e.preventDefault();
+
+        const listContainer = divRow?.closest("div[data-list-type]");
+        const prevRow = divRow?.previousElementSibling;
+
+        if (divRow && listContainer) {
+          if (prevRow) {
+            const prevContentCell = prevRow.querySelector(".list-content-cell");
+            divRow.remove();
+
+            // Re-number ordered list
+            if (listContainer.getAttribute("data-list-type") === "ol") {
+              Array.from(
+                listContainer.querySelectorAll("div.list-item-row")
+              ).forEach((row, i) => {
+                const mc = row.querySelector(".list-marker-cell");
+                if (mc) mc.innerHTML = `${i + 1}.&nbsp;`;
+              });
+            }
+
+            // Focus end of previous row
+            if (prevContentCell) {
+              const newRange = doc.createRange();
+              newRange.selectNodeContents(prevContentCell);
+              newRange.collapse(false);
+              sel.removeAllRanges();
+              sel.addRange(newRange);
+            }
+          } else {
+            // First/only row — convert list back to plain paragraph
+            const parent = listContainer.parentNode;
+            const p = doc.createElement("p");
+            p.innerHTML = "<br>";
+            parent.insertBefore(p, listContainer);
+            listContainer.remove();
+
+            const newRange = doc.createRange();
+            newRange.setStart(p, 0);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+          }
+        }
+
+        // Native LI fallback
+        if (li) {
+          const list = li.parentNode;
+          li.remove();
+          if (!list.children.length) list.remove();
+        }
+
+        // Sync model
+        const selected = editor?.getSelected();
+        if (selected) {
+          const view = selected.getView?.();
+          const editable =
+            view?.el?.querySelector("[contenteditable]") || view?.el;
+          if (editable)
+            selected.set("content", editable.innerHTML, { silent: true });
+        }
+      }
+      return;
+    }
+
+    // ─── Case: Enter ───────────────────────────────────────────────────────
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      // Native <li> branch
+      if (li) {
+        const list = li.parentNode;
+        if (li.textContent.trim() === "") {
+          const p = doc.createElement("p");
+          p.innerHTML = "<br>";
+          list.parentNode.insertBefore(p, list.nextSibling);
+          li.remove();
+          if (!list.children.length) list.remove();
+          const newRange = doc.createRange();
+          newRange.setStart(p, 0);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        } else {
+          const newLi = doc.createElement("li");
+          const afterRange = range.cloneRange();
+          const lastChild = li.lastChild;
+          if (lastChild) afterRange.setEndAfter(lastChild);
+          const fragment = afterRange.extractContents();
+          newLi.appendChild(fragment);
+          if (!newLi.textContent && !newLi.querySelector("br"))
+            newLi.innerHTML = "<br>";
+          list.insertBefore(newLi, li.nextSibling);
+          const newRange = doc.createRange();
+          newRange.setStart(newLi, 0);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        }
+
+        const selected = editor?.getSelected();
+        if (selected) {
+          const view = selected.getView?.();
+          const editable =
+            view?.el?.querySelector("[contenteditable]") || view?.el;
+          if (editable)
+            selected.set("content", editable.innerHTML, { silent: true });
+        }
+        return;
+      }
+
+      // Div-row branch
+      if (divRow) {
+        const listContainer = divRow.closest("div[data-list-type]");
+        if (!listContainer) return;
+
+        const contentCell = divRow.querySelector(".list-content-cell");
+        if (!contentCell) return;
+
+        // Walk up to contenteditable root
+        let editableRoot = contentCell.parentNode;
+        while (editableRoot && !editableRoot.hasAttribute("contenteditable")) {
+          editableRoot = editableRoot.parentNode;
+        }
+
+        const afterRange = doc.createRange();
+        afterRange.setStart(range.startContainer, range.startOffset);
+        if (contentCell.lastChild)
+          afterRange.setEndAfter(contentCell.lastChild);
+        else afterRange.setEnd(contentCell, 0);
+
+        let fragment;
+        if (contentCell.contains(range.startContainer))
+          fragment = afterRange.extractContents();
+        else fragment = doc.createDocumentFragment();
+
+        // Clone the row and clear its content cell
+        const newRow = divRow.cloneNode(true);
+        const newContentCell = newRow.querySelector(".list-content-cell");
+        newContentCell.innerHTML = "";
+        if (fragment && fragment.childNodes.length > 0)
+          newContentCell.appendChild(fragment);
+        if (
+          !newContentCell.textContent.trim() &&
+          !newContentCell.querySelector("br")
+        )
+          newContentCell.innerHTML = "<br>";
+
+        divRow.parentNode.insertBefore(newRow, divRow.nextSibling);
+
+        // Re-number ordered list
+        if (listContainer.getAttribute("data-list-type") === "ol") {
+          Array.from(
+            listContainer.querySelectorAll("div.list-item-row")
+          ).forEach((row, i) => {
+            const mc = row.querySelector(".list-marker-cell");
+            if (mc) mc.innerHTML = `${i + 1}.&nbsp;`;
+          });
+        }
+
+        const newRange = doc.createRange();
+        newRange.setStart(newContentCell, 0);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+
+        if (editableRoot) {
+          const selected = editor?.getSelected();
+          if (selected)
+            selected.set("content", editableRoot.innerHTML, { silent: true });
+        }
+      }
+      return;
+    }
+  };
+
+  doc.addEventListener("keydown", handleKeyDown, true);
+  return () => doc.removeEventListener("keydown", handleKeyDown, true);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RightPanel
+// ─────────────────────────────────────────────────────────────────────────────
 export default function RightPanel({ editorRef, isEditorEmpty }) {
   const toast = useToast();
+
   const [showPreview, setShowPreview] = useState(false);
   const [showSendTestMail, setShowSendTestMail] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
+  const [testEmail, setTestEmail] = useState("");
   const [selectedComp, setSelectedComp] = useState(null);
+
   const [bgColor, setBgColor] = useState("#FFFFFF");
-  const [textColor, setTextColor] = useState("#000000");
   const [bgImage, setBgImage] = useState("");
   const [bgRepeat, setBgRepeat] = useState("no-repeat");
   const [bgSize, setBgSize] = useState("contain");
+
   const [borderWidth, setBorderWidth] = useState("0");
   const [borderStyle, setBorderStyle] = useState("solid");
   const [borderColor, setBorderColor] = useState("#000000");
   const [borderRadius, setBorderRadius] = useState("0");
-  const [testEmail, setTestEmail] = useState("");
 
+  const [width, setWidth] = useState("100");
+  const [widthUnit, setWidthUnit] = useState("%");
+  const [height, setHeight] = useState("100");
+  const [heightUnit, setHeightUnit] = useState("%");
+
+  const [textColor, setTextColor] = useState("#000000");
   const [typography, setTypography] = useState({
     fontFamily: "Inter",
     fontWeight: "400",
@@ -36,6 +462,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     textAlign: "left"
   });
 
+  const [activeFormats, setActiveFormats] = useState({});
   const [padding, setPadding] = useState({
     top: "0",
     right: "0",
@@ -53,7 +480,36 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const textColorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
   const borderColorInputRef = useRef(null);
+  const cleanupRef = useRef(null);
 
+  // ─── Attach bullet-list key handler ────────────────────────────────────────
+  useEffect(() => {
+    const editor = editorRef.current?.getEditor();
+    if (!editor) return;
+
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
+    const attachHandler = () => {
+      if (cleanupRef.current) return;
+      cleanupRef.current = setupBulletListKeyHandler(editor);
+    };
+
+    editor.on("load", attachHandler);
+    if (editor.Canvas?.getFrames?.()?.length) attachHandler();
+
+    return () => {
+      editor.off("load", attachHandler);
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+    };
+  }, [editorRef]);
+
+  // ─── Sync panel from selected component ────────────────────────────────────
   useEffect(() => {
     const editor = editorRef.current?.getEditor();
     if (!editor) return;
@@ -61,156 +517,193 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const updateState = () => {
       const selected = editor.getSelected();
       setSelectedComp(selected);
+      if (!selected) return;
 
-      if (selected) {
-        const style = selected.getStyle();
-        // const attrs = selected.getAttributes();
+      const style = selected.getStyle();
 
-        // Sync Background
-        setBgColor(style["background-color"] || "#FFFFFF");
-        setBgImage(
-          style["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
-        );
-        setBgRepeat(style["background-repeat"] || "no-repeat");
-        const currentSize = style["background-size"] || "contain";
-        setBgSize(currentSize === "100% 100%" ? "fill" : currentSize);
+      setBgColor(style["background-color"] || "#FFFFFF");
+      setBgImage(
+        style["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
+      );
+      setBgRepeat(style["background-repeat"] || "no-repeat");
+      const rawSize = style["background-size"] || "contain";
+      setBgSize(rawSize === "100% 100%" ? "fill" : rawSize);
 
-        // Sync Border
-        const border = style["border"] || "0px solid #000000";
-        const borderParts = border.split(" ");
-        if (borderParts.length >= 3) {
-          setBorderWidth(borderParts[0].replace("px", ""));
-          setBorderStyle(borderParts[1]);
-          setBorderColor(borderParts[2]);
-        }
-        setBorderRadius(style["border-radius"]?.replace("px", "") || "0");
+      const border = style["border"] || "0px solid #000000";
+      const bp = border.split(" ");
+      if (bp.length >= 3) {
+        setBorderWidth(bp[0].replace("px", ""));
+        setBorderStyle(bp[1]);
+        setBorderColor(bp[2]);
+      }
+      setBorderRadius(style["border-radius"]?.replace("px", "") || "0");
 
-        // Sync Typography/Color
-        if (selected.is("mj-text") || selected.is("mj-button")) {
-          setTextColor(style["color"] || "#000000");
-          setTypography({
-            fontFamily: style["font-family"]?.replace(/['"]/g, "") || "Inter",
-            fontWeight: style["font-weight"] || "400",
-            fontSize: style["font-size"]?.replace("px", "") || "14",
-            textAlign: style["text-align"] || "left"
-          });
-        }
-
-        // Sync Padding
-        setPadding({
-          top:
-            style["padding-top"]?.replace("px", "") ||
-            style["padding"]?.split(" ")[0]?.replace("px", "") ||
-            "0",
-          right:
-            style["padding-right"]?.replace("px", "") ||
-            style["padding"]?.split(" ")[1]?.replace("px", "") ||
-            "0",
-          bottom:
-            style["padding-bottom"]?.replace("px", "") ||
-            style["padding"]?.split(" ")[2]?.replace("px", "") ||
-            "0",
-          left:
-            style["padding-left"]?.replace("px", "") ||
-            style["padding"]?.split(" ")[3]?.replace("px", "") ||
-            "0"
+      if (selected.is("mj-text") || selected.is("mj-button")) {
+        const currentFontSize = style["font-size"]?.replace("px", "") || "14";
+        setTextColor(style["color"] || "#000000");
+        setTypography({
+          fontFamily: style["font-family"]?.replace(/['"]/g, "") || "Inter",
+          fontWeight: style["font-weight"] || "400",
+          fontSize: currentFontSize,
+          textAlign: style["text-align"] || "left"
         });
 
-        // Sync Margin
-        setMargin({
-          top:
-            style["margin-top"]?.replace("px", "") ||
-            style["margin"]?.split(" ")[0]?.replace("px", "") ||
-            "0",
-          right:
-            style["margin-right"]?.replace("px", "") ||
-            style["margin"]?.split(" ")[1]?.replace("px", "") ||
-            "0",
-          bottom:
-            style["margin-bottom"]?.replace("px", "") ||
-            style["margin"]?.split(" ")[2]?.replace("px", "") ||
-            "0",
-          left:
-            style["margin-left"]?.replace("px", "") ||
-            style["margin"]?.split(" ")[3]?.replace("px", "") ||
-            "0"
+        const textDecoration = style["text-decoration"] || "";
+        const content = selected.get("content") || "";
+        const hasUl =
+          /data-list-type="ul"/i.test(content) || /<ul[\s>]/i.test(content);
+        const hasOl =
+          /data-list-type="ol"/i.test(content) || /<ol[\s>]/i.test(content);
+
+        setActiveFormats({
+          underline: textDecoration.includes("underline"),
+          lineThrough: textDecoration.includes("line-through"),
+          strikethrough: textDecoration.includes("line-through"),
+          italic: (style["font-style"] || "") === "italic",
+          bold:
+            style["font-weight"] === "700" || style["font-weight"] === "bold",
+          uppercase: (style["text-transform"] || "") === "uppercase",
+          superscript: (style["vertical-align"] || "") === "super",
+          subscript: (style["vertical-align"] || "") === "sub",
+          unorderedList: hasUl,
+          orderedList: hasOl,
+          code: (style["font-family"] || "").includes("monospace"),
+          highlight: (style["background-color"] || "") === "#ffff00",
+          indentLevel: Math.floor(
+            parseInt(style["padding-left"] || "0", 10) / 24
+          )
         });
+      } else {
+        setActiveFormats({});
+      }
+
+      setPadding({
+        top:
+          style["padding-top"]?.replace("px", "") ||
+          style["padding"]?.split(" ")[0]?.replace("px", "") ||
+          "0",
+        right:
+          style["padding-right"]?.replace("px", "") ||
+          style["padding"]?.split(" ")[1]?.replace("px", "") ||
+          "0",
+        bottom:
+          style["padding-bottom"]?.replace("px", "") ||
+          style["padding"]?.split(" ")[2]?.replace("px", "") ||
+          "0",
+        left:
+          style["padding-left"]?.replace("px", "") ||
+          style["padding"]?.split(" ")[3]?.replace("px", "") ||
+          "0"
+      });
+      setMargin({
+        top:
+          style["margin-top"]?.replace("px", "") ||
+          style["margin"]?.split(" ")[0]?.replace("px", "") ||
+          "0",
+        right:
+          style["margin-right"]?.replace("px", "") ||
+          style["margin"]?.split(" ")[1]?.replace("px", "") ||
+          "0",
+        bottom:
+          style["margin-bottom"]?.replace("px", "") ||
+          style["margin"]?.split(" ")[2]?.replace("px", "") ||
+          "0",
+        left:
+          style["margin-left"]?.replace("px", "") ||
+          style["margin"]?.split(" ")[3]?.replace("px", "") ||
+          "0"
+      });
+
+      const parseValueAndUnit = (val) => {
+        if (!val) return { value: "", unit: "%" };
+        if (val === "auto") return { value: "auto", unit: "px" };
+        const m = val.match(/^(\d+(?:\.\d+)?)(%|px)$/);
+        if (m) return { value: m[1], unit: m[2] };
+        return {
+          value: val.replace(/[^\d.]/g, ""),
+          unit: val.replace(/[\d.]/g, "") || "%"
+        };
+      };
+      const attrs = selected.getAttributes();
+      const { value: wVal, unit: wUnit } = parseValueAndUnit(
+        attrs["width"] || style["width"] || ""
+      );
+      const { value: hVal, unit: hUnit } = parseValueAndUnit(
+        attrs["height"] || style["height"] || ""
+      );
+      if (wVal) {
+        setWidth(wVal);
+        setWidthUnit(wUnit);
+      } else {
+        setWidth("100");
+        setWidthUnit("%");
+      }
+      if (hVal) {
+        setHeight(hVal);
+        setHeightUnit(hUnit);
+      } else {
+        setHeight("100");
+        setHeightUnit("%");
       }
     };
 
     editor.on("component:selected", updateState);
     editor.on("component:update:style", updateState);
-
     return () => {
       editor.off("component:selected", updateState);
       editor.off("component:update:style", updateState);
     };
   }, [editorRef]);
 
+  // ─── Layout ────────────────────────────────────────────────────────────────
   const handleAddLayout = (layoutType) => {
     const editor = editorRef.current?.getEditor();
     if (!editor) return;
-
-    let content = "";
-    switch (layoutType) {
-      case "1-col":
-        content = `<mj-section full-width="full-width"><mj-column padding="20px" background-color="#ffffff"></mj-column></mj-section>`;
-        break;
-      case "2-col":
-        content = `<mj-section full-width="full-width"><mj-column width="50%" padding="20px"></mj-column><mj-column width="50%" padding="20px"></mj-column></mj-section>`;
-        break;
-      case "3-col":
-        content = `<mj-section full-width="full-width"><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column></mj-section>`;
-        break;
-      case "30-70":
-        content = `<mj-section full-width="full-width"><mj-column width="30%" padding="10px"></mj-column><mj-column width="70%" padding="10px"></mj-column></mj-section>`;
-        break;
-      case "70-30":
-        content = `<mj-section full-width="full-width"><mj-column width="70%" padding="10px"></mj-column><mj-column width="30%" padding="10px"></mj-column></mj-section>`;
-        break;
-      case "2-row":
-        content = `<mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section><mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section>`;
-        break;
-      default:
-        break;
-    }
-
-    if (content) {
-      const selected = editor.getSelected();
-      if (selected) {
-        selected.parent()?.append(content, {
-          at: selected.parent().components().indexOf(selected) + 1
-        });
-      } else {
-        editor.addComponents(content);
-      }
+    const map = {
+      "1-col": `<mj-section full-width="full-width"><mj-column padding="20px" background-color="#ffffff"></mj-column></mj-section>`,
+      "2-col": `<mj-section full-width="full-width"><mj-column width="50%" padding="20px"></mj-column><mj-column width="50%" padding="20px"></mj-column></mj-section>`,
+      "3-col": `<mj-section full-width="full-width"><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column></mj-section>`,
+      "30-70": `<mj-section full-width="full-width"><mj-column width="30%" padding="10px"></mj-column><mj-column width="70%" padding="10px"></mj-column></mj-section>`,
+      "70-30": `<mj-section full-width="full-width"><mj-column width="70%" padding="10px"></mj-column><mj-column width="30%" padding="10px"></mj-column></mj-section>`,
+      "2-row": `<mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section><mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section>`
+    };
+    const content = map[layoutType];
+    if (!content) return;
+    const selected = editor.getSelected();
+    if (selected) {
+      selected.parent()?.append(content, {
+        at: selected.parent().components().indexOf(selected) + 1
+      });
+    } else {
+      editor.addComponents(content);
     }
   };
 
-  const handleBgColorChange = (newColor) => {
-    setBgColor(newColor);
-    if (selectedComp) {
-      selectedComp.addStyle({ "background-color": newColor });
-    }
+  // ─── Background ────────────────────────────────────────────────────────────
+  const handleBgColorChange = (c) => {
+    setBgColor(c);
+    selectedComp?.addStyle({ "background-color": c });
   };
-
-  const handleTextColorChange = (newColor) => {
-    setTextColor(newColor);
-    if (
-      selectedComp &&
-      (selectedComp.is("mj-text") || selectedComp.is("mj-button"))
-    ) {
-      selectedComp.addStyle({ color: newColor });
-    }
+  const removeBgImage = () => {
+    setBgImage("");
+    selectedComp?.addStyle({ "background-image": "none" });
   };
-
+  const handleBgRepeatChange = (r) => {
+    setBgRepeat(r);
+    selectedComp?.addStyle({ "background-repeat": r });
+  };
+  const handleBgSizeChange = (s) => {
+    setBgSize(s);
+    selectedComp?.addStyle({
+      "background-size": s === "fill" ? "100% 100%" : s
+    });
+  };
   const handleBgImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file || !selectedComp) return;
-
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const url = event.target.result;
+    reader.onload = (ev) => {
+      const url = ev.target.result;
       setBgImage(url);
       selectedComp.addStyle({
         "background-image": `url(${url})`,
@@ -223,66 +716,97 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     reader.readAsDataURL(file);
   };
 
-  const removeBgImage = () => {
-    setBgImage("");
+  // ─── Dimensions ────────────────────────────────────────────────────────────
+  const handleWidthChange = (val, unit = widthUnit) => {
+    const full = `${val}${unit}`;
+    setWidth(val);
+    setWidthUnit(unit);
     if (selectedComp) {
-      selectedComp.addStyle({ "background-image": "none" });
+      selectedComp.set("width", full);
+      selectedComp.addAttributes({ width: full });
+      selectedComp.addStyle({ width: full });
+      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
+    }
+  };
+  const handleHeightChange = (val, unit = heightUnit) => {
+    const full = `${val}${unit}`;
+    setHeight(val);
+    setHeightUnit(unit);
+    if (selectedComp) {
+      selectedComp.set("height", full);
+      selectedComp.addAttributes({ height: full });
+      selectedComp.addStyle({ height: full });
+      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
     }
   };
 
-  const handleBgRepeatChange = (repeat) => {
-    setBgRepeat(repeat);
-    if (selectedComp) {
-      selectedComp.addStyle({ "background-repeat": repeat });
-    }
-  };
-
-  const handleBgSizeChange = (size) => {
-    const finalSize = size === "fill" ? "100% 100%" : size;
-    setBgSize(size);
-    if (selectedComp) {
-      selectedComp.addStyle({ "background-size": finalSize });
-    }
-  };
-
+  // ─── Border ────────────────────────────────────────────────────────────────
   const handleBorderChange = (key, value) => {
-    let newWidth = borderWidth;
-    let newStyle = borderStyle;
-    let newColor = borderColor;
-
+    let nW = borderWidth,
+      nS = borderStyle,
+      nC = borderColor;
     if (key === "width") {
-      newWidth = value;
+      nW = value;
       setBorderWidth(value);
-    } else if (key === "style") {
-      newStyle = value;
+    }
+    if (key === "style") {
+      nS = value;
       setBorderStyle(value);
-    } else if (key === "color") {
-      newColor = value;
+    }
+    if (key === "color") {
+      nC = value;
       setBorderColor(value);
     }
-
-    if (selectedComp) {
-      selectedComp.addStyle({
-        border: `${newWidth}px ${newStyle} ${newColor}`
-      });
-    }
+    selectedComp?.addStyle({ border: `${nW}px ${nS} ${nC}` });
+  };
+  const handleBorderRadiusChange = (r) => {
+    setBorderRadius(r);
+    selectedComp?.addStyle({ "border-radius": `${r}px` });
   };
 
-  const handleBorderRadiusChange = (radius) => {
-    setBorderRadius(radius);
-    if (selectedComp) {
-      selectedComp.addStyle({ "border-radius": `${radius}px` });
-    }
-  };
-
-  const handleTypographyChange = (key, value) => {
-    const newTypos = { ...typography, [key]: value };
-    setTypography(newTypos);
+  // ─── Typography ────────────────────────────────────────────────────────────
+  const handleTextColorChange = (c) => {
+    setTextColor(c);
     if (
       selectedComp &&
       (selectedComp.is("mj-text") || selectedComp.is("mj-button"))
     ) {
-      const styleKey =
+      const editor = editorRef.current?.getEditor();
+      const sel = editor ? getCanvasSelection(editor) : null;
+
+      // If user has text selected inside the editor, apply color only to that selection
+      if (hasSelection(sel)) {
+        execInCanvas(editor, "foreColor", c);
+        syncContentToModel(editor);
+        return;
+      }
+
+      // No selection — apply color to the whole component
+      selectedComp.addStyle({ color: c });
+      const content = selectedComp.get("content") || "";
+      if (
+        content.includes("data-list-type") ||
+        content.includes("<ul") ||
+        content.includes("<ol")
+      ) {
+        const updatedContent = content.replace(/(color:\s*)[^;"]+/g, `$1${c}`);
+        if (updatedContent !== content) {
+          selectedComp.set("content", updatedContent);
+          editorRef.current
+            ?.getEditor()
+            ?.trigger("component:update", selectedComp);
+        }
+      }
+    }
+  };
+
+  const handleTypographyChange = (key, value) => {
+    setTypography((prev) => ({ ...prev, [key]: value }));
+    if (
+      selectedComp &&
+      (selectedComp.is("mj-text") || selectedComp.is("mj-button"))
+    ) {
+      const cssKey =
         key === "fontFamily"
           ? "font-family"
           : key === "fontWeight"
@@ -290,27 +814,335 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             : key === "fontSize"
               ? "font-size"
               : "text-align";
-      const finalValue = key === "fontSize" ? `${value}px` : value;
-      selectedComp.addStyle({ [styleKey]: finalValue });
+      const cssValue = key === "fontSize" ? `${value}px` : value;
+
+      // For inline properties, apply to selected text only if there's an active selection
+      if (key !== "textAlign") {
+        const editor = editorRef.current?.getEditor();
+        const sel = editor ? getCanvasSelection(editor) : null;
+        if (hasSelection(sel)) {
+          const doc = getCanvasDoc(editor);
+          if (doc) {
+            const range = sel.getRangeAt(0);
+            const span = doc.createElement("span");
+            span.style[key] = cssValue; // key is already camelCase (fontFamily, fontWeight, fontSize)
+            try {
+              range.surroundContents(span);
+              syncContentToModel(editor);
+              return;
+            } catch {
+              // Range spans multiple elements — fall through to whole-component
+            }
+          }
+        }
+      }
+
+      selectedComp.addStyle({ [cssKey]: cssValue });
     }
   };
 
+  // ─── Padding / Margin ──────────────────────────────────────────────────────
   const handlePaddingChange = (side, value) => {
-    const newPadding = { ...padding, [side]: value };
-    setPadding(newPadding);
-    if (selectedComp) {
-      selectedComp.addStyle({ [`padding-${side}`]: `${value}px` });
-    }
+    setPadding((prev) => ({ ...prev, [side]: value }));
+    selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
   };
-
   const handleMarginChange = (side, value) => {
-    const newMargin = { ...margin, [side]: value };
-    setMargin(newMargin);
-    if (selectedComp) {
-      selectedComp.addStyle({ [`margin-${side}`]: `${value}px` });
-    }
+    setMargin((prev) => ({ ...prev, [side]: value }));
+    selectedComp?.addStyle({ [`margin-${side}`]: `${value}px` });
   };
 
+  // ─── Format toggle ─────────────────────────────────────────────────────────
+  const handleFormatToggle = useCallback(
+    (action) => {
+      const editor = editorRef.current?.getEditor();
+      if (!editor) return;
+
+      const selectedAll = editor.getSelectedAll();
+      if (!selectedAll || selectedAll.length === 0) return;
+
+      const targetComps = selectedAll.filter(
+        (c) => c.is("mj-text") || c.is("mj-button")
+      );
+      if (targetComps.length === 0) return;
+
+      const sel = getCanvasSelection(editor);
+      const selectionActive = hasSelection(sel);
+
+      const applyAction = (component) => {
+        const s = component.getStyle();
+
+        const toggleProp = (prop, onValue, offValue = "") => {
+          const isOn = s[prop] === onValue;
+          component.addStyle({ [prop]: isOn ? offValue : onValue });
+          if (component === selectedComp) {
+            setActiveFormats((prev) => ({ ...prev, [action]: !isOn }));
+          }
+        };
+
+        const toggleDecoration = (decoration) => {
+          const current = s["text-decoration"] || "";
+          const has = current.includes(decoration);
+          const next = has
+            ? current.replace(decoration, "").trim().replace(/\s+/g, " ") ||
+              "none"
+            : current === "none" || current === ""
+              ? decoration
+              : `${current} ${decoration}`;
+          component.addStyle({ "text-decoration": next });
+          if (component === selectedComp) {
+            setActiveFormats((prev) => ({ ...prev, [action]: !has }));
+          }
+        };
+
+        const convertToListRecursive = (tag) => {
+          const view = component.getView?.();
+          const el = view?.el;
+          if (!el) return;
+          const editable = el.querySelector("[contenteditable]") || el;
+          const currentHtml =
+            editable.innerHTML || component.get("content") || "";
+
+          const canvasDoc = getCanvasDoc(editor);
+          const lines = extractLinesFromContent(currentHtml, canvasDoc);
+
+          const currentTextColor = s["color"] || textColor || "#000000";
+          const currentFontSize = s["font-size"] || `${typography.fontSize}px`;
+          const currentFontFamily = s["font-family"] || typography.fontFamily;
+
+          const html = buildListHtml({
+            tag,
+            lines,
+            color: currentTextColor,
+            fontSize: currentFontSize,
+            fontFamily: currentFontFamily
+          });
+
+          editable.innerHTML = html;
+          component.set("content", html, { silent: true });
+          focusFirstListCell(editor);
+
+          if (component === selectedComp) {
+            setActiveFormats((prev) => ({
+              ...prev,
+              unorderedList: tag === "ul",
+              orderedList: tag === "ol"
+            }));
+          }
+        };
+
+        const clearListRecursive = () => {
+          const view = component.getView?.();
+          const el = view?.el;
+          if (!el) return;
+          const editable = el.querySelector("[contenteditable]") || el;
+          const currentHtml =
+            editable.innerHTML || component.get("content") || "";
+
+          const canvasDoc = getCanvasDoc(editor);
+          const lines = extractLinesFromContent(currentHtml, canvasDoc);
+          const plainText = lines.join("<br>");
+
+          editable.innerHTML = plainText || "";
+          component.set("content", plainText || "", { silent: true });
+
+          if (component === selectedComp) {
+            setActiveFormats((prev) => ({
+              ...prev,
+              unorderedList: false,
+              orderedList: false
+            }));
+          }
+        };
+
+        switch (action) {
+          case "underline":
+            if (selectionActive && component === selectedComp) {
+              execInCanvas(editor, "underline");
+              setActiveFormats((prev) => ({
+                ...prev,
+                underline: !prev.underline
+              }));
+            } else {
+              toggleDecoration("underline");
+            }
+            break;
+
+          case "italic":
+            if (selectionActive && component === selectedComp) {
+              execInCanvas(editor, "italic");
+              setActiveFormats((prev) => ({
+                ...prev,
+                italic: !prev.italic
+              }));
+            } else {
+              toggleProp("font-style", "italic", "normal");
+            }
+            break;
+
+          case "bold":
+            if (selectionActive && component === selectedComp) {
+              execInCanvas(editor, "bold");
+              setActiveFormats((prev) => ({ ...prev, bold: !prev.bold }));
+            } else {
+              const isBold =
+                s["font-weight"] === "700" || s["font-weight"] === "bold";
+              component.addStyle({
+                "font-weight": isBold ? "400" : "700"
+              });
+              if (component === selectedComp) {
+                setTypography((prev) => ({
+                  ...prev,
+                  fontWeight: isBold ? "400" : "700"
+                }));
+                setActiveFormats((prev) => ({ ...prev, bold: !isBold }));
+              }
+            }
+            break;
+
+          case "strikethrough":
+          case "lineThrough":
+            if (selectionActive && component === selectedComp) {
+              execInCanvas(editor, "strikeThrough");
+              setActiveFormats((prev) => ({
+                ...prev,
+                strikethrough: !prev.strikethrough,
+                lineThrough: !prev.lineThrough
+              }));
+            } else {
+              toggleDecoration("line-through");
+            }
+            break;
+
+          case "uppercase":
+            if (selectionActive && component === selectedComp) {
+              const isOn = activeFormats["uppercase"];
+              if (isOn) {
+                execInCanvas(editor, "removeFormat");
+              } else {
+                const doc = getCanvasDoc(editor);
+                if (doc && sel) {
+                  const range = sel.getRangeAt(0);
+                  const span = doc.createElement("span");
+                  span.style.textTransform = "uppercase";
+                  try {
+                    range.surroundContents(span);
+                    syncContentToModel(editor);
+                  } catch {
+                    toggleProp("text-transform", "uppercase", "none");
+                  }
+                }
+              }
+              setActiveFormats((prev) => ({
+                ...prev,
+                uppercase: !activeFormats["uppercase"]
+              }));
+            } else {
+              toggleProp("text-transform", "uppercase", "none");
+            }
+            break;
+
+          case "unorderedList": {
+            const content = component.get("content") || "";
+            const isOn = /data-list-type="ul"/i.test(content);
+            if (isOn) clearListRecursive();
+            else convertToListRecursive("ul");
+            break;
+          }
+
+          case "orderedList": {
+            const content = component.get("content") || "";
+            const isOn = /data-list-type="ol"/i.test(content);
+            if (isOn) clearListRecursive();
+            else convertToListRecursive("ol");
+            break;
+          }
+
+          case "indentIncrease": {
+            const cur = parseInt(s["padding-left"] || "0", 10);
+            const next = cur + 24;
+            component.addStyle({ "padding-left": `${next}px` });
+            if (component === selectedComp) {
+              setActiveFormats((prev) => ({
+                ...prev,
+                indentLevel: Math.floor(next / 24)
+              }));
+            }
+            break;
+          }
+          case "indentDecrease": {
+            const cur = parseInt(s["padding-left"] || "0", 10);
+            const next = Math.max(0, cur - 24);
+            component.addStyle({ "padding-left": `${next}px` });
+            if (component === selectedComp) {
+              setActiveFormats((prev) => ({
+                ...prev,
+                indentLevel: Math.floor(next / 24)
+              }));
+            }
+            break;
+          }
+          case "superscript": {
+            const isOn = s["vertical-align"] === "super";
+            component.addStyle({
+              "vertical-align": isOn ? "baseline" : "super",
+              "font-size": isOn ? `${typography.fontSize}px` : "75%"
+            });
+            if (component === selectedComp) {
+              setActiveFormats((prev) => ({
+                ...prev,
+                superscript: !isOn,
+                subscript: false
+              }));
+            }
+            break;
+          }
+          case "subscript": {
+            const isOn = s["vertical-align"] === "sub";
+            component.addStyle({
+              "vertical-align": isOn ? "baseline" : "sub",
+              "font-size": isOn ? `${typography.fontSize}px` : "75%"
+            });
+            if (component === selectedComp) {
+              setActiveFormats((prev) => ({
+                ...prev,
+                subscript: !isOn,
+                superscript: false
+              }));
+            }
+            break;
+          }
+          case "code": {
+            const isOn = (s["font-family"] || "").includes("monospace");
+            component.addStyle({
+              "font-family": isOn ? typography.fontFamily : "monospace",
+              "background-color": isOn ? bgColor || "transparent" : "#f4f4f4"
+            });
+            if (component === selectedComp) {
+              setActiveFormats((prev) => ({ ...prev, code: !isOn }));
+            }
+            break;
+          }
+          case "highlight": {
+            const isOn = s["background-color"] === "#ffff00";
+            component.addStyle({
+              "background-color": isOn ? bgColor || "transparent" : "#ffff00"
+            });
+            if (component === selectedComp) {
+              setActiveFormats((prev) => ({ ...prev, highlight: !isOn }));
+            }
+            break;
+          }
+          default:
+            break;
+        }
+      };
+
+      targetComps.forEach(applyAction);
+    },
+    [selectedComp, activeFormats, typography, bgColor, textColor, editorRef]
+  );
+
+  // ─── Send test mail ────────────────────────────────────────────────────────
   const handleSendTestMail = () => {
     if (!testEmail) {
       toast.error(
@@ -319,81 +1151,53 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       );
       return;
     }
-
     try {
       const editor = editorRef.current?.getEditor();
       if (!editor) return;
-
-      let htmlContent = editorRef.current?.getCompiledHtml?.() || "";
-      if (!htmlContent) {
-        const rawHtml = editor.getHtml();
-        if (
-          rawHtml &&
-          !rawHtml.includes("<mj-") &&
-          !rawHtml.includes("<mjml")
-        ) {
-          htmlContent = rawHtml;
-        }
+      let html = editorRef.current?.getCompiledHtml?.() || "";
+      if (!html) {
+        const raw = editor.getHtml();
+        if (raw && !raw.includes("<mj-") && !raw.includes("<mjml")) html = raw;
       }
-
-      if (!htmlContent) {
-        toast.error(
-          "Compile Error",
-          "Could not compile MJML to HTML. Please try previewing first."
-        );
+      if (!html) {
+        toast.error("Compile Error", "Could not compile MJML to HTML.");
         return;
       }
-
-      // Logic for actually sending the test email would go here
-      console.log(`Sending test email to: ${testEmail}`);
-      console.log("HTML Content:", htmlContent);
-
-      toast.success(
-        "Template Saved Successfully",
-        `Your template has been saved and published to library successfully. ${testEmail}!`
-      );
-
-      // Clear state and close modal
+      console.log(`Sending test email to: ${testEmail}`, html);
+      toast.success("Template Saved Successfully", `Sent to ${testEmail}!`);
       setShowSendTestMail(false);
       setTestEmail("");
     } catch (err) {
-      console.error("Error generating test email:", err);
+      console.error(err);
       toast.error(
         "Failed to Save Template",
-        "An error occurred while saving your template. Please try again."
+        "An error occurred. Please try again."
       );
     }
   };
 
+  // ─── Preview ───────────────────────────────────────────────────────────────
   const handlePreview = () => {
     try {
       const editor = editorRef.current?.getEditor();
       if (!editor) return;
-
-      let htmlContent = editorRef.current?.getCompiledHtml?.() || "";
-      if (!htmlContent) {
-        const rawHtml = editor.getHtml();
-        if (
-          rawHtml &&
-          !rawHtml.includes("<mj-") &&
-          !rawHtml.includes("<mjml")
-        ) {
-          htmlContent = rawHtml;
-        }
+      let html = editorRef.current?.getCompiledHtml?.() || "";
+      if (!html) {
+        const raw = editor.getHtml();
+        if (raw && !raw.includes("<mj-") && !raw.includes("<mjml")) html = raw;
       }
-
-      if (!htmlContent) {
+      if (!html) {
         alert("Could not compile MJML to HTML.");
         return;
       }
-
-      setPreviewHtml(htmlContent);
+      setPreviewHtml(html);
       setShowPreview(true);
-    } catch (error) {
-      console.error("Error generating preview:", error);
+    } catch (e) {
+      console.error(e);
     }
   };
 
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="rightPanel">
       <DeviceSwitcher
@@ -404,9 +1208,20 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
       <div className="panelSections">
         <SignatureSection />
-
-        {/* Layout Section */}
         <LayoutContainer handleAddLayout={handleAddLayout} />
+
+        {selectedComp &&
+          (selectedComp.is("mj-text") || selectedComp.is("mj-button")) && (
+            <TextStyleContainer
+              typography={typography}
+              handleTypographyChange={handleTypographyChange}
+              textColor={textColor}
+              handleTextColorChange={handleTextColorChange}
+              textColorInputRef={textColorInputRef}
+              activeFormats={activeFormats}
+              onFormatToggle={handleFormatToggle}
+            />
+          )}
 
         <PaddingContainer
           selectedComp={selectedComp}
@@ -416,7 +1231,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           handleMarginChange={handleMarginChange}
         />
 
-        {/* Background Section */}
         <BackgroundContainer
           bgColor={bgColor}
           handleBgColorChange={handleBgColorChange}
@@ -429,19 +1243,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           handleBgRepeatChange={handleBgRepeatChange}
           bgSize={bgSize}
           handleBgSizeChange={handleBgSizeChange}
+          width={width}
+          widthUnit={widthUnit}
+          handleWidthChange={handleWidthChange}
+          height={height}
+          heightUnit={heightUnit}
+          handleHeightChange={handleHeightChange}
         />
-
-        {/* Text Section / Font Settings */}
-        {selectedComp &&
-          (selectedComp.is("mj-text") || selectedComp.is("mj-button")) && (
-            <TextStyleContainer
-              typography={typography}
-              handleTypographyChange={handleTypographyChange}
-              textColor={textColor}
-              handleTextColorChange={handleTextColorChange}
-              textColorInputRef={textColorInputRef}
-            />
-          )}
 
         <BorderContainer
           borderWidth={borderWidth}

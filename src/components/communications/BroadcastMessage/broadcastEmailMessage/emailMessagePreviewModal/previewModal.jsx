@@ -25,8 +25,16 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; overflow: hidden; height: auto; }
-    #preview-root { width: 100%; height: auto; display: inline-block; vertical-align: top; }
+    html, body { 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden; 
+      height: auto; 
+      background: transparent; 
+      word-break: break-word; 
+      overflow-wrap: break-word; 
+    }
+    #preview-root { width: 100%; height: auto; display: block; vertical-align: top; }
   </style>
 </head>
 <body><div id="preview-root">${trimmed}</div></body>
@@ -53,10 +61,15 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
       try {
         const doc = iframe.contentWindow?.document;
         if (!doc) return;
-        const root = doc.getElementById("preview-root");
+        // Fallback to body if preview-root is missing (happens with full HTML)
+        const root = doc.getElementById("preview-root") || doc.body;
         if (!root) return;
-        const height = root.offsetHeight || 600;
-        if (Math.abs(parseInt(iframe.style.height) - height) > 2) {
+
+        // Use scrollHeight for content height accuracy
+        const height = root.scrollHeight || root.offsetHeight || 600;
+        const currentHeight = parseInt(iframe.style.height) || 0;
+
+        if (Math.abs(currentHeight - height) > 2) {
           iframe.style.height = `${height}px`;
         }
       } catch {
@@ -67,8 +80,8 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
     iframe.onload = () => {
       resizeIframe();
       try {
-        const root =
-          iframe.contentWindow?.document?.getElementById("preview-root");
+        const doc = iframe.contentWindow?.document;
+        const root = doc?.getElementById("preview-root") || doc?.body;
         if (root) {
           observer = new ResizeObserver(resizeIframe);
           observer.observe(root);
@@ -145,7 +158,7 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
         <div className="previewDrawerContent">
           <div className={`previewFrame ${selectedDevice.toLowerCase()}`}>
             <div
-              className={`iframeWrapper ${selectedDevice === "Mobile" ? "mobile-scroll" : ""}`}
+              className={`iframeWrapper ${selectedDevice === "Mobile" ? "mobile-scroll" : "desktop-scroll"}`}
             >
               <iframe
                 ref={iframeRef}
@@ -156,12 +169,12 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                 width="100%"
                 style={{
                   display: "block",
-                  minHeight: "200px",
-                  height: "auto",
-                  transition: "height 0.2s ease",
+                  minHeight: "100px",
+                  height: "100px", // Start small
+                  transition: "height 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   border: "none"
                 }}
-                scrolling={selectedDevice === "Mobile" ? "no" : "auto"}
+                scrolling="no"
                 sandbox="allow-same-origin allow-scripts allow-popups"
               />
             </div>

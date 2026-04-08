@@ -237,5 +237,64 @@
         }
       }
     }
+
+    .textStyleActionsRight {
+      width: 100%;
+      @include variable.d-flex(
+        $al: center,
+        $jc: space-between,
+        $fd: column,
+        $g: 10px
+      );
+
+      .textStyleActionsRightItem {
+        width: 100%;
+        @include variable.d-flex($al: center, $jc: space-between);
+
+        .textStyleActionsRightItemContent {
+          @include variable.d-flex($al: center, $jc: space-between);
+          border-radius: 6px;
+          border: 1px solid variable.$color-white-14;
+          padding: 10px 12px;
+          background-color: variable.$color-white-13;
+
+          .formatIconBtn {
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            // &.active {
+
+            //   color: variable.$color-black-4;
+            //   box-shadow: variable.$shadow-2;
+            //   border: 1px solid variable.$color-white-6;
+            // }
+
+            // &:hover:not(.active) {
+            //   background: variable.$color-white-6;
+            // }
+          }
+        }
+      }
+
+      .textStyleActionsRightSize {
+        width: 100%;
+        @include variable.d-flex($al: center, $jc: space-between);
+        border-radius: 6px;
+        border: 1px solid variable.$color-white-14;
+        padding: 10px 12px;
+        background-color: variable.$color-white-13;
+
+        .formatIconBtn {
+          border: none;
+          background: transparent;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+      }
+    }
   }
 }
