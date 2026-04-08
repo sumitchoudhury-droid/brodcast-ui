@@ -25,12 +25,13 @@
     &Content {
       display: flex;
       justify-content: center;
-      gap: 4;
+      gap: 4px;
 
       &Title {
+        font-family: inter;
         font-size: 15px;
         font-weight: 500;
-        color: #0e7a6c;
+        color: #198d85;
         line-height: 20px;
         margin: 0;
       }
@@ -67,6 +68,24 @@
       align-items: center;
       gap: 12px;
       cursor: pointer;
+
+      .topSectionRightContentTag {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: #ceeab0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        p {
+          font-size: 15px;
+          font-weight: 500;
+          color: #111927;
+          margin: 0;
+          text-transform: uppercase;
+        }
+      }
 
       &Title {
         display: flex;

@@ -23,7 +23,8 @@
         "RGBA",
         "Eastside",
         "Riverbend",
-        "Maplewood"
+        "Maplewood",
+        "Containerstyle"
     ],
     "ignorePaths": [
         "dist",

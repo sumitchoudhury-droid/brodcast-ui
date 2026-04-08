@@ -13,7 +13,8 @@ export const ReusableInput = ({
   error = "",
   leftIcon,
   rightIcon,
-  className = ""
+  className = "",
+  Containerstyle = ""
 }) => {
   return (
     <div className={`inputWrapper ${className}`}>
@@ -23,7 +24,9 @@ export const ReusableInput = ({
         </label>
       )}
 
-      <div className={`inputContainer ${error ? "inputError" : ""}`}>
+      <div
+        className={`inputContainer ${error ? "inputError" : ""} ${Containerstyle}`}
+      >
         {leftIcon && <span className="leftIcon">{leftIcon}</span>}
 
         <input

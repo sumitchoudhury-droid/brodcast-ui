@@ -97,33 +97,33 @@
 .previewDrawerContent {
   flex: 1;
   background: variable.$color-white-0;
-  padding: 24px 24px 48px 24px;
+  padding: 0;
   @include variable.d-flex($al: center, $jc: flex-start, $fd: column);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
+  background-color: variable.$color-white-2;
 
   .previewFrame {
-    background: transparent; // Allow template background to show
+    background: variable.$color-white-0; // Paper color
     border-radius: 8px;
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     width: 100%;
-    max-width: 1000px;
+    max-width: none;
     display: flex;
     flex-direction: column;
-    flex-shrink: 0; // Prevent content from shrinking in flex container
-    min-height: 100%;
+    flex: 1;
+    height: 100%;
 
     &.desktop {
       width: 100%;
-      max-width: 1000px;
-      height: auto;
+      height: 100%;
+      box-shadow: none;
     }
 
     &.mobile {
       width: 375px;
       height: 600px;
-      margin: 0 auto;
+      margin: 20px auto;
       border: 12px solid #101828;
       border-radius: 40px;
       position: relative;
@@ -145,13 +145,16 @@
 
     .iframeWrapper {
       width: 100%;
-      height: auto;
-      min-height: 100%;
-      background: #fff;
-      overflow-y: visible;
+      height: 100%;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      // overflow: visible;
 
-      // In mobile view, the wrapper scrolls, not the container
-      &.mobile-scroll {
+      // Both views now use internal scrolling
+      &.mobile-scroll,
+      &.desktop-scroll {
+        flex: 1;
         height: 100%;
         overflow-y: auto;
         scrollbar-width: thin;

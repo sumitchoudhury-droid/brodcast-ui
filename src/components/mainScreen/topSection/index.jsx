@@ -1,4 +1,4 @@
-import logo from "../../../assets/mainScreen/manipalIcon.png";
+import logo from "../../../assets/mainScreen/manipalIcon.svg";
 import greenChevronRight from "../../../assets/mainScreen/greenChevronRight.svg";
 import notificationIcon from "../../../assets/mainScreen/notification.svg";
 import chevronRight from "../../../assets/mainScreen/chevronRight.svg";
@@ -12,6 +12,14 @@ export const TopSection = () => {
         <div className="topSectionLeftLogo">
           <img src={logo} alt="logo" />
         </div>
+        <div
+          style={{
+            width: "1px",
+            height: "24px",
+            backgroundColor: "#EDF0F2",
+            margin: "0 10px"
+          }}
+        ></div>
         <div className="topSectionLeftContent">
           <h1 className="topSectionLeftContentTitle">Intergy</h1>
           <div className="topSectionLeftContentDescription">
@@ -24,6 +32,9 @@ export const TopSection = () => {
           <img src={notificationIcon} alt="notificationIcon" />
         </div>
         <div className="topSectionRightContent">
+          <div className="topSectionRightContentTag">
+            <p>Kc</p>
+          </div>
           <div className="topSectionRightContentTitle">
             <div className="topSectionRightContentDescription">
               <h1>Katherine Clark</h1>
