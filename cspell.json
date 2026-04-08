@@ -24,7 +24,10 @@
         "Eastside",
         "Riverbend",
         "Maplewood",
-        "Containerstyle"
+        "Containerstyle",
+        "draggability",
+        "reconcile",
+        "Draggability"
     ],
     "ignorePaths": [
         "dist",

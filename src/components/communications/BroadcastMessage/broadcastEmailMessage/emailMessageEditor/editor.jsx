@@ -29,6 +29,27 @@ const COLUMN_VALID_CHILDREN = [
   "mj-raw"
 ];
 
+// Check if a component is nested inside a row/column frame
+function isInsideFrame(comp) {
+  let ancestor = comp.parent();
+  while (ancestor) {
+    try {
+      const dt = ancestor.getAttributes?.()?.["data-type"];
+      if (
+        dt === "row-frame-column" ||
+        dt === "column-frame-column" ||
+        dt === "column-frame-section"
+      ) {
+        return true;
+      }
+    } catch {
+      /* skip destroyed */
+    }
+    ancestor = ancestor.parent();
+  }
+  return false;
+}
+
 // Walk a component tree and collect every leaf-level content node
 function collectLeafContent(comp, results = []) {
   const type = comp.get("type");
@@ -108,6 +129,27 @@ function reconcileFramePlaceholders(editor, isReconciling) {
       if (currentStatus !== newStatus) {
         col.addAttributes({ "data-is-empty": newStatus });
       }
+    });
+
+    // Rebalance mj-column widths inside every column-frame-section
+    // so blocks are displayed side-by-side with equal width.
+    frameCols.forEach((col) => {
+      if (col.getAttributes()?.["data-type"] !== "column-frame-section") return;
+
+      const columns = [];
+      col.components().each((c) => {
+        if (c.get("type") === "mj-column") columns.push(c);
+      });
+
+      const n = columns.length;
+      if (n === 0) return;
+
+      const equalWidth = `${(100 / n).toFixed(4)}%`;
+      columns.forEach((c) => {
+        if (c.getAttributes()["width"] !== equalWidth) {
+          c.addAttributes({ width: equalWidth });
+        }
+      });
     });
   } finally {
     isReconciling.current = false;
@@ -526,7 +568,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       });
 
       const patchInstance = (comp) => {
-        comp.set({ droppable: true, draggable: true });
+        const type = comp.get("type");
+        const inFrame =
+          COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+        comp.set({ droppable: true, draggable: !inFrame });
         comp.components().each(patchInstance);
       };
       patchInstance(editor.getWrapper());
@@ -683,6 +728,23 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       } finally {
         isUnwrapping.current = false;
         scheduleReconcile(); // Ensure placeholders are updated after all fixups
+
+        // Re-evaluate draggability: content blocks inside frames must not be
+        // draggable; the fixup just moved them there so update them now.
+        const reconcileDraggability = (comp) => {
+          try {
+            const type = comp.get("type");
+            if (type && type !== "textnode" && type !== "text") {
+              const inFrame =
+                COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+              comp.set({ draggable: !inFrame });
+            }
+            comp.components().each(reconcileDraggability);
+          } catch {
+            /* skip destroyed */
+          }
+        };
+        reconcileDraggability(editor.getWrapper());
       }
     };
 
@@ -727,6 +789,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       }
 
       if (type && type !== "textnode" && type !== "text") {
+        // Draggability for content blocks depends on whether they land inside a
+        // frame. At this point the fixup hasn't run yet (it's async), so we
+        // optimistically allow dragging and reconcile after fixups complete.
         comp.set({ droppable: true, draggable: true });
       }
 
