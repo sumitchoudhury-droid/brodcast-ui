@@ -29,6 +29,27 @@ const COLUMN_VALID_CHILDREN = [
   "mj-raw"
 ];
 
+// Check if a component is nested inside a row/column frame
+function isInsideFrame(comp) {
+  let ancestor = comp.parent();
+  while (ancestor) {
+    try {
+      const dt = ancestor.getAttributes?.()?.["data-type"];
+      if (
+        dt === "row-frame-column" ||
+        dt === "column-frame-column" ||
+        dt === "column-frame-section"
+      ) {
+        return true;
+      }
+    } catch {
+      /* skip destroyed */
+    }
+    ancestor = ancestor.parent();
+  }
+  return false;
+}
+
 // Walk a component tree and collect every leaf-level content node
 function collectLeafContent(comp, results = []) {
   const type = comp.get("type");
@@ -57,6 +78,8 @@ function reconcileFramePlaceholders(editor, isReconciling) {
   isReconciling.current = true;
   try {
     const frameCols = [];
+    const wrapper = editor.getWrapper();
+    if (!wrapper) return;
     const collect = (comp) => {
       try {
         const dt = comp.getAttributes()?.["data-type"];
@@ -72,7 +95,7 @@ function reconcileFramePlaceholders(editor, isReconciling) {
         /* skip destroyed components */
       }
     };
-    collect(editor.getWrapper());
+    collect(wrapper);
 
     frameCols.forEach((col) => {
       let hasReal = false;
@@ -106,6 +129,27 @@ function reconcileFramePlaceholders(editor, isReconciling) {
       if (currentStatus !== newStatus) {
         col.addAttributes({ "data-is-empty": newStatus });
       }
+    });
+
+    // Rebalance mj-column widths inside every column-frame-section
+    // so blocks are displayed side-by-side with equal width.
+    frameCols.forEach((col) => {
+      if (col.getAttributes()?.["data-type"] !== "column-frame-section") return;
+
+      const columns = [];
+      col.components().each((c) => {
+        if (c.get("type") === "mj-column") columns.push(c);
+      });
+
+      const n = columns.length;
+      if (n === 0) return;
+
+      const equalWidth = `${(100 / n).toFixed(4)}%`;
+      columns.forEach((c) => {
+        if (c.getAttributes()["width"] !== equalWidth) {
+          c.addAttributes({ width: equalWidth });
+        }
+      });
     });
   } finally {
     isReconciling.current = false;
@@ -178,6 +222,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     const parent = targetComp.parent();
     const idx = parent.components().indexOf(targetComp);
+
+    // Clear selection before removing the component
+    editor.select(null);
     targetComp.remove();
 
     parent.components().add(sectionHtml, { at: idx });
@@ -191,58 +238,76 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
-      const editor = gjsInstance.current;
-      const selected = editor.getSelected();
-      if (selected) {
-        // Case 1: An mj-image is selected — update its src directly
-        let target = selected;
-        while (target && !target.is("mj-image")) {
-          target = target.parent();
-        }
-        if (target) {
-          target.set("src", event.target.result);
-          editor.trigger("component:update", target);
-          return;
-        }
+      const dataUrl = event.target.result;
 
-        // Case 2: The image placeholder div is inside an mj-column — replace with mj-image
-        let column = selected;
-        while (column && column.get("type") !== "mj-column") {
-          column = column.parent();
-        }
-        if (column) {
-          column.components().reset();
-          column.append(
-            `<mj-image src="${event.target.result}" padding="0px" margin="0px" width="100%" align="center" />`
-          );
-          editor.trigger("component:update", column);
-          return;
-        }
-      }
+      // Resolve actual pixel dimensions before inserting into the editor
+      const img = new window.Image();
+      img.onload = () => {
+        const naturalWidth = img.naturalWidth;
+        const naturalHeight = img.naturalHeight;
+        const widthAttr = `${naturalWidth}px`;
+        const heightAttr = `${naturalHeight}px`;
 
-      // Case 3: Nothing selected — find any column that has the placeholder and replace it
-      const allColumns = [];
-      const collectColumns = (comp) => {
-        if (comp.get("type") === "mj-column") allColumns.push(comp);
-        comp.components().each(collectColumns);
-      };
-      collectColumns(editor.getWrapper());
+        const editor = gjsInstance.current;
+        const selected = editor.getSelected();
 
-      for (const col of allColumns) {
-        try {
-          const view = col.getView?.();
-          if (view?.el?.querySelector?.(".image-click-area")) {
-            col.components().reset();
-            col.append(
-              `<mj-image src="${event.target.result}" padding="0px" margin="0px" width="100%" align="center" />`
-            );
-            editor.trigger("component:update", col);
-            break;
+        if (selected) {
+          // Case 1: An mj-image is selected — update src and dimensions directly
+          let target = selected;
+          while (target && !target.is("mj-image")) {
+            target = target.parent();
           }
-        } catch {
-          /* skip */
+          if (target) {
+            target.addAttributes({
+              src: dataUrl,
+              width: widthAttr,
+              height: heightAttr
+            });
+            editor.trigger("component:update", target);
+            return;
+          }
+
+          // Case 2: The image placeholder div is inside an mj-column — replace with mj-image
+          let column = selected;
+          while (column && column.get("type") !== "mj-column") {
+            column = column.parent();
+          }
+          if (column) {
+            editor.select(null);
+            column.components().reset();
+            column.append(
+              `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+            );
+            editor.trigger("component:update", column);
+            return;
+          }
         }
-      }
+
+        // Case 3: Nothing selected — find any column that has the placeholder and replace it
+        const allColumns = [];
+        const collectColumns = (comp) => {
+          if (comp.get("type") === "mj-column") allColumns.push(comp);
+          comp.components().each(collectColumns);
+        };
+        collectColumns(editor.getWrapper());
+
+        for (const col of allColumns) {
+          try {
+            const view = col.getView?.();
+            if (view?.el?.querySelector?.(".image-click-area")) {
+              col.components().reset();
+              col.append(
+                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+              );
+              editor.trigger("component:update", col);
+              break;
+            }
+          } catch {
+            /* skip */
+          }
+        }
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -318,10 +383,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       panels: { defaults: [] },
       canvasCss: `
                 html, body { margin: 0; height: 100%; width: 100%; overflow-x: hidden; }
-                body { 
-                  min-height: 100%; 
-                  word-break: break-word; 
-                  overflow-wrap: break-word; 
+                body {
+                  min-height: 100%;
+                  word-break: break-word;
+                  overflow-wrap: break-word;
+                  padding-bottom: 100px;
                 }
                 [data-gjs-type] { min-height: 20px; }
 
@@ -489,7 +555,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
       const ZERO_PADDING_TYPES = new Set([
         "mj-body",
-        "mj-section",
         "mj-column",
         "mj-hero",
         "mj-wrapper",
@@ -500,9 +565,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const typeObj = editor.Components.getType(typeName);
         if (!typeObj) return;
 
+        // mj-section gets 16px all-side padding; everything else gets 0px.
         const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
           ? { padding: "0px", margin: "0px", width: "100%" }
-          : {};
+          : typeName === "mj-section"
+            ? { padding: "16px", margin: "0px", width: "100%" }
+            : {};
 
         editor.Components.addType(typeName, {
           model: {
@@ -520,7 +588,29 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       });
 
       const patchInstance = (comp) => {
-        comp.set({ droppable: true, draggable: true });
+        const type = comp.get("type");
+        const inFrame =
+          COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+        comp.set({ droppable: true, draggable: !inFrame });
+
+        if (type === "mj-section") {
+          comp.addAttributes({ padding: "16px", margin: "0px" });
+        }
+
+        if (type === "mj-column") {
+          const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
+          // Column-frame columns are managed by reconcileFramePlaceholders.
+          if (parentDt !== "column-frame-section") {
+            comp.addAttributes({
+              padding: "0px",
+              margin: "0px",
+              width: "100%"
+            });
+          } else {
+            comp.addAttributes({ padding: "0px", margin: "0px" });
+          }
+        }
+
         comp.components().each(patchInstance);
       };
       patchInstance(editor.getWrapper());
@@ -677,6 +767,23 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       } finally {
         isUnwrapping.current = false;
         scheduleReconcile(); // Ensure placeholders are updated after all fixups
+
+        // Re-evaluate draggability: content blocks inside frames must not be
+        // draggable; the fixup just moved them there so update them now.
+        const reconcileDraggability = (comp) => {
+          try {
+            const type = comp.get("type");
+            if (type && type !== "textnode" && type !== "text") {
+              const inFrame =
+                COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+              comp.set({ draggable: !inFrame });
+            }
+            comp.components().each(reconcileDraggability);
+          } catch {
+            /* skip destroyed */
+          }
+        };
+        reconcileDraggability(editor.getWrapper());
       }
     };
 
@@ -721,7 +828,27 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       }
 
       if (type && type !== "textnode" && type !== "text") {
+        // Draggability for content blocks depends on whether they land inside a
+        // frame. At this point the fixup hasn't run yet (it's async), so we
+        // optimistically allow dragging and reconcile after fixups complete.
         comp.set({ droppable: true, draggable: true });
+
+        if (type === "mj-section") {
+          comp.addAttributes({ padding: "16px", margin: "0px" });
+        }
+
+        if (type === "mj-column") {
+          const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
+          if (parentDt !== "column-frame-section") {
+            comp.addAttributes({
+              padding: "0px",
+              margin: "0px",
+              width: "100%"
+            });
+          } else {
+            comp.addAttributes({ padding: "0px", margin: "0px" });
+          }
+        }
       }
 
       if (isUnwrapping.current) return;
@@ -904,7 +1031,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (e.target.isContentEditable) return;
         const textData = e.dataTransfer.types.includes("text/plain");
         if (textData) {
-          let comp = editor.Components.getWrapper().find(e.target)[0];
+          let targetEl =
+            e.target.closest && e.target.closest("[data-gjs-type]");
+          let comp =
+            targetEl && targetEl.id
+              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
+              : null;
           if (comp) {
             let current = comp;
             while (current && current.get("type") !== "mj-text") {
@@ -936,7 +1068,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (e.target.isContentEditable) return;
         const text = e.dataTransfer.getData("text/plain");
         if (text && text.trim().startsWith("$")) {
-          let comp = editor.Components.getWrapper().find(e.target)[0];
+          let targetEl =
+            e.target.closest && e.target.closest("[data-gjs-type]");
+          let comp =
+            targetEl && targetEl.id
+              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
+              : null;
           if (comp) {
             let current = comp;
             while (current && current.get("type") !== "mj-text") {
@@ -1225,7 +1362,7 @@ function registerBlocks(editor) {
   bm.add("heading", {
     label: "Heading",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
         <mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
           Title goes here
@@ -1237,7 +1374,7 @@ function registerBlocks(editor) {
   bm.add("paragraph", {
     label: "Paragraph",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
         <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
           Paragraph content
@@ -1249,7 +1386,7 @@ function registerBlocks(editor) {
   bm.add("image", {
     label: "Image",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%" >
         <mj-text padding="0px" margin="0px">
           <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 190px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
@@ -1270,7 +1407,7 @@ function registerBlocks(editor) {
   bm.add("button", {
     label: "Button",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
         <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center">
           Click Here
@@ -1282,7 +1419,7 @@ function registerBlocks(editor) {
   bm.add("divider", {
     label: "Divider",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
         <mj-divider border-color="#dddddd" border-width="1px" padding="0px" margin="0px" />
       </mj-column>
@@ -1293,7 +1430,7 @@ function registerBlocks(editor) {
     label: "Attachment",
     category: "Content",
     content: `
-      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="0px" margin="0px" width="100%" background-color="#ffffff" align="center" justify="center">
+      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="16px" margin="0px" width="100%" background-color="#ffffff" align="center" justify="center">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-text align="center" padding="10px" margin="0px">
             <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
