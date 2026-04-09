@@ -471,36 +471,39 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"] {
-                  display: flex !important;
-                  flex-direction: column !important;
-                  align-items: center !important;
-                  justify-content: center !important;
-                  gap: 8px !important;
+                  position: relative !important;
                   background: white !important;
                   border: none !important;
                   min-height: 80px !important;
-                  text-align: center !important;
                   box-sizing: border-box !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::before {
-                  content: "";
-                  width: 20px;
-                  height: 20px;
-                  display: block;
-                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-                  background-size: contain;
-                  background-repeat: no-repeat;
+                  content: "" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, -22px) !important;
+                  width: 20px !important;
+                  height: 20px !important;
+                  display: block !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-size: contain !important;
+                  background-repeat: no-repeat !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::after {
                   content: "Drag and drop items here to stack them in rows" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, 6px) !important;
                   font-family: Inter, Arial, sans-serif !important;
                   font-size: 14px !important;
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
-                  max-width: 100% !important;
+                  white-space: nowrap !important;
                   box-sizing: border-box !important;
                 }
 
