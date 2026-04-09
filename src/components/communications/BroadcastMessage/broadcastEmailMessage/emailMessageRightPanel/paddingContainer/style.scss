@@ -9,6 +9,7 @@
     @include variable.d-flex($fd: column, $g: 16px);
 
     .styleGroup {
+      width: 100%;
       @include variable.d-flex($fd: column, $g: 12px);
 
       .groupLabel {
@@ -70,6 +71,52 @@
               color: variable.$color-white-12;
               user-select: none;
             }
+          }
+        }
+      }
+    }
+
+    .flexControlGroup {
+      width: 100%;
+      @include variable.d-flex($fd: column, $g: 12px);
+      margin-bottom: 8px;
+
+      .alignmentButtons {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        background: variable.$color-white-5;
+        padding: 4px;
+        border-radius: 8px;
+
+        &.wrap {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .alignBtn {
+          flex: 1;
+          @include variable.font-style($fs: 11px, $fw: 500);
+          color: variable.$color-black-5;
+          background: transparent;
+          border: none;
+          padding: 6px 4px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: center;
+          white-space: nowrap;
+
+          &:hover {
+            color: variable.$color-black-1;
+            background: rgba(variable.$color-white-0, 0.5);
+          }
+
+          &.active {
+            color: variable.$color-black-1;
+            background: variable.$color-white-0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
           }
         }
       }
