@@ -387,7 +387,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   min-height: 100%;
                   word-break: break-word;
                   overflow-wrap: break-word;
-                  padding-bottom: 100px;
                 }
                 [data-gjs-type] { min-height: 20px; }
 
@@ -461,8 +460,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   gap: 8px !important;
                   background: white !important;
                   border: none !important;
-                  width: 100% !important;
-                  height: 100% !important;
                   min-height: 80px !important;
                   text-align: center !important;
                   box-sizing: border-box !important;
@@ -485,6 +482,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
+                  max-width: 100% !important;
+                  box-sizing: border-box !important;
                 }
 
                 /* Column Frame Placeholder Styles */
@@ -503,8 +502,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   gap: 8px !important;
                   background: white !important;
                   border: none !important;
-                  width: 100% !important;
-                  height: 100% !important;
                   min-height: 80px !important;
                   text-align: center !important;
                   box-sizing: border-box !important;
@@ -529,6 +526,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
+                  max-width: 100% !important;
+                  box-sizing: border-box !important;
                 }
             `,
       plugins: [mjmlPlugin],
