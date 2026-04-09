@@ -203,6 +203,51 @@ function extractLinesFromContent(html, doc) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// clearInternalStyles
+// ─────────────────────────────────────────────────────────────────────────────
+function clearInternalStyles(html, doc, styles = []) {
+  if (!html) return html;
+  const d = doc || window.document;
+  const tmp = d.createElement("div");
+  tmp.innerHTML = html;
+
+  const cleanNode = (node) => {
+    if (node.nodeType === 1) {
+      styles.forEach((styleProp) => {
+        // Clear both kebab-case and camelCase
+        node.style.removeProperty(styleProp);
+        const camelProp = styleProp.replace(/-([a-z])/g, (g) =>
+          g[1].toUpperCase()
+        );
+        if (node.style[camelProp]) {
+          node.style[camelProp] = "";
+        }
+      });
+      if (styles.includes("color") && node.hasAttribute("color")) {
+        node.removeAttribute("color");
+      }
+      if (
+        (styles.includes("font-family") || styles.includes("fontFamily")) &&
+        node.hasAttribute("face")
+      ) {
+        node.removeAttribute("face");
+      }
+      if (
+        (styles.includes("font-size") || styles.includes("fontSize")) &&
+        node.hasAttribute("size")
+      ) {
+        node.removeAttribute("size");
+      }
+
+      Array.from(node.childNodes).forEach(cleanNode);
+    }
+  };
+
+  Array.from(tmp.childNodes).forEach(cleanNode);
+  return tmp.innerHTML;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // setupBulletListKeyHandler — div-based
 // ─────────────────────────────────────────────────────────────────────────────
 function setupBulletListKeyHandler(editor) {
@@ -784,18 +829,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       // No selection — apply color to the whole component
       selectedComp.addStyle({ color: c });
       const content = selectedComp.get("content") || "";
-      if (
-        content.includes("data-list-type") ||
-        content.includes("<ul") ||
-        content.includes("<ol")
-      ) {
-        const updatedContent = content.replace(/(color:\s*)[^;"]+/g, `$1${c}`);
-        if (updatedContent !== content) {
-          selectedComp.set("content", updatedContent);
-          editorRef.current
-            ?.getEditor()
-            ?.trigger("component:update", selectedComp);
-        }
+      const canvasDoc = getCanvasDoc(editor);
+      const cleaned = clearInternalStyles(content, canvasDoc, ["color"]);
+
+      if (cleaned !== content) {
+        selectedComp.set("content", cleaned);
+        editorRef.current
+          ?.getEditor()
+          ?.trigger("component:update", selectedComp);
       }
     }
   };
@@ -838,6 +879,20 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       }
 
       selectedComp.addStyle({ [cssKey]: cssValue });
+
+      // Clean up internal overrides if no selection
+      const editor = editorRef.current?.getEditor();
+      const sel = editor ? getCanvasSelection(editor) : null;
+      if (!hasSelection(sel)) {
+        const content = selectedComp.get("content") || "";
+        const canvasDoc = getCanvasDoc(editor);
+        const cleaned = clearInternalStyles(content, canvasDoc, [cssKey]);
+
+        if (cleaned !== content) {
+          selectedComp.set("content", cleaned);
+          editor.trigger("component:update", selectedComp);
+        }
+      }
     }
   };
 

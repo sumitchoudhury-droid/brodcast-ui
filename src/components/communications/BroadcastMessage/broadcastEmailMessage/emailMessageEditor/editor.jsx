@@ -162,6 +162,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const isUnwrapping = useRef(false);
+  const imageTargetCompRef = useRef(null);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -236,6 +237,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Capture the target ref before async operations clear it
+    const capturedTarget = imageTargetCompRef.current;
+    imageTargetCompRef.current = null;
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
@@ -249,21 +253,26 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const heightAttr = `${naturalHeight}px`;
 
         const editor = gjsInstance.current;
+        const targetFromRef = capturedTarget;
         const selected = editor.getSelected();
 
-        if (selected) {
-          // Case 1: An mj-image is selected — update src and dimensions directly
-          let target = selected;
+        if (targetFromRef || selected) {
+          // Case 1: An mj-image is selected (or targeted) — update src and dimensions directly
+          let target = targetFromRef || selected;
           while (target && !target.is("mj-image")) {
             target = target.parent();
           }
           if (target) {
-            target.addAttributes({
-              src: dataUrl,
-              width: widthAttr,
-              height: heightAttr
-            });
-            editor.trigger("component:update", target);
+            const parent = target.parent();
+            const index = parent.components().indexOf(target);
+            target.remove();
+            parent
+              .components()
+              .add(
+                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                { at: index }
+              );
+            editor.trigger("component:update", parent);
             return;
           }
 
@@ -536,6 +545,32 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           exportButton: false,
           importButton: false
         }
+      }
+    });
+
+    // ── Override Asset Manager to use native file picker ─────────────────────
+    editor.Commands.add("open-assets", {
+      run(editor, sender, opts = {}) {
+        const target = opts.target || editor.getSelected();
+        if (
+          target &&
+          (target.is("mj-image") || target.get("type") === "mj-image")
+        ) {
+          imageTargetCompRef.current = target;
+          imageInputRef.current?.click();
+        } else {
+          // If not an image, fall back to default if needed, or just do nothing
+          // For now, we only care about images.
+          imageTargetCompRef.current = target;
+          imageInputRef.current?.click();
+        }
+      }
+    });
+
+    // ── Double-click on mj-image triggers open-assets ────────────────────────
+    editor.on("component:dblclick", (comp) => {
+      if (comp.is("mj-image")) {
+        editor.runCommand("open-assets", { target: comp });
       }
     });
 
@@ -965,7 +1000,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               return false;
             }
           });
-          if (clickedColumn) editor.select(clickedColumn);
+          if (clickedColumn) {
+            editor.select(clickedColumn);
+            imageTargetCompRef.current = clickedColumn;
+          }
           imageInputRef.current?.click();
           return;
         }
@@ -1120,6 +1158,41 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               }
             }
           }
+        }
+      });
+
+      // ── Handle paste to clean up styles ──────────────────────────────────
+      body.addEventListener("paste", (e) => {
+        const html = e.clipboardData.getData("text/html");
+        if (html) {
+          e.preventDefault();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+
+          const cleanNode = (node) => {
+            if (node.nodeType === 1) {
+              // Element node
+              node.style.removeProperty("color");
+              node.style.removeProperty("font-family");
+              node.style.removeProperty("font-size");
+              node.style.color = "";
+              node.style.fontFamily = "";
+              node.style.fontSize = "";
+
+              if (node.hasAttribute("color")) node.removeAttribute("color");
+              if (node.hasAttribute("face")) node.removeAttribute("face");
+              if (node.hasAttribute("size")) node.removeAttribute("size");
+
+              Array.from(node.childNodes).forEach(cleanNode);
+            }
+          };
+
+          Array.from(doc.body.childNodes).forEach(cleanNode);
+          const cleanHtml = doc.body.innerHTML;
+          editor.Canvas.getWindow().document.execCommand(
+            "insertHTML",
+            false,
+            cleanHtml
+          );
         }
       });
 
