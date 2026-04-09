@@ -26,6 +26,7 @@
 
       .backgroundControlsTopRight {
         @include variable.d-flex($al: center, $g: 10px);
+        cursor: pointer;
       }
     }
 

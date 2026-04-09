@@ -4,7 +4,7 @@ import { useToast } from "../../../../../hooks/useToast";
 import "./style.scss";
 import PreviewModal from "../emailMessagePreviewModal/previewModal";
 import SignatureSection from "./signatureSection/SignatureSection";
-import LayoutContainer from "./layoutContainer/layoutContainer";
+// import LayoutContainer from "./layoutContainer/layoutContainer";
 import { DeviceSwitcher } from "./deviceSwitch/DeviceSwitcher";
 import { BackgroundContainer } from "./backgroundContainer/backgroundContainer";
 import { TextStyleContainer } from "./textStyleContainer/textStyleContainer";
@@ -712,6 +712,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   }, [editorRef]);
 
   // ─── Layout ────────────────────────────────────────────────────────────────
+  /*
   const handleAddLayout = (layoutType) => {
     const editor = editorRef.current?.getEditor();
     if (!editor) return;
@@ -734,6 +735,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       editor.addComponents(content);
     }
   };
+*/
 
   // ─── Background ────────────────────────────────────────────────────────────
   const handleBgColorChange = (c) => {
@@ -1307,7 +1309,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
       <div className="panelSections">
         <SignatureSection />
-        <LayoutContainer handleAddLayout={handleAddLayout} />
+        {/* <LayoutContainer handleAddLayout={handleAddLayout} /> */}
 
         {selectedComp &&
           (selectedComp.is("mj-text") || selectedComp.is("mj-button")) && (
@@ -1356,6 +1358,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           height={height}
           heightUnit={heightUnit}
           handleHeightChange={handleHeightChange}
+          onResetColor={() => handleBgColorChange("#FFFFFF")}
         />
 
         <BorderContainer

@@ -18,7 +18,8 @@ export const BackgroundContainer = ({
   handleWidthChange,
   height,
   heightUnit,
-  handleHeightChange
+  handleHeightChange,
+  onResetColor
 }) => {
   return (
     <div className="backgroundContainer">
@@ -64,7 +65,7 @@ export const BackgroundContainer = ({
               />
             </div>
           </div>
-          <div className="backgroundControlsTopRight">
+          <div className="backgroundControlsTopRight" onClick={onResetColor}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -86,29 +87,6 @@ export const BackgroundContainer = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-            </svg>
-
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-            >
-              <g clipPath="url(#clip0_917_8641)">
-                <path
-                  d="M4.1665 10H15.8332"
-                  stroke="#555F75"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </g>
-              <defs>
-                <clipPath id="clip0_917_8641">
-                  <rect width="20" height="20" fill="white" />
-                </clipPath>
-              </defs>
             </svg>
           </div>
         </div>
