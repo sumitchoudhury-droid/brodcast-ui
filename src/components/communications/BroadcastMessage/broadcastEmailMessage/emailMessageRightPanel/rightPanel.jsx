@@ -705,12 +705,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const editor = editorRef.current?.getEditor();
     if (!editor) return;
     const map = {
-      "1-col": `<mj-section full-width="full-width"><mj-column padding="20px" background-color="#ffffff"></mj-column></mj-section>`,
-      "2-col": `<mj-section full-width="full-width"><mj-column width="50%" padding="20px"></mj-column><mj-column width="50%" padding="20px"></mj-column></mj-section>`,
-      "3-col": `<mj-section full-width="full-width"><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column></mj-section>`,
-      "30-70": `<mj-section full-width="full-width"><mj-column width="30%" padding="10px"></mj-column><mj-column width="70%" padding="10px"></mj-column></mj-section>`,
-      "70-30": `<mj-section full-width="full-width"><mj-column width="70%" padding="10px"></mj-column><mj-column width="30%" padding="10px"></mj-column></mj-section>`,
-      "2-row": `<mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section><mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section>`
+      "1-col": `<mj-section full-width="full-width"><mj-column padding="0px" background-color="#ffffff"></mj-column></mj-section>`,
+      "2-col": `<mj-section full-width="full-width"><mj-column width="50%" padding="0px"></mj-column><mj-column width="50%" padding="0px"></mj-column></mj-section>`,
+      "3-col": `<mj-section full-width="full-width"><mj-column width="33.33%" padding="0px"></mj-column><mj-column width="33.33%" padding="0px"></mj-column><mj-column width="33.33%" padding="0px"></mj-column></mj-section>`,
+      "30-70": `<mj-section full-width="full-width"><mj-column width="30%" padding="0px"></mj-column><mj-column width="70%" padding="0px"></mj-column></mj-section>`,
+      "70-30": `<mj-section full-width="full-width"><mj-column width="70%" padding="0px"></mj-column><mj-column width="30%" padding="0px"></mj-column></mj-section>`,
+      "2-row": `<mj-section full-width="full-width"><mj-column padding="0px"></mj-column></mj-section><mj-section full-width="full-width"><mj-column padding="0px"></mj-column></mj-section>`
     };
     const content = map[layoutType];
     if (!content) return;

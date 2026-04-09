@@ -399,6 +399,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
                 [data-gjs-type] { min-height: 20px; }
 
+                /* Remove focus border/outline on editable elements */
+                [data-gjs-type]:focus,
+                [contenteditable]:focus,
+                [contenteditable="true"]:focus {
+                  outline: none !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                }
+
                 /* ── Bullet / ordered-list fix ─────────────────────────────────
                    MJML renders mj-text content inside <td> elements. Browsers
                    default to clipping <td> overflow which hides bullet markers
@@ -599,11 +608,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const typeObj = editor.Components.getType(typeName);
         if (!typeObj) return;
 
-        // mj-section gets 16px all-side padding; everything else gets 0px.
+        // mj-section gets 20px all-side padding; everything else gets 0px.
         const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
           ? { padding: "0px", margin: "0px", width: "100%" }
           : typeName === "mj-section"
-            ? { padding: "16px", margin: "0px", width: "100%" }
+            ? { padding: "20px", margin: "0px", width: "100%" }
             : {};
 
         editor.Components.addType(typeName, {
@@ -628,7 +637,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         comp.set({ droppable: true, draggable: !inFrame });
 
         if (type === "mj-section") {
-          comp.addAttributes({ padding: "16px", margin: "0px" });
+          comp.addAttributes({ padding: "20px", margin: "0px" });
         }
 
         if (type === "mj-column") {
@@ -868,7 +877,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         comp.set({ droppable: true, draggable: true });
 
         if (type === "mj-section") {
-          comp.addAttributes({ padding: "16px", margin: "0px" });
+          comp.addAttributes({ padding: "20px", margin: "0px" });
         }
 
         if (type === "mj-column") {
@@ -979,8 +988,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       editor.trigger("component:update", section);
     };
 
+    // Track which body elements already have our listeners to prevent
+    // duplicate registration if the "load" event fires more than once.
+    const attachedBodies = new WeakSet();
+
     editor.on("load", () => {
       const body = editor.Canvas.getBody();
+      if (attachedBodies.has(body)) return;
+      attachedBodies.add(body);
 
       // ── Canvas click handler ───────────────────────────────────────────────
       body.addEventListener("click", (e) => {
@@ -1292,6 +1307,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (Object.keys(toUpdate).length > 0) comp.addAttributes(toUpdate);
         }
       });
+    });
+
+    // ── Redirect mj-column selection to its parent mj-section ────────────────
+    editor.on("component:selected", (cmp) => {
+      if (cmp && cmp.get("type") === "mj-column") {
+        const parentSection = cmp.parent();
+        if (parentSection && parentSection.get("type") === "mj-section") {
+          editor.select(parentSection);
+        }
+      }
     });
 
     // ── Auto-open image picker when a blank mj-image is selected ─────────────
