@@ -203,6 +203,51 @@ function extractLinesFromContent(html, doc) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// clearInternalStyles
+// ─────────────────────────────────────────────────────────────────────────────
+function clearInternalStyles(html, doc, styles = []) {
+  if (!html) return html;
+  const d = doc || window.document;
+  const tmp = d.createElement("div");
+  tmp.innerHTML = html;
+
+  const cleanNode = (node) => {
+    if (node.nodeType === 1) {
+      styles.forEach((styleProp) => {
+        // Clear both kebab-case and camelCase
+        node.style.removeProperty(styleProp);
+        const camelProp = styleProp.replace(/-([a-z])/g, (g) =>
+          g[1].toUpperCase()
+        );
+        if (node.style[camelProp]) {
+          node.style[camelProp] = "";
+        }
+      });
+      if (styles.includes("color") && node.hasAttribute("color")) {
+        node.removeAttribute("color");
+      }
+      if (
+        (styles.includes("font-family") || styles.includes("fontFamily")) &&
+        node.hasAttribute("face")
+      ) {
+        node.removeAttribute("face");
+      }
+      if (
+        (styles.includes("font-size") || styles.includes("fontSize")) &&
+        node.hasAttribute("size")
+      ) {
+        node.removeAttribute("size");
+      }
+
+      Array.from(node.childNodes).forEach(cleanNode);
+    }
+  };
+
+  Array.from(tmp.childNodes).forEach(cleanNode);
+  return tmp.innerHTML;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // setupBulletListKeyHandler — div-based
 // ─────────────────────────────────────────────────────────────────────────────
 function setupBulletListKeyHandler(editor) {
@@ -463,6 +508,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   });
 
   const [activeFormats, setActiveFormats] = useState({});
+  const [alignItems, setAlignItems] = useState("flex-start");
+  const [justifyContent, setJustifyContent] = useState("flex-start");
   const [padding, setPadding] = useState({
     top: "0",
     right: "0",
@@ -574,8 +621,17 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           )
         });
       } else {
+        // Sync textAlign for other components (like mj-column or sections)
+        setTypography((prev) => ({
+          ...prev,
+          textAlign:
+            style["text-align"] || selected.getAttributes()?.align || "left"
+        }));
         setActiveFormats({});
       }
+
+      setAlignItems(style["align-items"] || "flex-start");
+      setJustifyContent(style["justify-content"] || "flex-start");
 
       setPadding({
         top:
@@ -660,12 +716,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const editor = editorRef.current?.getEditor();
     if (!editor) return;
     const map = {
-      "1-col": `<mj-section full-width="full-width"><mj-column padding="20px" background-color="#ffffff"></mj-column></mj-section>`,
-      "2-col": `<mj-section full-width="full-width"><mj-column width="50%" padding="20px"></mj-column><mj-column width="50%" padding="20px"></mj-column></mj-section>`,
-      "3-col": `<mj-section full-width="full-width"><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column><mj-column width="33.33%" padding="10px"></mj-column></mj-section>`,
-      "30-70": `<mj-section full-width="full-width"><mj-column width="30%" padding="10px"></mj-column><mj-column width="70%" padding="10px"></mj-column></mj-section>`,
-      "70-30": `<mj-section full-width="full-width"><mj-column width="70%" padding="10px"></mj-column><mj-column width="30%" padding="10px"></mj-column></mj-section>`,
-      "2-row": `<mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section><mj-section full-width="full-width" padding="0"><mj-column padding="10px"></mj-column></mj-section>`
+      "1-col": `<mj-section full-width="full-width"><mj-column padding="0px" background-color="#ffffff"></mj-column></mj-section>`,
+      "2-col": `<mj-section full-width="full-width"><mj-column width="50%" padding="0px"></mj-column><mj-column width="50%" padding="0px"></mj-column></mj-section>`,
+      "3-col": `<mj-section full-width="full-width"><mj-column width="33.33%" padding="0px"></mj-column><mj-column width="33.33%" padding="0px"></mj-column><mj-column width="33.33%" padding="0px"></mj-column></mj-section>`,
+      "30-70": `<mj-section full-width="full-width"><mj-column width="30%" padding="0px"></mj-column><mj-column width="70%" padding="0px"></mj-column></mj-section>`,
+      "70-30": `<mj-section full-width="full-width"><mj-column width="70%" padding="0px"></mj-column><mj-column width="30%" padding="0px"></mj-column></mj-section>`,
+      "2-row": `<mj-section full-width="full-width"><mj-column padding="0px"></mj-column></mj-section><mj-section full-width="full-width"><mj-column padding="0px"></mj-column></mj-section>`
     };
     const content = map[layoutType];
     if (!content) return;
@@ -784,60 +840,93 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       // No selection — apply color to the whole component
       selectedComp.addStyle({ color: c });
       const content = selectedComp.get("content") || "";
-      if (
-        content.includes("data-list-type") ||
-        content.includes("<ul") ||
-        content.includes("<ol")
-      ) {
-        const updatedContent = content.replace(/(color:\s*)[^;"]+/g, `$1${c}`);
-        if (updatedContent !== content) {
-          selectedComp.set("content", updatedContent);
-          editorRef.current
-            ?.getEditor()
-            ?.trigger("component:update", selectedComp);
-        }
+      const canvasDoc = getCanvasDoc(editor);
+      const cleaned = clearInternalStyles(content, canvasDoc, ["color"]);
+
+      if (cleaned !== content) {
+        selectedComp.set("content", cleaned);
+        editorRef.current
+          ?.getEditor()
+          ?.trigger("component:update", selectedComp);
       }
     }
   };
 
   const handleTypographyChange = (key, value) => {
     setTypography((prev) => ({ ...prev, [key]: value }));
-    if (
-      selectedComp &&
-      (selectedComp.is("mj-text") || selectedComp.is("mj-button"))
-    ) {
-      const cssKey =
-        key === "fontFamily"
-          ? "font-family"
-          : key === "fontWeight"
-            ? "font-weight"
-            : key === "fontSize"
-              ? "font-size"
-              : "text-align";
-      const cssValue = key === "fontSize" ? `${value}px` : value;
+    if (!selectedComp) return;
 
+    const cssKey =
+      key === "fontFamily"
+        ? "font-family"
+        : key === "fontWeight"
+          ? "font-weight"
+          : key === "fontSize"
+            ? "font-size"
+            : "text-align";
+    const cssValue = key === "fontSize" ? `${value}px` : value;
+
+    if (key === "textAlign") {
+      const applyTextAlignRecursive = (comp, align) => {
+        const type = comp.get("type");
+        // Update components that support alignment
+        if (
+          comp.is("mj-text") ||
+          comp.is("mj-button") ||
+          comp.is("mj-image") ||
+          comp.is("mj-column") ||
+          type === "mj-text" ||
+          type === "mj-button" ||
+          type === "mj-image" ||
+          type === "mj-column"
+        ) {
+          comp.addAttributes({ align: align });
+          comp.addStyle({ "text-align": align });
+        }
+        comp
+          .components()
+          .each((child) => applyTextAlignRecursive(child, align));
+      };
+
+      // Apply recursively starting from the selected component
+      applyTextAlignRecursive(selectedComp, value);
+      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
+      return;
+    }
+
+    if (selectedComp.is("mj-text") || selectedComp.is("mj-button")) {
       // For inline properties, apply to selected text only if there's an active selection
-      if (key !== "textAlign") {
-        const editor = editorRef.current?.getEditor();
-        const sel = editor ? getCanvasSelection(editor) : null;
-        if (hasSelection(sel)) {
-          const doc = getCanvasDoc(editor);
-          if (doc) {
-            const range = sel.getRangeAt(0);
-            const span = doc.createElement("span");
-            span.style[key] = cssValue; // key is already camelCase (fontFamily, fontWeight, fontSize)
-            try {
-              range.surroundContents(span);
-              syncContentToModel(editor);
-              return;
-            } catch {
-              // Range spans multiple elements — fall through to whole-component
-            }
+      const editor = editorRef.current?.getEditor();
+      const sel = editor ? getCanvasSelection(editor) : null;
+      if (hasSelection(sel)) {
+        const doc = getCanvasDoc(editor);
+        if (doc) {
+          const range = sel.getRangeAt(0);
+          const span = doc.createElement("span");
+          span.style[key] = cssValue; // key is already camelCase (fontFamily, fontWeight, fontSize)
+          try {
+            range.surroundContents(span);
+            syncContentToModel(editor);
+            return;
+          } catch {
+            // Range spans multiple elements — fall through to whole-component
           }
         }
       }
 
       selectedComp.addStyle({ [cssKey]: cssValue });
+
+      // Clean up internal overrides if no selection
+      if (!hasSelection(sel)) {
+        const content = selectedComp.get("content") || "";
+        const canvasDoc = getCanvasDoc(editor);
+        const cleaned = clearInternalStyles(content, canvasDoc, [cssKey]);
+
+        if (cleaned !== content) {
+          selectedComp.set("content", cleaned);
+          editor.trigger("component:update", selectedComp);
+        }
+      }
     }
   };
 
@@ -849,6 +938,16 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const handleMarginChange = (side, value) => {
     setMargin((prev) => ({ ...prev, [side]: value }));
     selectedComp?.addStyle({ [`margin-${side}`]: `${value}px` });
+  };
+
+  const handleAlignItemsChange = (value) => {
+    setAlignItems(value);
+    selectedComp?.addStyle({ "align-items": value });
+  };
+
+  const handleJustifyContentChange = (value) => {
+    setJustifyContent(value);
+    selectedComp?.addStyle({ "justify-content": value });
   };
 
   // ─── Format toggle ─────────────────────────────────────────────────────────
@@ -1229,6 +1328,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           handlePaddingChange={handlePaddingChange}
           margin={margin}
           handleMarginChange={handleMarginChange}
+          alignItems={alignItems}
+          handleAlignItemsChange={handleAlignItemsChange}
+          justifyContent={justifyContent}
+          handleJustifyContentChange={handleJustifyContentChange}
+          textAlign={typography.textAlign}
+          handleTextAlignChange={(val) =>
+            handleTypographyChange("textAlign", val)
+          }
         />
 
         <BackgroundContainer

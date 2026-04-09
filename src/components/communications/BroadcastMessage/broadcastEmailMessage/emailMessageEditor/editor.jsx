@@ -162,6 +162,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const isUnwrapping = useRef(false);
+  const imageTargetCompRef = useRef(null);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -236,6 +237,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Capture the target ref before async operations clear it
+    const capturedTarget = imageTargetCompRef.current;
+    imageTargetCompRef.current = null;
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
@@ -249,21 +253,26 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const heightAttr = `${naturalHeight}px`;
 
         const editor = gjsInstance.current;
+        const targetFromRef = capturedTarget;
         const selected = editor.getSelected();
 
-        if (selected) {
-          // Case 1: An mj-image is selected — update src and dimensions directly
-          let target = selected;
+        if (targetFromRef || selected) {
+          // Case 1: An mj-image is selected (or targeted) — update src and dimensions directly
+          let target = targetFromRef || selected;
           while (target && !target.is("mj-image")) {
             target = target.parent();
           }
           if (target) {
-            target.addAttributes({
-              src: dataUrl,
-              width: widthAttr,
-              height: heightAttr
-            });
-            editor.trigger("component:update", target);
+            const parent = target.parent();
+            const index = parent.components().indexOf(target);
+            target.remove();
+            parent
+              .components()
+              .add(
+                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                { at: index }
+              );
+            editor.trigger("component:update", parent);
             return;
           }
 
@@ -390,6 +399,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
                 [data-gjs-type] { min-height: 20px; }
 
+                /* Remove focus border/outline on editable elements */
+                [data-gjs-type]:focus,
+                [contenteditable]:focus,
+                [contenteditable="true"]:focus {
+                  outline: none !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                }
+
                 /* ── Bullet / ordered-list fix ─────────────────────────────────
                    MJML renders mj-text content inside <td> elements. Browsers
                    default to clipping <td> overflow which hides bullet markers
@@ -453,36 +471,39 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"] {
-                  display: flex !important;
-                  flex-direction: column !important;
-                  align-items: center !important;
-                  justify-content: center !important;
-                  gap: 8px !important;
+                  position: relative !important;
                   background: white !important;
                   border: none !important;
                   min-height: 80px !important;
-                  text-align: center !important;
                   box-sizing: border-box !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::before {
-                  content: "";
-                  width: 20px;
-                  height: 20px;
-                  display: block;
-                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-                  background-size: contain;
-                  background-repeat: no-repeat;
+                  content: "" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, -22px) !important;
+                  width: 20px !important;
+                  height: 20px !important;
+                  display: block !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-size: contain !important;
+                  background-repeat: no-repeat !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::after {
                   content: "Drag and drop items here to stack them in rows" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, 6px) !important;
                   font-family: Inter, Arial, sans-serif !important;
                   font-size: 14px !important;
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
-                  max-width: 100% !important;
+                  white-space: nowrap !important;
                   box-sizing: border-box !important;
                 }
 
@@ -539,6 +560,32 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       }
     });
 
+    // ── Override Asset Manager to use native file picker ─────────────────────
+    editor.Commands.add("open-assets", {
+      run(editor, sender, opts = {}) {
+        const target = opts.target || editor.getSelected();
+        if (
+          target &&
+          (target.is("mj-image") || target.get("type") === "mj-image")
+        ) {
+          imageTargetCompRef.current = target;
+          imageInputRef.current?.click();
+        } else {
+          // If not an image, fall back to default if needed, or just do nothing
+          // For now, we only care about images.
+          imageTargetCompRef.current = target;
+          imageInputRef.current?.click();
+        }
+      }
+    });
+
+    // ── Double-click on mj-image triggers open-assets ────────────────────────
+    editor.on("component:dblclick", (comp) => {
+      if (comp.is("mj-image")) {
+        editor.runCommand("open-assets", { target: comp });
+      }
+    });
+
     // ─────────────────────────────────────────────────────────────────────────
     // STEP 1 — Override MJML component type defaults RIGHT AFTER plugin loads.
     // ─────────────────────────────────────────────────────────────────────────
@@ -564,11 +611,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const typeObj = editor.Components.getType(typeName);
         if (!typeObj) return;
 
-        // mj-section gets 16px all-side padding; everything else gets 0px.
+        // mj-section gets 20px all-side padding; everything else gets 0px.
         const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
           ? { padding: "0px", margin: "0px", width: "100%" }
           : typeName === "mj-section"
-            ? { padding: "16px", margin: "0px", width: "100%" }
+            ? { padding: "20px", margin: "0px", width: "100%" }
             : {};
 
         editor.Components.addType(typeName, {
@@ -593,7 +640,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         comp.set({ droppable: true, draggable: !inFrame });
 
         if (type === "mj-section") {
-          comp.addAttributes({ padding: "16px", margin: "0px" });
+          comp.addAttributes({ padding: "20px", margin: "0px" });
         }
 
         if (type === "mj-column") {
@@ -833,7 +880,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         comp.set({ droppable: true, draggable: true });
 
         if (type === "mj-section") {
-          comp.addAttributes({ padding: "16px", margin: "0px" });
+          comp.addAttributes({ padding: "20px", margin: "0px" });
         }
 
         if (type === "mj-column") {
@@ -944,8 +991,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       editor.trigger("component:update", section);
     };
 
+    // Track which body elements already have our listeners to prevent
+    // duplicate registration if the "load" event fires more than once.
+    const attachedBodies = new WeakSet();
+
     editor.on("load", () => {
       const body = editor.Canvas.getBody();
+      if (attachedBodies.has(body)) return;
+      attachedBodies.add(body);
 
       // ── Canvas click handler ───────────────────────────────────────────────
       body.addEventListener("click", (e) => {
@@ -965,7 +1018,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               return false;
             }
           });
-          if (clickedColumn) editor.select(clickedColumn);
+          if (clickedColumn) {
+            editor.select(clickedColumn);
+            imageTargetCompRef.current = clickedColumn;
+          }
           imageInputRef.current?.click();
           return;
         }
@@ -1123,6 +1179,41 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       });
 
+      // ── Handle paste to clean up styles ──────────────────────────────────
+      body.addEventListener("paste", (e) => {
+        const html = e.clipboardData.getData("text/html");
+        if (html) {
+          e.preventDefault();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+
+          const cleanNode = (node) => {
+            if (node.nodeType === 1) {
+              // Element node
+              node.style.removeProperty("color");
+              node.style.removeProperty("font-family");
+              node.style.removeProperty("font-size");
+              node.style.color = "";
+              node.style.fontFamily = "";
+              node.style.fontSize = "";
+
+              if (node.hasAttribute("color")) node.removeAttribute("color");
+              if (node.hasAttribute("face")) node.removeAttribute("face");
+              if (node.hasAttribute("size")) node.removeAttribute("size");
+
+              Array.from(node.childNodes).forEach(cleanNode);
+            }
+          };
+
+          Array.from(doc.body.childNodes).forEach(cleanNode);
+          const cleanHtml = doc.body.innerHTML;
+          editor.Canvas.getWindow().document.execCommand(
+            "insertHTML",
+            false,
+            cleanHtml
+          );
+        }
+      });
+
       // ── Empty-state overlay ───────────────────────────────────────────────
       const hasRealContent = () => {
         const wrapper = editor.getWrapper();
@@ -1219,6 +1310,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (Object.keys(toUpdate).length > 0) comp.addAttributes(toUpdate);
         }
       });
+    });
+
+    // ── Redirect mj-column selection to its parent mj-section ────────────────
+    editor.on("component:selected", (cmp) => {
+      if (cmp && cmp.get("type") === "mj-column") {
+        const parentSection = cmp.parent();
+        if (parentSection && parentSection.get("type") === "mj-section") {
+          editor.select(parentSection);
+        }
+      }
     });
 
     // ── Auto-open image picker when a blank mj-image is selected ─────────────
