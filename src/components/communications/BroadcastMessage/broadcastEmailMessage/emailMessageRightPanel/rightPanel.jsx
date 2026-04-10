@@ -1284,7 +1284,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       />
 
       <div className="panelSections">
-        <SignatureSection />
+        <SignatureSection editorRef={editorRef} />
         {/* <LayoutContainer handleAddLayout={handleAddLayout} /> */}
 
         {selectedComp &&
