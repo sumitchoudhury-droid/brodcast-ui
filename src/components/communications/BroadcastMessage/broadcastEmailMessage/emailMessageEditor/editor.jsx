@@ -72,6 +72,29 @@ function clearFramePlaceholder(container) {
   }
 }
 
+// Determine whether a component should accept drops.
+// Only column-frame sections and frame columns (row-frame-column, or any
+// mj-column that is a direct child of a column-frame-section) are droppable.
+// Regular mj-sections and mj-columns are NOT droppable so the GrapesJS Sorter
+// falls back to placing blocks at the mj-body level, which fixes the scroll bug
+// where dropping near the bottom of a scrolled canvas incorrectly targeted the
+// last section's column.
+function resolveDroppable(comp) {
+  const type = comp.get("type");
+  if (type === "mj-section") {
+    const dt = comp.getAttributes?.()?.["data-type"];
+    return dt === "column-frame-section";
+  }
+  if (type === "mj-column") {
+    const dt = comp.getAttributes?.()?.["data-type"];
+    if (dt === "row-frame-column") return true;
+    const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
+    return parentDt === "column-frame-section";
+  }
+  // mj-body and leaf types remain droppable (true)
+  return true;
+}
+
 // Scan every frame column and sync placeholder visibility via data-is-empty attribute
 function reconcileFramePlaceholders(editor, isReconciling) {
   if (isReconciling.current) return;
@@ -638,7 +661,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const type = comp.get("type");
         const inFrame =
           COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
-        comp.set({ droppable: true, draggable: !inFrame });
+        comp.set({ droppable: resolveDroppable(comp), draggable: !inFrame });
 
         if (type === "mj-section") {
           comp.addAttributes({ padding: "20px", margin: "0px" });
@@ -823,7 +846,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             if (type && type !== "textnode" && type !== "text") {
               const inFrame =
                 COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
-              comp.set({ draggable: !inFrame });
+              comp.set({
+                draggable: !inFrame,
+                droppable: resolveDroppable(comp)
+              });
             }
             comp.components().each(reconcileDraggability);
           } catch {
@@ -878,7 +904,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         // Draggability for content blocks depends on whether they land inside a
         // frame. At this point the fixup hasn't run yet (it's async), so we
         // optimistically allow dragging and reconcile after fixups complete.
-        comp.set({ droppable: true, draggable: true });
+        comp.set({ droppable: resolveDroppable(comp), draggable: true });
 
         if (type === "mj-section") {
           comp.addAttributes({ padding: "20px", margin: "0px" });
@@ -918,6 +944,23 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     registerBlocks(editor);
     editor.setComponents(EMPTY_TEMPLATE);
+
+    // ── Restrict nested block drops to column-frame / row-frame only ────────────
+    // Any block may be dropped at the top level (direct child of mj-body), which
+    // creates a new main section in the editor. However, when a block is dropped
+    // NESTED inside an existing section, it is only permitted inside a
+    // column-frame-section or row-frame-column container. Drops nested inside any
+    // other kind of section are immediately removed.
+    editor.on("block:drag:stop", (component) => {
+      if (!component) return;
+      const parentType = component.parent()?.get?.("type");
+      // Top-level drop (direct child of mj-body) — always allowed.
+      if (parentType === "mj-body") return;
+      // Nested inside a column-frame or row-frame — allowed.
+      if (isInsideFrame(component)) return;
+      // Nested inside any other section — reject.
+      component.remove();
+    });
 
     // ── Inject overlay style ──────────────────────────────────────────────────
     const overlayStyle = document.createElement("style");
