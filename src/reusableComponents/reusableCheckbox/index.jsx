@@ -17,6 +17,7 @@ export const ReusableCheckbox = ({
           name={name}
           checked={checked}
           onChange={onChange}
+          readOnly={!onChange}
           disabled={disabled}
           className="checkboxInput"
         />

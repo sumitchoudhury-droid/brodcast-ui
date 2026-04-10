@@ -1,5 +1,5 @@
-import { BroadcastEmailMessage } from "./broadcastEmailMessage";
+import { AddBroadcastMessage } from "../addBroadcastMessage";
 
 export const BroadcastMessage = () => {
-  return <BroadcastEmailMessage />;
+  return <AddBroadcastMessage />;
 };
