@@ -435,6 +435,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   overflow: visible !important;
                 }
                 .list-content-cell p, .list-content-cell div {
+                  display: inline !important;
                   margin: 0 !important;
                   padding: 0 !important;
                 }
