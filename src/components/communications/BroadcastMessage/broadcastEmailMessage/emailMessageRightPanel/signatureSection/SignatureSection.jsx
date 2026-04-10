@@ -7,7 +7,6 @@ import fileHtmlIcon from "../../../../../../assets/commonIcons/fileHtmlIcon.svg"
 import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal";
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
-import { ReusableInput } from "../../../../../../reusableComponents/reusableInput/index";
 
 export default function SignatureSection() {
   const [signature, setSignature] = useState("");
@@ -33,8 +32,7 @@ export default function SignatureSection() {
         "This is an automated communication from Manipal Hospitals. Please do not reply to this email.",
       value:
         "This is an automated communication from Manipal Hospitals. Please do not reply to this email."
-    },
-    { label: "Add Signature", value: "Add Signature" }
+    }
   ];
 
   const OnDemandFormsOptions = [
@@ -68,11 +66,6 @@ export default function SignatureSection() {
   return (
     <>
       <div className="signatureSectionContainer">
-        <ReusableInput
-          placeholder="Enter Signature"
-          value={signature}
-          onChange={setSignature}
-        />
         <ReusableDropDown
           options={SignatureOptions}
           value={signature}

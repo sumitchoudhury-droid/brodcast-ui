@@ -11,10 +11,18 @@ import "../style.scss";
 const EMPTY_TEMPLATE = `
 <mjml>
   <mj-body width="100%" background-color="#ffffff" padding="0px" margin="0px">
-  
+
   </mj-body>
 </mjml>
 `.trim();
+
+const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="#ffffff">
+  <mj-column padding="0px" margin="0px" width="100%">
+    <mj-text  padding="16px 0px" margin="0px" color="#181D25" font-size="20px" font-weight="500" font-family="Inter" line-height=20px>
+      Add Signature
+    </mj-text>
+  </mj-column>
+</mj-section>`;
 
 // All MJML types that are valid direct children of mj-column
 const COLUMN_VALID_CHILDREN = [
@@ -703,6 +711,69 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       }, 0);
     };
 
+    // ── Signature-section reconciler ──────────────────────────────────────────
+    // Ensures the "Add Signature" section is always present at the bottom
+    // whenever there is real content, and absent when the canvas is empty.
+    const isEnsuringSig = { current: false };
+    let sigTimer = null;
+    const scheduleSignatureReconcile = () => {
+      if (sigTimer) clearTimeout(sigTimer);
+      sigTimer = setTimeout(() => {
+        sigTimer = null;
+        if (isEnsuringSig.current) return;
+        isEnsuringSig.current = true;
+        try {
+          const wrapper = editor.getWrapper();
+          if (!wrapper) return;
+          let mjBody = null;
+          const findBody = (comp) => {
+            if (mjBody) return;
+            if (comp.get("type") === "mj-body") {
+              mjBody = comp;
+              return;
+            }
+            comp.components().each(findBody);
+          };
+          findBody(wrapper);
+          if (!mjBody) return;
+
+          let existingSig = null;
+          const realSections = [];
+          mjBody.components().each((c) => {
+            if (c.get("type") === "textnode") return;
+            if (c.getAttributes()?.["data-type"] === "signature-section") {
+              existingSig = c;
+            } else {
+              realSections.push(c);
+            }
+          });
+
+          if (realSections.length === 0) {
+            // No real content — remove sig if present
+            if (existingSig) existingSig.remove();
+            return;
+          }
+
+          // Real content exists — sig must be the last child
+          const allNonText = [];
+          mjBody.components().each((c) => {
+            if (c.get("type") !== "textnode") allNonText.push(c);
+          });
+          const lastComp = allNonText[allNonText.length - 1];
+
+          if (!existingSig) {
+            mjBody.append(SIGNATURE_SECTION_HTML);
+          } else if (lastComp !== existingSig) {
+            // Sig exists but is not last — remove and re-append at the end
+            existingSig.remove();
+            mjBody.append(SIGNATURE_SECTION_HTML);
+          }
+        } finally {
+          isEnsuringSig.current = false;
+        }
+      }, 50);
+    };
+
     const processPendingFixups = () => {
       fixupScheduled = false;
       const items = pendingFixups.splice(0, pendingFixups.length);
@@ -837,6 +908,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       } finally {
         isUnwrapping.current = false;
         scheduleReconcile(); // Ensure placeholders are updated after all fixups
+        scheduleSignatureReconcile(); // Ensure signature section stays at bottom
 
         // Re-evaluate draggability: content blocks inside frames must not be
         // draggable; the fixup just moved them there so update them now.
@@ -862,6 +934,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     editor.on("component:add", (comp) => {
       const type = comp.get("type");
+
+      // Skip processing for the signature section — it's managed by the reconciler
+      if (comp.getAttributes()?.["data-type"] === "signature-section") {
+        comp.set({ draggable: false, droppable: false });
+        return;
+      }
+
+      // Trigger signature reconcile so it stays at the bottom
+      if (type === "mj-section" && comp.parent()?.get("type") === "mj-body") {
+        scheduleSignatureReconcile();
+      }
 
       // Auto-remove placeholder when something is added to its container
       if (
@@ -937,8 +1020,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     // Restore placeholder when a frame column becomes empty after a removal
     editor.on("component:remove", (comp) => {
-      if (comp.getAttributes()["data-type"] !== "frame-placeholder-ui") {
+      const dt = comp.getAttributes()?.["data-type"];
+      if (dt !== "frame-placeholder-ui") {
         scheduleReconcile();
+        // Don't re-trigger sig reconcile when the sig itself is being removed
+        if (dt !== "signature-section") {
+          scheduleSignatureReconcile();
+        }
       }
     });
 
@@ -1276,7 +1364,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const components = mjBody.components();
         if (components.length === 0) return false;
         const realComponents = components.filter(
-          (c) => c.get("type") !== "textnode"
+          (c) =>
+            c.get("type") !== "textnode" &&
+            c.getAttributes()?.["data-type"] !== "signature-section"
         );
         if (realComponents.length === 0) return false;
         if (realComponents.length === 1) {
