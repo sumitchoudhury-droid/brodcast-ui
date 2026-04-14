@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import grapesjs from "grapesjs";
 import mjmlPlugin from "grapesjs-mjml";
+import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
@@ -331,15 +332,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     e.target.value = "";
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     // Capture the target ref before async operations clear it
     const capturedTarget = imageTargetCompRef.current;
     imageTargetCompRef.current = null;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target.result;
+
+    try {
+      const dataUrl = await uploadToCloudinary(file);
+      if (!dataUrl) return;
 
       // Resolve actual pixel dimensions before inserting into the editor
       const img = new window.Image();
@@ -455,8 +458,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       };
       img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      // alert("Upload failed. Using local fallback.");
+    }
     e.target.value = "";
   };
 

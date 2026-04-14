@@ -31,7 +31,8 @@
         "serialised",
         "bgcolor",
         "serialise",
-        "ajst"
+        "ajst",
+        "optimisations"
     ],
     "ignorePaths": [
         "dist",

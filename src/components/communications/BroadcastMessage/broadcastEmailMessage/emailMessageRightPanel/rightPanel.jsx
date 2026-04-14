@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import emailjs from "@emailjs/browser";
 import { useToast } from "../../../../../hooks/useToast";
+import {
+  uploadToCloudinary,
+  IS_CLOUDINARY_CONFIGURED,
+  uploadBase64ToCloudinary
+} from "../../../../../utils/uploadUtils";
 
 import "./style.scss";
 import PreviewModal from "../emailMessagePreviewModal/previewModal";
@@ -145,7 +150,8 @@ function buildListHtml({ tag, lines, color, fontSize, fontFamily }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // extractLinesFromContent
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────
+// ─────────────────────────────────────────────────────
 function extractLinesFromContent(html, doc) {
   const d = doc || window.document;
   const tmp = d.createElement("div");
@@ -254,10 +260,46 @@ function clearInternalStyles(html, doc, styles = []) {
 function minifyHTML(html) {
   if (!html) return "";
   return html
-    .replace(/<!--[\s\S]*?-->/g, "") // Remove comments
+    .replace(/<!--[\s\S]*?-->/g, "") // Remove HTML comments (incl. MSO conditionals)
     .replace(/\s+/g, " ") // Collapse whitespace
     .replace(/>\s+</g, "><") // Remove whitespace between tags
     .trim();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// prepareHtmlForEmail
+// Strips GrapesJS canvas editor artifacts (style blocks, data-gjs-* attributes,
+// scripts) that are injected into the canvas iframe but are NOT part of the
+// actual email HTML.  This typically saves 20-40 KB before the EmailJS check.
+// ─────────────────────────────────────────────────────────────────────────────
+function prepareHtmlForEmail(rawHtml) {
+  if (!rawHtml) return "";
+
+  let html = rawHtml;
+
+  // Remove <style> blocks that contain GrapesJS editor-specific selectors
+  // but do NOT contain @media queries (those are the real email responsive styles).
+  html = html.replace(
+    /<style\b[^>]*>([\s\S]*?)<\/style>/gi,
+    (match, content) => {
+      const isEditorStyle =
+        /\.gjs-|#gjs-|\bsp-container\b|\.CodeMirror|pointer-events\s*:\s*none/.test(
+          content
+        );
+      const hasMediaQuery = /@media\s/i.test(content);
+      // Drop pure-editor style blocks; keep anything that has responsive CSS
+      if (isEditorStyle && !hasMediaQuery) return "";
+      return match;
+    }
+  );
+
+  // Remove <script> tags – not valid in email bodies
+  html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+
+  // Remove GrapesJS component data attributes (data-gjs-*)
+  html = html.replace(/\s+data-gjs-[a-zA-Z-]+(?:="[^"]*"|='[^']*')?/g, "");
+
+  return minifyHTML(html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -744,12 +786,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       "background-size": s === "fill" ? "100% 100%" : s
     });
   };
-  const handleBgImageUpload = (e) => {
+  const handleBgImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !selectedComp) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target.result;
+
+    try {
+      const url = await uploadToCloudinary(file);
+      if (!url) return;
+
       setBgImage(url);
       selectedComp.addStyle({
         "background-image": `url(${url})`,
@@ -758,8 +802,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         "background-position": "center"
       });
       e.target.value = "";
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Error uploading background image:", err);
+      toast.error(
+        "Upload Failed",
+        "Could not upload image to hosting service."
+      );
+    }
   };
 
   // ─── Dimensions ────────────────────────────────────────────────────────────
@@ -1257,44 +1306,93 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       const templateId = "template_5x27f1d";
       const publicKey = "tX62HCCPekA42gNY0";
 
-      // Strip base64-encoded data URLs — they bloat the payload and exceed EmailJS's ~50 KB limit.
-      // Replace inline src/background-image data URLs with a placeholder so the email still renders.
-      const hasBase64 = /data:image\/[^;]+;base64,/.test(html);
-      const strippedHtml = html
-        .replace(/src="data:image\/[^"]+"/g, 'src=""')
-        .replace(/url\(data:image\/[^)]+\)/g, "url()");
-
-      const minifiedHtml = minifyHTML(strippedHtml);
-      const payloadSizeKB = (new Blob([minifiedHtml]).size / 1024).toFixed(2);
+      // ── Step 1: Strip GrapesJS canvas artifacts + minify ────────────────────
+      // This removes editor-only <style> blocks (.gjs-*, pointer-events, etc.)
+      // and <script> tags that inflate the canvas iframe HTML by 20-40 KB but
+      // are not part of the real email.
+      let minifiedHtml = prepareHtmlForEmail(html);
+      let payloadSizeKB = new Blob([minifiedHtml]).size / 1024;
 
       console.log(
-        `[EmailJS] Original size: ${(new Blob([html]).size / 1024).toFixed(2)} KB`
-      );
-      console.log(
-        `[EmailJS] Minified size after stripping base64: ${payloadSizeKB} KB`
+        `[EmailJS] Size after stripping editor artifacts: ${payloadSizeKB.toFixed(2)} KB`
       );
 
-      if (hasBase64) {
-        toast.warning(
-          "Inline Images Removed",
-          "Locally uploaded images were removed from the test email because EmailJS does not support base64-encoded images. Host your images externally (e.g. via a URL) to include them."
-        );
-      }
-
+      // ── Step 2: If still over limit, try hosting base64 images via Cloudinary ─
       if (payloadSizeKB > 50) {
-        toast.error(
-          "Payload Too Large",
-          `The email content (${payloadSizeKB} KB) still exceeds the ~50 KB EmailJS limit after stripping inline images. Please simplify the email or host large assets externally.`
-        );
-        return;
+        const base64SrcMatches = [
+          ...minifiedHtml.matchAll(/src="(data:image\/[^"]+)"/g)
+        ];
+        const base64BgMatches = [
+          ...minifiedHtml.matchAll(/url\(["']?(data:image\/[^)"']+)["']?\)/g)
+        ];
+        const hasBase64 =
+          base64SrcMatches.length > 0 || base64BgMatches.length > 0;
+
+        if (hasBase64 && IS_CLOUDINARY_CONFIGURED) {
+          // Upload each embedded image to Cloudinary and replace the src
+          let processedHtml = minifiedHtml;
+          let idx = 0;
+
+          for (const [fullMatch, base64Url] of base64SrcMatches) {
+            const hostedUrl = await uploadBase64ToCloudinary(
+              base64Url,
+              `email_img_${++idx}.jpg`
+            );
+            if (hostedUrl) {
+              processedHtml = processedHtml.replace(
+                fullMatch,
+                `src="${hostedUrl}"`
+              );
+            }
+          }
+
+          for (const [fullMatch, base64Url] of base64BgMatches) {
+            const hostedUrl = await uploadBase64ToCloudinary(
+              base64Url,
+              `email_bg_${++idx}.jpg`
+            );
+            if (hostedUrl) {
+              processedHtml = processedHtml.replace(
+                fullMatch,
+                `url(${hostedUrl})`
+              );
+            }
+          }
+
+          minifiedHtml = processedHtml;
+          payloadSizeKB = new Blob([minifiedHtml]).size / 1024;
+          console.log(
+            `[EmailJS] Size after Cloudinary upload: ${payloadSizeKB.toFixed(2)} KB`
+          );
+        }
+
+        // Final size check after all optimisations
+        if (payloadSizeKB > 50) {
+          const hasBase64Still =
+            /src="data:image\//.test(minifiedHtml) ||
+            /url\(["']?data:image\//.test(minifiedHtml);
+
+          if (hasBase64Still && !IS_CLOUDINARY_CONFIGURED) {
+            toast.error(
+              "Image Too Large to Send",
+              "The image makes the email exceed EmailJS's 50 KB limit. Use a smaller image, or configure Cloudinary in src/utils/uploadUtils.js to host images externally."
+            );
+          } else {
+            toast.error(
+              "Email Too Large",
+              `The email (${payloadSizeKB.toFixed(2)} KB) exceeds EmailJS's ~50 KB limit. Try reducing the number of sections or simplifying the layout.`
+            );
+          }
+          return;
+        }
       }
 
       const templateParams = {
         to_email: testEmail,
         subject: testSubject || "Test Broadcast Email",
         html_content: minifiedHtml,
-        name: "Admin", // For From Name {{name}}
-        email: "admin@example.com" // For Reply To {{email}}
+        name: "Admin",
+        email: "admin@example.com"
       };
 
       await emailjs.send(serviceId, templateId, templateParams, publicKey);

@@ -85,6 +85,23 @@
     }
   }
 
+  &.warning {
+    box-shadow: 0 4px 10px 0 rgba(247, 144, 9, 0.2);
+
+    &::before {
+      background: conic-gradient(
+        from 0deg,
+        transparent,
+        #f79009,
+        transparent 30%
+      );
+    }
+
+    &::after {
+      background-color: #fffaeb;
+    }
+  }
+
   .toastIconBox {
     width: 32px;
     height: 32px;

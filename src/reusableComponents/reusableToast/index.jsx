@@ -38,6 +38,28 @@ const ReusableToast = ({ type, title, message, onClose, duration = 5000 }) => {
         </div>
       );
     }
+    if (type === "warning") {
+      return (
+        <div className="toastIconBox">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="16" cy="16" r="16" fill="#FEF0C7" />
+            <path
+              d="M16 10V17"
+              stroke="#DC6803"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <circle cx="16" cy="21" r="1.25" fill="#DC6803" />
+          </svg>
+        </div>
+      );
+    }
     return null;
   };
 
