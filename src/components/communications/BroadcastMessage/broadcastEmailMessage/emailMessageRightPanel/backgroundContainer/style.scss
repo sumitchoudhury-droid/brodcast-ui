@@ -1,5 +1,15 @@
 @use "../../../../../../style/variable.scss" as variable;
 
+.colorPopover {
+  position: fixed;
+  z-index: 9999;
+  background: variable.$color-white-0;
+  border: 1px solid variable.$color-white-14;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+}
+
 .backgroundContainer {
   width: 100%;
   @include variable.d-flex($fd: column, $g: 10px);
@@ -31,6 +41,7 @@
     }
 
     .colorControlWrapper {
+      flex: 1;
       position: relative;
       width: 100%;
 
@@ -47,6 +58,7 @@
       border: 1px solid variable.$color-white-14;
       cursor: pointer;
       position: relative;
+      width: 100%;
 
       &.mini {
         border-radius: 6px;
@@ -77,7 +89,7 @@
       .opacityValue {
         @include variable.font-style($fs: 14px, $fw: 500, $lh: 24px);
         color: variable.$color-black-5;
-        align-self: flex-end;
+        margin-left: auto;
       }
 
       .hiddenColorInput {

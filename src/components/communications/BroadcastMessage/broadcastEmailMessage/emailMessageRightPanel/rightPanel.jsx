@@ -524,9 +524,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   });
 
   const colorInputRef = useRef(null);
-  const textColorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
-  const borderColorInputRef = useRef(null);
   const cleanupRef = useRef(null);
 
   // ─── Attach bullet-list key handler ────────────────────────────────────────
@@ -1294,7 +1292,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               handleTypographyChange={handleTypographyChange}
               textColor={textColor}
               handleTextColorChange={handleTextColorChange}
-              textColorInputRef={textColorInputRef}
               activeFormats={activeFormats}
               onFormatToggle={handleFormatToggle}
             />
@@ -1344,7 +1341,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           borderRadius={borderRadius}
           handleBorderChange={handleBorderChange}
           handleBorderRadiusChange={handleBorderRadiusChange}
-          borderColorInputRef={borderColorInputRef}
         />
       </div>
 

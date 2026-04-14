@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { ColorPicker } from "../backgroundContainer/ColorPicker";
 import chevronDown from "../../../../../../assets/mainScreen/chevronRight.svg";
 import underlineIcon from "../../../../../../assets/textStyleIcons/underlineIcon.svg";
 import italicIcon from "../../../../../../assets/textStyleIcons/italicIcon.svg";
@@ -21,21 +22,45 @@ import lineThroughIcon from "../../../../../../assets/textStyleIcons/lineThrough
 import "./style.scss";
 import { getOpacityFromColor } from "../../../../../../utils/colorUtils";
 
+const DEFAULT_COLORS = [
+  "#D91515",
+  "#EB9F13",
+  "#F1F12B",
+  "#25D825",
+  "#2E2EF5",
+  "#6941C6",
+  "#74B154",
+  "#2563EB",
+  "#F59E0B",
+  "#18B2F5"
+];
+
 export const TextStyleContainer = ({
   typography,
   handleTypographyChange,
   textColor,
   handleTextColorChange,
-  textColorInputRef,
   title = "",
   activeFormats = {},
   onFormatToggle
 }) => {
   const [isFontFamilyOpen, setIsFontFamilyOpen] = useState(false);
   const [isFontWeightOpen, setIsFontWeightOpen] = useState(false);
+  const [showColorPopover, setShowColorPopover] = useState(false);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
   const fontFamilyRef = useRef(null);
   const fontWeightRef = useRef(null);
+  const anchorRef = useRef(null);
+  const popoverRef = useRef(null);
+
+  const openPopover = () => {
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPopoverPos({ top: rect.bottom + 6, left: rect.left });
+    }
+    setShowColorPopover((prev) => !prev);
+  };
 
   const fontFamilies = ["Inter", "Roboto", "Arial", "Times New Roman"];
   const fontWeights = [
@@ -57,10 +82,17 @@ export const TextStyleContainer = ({
         !fontWeightRef.current.contains(event.target)
       )
         setIsFontWeightOpen(false);
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(event.target)
+      )
+        setShowColorPopover(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [showColorPopover]);
 
   const handleSelectFontFamily = (font) => {
     handleTypographyChange("fontFamily", font);
@@ -161,8 +193,9 @@ export const TextStyleContainer = ({
         <div className="textStyleActions">
           <div className="colorControlWrapper tiny">
             <div
+              ref={anchorRef}
               className="colorControl mini"
-              onClick={() => textColorInputRef.current?.click()}
+              onClick={openPopover}
             >
               <div
                 className="colorPreview"
@@ -172,16 +205,22 @@ export const TextStyleContainer = ({
               <span className="opacityValue">
                 {getOpacityFromColor(textColor)}%
               </span>
-              <input
-                type="color"
-                ref={textColorInputRef}
-                className="hiddenColorInput"
-                value={
-                  textColor.match(/^#[0-9a-f]{6}$/i) ? textColor : "#000000"
-                }
-                onChange={(e) => handleTextColorChange(e.target.value)}
-              />
             </div>
+            {showColorPopover && (
+              <div
+                ref={popoverRef}
+                className="colorPopover"
+                style={{ top: popoverPos.top, left: popoverPos.left }}
+              >
+                <ColorPicker
+                  color={
+                    textColor.match(/^#[0-9a-f]{6}$/i) ? textColor : "#000000"
+                  }
+                  onChange={handleTextColorChange}
+                  defaultColors={DEFAULT_COLORS}
+                />
+              </div>
+            )}
           </div>
           <div className="alignmentToggle">
             <button
@@ -204,7 +243,6 @@ export const TextStyleContainer = ({
             </button>
           </div>
         </div>
-
         {/* ══════════════════════════════════════════════════════════════════
             ADVANCED FORMAT TOOLBAR
         ══════════════════════════════════════════════════════════════════ */}

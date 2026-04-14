@@ -1,5 +1,15 @@
 @use "../../../../../../style/variable.scss" as variable;
 
+.colorPopover {
+  position: fixed;
+  z-index: 9999;
+  background: variable.$color-white-0;
+  border: 1px solid variable.$color-white-14;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+}
+
 .textStyleContainer {
   width: 100%;
   @include variable.d-flex($fd: column, $g: 10px);
@@ -202,6 +212,33 @@
           height: 0;
           opacity: 0;
           pointer-events: none;
+        }
+      }
+
+      .defaultColors {
+        @include variable.d-flex($al: center, $g: 8px);
+        flex-wrap: wrap;
+        margin-top: 8px;
+        width: 100%;
+
+        .colorSwatch {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 1px solid variable.$color-white-14;
+          transition: all 0.2s;
+
+          &:hover {
+            transform: scale(1.1);
+          }
+
+          &.active {
+            border-color: variable.$color-blue-0;
+            box-shadow:
+              0 0 0 2px variable.$color-white-0,
+              0 0 0 4px variable.$color-blue-0;
+          }
         }
       }
 

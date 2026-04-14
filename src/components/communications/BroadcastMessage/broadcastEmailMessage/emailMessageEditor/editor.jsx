@@ -39,6 +39,11 @@ const COLUMN_VALID_CHILDREN = [
 
 // Check if a component is nested inside a row/column frame
 function isInsideFrame(comp) {
+  return !!findNearestFrame(comp);
+}
+
+// Find the nearest frame ancestor for a component
+function findNearestFrame(comp) {
   let ancestor = comp.parent();
   while (ancestor) {
     try {
@@ -48,14 +53,37 @@ function isInsideFrame(comp) {
         dt === "column-frame-column" ||
         dt === "column-frame-section"
       ) {
-        return true;
+        return ancestor;
       }
     } catch {
       /* skip destroyed */
     }
     ancestor = ancestor.parent();
   }
-  return false;
+  return null;
+}
+
+// Check if a component is nested inside a column frame
+function isInsideColumnFrame(comp) {
+  return !!findNearestColumnFrame(comp);
+}
+
+// Find the nearest column-frame ancestor
+function findNearestColumnFrame(comp) {
+  let ancestor = comp.parent();
+  while (ancestor) {
+    try {
+      if (
+        ancestor.getAttributes?.()?.["data-type"] === "column-frame-section"
+      ) {
+        return ancestor;
+      }
+    } catch {
+      /* skip destroyed */
+    }
+    ancestor = ancestor.parent();
+  }
+  return null;
 }
 
 // Walk a component tree and collect every leaf-level content node
@@ -89,18 +117,54 @@ function clearFramePlaceholder(container) {
 // last section's column.
 function resolveDroppable(comp) {
   const type = comp.get("type");
+  const dt = comp.getAttributes?.()?.["data-type"];
+
+  if (type === "mj-body") return true;
+
   if (type === "mj-section") {
-    const dt = comp.getAttributes?.()?.["data-type"];
     return dt === "column-frame-section";
   }
+
   if (type === "mj-column") {
-    const dt = comp.getAttributes?.()?.["data-type"];
-    if (dt === "row-frame-column") return true;
+    if (dt === "row-frame-column") {
+      // SMART TARGETING: Row frame columns only accept blocks if they are
+      // at the top level or if the blocks being dropped are leaf components.
+      // If we are inside a column-frame-section, we REJECT major section drops
+      // so they "bubble up" and become new columns in the horizontal frame.
+      return (droppedModel) => {
+        const droppedType = droppedModel.get("type");
+
+        // We only want to "promote" Frame-to-Column stacking for Layout Blocks (Frames).
+        // Content blocks (Heading, Paragraph, Image, etc.) should always be allowed
+        // to land in a Row Frame for vertical stacking, even if nested.
+        let isFrameBlock = false;
+        if (droppedType === "mj-section") {
+          const droppedDt = droppedModel.getAttributes?.()["data-type"];
+          if (droppedDt === "column-frame-section") {
+            isFrameBlock = true;
+          } else {
+            // Check if it's a Row Frame section (contains a row-frame-column)
+            droppedModel.components().each((c) => {
+              if (c.getAttributes?.()["data-type"] === "row-frame-column") {
+                isFrameBlock = true;
+              }
+            });
+          }
+        }
+
+        if (isFrameBlock && isInsideColumnFrame(comp)) {
+          return false;
+        }
+        return true;
+      };
+    }
+
     const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
     return parentDt === "column-frame-section";
   }
-  // mj-body and leaf types remain droppable (true)
-  return true;
+
+  // leaf types remain non-droppable to prevent accidental block nesting
+  return type === "mj-body";
 }
 
 // Scan every frame column and sync placeholder visibility via data-is-empty attribute
@@ -142,14 +206,16 @@ function reconcileFramePlaceholders(editor, isReconciling) {
         }
 
         // Check if it's real content:
-        // - If it's a textnode, it must have non-whitespace content
-        // - Otherwise, it's real if it's not a textnode
+        // - If it's a textnode or text, it must have non-whitespace content
+        // - If it's a frame placeholder UI component, skip it
+        // - Otherwise, any component (sections, columns, images, etc.) is real content
         if (childType === "textnode" || childType === "text") {
           const content = c.get("content")?.trim();
           if (content && content.length > 0) {
             hasReal = true;
           }
-        } else {
+        } else if (childDt !== "frame-placeholder-ui") {
+          // Any other component (mj-section, mj-column, mj-image, etc.) counts as content
           hasReal = true;
         }
       });
@@ -307,17 +373,37 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             return;
           }
 
-          // Case 2: The image placeholder div is inside an mj-column — replace with mj-image
+          // Case 2: The image placeholder div is inside an mj-column — replace only the placeholder
           let column = selected;
           while (column && column.get("type") !== "mj-column") {
             column = column.parent();
           }
           if (column) {
             editor.select(null);
-            column.components().reset();
-            column.append(
-              `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
-            );
+            // Find the active placeholder component within this column
+            const placeholderTarget = column.components().find((c) => {
+              try {
+                return c.getView()?.el?.querySelector(".image-click-area");
+              } catch {
+                return false;
+              }
+            });
+
+            if (placeholderTarget) {
+              const index = column.components().indexOf(placeholderTarget);
+              placeholderTarget.remove();
+              column
+                .components()
+                .add(
+                  `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                  { at: index }
+                );
+            } else {
+              // Fallback: append to column if placeholder not found
+              column.append(
+                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+              );
+            }
             editor.trigger("component:update", column);
             return;
           }
@@ -335,10 +421,31 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           try {
             const view = col.getView?.();
             if (view?.el?.querySelector?.(".image-click-area")) {
-              col.components().reset();
-              col.append(
-                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
-              );
+              // Find the specific component within this column that is the placeholder
+              const placeholderComp = col.components().find((c) => {
+                try {
+                  return c.getView()?.el?.querySelector(".image-click-area");
+                } catch {
+                  return false;
+                }
+              });
+
+              if (placeholderComp) {
+                const index = col.components().indexOf(placeholderComp);
+                placeholderComp.remove();
+                col
+                  .components()
+                  .add(
+                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                    { at: index }
+                  );
+              } else {
+                // Fallback: replace whole column only if individual component look-up fails
+                col.components().reset();
+                col.append(
+                  `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+                );
+              }
               editor.trigger("component:update", col);
               break;
             }
@@ -505,9 +612,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 [data-type="row-frame-column"][data-is-empty="true"] {
                   position: relative !important;
                   background: white !important;
-                  border: none !important;
-                  min-height: 80px !important;
+                  border: 1px dashed transparent !important;
+                  min-height: 100px !important;
                   box-sizing: border-box !important;
+                  cursor: pointer !important;
+                  transition: all 0.2s ease !important;
+                }
+
+                [data-type="row-frame-column"][data-is-empty="true"]:hover {
+                  background: #fcfdfe !important;
+                  border-color: #1570ef !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::before {
@@ -515,13 +629,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   position: absolute !important;
                   top: 50% !important;
                   left: 50% !important;
-                  transform: translate(-50%, -22px) !important;
-                  width: 20px !important;
-                  height: 20px !important;
+                  transform: translate(-50%, -24px) !important;
+                  width: 24px !important;
+                  height: 24px !important;
                   display: block !important;
-                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%231570EF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
                   background-size: contain !important;
                   background-repeat: no-repeat !important;
+                  opacity: 0.7 !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::after {
@@ -529,14 +644,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   position: absolute !important;
                   top: 50% !important;
                   left: 50% !important;
-                  transform: translate(-50%, 6px) !important;
+                  transform: translate(-50%, 8px) !important;
                   font-family: Inter, Arial, sans-serif !important;
-                  font-size: 14px !important;
+                  font-size: 13px !important;
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
                   white-space: nowrap !important;
                   box-sizing: border-box !important;
+                  opacity: 0.8 !important;
                 }
 
                 /* Column Frame Placeholder Styles */
@@ -798,8 +914,82 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (!parent) return;
           const parentType = parent.get("type");
 
+          // ── Case 0: Deep nesting inside a frame ──────────────────
+          // If a section is dropped inside a frame but not directly into
+          // its primary container (e.g. dropped inside an mj-text),
+          // we force unwrap it into the frame's container.
+          const frameContainer = findNearestFrame(component);
+          if (
+            type === "mj-section" &&
+            frameContainer &&
+            parent !== frameContainer
+          ) {
+            // EXEMPT: If it's a Column Frame, move it to the root of the frame container but do NOT unwrap it
+            if (
+              component.getAttributes()?.["data-type"] ===
+              "column-frame-section"
+            ) {
+              frameContainer.append(component);
+              return;
+            }
+
+            const fcType = frameContainer.get("type");
+            const fcDt = frameContainer.getAttributes?.()["data-type"];
+
+            if (fcType === "mj-column") {
+              const fcDt = frameContainer.getAttributes?.()["data-type"];
+
+              // SMART TARGETING for Case 0: If we are deep-nested, we might want
+              // to snap to the Column Frame instead of the Row Frame if we are dropping a section.
+              if (
+                fcDt === "row-frame-column" &&
+                isInsideColumnFrame(frameContainer)
+              ) {
+                const columnFrame = findNearestColumnFrame(frameContainer);
+                if (columnFrame) {
+                  columnFrame.append(component);
+                  return;
+                }
+              }
+
+              // Target is row-frame-column or similar
+              const leaves = collectLeafContent(component);
+              clearFramePlaceholder(frameContainer);
+              leaves.forEach((leaf) => frameContainer.append(leaf.clone()));
+              component.remove();
+              return;
+            } else if (fcDt === "column-frame-section") {
+              // Target is column-frame-section
+              const innerCols = [];
+              const directContent = [];
+              component.components().each((c) => {
+                if (c.get("type") === "mj-column") innerCols.push(c.clone());
+                else directContent.push(c.clone());
+              });
+              innerCols.forEach((col) => frameContainer.append(col));
+              if (directContent.length > 0) {
+                const newCol = frameContainer
+                  .components()
+                  .add(
+                    `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                  );
+                directContent.forEach((c) => newCol.append(c));
+              }
+              component.remove();
+              return;
+            }
+          }
+
           // ── Case 1: mj-section landed inside mj-column ───────────
           if (type === "mj-section" && parentType === "mj-column") {
+            // EXEMPT: If it's a Column Frame, allow it to stay inside the column (useful for nesting in row-frames)
+            if (
+              component.getAttributes()?.["data-type"] ===
+              "column-frame-section"
+            ) {
+              return;
+            }
+
             const leaves = collectLeafContent(component);
             clearFramePlaceholder(parent);
             leaves.forEach((leaf) => parent.append(leaf.clone()));
@@ -1028,6 +1218,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           scheduleSignatureReconcile();
         }
       }
+    });
+
+    editor.on("component:update", () => {
+      scheduleReconcile();
     });
 
     registerBlocks(editor);
