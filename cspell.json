@@ -30,7 +30,8 @@
         "Draggability",
         "serialised",
         "bgcolor",
-        "serialise"
+        "serialise",
+        "ajst"
     ],
     "ignorePaths": [
         "dist",

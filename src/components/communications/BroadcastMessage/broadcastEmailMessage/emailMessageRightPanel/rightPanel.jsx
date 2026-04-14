@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import emailjs from "@emailjs/browser";
 import { useToast } from "../../../../../hooks/useToast";
 
 import "./style.scss";
@@ -248,6 +249,18 @@ function clearInternalStyles(html, doc, styles = []) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// minifyHTML
+// ─────────────────────────────────────────────────────────────────────────────
+function minifyHTML(html) {
+  if (!html) return "";
+  return html
+    .replace(/<!--[\s\S]*?-->/g, "") // Remove comments
+    .replace(/\s+/g, " ") // Collapse whitespace
+    .replace(/>\s+</g, "><") // Remove whitespace between tags
+    .trim();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // setupBulletListKeyHandler — div-based
 // ─────────────────────────────────────────────────────────────────────────────
 function setupBulletListKeyHandler(editor) {
@@ -482,6 +495,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [showSendTestMail, setShowSendTestMail] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [testEmail, setTestEmail] = useState("");
+  const [testSubject, setTestSubject] = useState("");
   const [selectedComp, setSelectedComp] = useState(null);
 
   const [bgColor, setBgColor] = useState("#FFFFFF");
@@ -1218,11 +1232,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   );
 
   // ─── Send test mail ────────────────────────────────────────────────────────
-  const handleSendTestMail = () => {
+  const handleSendTestMail = async () => {
     if (!testEmail) {
       toast.error(
-        "Failed to Save Template",
-        "An error occurred while saving your template. Please try again."
+        "Invalid Email",
+        "Please enter a valid email address to send the test mail."
       );
       return;
     }
@@ -1238,15 +1252,67 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         toast.error("Compile Error", "Could not compile MJML to HTML.");
         return;
       }
-      console.log(`Sending test email to: ${testEmail}`, html);
-      toast.success("Template Saved Successfully", `Sent to ${testEmail}!`);
+
+      const serviceId = "service_ajst25q";
+      const templateId = "template_5x27f1d";
+      const publicKey = "tX62HCCPekA42gNY0";
+
+      // Strip base64-encoded data URLs — they bloat the payload and exceed EmailJS's ~50 KB limit.
+      // Replace inline src/background-image data URLs with a placeholder so the email still renders.
+      const hasBase64 = /data:image\/[^;]+;base64,/.test(html);
+      const strippedHtml = html
+        .replace(/src="data:image\/[^"]+"/g, 'src=""')
+        .replace(/url\(data:image\/[^)]+\)/g, "url()");
+
+      const minifiedHtml = minifyHTML(strippedHtml);
+      const payloadSizeKB = (new Blob([minifiedHtml]).size / 1024).toFixed(2);
+
+      console.log(
+        `[EmailJS] Original size: ${(new Blob([html]).size / 1024).toFixed(2)} KB`
+      );
+      console.log(
+        `[EmailJS] Minified size after stripping base64: ${payloadSizeKB} KB`
+      );
+
+      if (hasBase64) {
+        toast.warning(
+          "Inline Images Removed",
+          "Locally uploaded images were removed from the test email because EmailJS does not support base64-encoded images. Host your images externally (e.g. via a URL) to include them."
+        );
+      }
+
+      if (payloadSizeKB > 50) {
+        toast.error(
+          "Payload Too Large",
+          `The email content (${payloadSizeKB} KB) still exceeds the ~50 KB EmailJS limit after stripping inline images. Please simplify the email or host large assets externally.`
+        );
+        return;
+      }
+
+      const templateParams = {
+        to_email: testEmail,
+        subject: testSubject || "Test Broadcast Email",
+        html_content: minifiedHtml,
+        name: "Admin", // For From Name {{name}}
+        email: "admin@example.com" // For Reply To {{email}}
+      };
+
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+
+      toast.success(
+        "Test Email Sent",
+        `A test email has been sent to ${testEmail} successfully!`
+      );
+
+      // Clear state and close modal
       setShowSendTestMail(false);
       setTestEmail("");
+      setTestSubject("");
     } catch (err) {
-      console.error(err);
+      console.error("Error sending test email:", err);
       toast.error(
-        "Failed to Save Template",
-        "An error occurred. Please try again."
+        "Failed to Send Email",
+        "An error occurred while sending the test email. Please check your EmailJS configuration."
       );
     }
   };
@@ -1405,6 +1471,21 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               className="emailInput"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="emailInputContainer" style={{ marginTop: "16px" }}>
+            <label htmlFor="subject" className="emailLabel">
+              Subject
+            </label>
+          </div>
+          <div className="emailInputWrapper">
+            <input
+              type="text"
+              placeholder="Enter subject (optional)"
+              className="emailInput"
+              value={testSubject}
+              onChange={(e) => setTestSubject(e.target.value)}
             />
           </div>
         </div>
