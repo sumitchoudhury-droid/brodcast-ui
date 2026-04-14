@@ -830,9 +830,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     // ── Signature-section reconciler ──────────────────────────────────────────
     // Ensures the "Add Signature" section is always present at the bottom
     // whenever there is real content, and absent when the canvas is empty.
+    // Set suppressSigReconcile = true before calling setComponents() during
+    // a template import so the reconciler does not add a signature mid-load.
+    const suppressSigReconcile = { current: false };
     const isEnsuringSig = { current: false };
     let sigTimer = null;
     const scheduleSignatureReconcile = () => {
+      if (suppressSigReconcile.current) return;
       if (sigTimer) clearTimeout(sigTimer);
       sigTimer = setTimeout(() => {
         sigTimer = null;
@@ -1698,7 +1702,25 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         getEditor: () => editor,
         setDevice: (device) => editor.setDevice(device),
         runCommand: (command, options) => editor.runCommand(command, options),
-        getCompiledHtml: getCompiledHtmlFromCanvas
+        getCompiledHtml: getCompiledHtmlFromCanvas,
+        /**
+         * Load a full MJML string into the editor, replacing all current
+         * content. The signature-section reconciler is suppressed during the
+         * load and re-enabled immediately after so the import does not
+         * accidentally inject a signature mid-parse.
+         */
+        loadTemplate: (mjmlString) => {
+          suppressSigReconcile.current = true;
+          try {
+            editor.setComponents(mjmlString);
+          } finally {
+            // Re-enable after a short delay so any in-flight timers from
+            // setComponents() have already been skipped.
+            setTimeout(() => {
+              suppressSigReconcile.current = false;
+            }, 200);
+          }
+        }
       };
     }
 

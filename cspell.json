@@ -27,7 +27,10 @@
         "Containerstyle",
         "draggability",
         "reconcile",
-        "Draggability"
+        "Draggability",
+        "serialised",
+        "bgcolor",
+        "serialise"
     ],
     "ignorePaths": [
         "dist",
