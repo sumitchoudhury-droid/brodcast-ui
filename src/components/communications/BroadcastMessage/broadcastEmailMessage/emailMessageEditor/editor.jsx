@@ -790,7 +790,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const type = comp.get("type");
         const inFrame =
           COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
-        comp.set({ droppable: resolveDroppable(comp), draggable: !inFrame });
+        const isSignature =
+          comp.getAttributes?.()?.["data-type"] === "signature-section";
+
+        comp.set({
+          droppable: resolveDroppable(comp),
+          draggable: !inFrame && !isSignature
+        });
 
         if (type === "mj-section") {
           comp.addAttributes({ padding: "20px", margin: "0px" });
@@ -1117,8 +1123,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             if (type && type !== "textnode" && type !== "text") {
               const inFrame =
                 COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+              const isSignature =
+                comp.getAttributes?.()?.["data-type"] === "signature-section";
+
               comp.set({
-                draggable: !inFrame,
+                draggable: !inFrame && !isSignature,
                 droppable: resolveDroppable(comp)
               });
             }
