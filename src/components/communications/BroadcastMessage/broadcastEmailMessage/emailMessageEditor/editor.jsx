@@ -703,6 +703,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   max-width: 100% !important;
                   box-sizing: border-box !important;
                 }
+
+                /* First section top border-radius */
+                [data-gjs-type="mj-section"]:first-child {
+                  border-top-left-radius: 10px !important;
+                  border-top-right-radius: 10px !important;
+                }
             `,
       plugins: [mjmlPlugin],
       pluginsOpts: {
