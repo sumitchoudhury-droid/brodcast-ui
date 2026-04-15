@@ -738,13 +738,36 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           unit: val.replace(/[\d.]/g, "") || "%"
         };
       };
-      const attrs = selected.getAttributes();
+
+      let dimTarget = selected;
+      if (selected.get("type") === "mj-section") {
+        const columns = selected
+          .components()
+          .filter((c) => c.get("type") === "mj-column");
+        if (columns.length === 1) {
+          dimTarget = columns[0];
+        }
+      } else if (
+        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
+          selected.get("type")
+        )
+      ) {
+        const parent = selected.parent();
+        if (parent && parent.get("type") === "mj-column") {
+          dimTarget = parent;
+        }
+      }
+
+      const dimAttrs = dimTarget.getAttributes() || {};
+      const dimStyle = dimTarget.getStyle() || {};
+
       const { value: wVal, unit: wUnit } = parseValueAndUnit(
-        attrs["width"] || style["width"] || ""
+        dimAttrs["width"] || dimStyle["width"] || ""
       );
       const { value: hVal, unit: hUnit } = parseValueAndUnit(
-        attrs["height"] || style["height"] || ""
+        dimAttrs["height"] || dimStyle["height"] || ""
       );
+
       if (wVal) {
         setWidth(wVal);
         setWidthUnit(wUnit);
@@ -763,9 +786,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
     editor.on("component:selected", updateState);
     editor.on("component:update:style", updateState);
+    editor.on("component:update:attributes", updateState);
     return () => {
       editor.off("component:selected", updateState);
       editor.off("component:update:style", updateState);
+      editor.off("component:update:attributes", updateState);
     };
   }, [editorRef]);
 
@@ -816,26 +841,72 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   // ─── Dimensions ────────────────────────────────────────────────────────────
+  const updateDimensionOnTarget = (target, dim, fullValue) => {
+    target.set(dim, fullValue);
+    target.addAttributes({ [dim]: fullValue });
+    target.addStyle({ [dim]: fullValue });
+    editorRef.current?.getEditor()?.trigger("component:update", target);
+
+    // In MJML, a column's width determines the sibling/parent table layout.
+    // If the target is an inner column, we must re-render its parent mj-section.
+    if (
+      target.get("type") === "mj-column" &&
+      target.parent()?.get("type") === "mj-section"
+    ) {
+      const parent = target.parent();
+      if (parent.getView) {
+        // Debounce or directly re-render the parent view
+        setTimeout(() => {
+          parent.getView()?.render();
+          editorRef.current?.getEditor()?.trigger("component:update", parent);
+        }, 50);
+      }
+    }
+  };
+
   const handleWidthChange = (val, unit = widthUnit) => {
     const full = `${val}${unit}`;
     setWidth(val);
     setWidthUnit(unit);
     if (selectedComp) {
-      selectedComp.set("width", full);
-      selectedComp.addAttributes({ width: full });
-      selectedComp.addStyle({ width: full });
-      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
+      let target = selectedComp;
+      if (selectedComp.get("type") === "mj-section") {
+        const columns = selectedComp
+          .components()
+          .filter((c) => c.get("type") === "mj-column");
+        if (columns.length === 1) target = columns[0];
+      } else if (
+        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
+          selectedComp.get("type")
+        )
+      ) {
+        const parent = selectedComp.parent();
+        if (parent && parent.get("type") === "mj-column") target = parent;
+      }
+      updateDimensionOnTarget(target, "width", full);
     }
   };
+
   const handleHeightChange = (val, unit = heightUnit) => {
     const full = `${val}${unit}`;
     setHeight(val);
     setHeightUnit(unit);
     if (selectedComp) {
-      selectedComp.set("height", full);
-      selectedComp.addAttributes({ height: full });
-      selectedComp.addStyle({ height: full });
-      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
+      let target = selectedComp;
+      if (selectedComp.get("type") === "mj-section") {
+        const columns = selectedComp
+          .components()
+          .filter((c) => c.get("type") === "mj-column");
+        if (columns.length === 1) target = columns[0];
+      } else if (
+        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
+          selectedComp.get("type")
+        )
+      ) {
+        const parent = selectedComp.parent();
+        if (parent && parent.get("type") === "mj-column") target = parent;
+      }
+      updateDimensionOnTarget(target, "height", full);
     }
   };
 
