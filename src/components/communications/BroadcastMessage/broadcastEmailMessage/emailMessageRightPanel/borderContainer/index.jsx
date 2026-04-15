@@ -70,6 +70,13 @@ const BorderContainer = ({
     { value: "none", label: "None" }
   ];
 
+  const radiusCorners = [
+    { key: "tl", label: "Top Left" },
+    { key: "tr", label: "Top Right" },
+    { key: "bl", label: "Bottom Left" },
+    { key: "br", label: "Bottom Right" }
+  ];
+
   return (
     <div className="borderControls">
       <p className="sectionLabel">Border</p>
@@ -149,18 +156,28 @@ const BorderContainer = ({
             <span className="unit">px</span>
           </div>
         </div>
-        <div className="inputGroup">
-          <span className="inputLabel">Radius</span>
-          <div className="inputWrapper">
-            <input
-              type="number"
-              value={borderRadius}
-              onChange={(e) => handleBorderRadiusChange(e.target.value)}
-              min="0"
-            />
-            <span className="unit">px</span>
+      </div>
+
+      <p className="sectionLabel" style={{ marginTop: "12px" }}>
+        Border Radius
+      </p>
+      <div className="radiusGrid">
+        {radiusCorners.map((corner) => (
+          <div key={`radius-${corner.key}`} className="inputGroup">
+            <span className="inputLabel">{corner.label}</span>
+            <div className="inputWrapper">
+              <input
+                type="number"
+                value={borderRadius[corner.key] || "0"}
+                onChange={(e) =>
+                  handleBorderRadiusChange(corner.key, e.target.value)
+                }
+                min="0"
+              />
+              <span className="unit">px</span>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );

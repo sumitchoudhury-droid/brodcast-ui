@@ -552,7 +552,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [borderWidth, setBorderWidth] = useState("0");
   const [borderStyle, setBorderStyle] = useState("solid");
   const [borderColor, setBorderColor] = useState("#000000");
-  const [borderRadius, setBorderRadius] = useState("0");
+  const [borderRadius, setBorderRadius] = useState({
+    tl: "0",
+    tr: "0",
+    br: "0",
+    bl: "0"
+  });
 
   const [width, setWidth] = useState("100");
   const [widthUnit, setWidthUnit] = useState("%");
@@ -624,24 +629,64 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       setSelectedComp(selected);
       if (!selected) return;
 
-      const style = selected.getStyle();
+      let dimTarget = selected;
+      if (
+        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
+          selected.get("type")
+        )
+      ) {
+        const parent = selected.parent();
+        if (parent && parent.get("type") === "mj-column") {
+          dimTarget = parent;
+        }
+      }
 
-      setBgColor(style["background-color"] || "#FFFFFF");
+      const style = selected.getStyle();
+      const dimStyle = dimTarget.getStyle() || {};
+      const dimAttrs = dimTarget.getAttributes() || {};
+
+      setBgColor(dimStyle["background-color"] || "#FFFFFF");
       setBgImage(
-        style["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
+        dimStyle["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
       );
-      setBgRepeat(style["background-repeat"] || "no-repeat");
-      const rawSize = style["background-size"] || "contain";
+      setBgRepeat(dimStyle["background-repeat"] || "no-repeat");
+      const rawSize = dimStyle["background-size"] || "contain";
       setBgSize(rawSize === "100% 100%" ? "fill" : rawSize);
 
-      const border = style["border"] || "0px solid #000000";
+      const border = dimStyle["border"] || "0px solid #000000";
       const bp = border.split(" ");
       if (bp.length >= 3) {
         setBorderWidth(bp[0].replace("px", ""));
         setBorderStyle(bp[1]);
         setBorderColor(bp[2]);
       }
-      setBorderRadius(style["border-radius"]?.replace("px", "") || "0");
+      const brShorthand = (dimStyle["border-radius"] || "0").split(" ");
+      const getBrPart = (idx) => {
+        if (brShorthand.length === 1) return brShorthand[0].replace("px", "");
+        if (brShorthand.length === 2)
+          return brShorthand[idx % 2].replace("px", "");
+        if (brShorthand.length === 3) {
+          if (idx === 0) return brShorthand[0].replace("px", "");
+          if (idx === 1 || idx === 3) return brShorthand[1].replace("px", "");
+          if (idx === 2) return brShorthand[2].replace("px", "");
+        }
+        if (brShorthand.length >= 4) return brShorthand[idx].replace("px", "");
+        return "0";
+      };
+
+      setBorderRadius({
+        tl:
+          dimStyle["border-top-left-radius"]?.replace("px", "") || getBrPart(0),
+        tr:
+          dimStyle["border-top-right-radius"]?.replace("px", "") ||
+          getBrPart(1),
+        br:
+          dimStyle["border-bottom-right-radius"]?.replace("px", "") ||
+          getBrPart(2),
+        bl:
+          dimStyle["border-bottom-left-radius"]?.replace("px", "") ||
+          getBrPart(3)
+      });
 
       if (selected.is("mj-text") || selected.is("mj-button")) {
         const currentFontSize = style["font-size"]?.replace("px", "") || "14";
@@ -739,28 +784,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         };
       };
 
-      let dimTarget = selected;
-      if (selected.get("type") === "mj-section") {
-        const columns = selected
-          .components()
-          .filter((c) => c.get("type") === "mj-column");
-        if (columns.length === 1) {
-          dimTarget = columns[0];
-        }
-      } else if (
-        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
-          selected.get("type")
-        )
-      ) {
-        const parent = selected.parent();
-        if (parent && parent.get("type") === "mj-column") {
-          dimTarget = parent;
-        }
-      }
-
-      const dimAttrs = dimTarget.getAttributes() || {};
-      const dimStyle = dimTarget.getStyle() || {};
-
       const { value: wVal, unit: wUnit } = parseValueAndUnit(
         dimAttrs["width"] || dimStyle["width"] || ""
       );
@@ -796,40 +819,71 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
   // ─── Layout ────────────────────────────────────────────────────────────────
 
+  // Helper to fetch the proper target (mj-column usually, unless section is explicitly targeted)
+  const getStyleTarget = () => {
+    if (!selectedComp) return null;
+    let target = selectedComp;
+    if (
+      ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
+        selectedComp.get("type")
+      )
+    ) {
+      const parent = selectedComp.parent();
+      if (parent && parent.get("type") === "mj-column") target = parent;
+    }
+    return target;
+  };
+
   // ─── Background ────────────────────────────────────────────────────────────
   const handleBgColorChange = (c) => {
     setBgColor(c);
-    selectedComp?.addStyle({ "background-color": c });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-color": c });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
   const removeBgImage = () => {
     setBgImage("");
-    selectedComp?.addStyle({ "background-image": "none" });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-image": "none" });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
   const handleBgRepeatChange = (r) => {
     setBgRepeat(r);
-    selectedComp?.addStyle({ "background-repeat": r });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-repeat": r });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
   const handleBgSizeChange = (s) => {
     setBgSize(s);
-    selectedComp?.addStyle({
-      "background-size": s === "fill" ? "100% 100%" : s
-    });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-size": s === "fill" ? "100% 100%" : s });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
   const handleBgImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !selectedComp) return;
+    const target = getStyleTarget();
+    if (!file || !target) return;
 
     try {
       const url = await uploadToCloudinary(file);
       if (!url) return;
 
       setBgImage(url);
-      selectedComp.addStyle({
+      target.addStyle({
         "background-image": `url(${url})`,
         "background-repeat": "no-repeat",
         "background-size": "contain",
         "background-position": "center"
       });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
       e.target.value = "";
     } catch (err) {
       console.error("Error uploading background image:", err);
@@ -869,20 +923,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     setWidth(val);
     setWidthUnit(unit);
     if (selectedComp) {
-      let target = selectedComp;
-      if (selectedComp.get("type") === "mj-section") {
-        const columns = selectedComp
-          .components()
-          .filter((c) => c.get("type") === "mj-column");
-        if (columns.length === 1) target = columns[0];
-      } else if (
-        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
-          selectedComp.get("type")
-        )
-      ) {
-        const parent = selectedComp.parent();
-        if (parent && parent.get("type") === "mj-column") target = parent;
-      }
+      const target = getStyleTarget();
       updateDimensionOnTarget(target, "width", full);
     }
   };
@@ -892,20 +933,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     setHeight(val);
     setHeightUnit(unit);
     if (selectedComp) {
-      let target = selectedComp;
-      if (selectedComp.get("type") === "mj-section") {
-        const columns = selectedComp
-          .components()
-          .filter((c) => c.get("type") === "mj-column");
-        if (columns.length === 1) target = columns[0];
-      } else if (
-        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
-          selectedComp.get("type")
-        )
-      ) {
-        const parent = selectedComp.parent();
-        if (parent && parent.get("type") === "mj-column") target = parent;
-      }
+      const target = getStyleTarget();
       updateDimensionOnTarget(target, "height", full);
     }
   };
@@ -927,11 +955,25 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       nC = value;
       setBorderColor(value);
     }
-    selectedComp?.addStyle({ border: `${nW}px ${nS} ${nC}` });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ border: `${nW}px ${nS} ${nC}` });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
-  const handleBorderRadiusChange = (r) => {
-    setBorderRadius(r);
-    selectedComp?.addStyle({ "border-radius": `${r}px` });
+  const handleBorderRadiusChange = (corner, value) => {
+    setBorderRadius((prev) => ({ ...prev, [corner]: value }));
+    const target = getStyleTarget();
+    if (target) {
+      const cornerMap = {
+        tl: "border-top-left-radius",
+        tr: "border-top-right-radius",
+        br: "border-bottom-right-radius",
+        bl: "border-bottom-left-radius"
+      };
+      target.addStyle({ [cornerMap[corner]]: `${value}px` });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
 
   // ─── Typography ────────────────────────────────────────────────────────────
