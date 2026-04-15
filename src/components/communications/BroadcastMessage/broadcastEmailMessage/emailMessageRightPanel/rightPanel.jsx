@@ -299,6 +299,10 @@ function prepareHtmlForEmail(rawHtml) {
   // Remove GrapesJS component data attributes (data-gjs-*)
   html = html.replace(/\s+data-gjs-[a-zA-Z-]+(?:="[^"]*"|='[^']*')?/g, "");
 
+  // Remove selection/hover classes that might be in the HTML
+  html = html.replace(/\s*gjs-selected\b/g, "");
+  html = html.replace(/\s*gjs-hovered\b/g, "");
+
   return minifyHTML(html);
 }
 
@@ -1420,16 +1424,25 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     try {
       const editor = editorRef.current?.getEditor();
       if (!editor) return;
+
+      // UNSELECT before capturing HTML to avoid capturing selection borders/overlays
+      const selected = editor.getSelected();
+      if (selected) editor.select(null);
+
       let html = editorRef.current?.getCompiledHtml?.() || "";
       if (!html) {
         const raw = editor.getHtml();
         if (raw && !raw.includes("<mj-") && !raw.includes("<mjml")) html = raw;
       }
+
+      // RESTORE selection
+      if (selected) editor.select(selected);
+
       if (!html) {
         alert("Could not compile MJML to HTML.");
         return;
       }
-      setPreviewHtml(html);
+      setPreviewHtml(prepareHtmlForEmail(html));
       setShowPreview(true);
     } catch (e) {
       console.error(e);

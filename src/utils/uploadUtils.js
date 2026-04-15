@@ -20,34 +20,51 @@ export const IS_CLOUDINARY_CONFIGURED =
 
 /**
  * Compress an image File/Blob to a JPEG Data URL.
- * Images wider than maxWidth are scaled down; quality is reduced to keep
- * the base64 size small enough to embed in an EmailJS payload.
+ * Adaptively reduces resolution and quality until the result fits within
+ * targetKB, so images of any original size can be embedded in an email.
  *
  * @param {File|Blob} file
- * @param {number} [maxWidth=600]   Max pixel width after scaling.
- * @param {number} [quality=0.72]   JPEG quality (0–1).
+ * @param {number} [targetKB=30]    Target max size of the resulting data URL in KB.
  * @returns {Promise<string>}       Compressed JPEG Data URL.
  */
-const compressImage = (file, maxWidth = 600, quality = 0.72) => {
+const compressImage = (file, targetKB = 30) => {
   return new Promise((resolve) => {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
 
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
-      const scale = Math.min(1, maxWidth / img.width);
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      // Always encode as JPEG for maximum compression
-      resolve(canvas.toDataURL("image/jpeg", quality));
+
+      const compress = (maxWidth, quality) => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL("image/jpeg", quality);
+      };
+
+      // Start at a reasonable size and step down until it fits
+      const widthSteps = [800, 600, 400, 300, 200];
+      const qualitySteps = [0.8, 0.65, 0.5, 0.35, 0.2];
+      const targetBytes = targetKB * 1024;
+
+      for (const maxWidth of widthSteps) {
+        for (const quality of qualitySteps) {
+          const dataUrl = compress(maxWidth, quality);
+          if (new Blob([dataUrl]).size <= targetBytes) {
+            return resolve(dataUrl);
+          }
+        }
+      }
+
+      // Last resort: minimum size
+      resolve(compress(150, 0.15));
     };
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      // Fallback: read as-is if the canvas approach fails
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target.result);
       reader.readAsDataURL(file);
@@ -59,9 +76,8 @@ const compressImage = (file, maxWidth = 600, quality = 0.72) => {
 
 /**
  * Uploads a File object to Cloudinary and returns the secure URL.
- * When Cloudinary is not configured the image is compressed and returned
- * as a Data URL so it still appears in the editor and — if small enough —
- * can survive EmailJS's 50 KB payload limit.
+ * When Cloudinary is not configured the image is adaptively compressed and
+ * returned as a Data URL that fits within EmailJS's payload limit.
  *
  * @param {File} file  The File object to upload.
  * @returns {Promise<string>} Cloudinary URL or compressed Data URL.
