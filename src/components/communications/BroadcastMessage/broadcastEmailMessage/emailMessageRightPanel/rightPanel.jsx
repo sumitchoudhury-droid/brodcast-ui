@@ -637,7 +637,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       ) {
         const parent = selected.parent();
         if (parent && parent.get("type") === "mj-column") {
-          dimTarget = parent;
+          const isInsideRowFrame =
+            parent.getAttributes?.()?.["data-type"] === "row-frame-column";
+          if (!isInsideRowFrame) {
+            dimTarget = parent;
+          }
         }
       }
 
@@ -829,7 +833,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       )
     ) {
       const parent = selectedComp.parent();
-      if (parent && parent.get("type") === "mj-column") target = parent;
+      if (parent && parent.get("type") === "mj-column") {
+        const isInsideRowFrame =
+          parent.getAttributes?.()?.["data-type"] === "row-frame-column";
+        if (!isInsideRowFrame) {
+          target = parent;
+        }
+      }
     }
     return target;
   };
@@ -840,6 +850,15 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const target = getStyleTarget();
     if (target) {
       target.addStyle({ "background-color": c });
+      // For MJML leaf components (mj-text, mj-image, etc.) the per-cell
+      // background is controlled by the container-background-color attribute.
+      if (
+        ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
+          target.get("type")
+        )
+      ) {
+        target.addAttributes({ "container-background-color": c });
+      }
       editorRef.current?.getEditor()?.trigger("component:update", target);
     }
   };
@@ -848,6 +867,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const target = getStyleTarget();
     if (target) {
       target.addStyle({ "background-image": "none" });
+      if (
+        ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
+          target.get("type")
+        )
+      ) {
+        target.addAttributes({ "container-background-color": "" });
+      }
       editorRef.current?.getEditor()?.trigger("component:update", target);
     }
   };
@@ -909,7 +935,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     ) {
       const parent = target.parent();
       if (parent.getView) {
-        // Debounce or directly re-render the parent view
         setTimeout(() => {
           parent.getView()?.render();
           editorRef.current?.getEditor()?.trigger("component:update", parent);

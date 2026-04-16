@@ -792,6 +792,27 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         });
       });
 
+      // ── Extend mj-text stylable to include 'width' ────────────────────────
+      // grapesjs-mjml's renderStyle() only applies CSS to the component's DOM
+      // element for properties listed in the `stylable` array.  'width' is NOT
+      // in mj-text's default stylable list, so width changes had no visual
+      // effect.  Adding it here lets the canvas reflect per-item width when a
+      // mj-text sits inside a row-frame-column.
+      const mjTextType = editor.Components.getType("mj-text");
+      if (mjTextType) {
+        const existingStylable =
+          mjTextType.model.prototype.defaults.stylable || [];
+        if (!existingStylable.includes("width")) {
+          editor.Components.addType("mj-text", {
+            model: {
+              defaults: {
+                stylable: [...existingStylable, "width", "max-width"]
+              }
+            }
+          });
+        }
+      }
+
       const patchInstance = (comp) => {
         const type = comp.get("type");
         const inFrame =
