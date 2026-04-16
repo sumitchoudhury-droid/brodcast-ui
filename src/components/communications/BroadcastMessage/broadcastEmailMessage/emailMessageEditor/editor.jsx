@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import grapesjs from "grapesjs";
 import mjmlPlugin from "grapesjs-mjml";
+import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
@@ -331,15 +332,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     e.target.value = "";
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     // Capture the target ref before async operations clear it
     const capturedTarget = imageTargetCompRef.current;
     imageTargetCompRef.current = null;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target.result;
+
+    try {
+      const dataUrl = await uploadToCloudinary(file);
+      if (!dataUrl) return;
 
       // Resolve actual pixel dimensions before inserting into the editor
       const img = new window.Image();
@@ -455,8 +458,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       };
       img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      // alert("Upload failed. Using local fallback.");
+    }
     e.target.value = "";
   };
 
@@ -698,6 +703,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   max-width: 100% !important;
                   box-sizing: border-box !important;
                 }
+
+                /* First section top border-radius */
+                [data-gjs-type="mj-section"]:first-child {
+                  border-top-left-radius: 10px !important;
+                  border-top-right-radius: 10px !important;
+                }
             `,
       plugins: [mjmlPlugin],
       pluginsOpts: {
@@ -785,7 +796,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const type = comp.get("type");
         const inFrame =
           COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
-        comp.set({ droppable: resolveDroppable(comp), draggable: !inFrame });
+        const isSignature =
+          comp.getAttributes?.()?.["data-type"] === "signature-section";
+
+        comp.set({
+          droppable: resolveDroppable(comp),
+          draggable: !inFrame && !isSignature
+        });
 
         if (type === "mj-section") {
           comp.addAttributes({ padding: "20px", margin: "0px" });
@@ -830,9 +847,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     // ── Signature-section reconciler ──────────────────────────────────────────
     // Ensures the "Add Signature" section is always present at the bottom
     // whenever there is real content, and absent when the canvas is empty.
+    // Set suppressSigReconcile = true before calling setComponents() during
+    // a template import so the reconciler does not add a signature mid-load.
+    const suppressSigReconcile = { current: false };
     const isEnsuringSig = { current: false };
     let sigTimer = null;
     const scheduleSignatureReconcile = () => {
+      if (suppressSigReconcile.current) return;
       if (sigTimer) clearTimeout(sigTimer);
       sigTimer = setTimeout(() => {
         sigTimer = null;
@@ -1108,8 +1129,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             if (type && type !== "textnode" && type !== "text") {
               const inFrame =
                 COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+              const isSignature =
+                comp.getAttributes?.()?.["data-type"] === "signature-section";
+
               comp.set({
-                draggable: !inFrame,
+                draggable: !inFrame && !isSignature,
                 droppable: resolveDroppable(comp)
               });
             }
@@ -1698,7 +1722,25 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         getEditor: () => editor,
         setDevice: (device) => editor.setDevice(device),
         runCommand: (command, options) => editor.runCommand(command, options),
-        getCompiledHtml: getCompiledHtmlFromCanvas
+        getCompiledHtml: getCompiledHtmlFromCanvas,
+        /**
+         * Load a full MJML string into the editor, replacing all current
+         * content. The signature-section reconciler is suppressed during the
+         * load and re-enabled immediately after so the import does not
+         * accidentally inject a signature mid-parse.
+         */
+        loadTemplate: (mjmlString) => {
+          suppressSigReconcile.current = true;
+          try {
+            editor.setComponents(mjmlString);
+          } finally {
+            // Re-enable after a short delay so any in-flight timers from
+            // setComponents() have already been skipped.
+            setTimeout(() => {
+              suppressSigReconcile.current = false;
+            }, 200);
+          }
+        }
       };
     }
 

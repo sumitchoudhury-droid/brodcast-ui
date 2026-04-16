@@ -230,4 +230,57 @@
       }
     }
   }
+
+  .radiusGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    margin-top: 12px;
+
+    .inputGroup {
+      @include variable.d-flex($fd: column, $g: 6px);
+
+      .inputLabel {
+        @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+        color: variable.$color-black-5;
+      }
+
+      .inputWrapper {
+        @include variable.d-flex($al: center, $g: 6px);
+        background: variable.$color-white-0;
+        border: 1px solid variable.$color-white-6;
+        border-radius: 10px;
+        padding: 8px 10px;
+        box-shadow: variable.$shadow-2;
+        transition: all 0.2s;
+
+        input {
+          width: 100%;
+          border: none;
+          background: transparent;
+          @include variable.font-style($fs: 12px, $fw: 600, $lh: 18px);
+          color: variable.$color-black-4;
+          text-align: left;
+
+          &:focus {
+            outline: none;
+          }
+
+          &::-webkit-inner-spin-button,
+          &::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+        }
+
+        .unit {
+          font-size: 11px;
+          color: variable.$color-black-5;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+      }
+    }
+  }
 }

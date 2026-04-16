@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 
-import deviceDesktop from "../../../../../assets/mainScreen/deviceDesktop.svg";
-import deviceMobile from "../../../../../assets/mainScreen/deviceMobile.svg";
+import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
+
+import deleteIcon from "../../../../../assets/commonIcons/deleteIcon.svg";
+import menuIcon from "../../../../../assets/commonIcons/menuIcon.svg";
+import trashIcon from "../../../../../assets/commonIcons/trashIcon.svg";
+import backIcon from "../../../../../assets/commonIcons/backIcon.svg";
 
 import "./style.scss";
 
@@ -11,36 +15,66 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
 
   const getSrcDoc = () => {
     if (!html) return "";
-    const trimmed = html.trim();
-    if (
-      trimmed.toLowerCase().startsWith("<!doctype") ||
-      trimmed.startsWith("<html")
-    ) {
-      return trimmed;
+
+    const scrollbarStyle = `
+  <style>
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    ::-webkit-scrollbar {
+      display: none;
     }
-    return `<!DOCTYPE html>
+    /* Hide scrollbar for IE, Edge and Firefox */
+    html, body {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+  </style>`;
+
+    try {
+      const trimmed = html.trim();
+      if (
+        trimmed.toLowerCase().startsWith("<!doctype") ||
+        trimmed.startsWith("<html")
+      ) {
+        if (trimmed.includes("</head>")) {
+          return trimmed.replace("</head>", scrollbarStyle + "\n</head>");
+        }
+        return trimmed + scrollbarStyle;
+      }
+      return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
   <style>
-    * { box-sizing: border-box; }
-    html, body { 
+    * { 
       margin: 0; 
       padding: 0; 
-      overflow: hidden; 
-      height: auto; 
-      background: transparent; 
-      word-break: break-word; 
-      overflow-wrap: break-word; 
+      box-sizing: border-box; 
     }
-    #preview-root { width: 100%; height: auto; display: block; vertical-align: top; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #fff;
+      padding: 0;
+      margin: 0;
+    }
+    img { 
+      max-width: 100%; 
+      height: auto; 
+    }
   </style>
+  ${scrollbarStyle}
 </head>
-<body><div id="preview-root">${trimmed}</div></body>
+<body>
+  ${trimmed}
+</body>
 </html>`;
+    } catch (error) {
+      console.error("Error processing HTML:", error);
+      return `<!DOCTYPE html><html><head><meta charset="UTF-8" /></head><body><div style="padding:20px;color:red;font-family:sans-serif;">Error loading preview content</div></body></html>`;
+    }
   };
 
+  // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       const originalStyle = window.getComputedStyle(document.body).overflow;
@@ -51,63 +85,25 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
     }
   }, [isOpen]);
 
+  // Handle ESC key press
   useEffect(() => {
-    if (!isOpen || !html || !iframeRef.current) return;
-
-    const iframe = iframeRef.current;
-    let observer = null;
-
-    const resizeIframe = () => {
-      try {
-        const doc = iframe.contentWindow?.document;
-        if (!doc) return;
-        // Fallback to body if preview-root is missing (happens with full HTML)
-        const root = doc.getElementById("preview-root") || doc.body;
-        if (!root) return;
-
-        // Use scrollHeight for content height accuracy
-        const height = root.scrollHeight || root.offsetHeight || 600;
-        const currentHeight = parseInt(iframe.style.height) || 0;
-
-        if (Math.abs(currentHeight - height) > 2) {
-          iframe.style.height = `${height}px`;
-        }
-      } catch {
-        // cross-origin safety
-      }
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
     };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
-    iframe.onload = () => {
-      resizeIframe();
-      try {
-        const doc = iframe.contentWindow?.document;
-        const root = doc?.getElementById("preview-root") || doc?.body;
-        if (root) {
-          observer = new ResizeObserver(resizeIframe);
-          observer.observe(root);
-        }
-      } catch {
-        // Fallback for ResizeObserver support/safety
-      }
-    };
-
-    const timer = setTimeout(resizeIframe, 300);
-
-    return () => {
-      clearTimeout(timer);
-      if (observer) observer.disconnect();
-    };
-  }, [isOpen, html, selectedDevice]);
+  if (!isOpen) return null;
 
   return (
-    <div
-      className={`previewDrawerOverlay ${isOpen ? "open" : ""}`}
-      onClick={onClose}
-    >
+    <div className="previewDrawerOverlay" onClick={onClose}>
       <div
-        className={`previewDrawerContainer ${isOpen ? "open" : ""}`}
+        className="previewDrawerContainer"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="previewDrawerHeader">
           <div className="headerLeft">
             <h3>Mail Preview</h3>
@@ -116,47 +112,122 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                 className={`toggleBtn ${selectedDevice === "Desktop" ? "active" : ""}`}
                 onClick={() => setSelectedDevice("Desktop")}
               >
-                <img
-                  src={deviceDesktop}
-                  alt="deviceDesktop"
-                  width="20"
-                  height="20"
-                />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    fill="none"
+                  />
+                  <path
+                    d="M8 20H16"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M12 16V20"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>Desktop</span>
               </button>
               <button
                 className={`toggleBtn ${selectedDevice === "Mobile" ? "active" : ""}`}
                 onClick={() => setSelectedDevice("Mobile")}
               >
-                <img
-                  src={deviceMobile}
-                  alt="deviceMobile"
-                  width="20"
-                  height="20"
-                />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect
+                    x="5"
+                    y="2"
+                    width="14"
+                    height="20"
+                    rx="2"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    fill="none"
+                  />
+                  <path
+                    d="M12 18H12.01"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>Mobile</span>
               </button>
             </div>
           </div>
           <button className="closeBtn" onClick={onClose}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M18 6L6 18M6 6L18 18"
-                stroke="#606E80"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            ×
           </button>
         </div>
 
-        <div className="previewDrawerContent">
-          <div className={`previewFrame ${selectedDevice.toLowerCase()}`}>
+        {/* Content Area */}
+        <div
+          className="previewDrawerContent"
+          style={
+            selectedDevice === "Desktop" ? { border: "1px solid #EAEDF2" } : {}
+          }
+        >
+          {/* Email Header Info - Only for Desktop */}
+          {selectedDevice === "Desktop" && (
+            <div className="emailHeaderInfo">
+              <div className="avatar">MH</div>
+              <div className="emailDetails">
+                <p className="subject">Appointment Rescheduled</p>
+                <p className="from">
+                  Manipal Hospitals &lt;noreply@manipalhospitals.com&gt;
+                </p>
+                <p className="to">To: patient@email.com</p>
+              </div>
+            </div>
+          )}
+
+          {/* Device Frame */}
+          <div className={`deviceFrame ${selectedDevice.toLowerCase()}`}>
+            {selectedDevice === "Mobile" && (
+              <>
+                <div className="mobileDynamicIsland"></div>
+                <div className="mobileStatusBar">
+                  <span className="time">9:41</span>
+                  <div className="statusIcons">
+                    <span>📶</span>
+                    <span>🔋</span>
+                  </div>
+                </div>
+              </>
+            )}
+            {selectedDevice === "Mobile" && (
+              <>
+                <div className="mobileHeader">
+                  <img
+                    src={backIcon}
+                    alt="backIcon"
+                    style={{ height: "15px", width: "15px" }}
+                  />
+                  <div className="mobileHeaderIcons">
+                    <img
+                      src={trashIcon}
+                      alt="trashIcon"
+                      style={{ height: "15px", width: "15px" }}
+                    />
+                    <img
+                      src={deleteIcon}
+                      alt="deleteIcon"
+                      style={{ height: "15px", width: "15px" }}
+                    />
+                    <img
+                      src={menuIcon}
+                      alt="menuIcon"
+                      style={{ height: "15px", width: "15px" }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
             <div
               className={`iframeWrapper ${selectedDevice === "Mobile" ? "mobile-scroll" : "desktop-scroll"}`}
             >
@@ -169,22 +240,22 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                 width="100%"
                 style={{
                   display: "block",
-                  minHeight: "100px",
-                  height: "100px", // Start small
-                  transition: "height 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  border: "none"
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  background: "#fff"
                 }}
-                scrolling="no"
-                sandbox="allow-same-origin allow-scripts allow-popups"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals"
               />
             </div>
+
+            {selectedDevice === "Mobile" && <div className="homeIndicator" />}
           </div>
         </div>
 
+        {/* Footer */}
         <div className="previewDrawerFooter">
-          <button type="button" onClick={onClose} className="footerBtn">
-            Close
-          </button>
+          <ReusableButton label="Close" variant="secondary" onClick={onClose} />
         </div>
       </div>
     </div>
