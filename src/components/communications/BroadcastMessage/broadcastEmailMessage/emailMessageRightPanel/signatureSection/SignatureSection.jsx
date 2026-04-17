@@ -43,7 +43,9 @@ export default function SignatureSection({ editorRef }) {
         existingSig = c;
       }
     });
-    if (!existingSig) return;
+    if (existingSig) {
+      existingSig.remove();
+    }
 
     // Build replacement MJML with the selected signature text.
     const newSigHtml = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="#ffffff">
@@ -54,7 +56,6 @@ export default function SignatureSection({ editorRef }) {
   </mj-column>
 </mj-section>`;
 
-    existingSig.remove();
     mjBody.append(newSigHtml);
   };
 

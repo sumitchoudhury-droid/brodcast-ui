@@ -146,40 +146,6 @@
       }
     }
 
-    .bgDimensions {
-      @include variable.d-flex($fd: column, $g: 12px);
-      width: 100%;
-      border-top: 1px solid variable.$color-white-14;
-      padding-top: 12px;
-      margin-top: 4px;
-
-      .dimensionInputWrapper {
-        @include variable.d-flex($al: center, $g: 8px);
-
-        .dimensionInput {
-          width: 50px;
-          @include variable.font-style($fs: 12px, $fw: 500);
-          color: variable.$color-black-0;
-          background: variable.$color-white-0;
-          border: 1px solid variable.$color-white-14;
-          border-radius: 4px;
-          padding: 4px 8px;
-          outline: none;
-
-          &:focus {
-            border-color: variable.$color-blue-0;
-          }
-
-          /* Hide arrows for number input */
-          &::-webkit-outer-spin-button,
-          &::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-          }
-        }
-      }
-    }
-
     .bgImageActions {
       width: 100%;
       border-top: 1px solid variable.$color-white-14;

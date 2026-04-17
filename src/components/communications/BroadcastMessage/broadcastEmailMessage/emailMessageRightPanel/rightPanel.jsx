@@ -16,6 +16,7 @@ import { BackgroundContainer } from "./backgroundContainer/backgroundContainer";
 import { TextStyleContainer } from "./textStyleContainer/textStyleContainer";
 import BorderContainer from "./borderContainer";
 import { PaddingContainer } from "./paddingContainer";
+import { DimensionContainer } from "./dimensionContainer/DimensionContainer";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -581,12 +582,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     bottom: "0",
     left: "0"
   });
-  const [margin, setMargin] = useState({
-    top: "0",
-    right: "0",
-    bottom: "0",
-    left: "0"
-  });
 
   const colorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
@@ -756,24 +751,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         left:
           style["padding-left"]?.replace("px", "") ||
           style["padding"]?.split(" ")[3]?.replace("px", "") ||
-          "0"
-      });
-      setMargin({
-        top:
-          style["margin-top"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[0]?.replace("px", "") ||
-          "0",
-        right:
-          style["margin-right"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[1]?.replace("px", "") ||
-          "0",
-        bottom:
-          style["margin-bottom"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[2]?.replace("px", "") ||
-          "0",
-        left:
-          style["margin-left"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[3]?.replace("px", "") ||
           "0"
       });
 
@@ -1115,10 +1092,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const handlePaddingChange = (side, value) => {
     setPadding((prev) => ({ ...prev, [side]: value }));
     selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
-  };
-  const handleMarginChange = (side, value) => {
-    setMargin((prev) => ({ ...prev, [side]: value }));
-    selectedComp?.addStyle({ [`margin-${side}`]: `${value}px` });
   };
 
   const handleAlignItemsChange = (value) => {
@@ -1612,51 +1585,64 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             />
           )}
 
-        <PaddingContainer
-          selectedComp={selectedComp}
-          padding={padding}
-          handlePaddingChange={handlePaddingChange}
-          margin={margin}
-          handleMarginChange={handleMarginChange}
-          alignItems={alignItems}
-          handleAlignItemsChange={handleAlignItemsChange}
-          justifyContent={justifyContent}
-          handleJustifyContentChange={handleJustifyContentChange}
-          textAlign={typography.textAlign}
-          handleTextAlignChange={(val) =>
-            handleTypographyChange("textAlign", val)
-          }
-        />
+        {!isEditorEmpty && (
+          <>
+            <PaddingContainer
+              selectedComp={selectedComp}
+              padding={padding}
+              handlePaddingChange={handlePaddingChange}
+              alignItems={alignItems}
+              handleAlignItemsChange={handleAlignItemsChange}
+              justifyContent={justifyContent}
+              handleJustifyContentChange={handleJustifyContentChange}
+              textAlign={typography.textAlign}
+              handleTextAlignChange={(val) =>
+                handleTypographyChange("textAlign", val)
+              }
+            />
 
-        <BackgroundContainer
-          bgColor={bgColor}
-          handleBgColorChange={handleBgColorChange}
-          bgImage={bgImage}
-          removeBgImage={removeBgImage}
-          bgImageInputRef={bgImageInputRef}
-          handleBgImageUpload={handleBgImageUpload}
-          colorInputRef={colorInputRef}
-          bgRepeat={bgRepeat}
-          handleBgRepeatChange={handleBgRepeatChange}
-          bgSize={bgSize}
-          handleBgSizeChange={handleBgSizeChange}
-          width={width}
-          widthUnit={widthUnit}
-          handleWidthChange={handleWidthChange}
-          height={height}
-          heightUnit={heightUnit}
-          handleHeightChange={handleHeightChange}
-          onResetColor={() => handleBgColorChange("#FFFFFF")}
-        />
+            {selectedComp &&
+              (selectedComp.is("mj-column") ||
+                selectedComp.is("mj-section") ||
+                selectedComp.is("mj-hero") ||
+                ["mj-text", "mj-button", "mj-image", "mj-divider"].includes(
+                  selectedComp.get("type")
+                )) && (
+                <DimensionContainer
+                  width={width}
+                  widthUnit={widthUnit}
+                  handleWidthChange={handleWidthChange}
+                  height={height}
+                  heightUnit={heightUnit}
+                  handleHeightChange={handleHeightChange}
+                />
+              )}
 
-        <BorderContainer
-          borderWidth={borderWidth}
-          borderStyle={borderStyle}
-          borderColor={borderColor}
-          borderRadius={borderRadius}
-          handleBorderChange={handleBorderChange}
-          handleBorderRadiusChange={handleBorderRadiusChange}
-        />
+            <BackgroundContainer
+              bgColor={bgColor}
+              handleBgColorChange={handleBgColorChange}
+              bgImage={bgImage}
+              removeBgImage={removeBgImage}
+              bgImageInputRef={bgImageInputRef}
+              handleBgImageUpload={handleBgImageUpload}
+              colorInputRef={colorInputRef}
+              bgRepeat={bgRepeat}
+              handleBgRepeatChange={handleBgRepeatChange}
+              bgSize={bgSize}
+              handleBgSizeChange={handleBgSizeChange}
+              onResetColor={() => handleBgColorChange("#FFFFFF")}
+            />
+
+            <BorderContainer
+              borderWidth={borderWidth}
+              borderStyle={borderStyle}
+              borderColor={borderColor}
+              borderRadius={borderRadius}
+              handleBorderChange={handleBorderChange}
+              handleBorderRadiusChange={handleBorderRadiusChange}
+            />
+          </>
+        )}
       </div>
 
       <div className="actionFooter">

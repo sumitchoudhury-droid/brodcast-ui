@@ -625,7 +625,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]:hover {
-                  background: #fcfdfe !important;
+                  background: transparent !important;
                   border-color: #1570ef !important;
                 }
 
@@ -906,9 +906,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             }
           });
 
-          if (realSections.length === 0) {
-            // No real content — remove sig if present
-            if (existingSig) existingSig.remove();
+          if (realSections.length === 0 && !existingSig) {
             return;
           }
 
@@ -922,9 +920,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (!existingSig) {
             mjBody.append(SIGNATURE_SECTION_HTML);
           } else if (lastComp !== existingSig) {
-            // Sig exists but is not last — remove and re-append at the end
-            existingSig.remove();
-            mjBody.append(SIGNATURE_SECTION_HTML);
+            // Sig exists but is not last — move it to the end
+            mjBody.append(existingSig);
           }
         } finally {
           isEnsuringSig.current = false;
@@ -1603,9 +1600,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const components = mjBody.components();
         if (components.length === 0) return false;
         const realComponents = components.filter(
-          (c) =>
-            c.get("type") !== "textnode" &&
-            c.getAttributes()?.["data-type"] !== "signature-section"
+          (c) => c.get("type") !== "textnode"
         );
         if (realComponents.length === 0) return false;
         if (realComponents.length === 1) {
@@ -1683,16 +1678,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (Object.keys(toUpdate).length > 0) comp.addAttributes(toUpdate);
         }
       });
-    });
-
-    // ── Redirect mj-column selection to its parent mj-section ────────────────
-    editor.on("component:selected", (cmp) => {
-      if (cmp && cmp.get("type") === "mj-column") {
-        const parentSection = cmp.parent();
-        if (parentSection && parentSection.get("type") === "mj-section") {
-          editor.select(parentSection);
-        }
-      }
     });
 
     // ── Auto-open image picker when a blank mj-image is selected ─────────────
