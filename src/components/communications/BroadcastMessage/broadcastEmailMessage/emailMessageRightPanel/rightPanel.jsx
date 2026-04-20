@@ -16,7 +16,9 @@ import { BackgroundContainer } from "./backgroundContainer/backgroundContainer";
 import { TextStyleContainer } from "./textStyleContainer/textStyleContainer";
 import BorderContainer from "./borderContainer";
 import { PaddingContainer } from "./paddingContainer";
+import { DimensionContainer } from "./dimensionContainer/DimensionContainer";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
+import { ButtonSection } from "./buttonSection/index";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas iframe helpers
@@ -544,7 +546,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [testSubject, setTestSubject] = useState("");
   const [selectedComp, setSelectedComp] = useState(null);
 
-  const [bgColor, setBgColor] = useState("#FFFFFF");
+  const [bgColor, setBgColor] = useState("transparent");
   const [bgImage, setBgImage] = useState("");
   const [bgRepeat, setBgRepeat] = useState("no-repeat");
   const [bgSize, setBgSize] = useState("contain");
@@ -581,12 +583,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     bottom: "0",
     left: "0"
   });
-  const [margin, setMargin] = useState({
-    top: "0",
-    right: "0",
-    bottom: "0",
-    left: "0"
-  });
+
+  const [buttonUrl, setButtonUrl] = useState("");
 
   const colorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
@@ -637,7 +635,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       ) {
         const parent = selected.parent();
         if (parent && parent.get("type") === "mj-column") {
-          dimTarget = parent;
+          const isInsideRowFrame =
+            parent.getAttributes?.()?.["data-type"] === "row-frame-column";
+          if (!isInsideRowFrame) {
+            dimTarget = parent;
+          }
         }
       }
 
@@ -645,7 +647,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       const dimStyle = dimTarget.getStyle() || {};
       const dimAttrs = dimTarget.getAttributes() || {};
 
-      setBgColor(dimStyle["background-color"] || "#FFFFFF");
+      setBgColor(dimStyle["background-color"] || "transparent");
       setBgImage(
         dimStyle["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
       );
@@ -653,14 +655,18 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       const rawSize = dimStyle["background-size"] || "contain";
       setBgSize(rawSize === "100% 100%" ? "fill" : rawSize);
 
-      const border = dimStyle["border"] || "0px solid #000000";
+      const border =
+        dimAttrs["border"] || dimStyle["border"] || "0px solid #000000";
       const bp = border.split(" ");
       if (bp.length >= 3) {
         setBorderWidth(bp[0].replace("px", ""));
         setBorderStyle(bp[1]);
         setBorderColor(bp[2]);
       }
-      const brShorthand = (dimStyle["border-radius"] || "0").split(" ");
+      // Read border-radius from MJML attribute first, then fall back to CSS style
+      const rawBrAttr =
+        dimAttrs["border-radius"] || dimStyle["border-radius"] || "0";
+      const brShorthand = rawBrAttr.split(" ");
       const getBrPart = (idx) => {
         if (brShorthand.length === 1) return brShorthand[0].replace("px", "");
         if (brShorthand.length === 2)
@@ -723,6 +729,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             parseInt(style["padding-left"] || "0", 10) / 24
           )
         });
+
+        if (selected.is("mj-button")) {
+          setButtonUrl(selected.getAttributes().href || "");
+        }
       } else {
         // Sync textAlign for other components (like mj-column or sections)
         setTypography((prev) => ({
@@ -752,24 +762,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         left:
           style["padding-left"]?.replace("px", "") ||
           style["padding"]?.split(" ")[3]?.replace("px", "") ||
-          "0"
-      });
-      setMargin({
-        top:
-          style["margin-top"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[0]?.replace("px", "") ||
-          "0",
-        right:
-          style["margin-right"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[1]?.replace("px", "") ||
-          "0",
-        bottom:
-          style["margin-bottom"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[2]?.replace("px", "") ||
-          "0",
-        left:
-          style["margin-left"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[3]?.replace("px", "") ||
           "0"
       });
 
@@ -824,12 +816,18 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (!selectedComp) return null;
     let target = selectedComp;
     if (
-      ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
+      ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
         selectedComp.get("type")
       )
     ) {
       const parent = selectedComp.parent();
-      if (parent && parent.get("type") === "mj-column") target = parent;
+      if (parent && parent.get("type") === "mj-column") {
+        const isInsideRowFrame =
+          parent.getAttributes?.()?.["data-type"] === "row-frame-column";
+        if (!isInsideRowFrame) {
+          target = parent;
+        }
+      }
     }
     return target;
   };
@@ -840,6 +838,15 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const target = getStyleTarget();
     if (target) {
       target.addStyle({ "background-color": c });
+      // For MJML leaf components (mj-text, mj-image, etc.) the per-cell
+      // background is controlled by the container-background-color attribute.
+      if (
+        ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
+          target.get("type")
+        )
+      ) {
+        target.addAttributes({ "container-background-color": c });
+      }
       editorRef.current?.getEditor()?.trigger("component:update", target);
     }
   };
@@ -848,6 +855,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const target = getStyleTarget();
     if (target) {
       target.addStyle({ "background-image": "none" });
+      if (
+        ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
+          target.get("type")
+        )
+      ) {
+        target.addAttributes({ "container-background-color": "" });
+      }
       editorRef.current?.getEditor()?.trigger("component:update", target);
     }
   };
@@ -909,7 +923,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     ) {
       const parent = target.parent();
       if (parent.getView) {
-        // Debounce or directly re-render the parent view
         setTimeout(() => {
           parent.getView()?.render();
           editorRef.current?.getEditor()?.trigger("component:update", parent);
@@ -925,6 +938,49 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (selectedComp) {
       const target = getStyleTarget();
       updateDimensionOnTarget(target, "width", full);
+
+      // ─── Dynamic Column Rebalancing (v2: Selective) ───
+      // Mark the edited column as "manual" and only rebalance the "auto" ones.
+      if (
+        target.get("type") === "mj-column" &&
+        unit === "%" &&
+        target.parent()?.getAttributes()["data-type"] === "column-frame-section"
+      ) {
+        const parent = target.parent();
+        target.addAttributes({ "data-manual-width": "true" });
+
+        const allCols = parent
+          .components()
+          .filter((c) => c.get("type") === "mj-column");
+
+        const manualCols = allCols.filter(
+          (c) => c.getAttributes()["data-manual-width"] === "true"
+        );
+        const autoCols = allCols.filter(
+          (c) => c.getAttributes()["data-manual-width"] !== "true"
+        );
+
+        if (autoCols.length > 0) {
+          // Calculate sum of manual widths
+          let manualSum = 0;
+          manualCols.forEach((mc) => {
+            const wAttr = mc.getAttributes()["width"] || "0%";
+            manualSum += parseFloat(wAttr);
+          });
+
+          const remaining = Math.max(0, 100 - manualSum);
+          const sharedWidth = `${(remaining / autoCols.length).toFixed(4)}%`;
+
+          autoCols.forEach((ac) => {
+            ac.addAttributes({ width: sharedWidth });
+            ac.addStyle({ width: sharedWidth });
+            ac.set("width", sharedWidth);
+          });
+        }
+
+        // Pulse parent to update canvas
+        editorRef.current?.getEditor()?.trigger("component:update", parent);
+      }
     }
   };
 
@@ -957,12 +1013,16 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
     const target = getStyleTarget();
     if (target) {
-      target.addStyle({ border: `${nW}px ${nS} ${nC}` });
+      const borderValue = `${nW}px ${nS} ${nC}`;
+      target.addStyle({ border: borderValue });
+      // Set as MJML attribute so it compiles into preview/inbox HTML
+      target.addAttributes({ border: borderValue });
       editorRef.current?.getEditor()?.trigger("component:update", target);
     }
   };
   const handleBorderRadiusChange = (corner, value) => {
-    setBorderRadius((prev) => ({ ...prev, [corner]: value }));
+    const newBorderRadius = { ...borderRadius, [corner]: value };
+    setBorderRadius(newBorderRadius);
     const target = getStyleTarget();
     if (target) {
       const cornerMap = {
@@ -971,7 +1031,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         br: "border-bottom-right-radius",
         bl: "border-bottom-left-radius"
       };
+      // Apply individual corner as CSS style for canvas display
       target.addStyle({ [cornerMap[corner]]: `${value}px` });
+      // Also set combined border-radius as MJML attribute so it compiles into preview/inbox HTML
+      const { tl, tr, br, bl } = newBorderRadius;
+      const radiusShorthand = `${tl || 0}px ${tr || 0}px ${br || 0}px ${bl || 0}px`;
+      target.addAttributes({ "border-radius": radiusShorthand });
       editorRef.current?.getEditor()?.trigger("component:update", target);
     }
   };
@@ -1090,10 +1155,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const handlePaddingChange = (side, value) => {
     setPadding((prev) => ({ ...prev, [side]: value }));
     selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
-  };
-  const handleMarginChange = (side, value) => {
-    setMargin((prev) => ({ ...prev, [side]: value }));
-    selectedComp?.addStyle({ [`margin-${side}`]: `${value}px` });
   };
 
   const handleAlignItemsChange = (value) => {
@@ -1562,6 +1623,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
   };
 
+  const handleButtonUrlChange = (val) => {
+    setButtonUrl(val);
+    const selected = selectedComp;
+    if (selected && selected.is("mj-button")) {
+      selected.addAttributes({ href: val });
+    }
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="rightPanel">
@@ -1575,6 +1644,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         <SignatureSection editorRef={editorRef} />
         {/* <LayoutContainer handleAddLayout={handleAddLayout} /> */}
 
+        {selectedComp && selectedComp.is("mj-button") && (
+          <ButtonSection
+            buttonUrl={buttonUrl}
+            onUrlChange={handleButtonUrlChange}
+          />
+        )}
+
         {selectedComp &&
           (selectedComp.is("mj-text") || selectedComp.is("mj-button")) && (
             <TextStyleContainer
@@ -1587,51 +1663,64 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             />
           )}
 
-        <PaddingContainer
-          selectedComp={selectedComp}
-          padding={padding}
-          handlePaddingChange={handlePaddingChange}
-          margin={margin}
-          handleMarginChange={handleMarginChange}
-          alignItems={alignItems}
-          handleAlignItemsChange={handleAlignItemsChange}
-          justifyContent={justifyContent}
-          handleJustifyContentChange={handleJustifyContentChange}
-          textAlign={typography.textAlign}
-          handleTextAlignChange={(val) =>
-            handleTypographyChange("textAlign", val)
-          }
-        />
+        {!isEditorEmpty && (
+          <>
+            <PaddingContainer
+              selectedComp={selectedComp}
+              padding={padding}
+              handlePaddingChange={handlePaddingChange}
+              alignItems={alignItems}
+              handleAlignItemsChange={handleAlignItemsChange}
+              justifyContent={justifyContent}
+              handleJustifyContentChange={handleJustifyContentChange}
+              textAlign={typography.textAlign}
+              handleTextAlignChange={(val) =>
+                handleTypographyChange("textAlign", val)
+              }
+            />
 
-        <BackgroundContainer
-          bgColor={bgColor}
-          handleBgColorChange={handleBgColorChange}
-          bgImage={bgImage}
-          removeBgImage={removeBgImage}
-          bgImageInputRef={bgImageInputRef}
-          handleBgImageUpload={handleBgImageUpload}
-          colorInputRef={colorInputRef}
-          bgRepeat={bgRepeat}
-          handleBgRepeatChange={handleBgRepeatChange}
-          bgSize={bgSize}
-          handleBgSizeChange={handleBgSizeChange}
-          width={width}
-          widthUnit={widthUnit}
-          handleWidthChange={handleWidthChange}
-          height={height}
-          heightUnit={heightUnit}
-          handleHeightChange={handleHeightChange}
-          onResetColor={() => handleBgColorChange("#FFFFFF")}
-        />
+            {selectedComp &&
+              (selectedComp.is("mj-column") ||
+                selectedComp.is("mj-section") ||
+                selectedComp.is("mj-hero") ||
+                ["mj-text", "mj-button", "mj-image", "mj-divider"].includes(
+                  selectedComp.get("type")
+                )) && (
+                <DimensionContainer
+                  width={width}
+                  widthUnit={widthUnit}
+                  handleWidthChange={handleWidthChange}
+                  height={height}
+                  heightUnit={heightUnit}
+                  handleHeightChange={handleHeightChange}
+                />
+              )}
 
-        <BorderContainer
-          borderWidth={borderWidth}
-          borderStyle={borderStyle}
-          borderColor={borderColor}
-          borderRadius={borderRadius}
-          handleBorderChange={handleBorderChange}
-          handleBorderRadiusChange={handleBorderRadiusChange}
-        />
+            <BackgroundContainer
+              bgColor={bgColor}
+              handleBgColorChange={handleBgColorChange}
+              bgImage={bgImage}
+              removeBgImage={removeBgImage}
+              bgImageInputRef={bgImageInputRef}
+              handleBgImageUpload={handleBgImageUpload}
+              colorInputRef={colorInputRef}
+              bgRepeat={bgRepeat}
+              handleBgRepeatChange={handleBgRepeatChange}
+              bgSize={bgSize}
+              handleBgSizeChange={handleBgSizeChange}
+              onResetColor={() => handleBgColorChange("transparent")}
+            />
+
+            <BorderContainer
+              borderWidth={borderWidth}
+              borderStyle={borderStyle}
+              borderColor={borderColor}
+              borderRadius={borderRadius}
+              handleBorderChange={handleBorderChange}
+              handleBorderRadiusChange={handleBorderRadiusChange}
+            />
+          </>
+        )}
       </div>
 
       <div className="actionFooter">

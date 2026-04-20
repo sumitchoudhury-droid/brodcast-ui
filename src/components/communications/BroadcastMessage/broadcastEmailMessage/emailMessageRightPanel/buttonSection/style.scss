@@ -1,0 +1,51 @@
+@use "../../../../../../style/variable.scss" as variable;
+
+.buttonSection {
+  width: 100%;
+  @include variable.d-flex($fd: column, $g: 10px, $al: stretch);
+  padding: 0px 16px 16px 16px;
+
+  .buttonSectionHeader {
+    @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+    color: variable.$color-black-6;
+    margin: 0;
+  }
+  .buttonSectionContent {
+    @include variable.d-flex($al: center, $g: 12px);
+    width: 100%;
+
+    .buttonUrlInput {
+      @include variable.d-flex($al: center, $g: 12px);
+      flex: 1;
+      border: 1px solid variable.$color-white-14;
+      border-radius: 8px;
+      padding: 8px 12px;
+
+      .buttonUrlInputText {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+        color: variable.$color-black-1;
+        margin: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        width: 100%;
+
+        ::placeholder {
+          color: variable.$placeholder-color;
+        }
+      }
+
+      .editIcon {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+    }
+
+    .selectIcon {
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+    }
+  }
+}

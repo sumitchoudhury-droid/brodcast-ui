@@ -28,5 +28,9 @@ export const getOpacityFromColor = (color) => {
     }
   }
 
+  if (colorStr.toLowerCase() === "transparent") {
+    return 0;
+  }
+
   return 100;
 };

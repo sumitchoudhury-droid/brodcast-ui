@@ -4,8 +4,6 @@ export const PaddingContainer = ({
   selectedComp,
   padding,
   handlePaddingChange,
-  margin,
-  handleMarginChange,
   alignItems,
   handleAlignItemsChange,
   justifyContent,
@@ -104,31 +102,6 @@ export const PaddingContainer = ({
                     value={padding[side.key] || 0}
                     onChange={(e) =>
                       handlePaddingChange(side.key, e.target.value)
-                    }
-                    className="numInput"
-                  />
-                  <span className="unit">px</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="divider"></div>
-
-        {/* Margin Section */}
-        <div className="styleGroup">
-          <p className="groupLabel">Margin</p>
-          <div className="inputsGrid">
-            {sides.map((side) => (
-              <div key={`margin-${side.key}`} className="inputWrapper">
-                <span className="sideLabel">{side.label}</span>
-                <div className="numInputGroup">
-                  <input
-                    type="number"
-                    value={margin[side.key] || 0}
-                    onChange={(e) =>
-                      handleMarginChange(side.key, e.target.value)
                     }
                     className="numInput"
                   />
