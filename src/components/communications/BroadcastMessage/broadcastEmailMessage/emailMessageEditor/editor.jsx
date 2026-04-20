@@ -11,13 +11,13 @@ import "../style.scss";
 
 const EMPTY_TEMPLATE = `
 <mjml>
-  <mj-body width="100%" background-color="#ffffff" padding="0px" margin="0px">
-
+  <mj-body width="100%" background-color="transparent" padding="0px" margin="0px">
+ 
   </mj-body>
 </mjml>
 `.trim();
 
-const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="#ffffff">
+const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text  padding="16px 0px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height=20px>
       Add Signature
@@ -62,6 +62,46 @@ function findNearestFrame(comp) {
     ancestor = ancestor.parent();
   }
   return null;
+}
+
+// Calculate the nesting depth of frames
+function getFrameDepth(comp) {
+  let depth = 0;
+  let current = comp;
+  while (current) {
+    try {
+      const dt = current.getAttributes?.()?.["data-type"];
+      if (dt === "column-frame-section" || dt === "row-frame-column") {
+        depth++;
+      }
+    } catch {
+      /* skip errors */
+    }
+    current = current.parent();
+  }
+  return depth;
+}
+
+// Check if a component model is a Frame block
+function isFrameBlock(model) {
+  if (!model) return false;
+  const type = model.get("type");
+  const dt = model.getAttributes?.()["data-type"];
+
+  if (dt === "column-frame-section" || dt === "row-frame-column") return true;
+
+  // Check if it's a section that contains a row-frame-column (typical for Row block)
+  if (type === "mj-section") {
+    let hasRowFrame = false;
+    model.components().each((c) => {
+      if (c.getAttributes?.()["data-type"] === "row-frame-column") {
+        hasRowFrame = true;
+      }
+    });
+    return hasRowFrame;
+  }
+
+  return false;
 }
 
 // Check if a component is nested inside a column frame
@@ -119,49 +159,35 @@ function clearFramePlaceholder(container) {
 function resolveDroppable(comp) {
   const type = comp.get("type");
   const dt = comp.getAttributes?.()?.["data-type"];
+  const depth = getFrameDepth(comp);
 
   if (type === "mj-body") return true;
 
+  // Level restriction function
+  const checkNesting = (droppedModel) => {
+    // If we are already at depth 3, we only allow content blocks (not frames)
+    if (depth >= 3 && isFrameBlock(droppedModel)) {
+      return false;
+    }
+    return true;
+  };
+
   if (type === "mj-section") {
-    return dt === "column-frame-section";
+    if (dt === "column-frame-section") {
+      return (droppedModel) => checkNesting(droppedModel);
+    }
+    return false;
   }
 
   if (type === "mj-column") {
     if (dt === "row-frame-column") {
-      // SMART TARGETING: Row frame columns only accept blocks if they are
-      // at the top level or if the blocks being dropped are leaf components.
-      // If we are inside a column-frame-section, we REJECT major section drops
-      // so they "bubble up" and become new columns in the horizontal frame.
-      return (droppedModel) => {
-        const droppedType = droppedModel.get("type");
-
-        // We only want to "promote" Frame-to-Column stacking for Layout Blocks (Frames).
-        // Content blocks (Heading, Paragraph, Image, etc.) should always be allowed
-        // to land in a Row Frame for vertical stacking, even if nested.
-        let isFrameBlock = false;
-        if (droppedType === "mj-section") {
-          const droppedDt = droppedModel.getAttributes?.()["data-type"];
-          if (droppedDt === "column-frame-section") {
-            isFrameBlock = true;
-          } else {
-            // Check if it's a Row Frame section (contains a row-frame-column)
-            droppedModel.components().each((c) => {
-              if (c.getAttributes?.()["data-type"] === "row-frame-column") {
-                isFrameBlock = true;
-              }
-            });
-          }
-        }
-
-        if (isFrameBlock && isInsideColumnFrame(comp)) {
-          return false;
-        }
-        return true;
-      };
+      return (droppedModel) => checkNesting(droppedModel);
     }
 
     const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
-    return parentDt === "column-frame-section";
+    if (parentDt === "column-frame-section") {
+      return (droppedModel) => checkNesting(droppedModel);
+    }
   }
 
   // leaf types remain non-droppable to prevent accidental block nesting
@@ -231,8 +257,10 @@ function reconcileFramePlaceholders(editor, isReconciling) {
 
     // Rebalance mj-column widths inside every column-frame-section
     // so blocks are displayed side-by-side with equal width.
+    // FORCE EQUAL only if column count changed.
     frameCols.forEach((col) => {
-      if (col.getAttributes()?.["data-type"] !== "column-frame-section") return;
+      const attrs = col.getAttributes() || {};
+      if (attrs["data-type"] !== "column-frame-section") return;
 
       const columns = [];
       col.components().each((c) => {
@@ -242,12 +270,18 @@ function reconcileFramePlaceholders(editor, isReconciling) {
       const n = columns.length;
       if (n === 0) return;
 
-      const equalWidth = `${(100 / n).toFixed(4)}%`;
-      columns.forEach((c) => {
-        if (c.getAttributes()["width"] !== equalWidth) {
-          c.addAttributes({ width: equalWidth });
-        }
-      });
+      const lastN = parseInt(attrs["data-column-count"] || "0", 10);
+      if (n !== lastN) {
+        // Enforce equal widths and reset manual tags
+        const equalWidth = `${(100 / n).toFixed(4)}%`;
+        columns.forEach((c) => {
+          c.addAttributes({
+            width: equalWidth,
+            "data-manual-width": "false"
+          });
+        });
+        col.addAttributes({ "data-column-count": n.toString() });
+      }
     });
   } finally {
     isReconciling.current = false;
@@ -534,7 +568,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       showDevices: false,
       panels: { defaults: [] },
       canvasCss: `
-                html, body { margin: 0; height: 100%; width: 100%; overflow-x: hidden; }
+                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; }
                 body {
                   min-height: 100%;
                   word-break: break-word;
@@ -616,7 +650,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
                 [data-type="row-frame-column"][data-is-empty="true"] {
                   position: relative !important;
-                  background: white !important;
+                  background: transparent !important;
                   border: 1px dashed transparent !important;
                   min-height: 100px !important;
                   box-sizing: border-box !important;
@@ -655,7 +689,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
-                  white-space: nowrap !important;
+                  white-space: normal !important;
+                  text-align: center !important;
+                  width: 90% !important;
                   box-sizing: border-box !important;
                   opacity: 0.8 !important;
                 }
@@ -669,39 +705,54 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
                 [data-type="column-frame-section"][data-is-empty="true"],
                 [data-type="column-frame-column"][data-is-empty="true"] {
-                  display: flex !important;
-                  flex-direction: column !important;
-                  align-items: center !important;
-                  justify-content: center !important;
-                  gap: 8px !important;
-                  background: white !important;
-                  border: none !important;
-                  min-height: 80px !important;
-                  text-align: center !important;
+                  position: relative !important;
+                  background: transparent !important;
+                  border: 1px dashed transparent !important;
+                  min-height: 100px !important;
                   box-sizing: border-box !important;
+                  cursor: pointer !important;
+                  transition: all 0.2s ease !important;
+                }
+
+                [data-type="column-frame-section"][data-is-empty="true"]:hover,
+                [data-type="column-frame-column"][data-is-empty="true"]:hover {
+                  background: transparent !important;
+                  border-color: #1570ef !important;
                 }
 
                 [data-type="column-frame-section"][data-is-empty="true"]::before,
                 [data-type="column-frame-column"][data-is-empty="true"]::before {
-                  content: "";
-                  width: 20px;
-                  height: 20px;
-                  display: block;
-                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'><path d='M3.33301 9.99992H16.6663M3.33301 4.99992C3.33301 4.55789 3.5086 4.13397 3.82116 3.82141C4.13372 3.50885 4.55765 3.33325 4.99967 3.33325H14.9997C15.4417 3.33325 15.8656 3.50885 16.1782 3.82141C16.4907 4.13397 16.6663 4.55789 16.6663 4.99992V14.9999C16.6663 15.4419 16.4907 15.8659 16.1782 16.1784C15.8656 16.491 15.4417 16.6666 14.9997 16.6666H4.99967C4.55765 16.6666 4.13372 16.491 3.82116 16.1784C3.5086 15.8659 3.33301 15.4419 3.33301 14.9999V4.99992Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-                  background-size: contain;
-                  background-repeat: no-repeat;
+                  content: "" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, -24px) !important;
+                  width: 24px !important;
+                  height: 24px !important;
+                  display: block !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M12 4V20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%231570EF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-size: contain !important;
+                  background-repeat: no-repeat !important;
+                  opacity: 0.7 !important;
                 }
 
                 [data-type="column-frame-section"][data-is-empty="true"]::after,
                 [data-type="column-frame-column"][data-is-empty="true"]::after {
                   content: "Drag and drop items here to stack them in columns" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, 8px) !important;
                   font-family: Inter, Arial, sans-serif !important;
-                  font-size: 14px !important;
+                  font-size: 13px !important;
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
-                  max-width: 100% !important;
+                  white-space: normal !important;
+                  text-align: center !important;
+                  width: 90% !important;
                   box-sizing: border-box !important;
+                  opacity: 0.8 !important;
                 }
 
                 /* First section top border-radius */
@@ -709,6 +760,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   border-top-left-radius: 10px !important;
                   border-top-right-radius: 10px !important;
                 }
+
+                /* Disable pointer events for links in editor */
+                a { pointer-events: none !important; }
             `,
       plugins: [mjmlPlugin],
       pluginsOpts: {
@@ -963,12 +1017,23 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             frameContainer &&
             parent !== frameContainer
           ) {
-            // EXEMPT: If it's a Column Frame, move it to the root of the frame container but do NOT unwrap it
+            // EXEMPT: If it's a Column Frame, move it to the root of the frame container but do NOT unwrap it.
+            // HOWEVER, if the parent is already an mj-column (part of a frame), we want to RETAIN that nesting
+            // for multi-level recursive structures.
             if (
               component.getAttributes()?.["data-type"] ===
               "column-frame-section"
             ) {
-              frameContainer.append(component);
+              if (parentType === "mj-column") {
+                return; // Stay where you are (in the column)
+              }
+              // Wrap in mj-column so it participates in side-by-side balancing
+              const newCol = frameContainer
+                .components()
+                .add(
+                  `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                );
+              newCol.append(component);
               return;
             }
 
@@ -1038,6 +1103,21 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
           // ── Case 2: mj-section inside another mj-section ─────────
           if (type === "mj-section" && parentType === "mj-section") {
+            // EXEMPT: If it's a Column Frame, allow it to stay inside the section (useful for nesting)
+            // Wrap in mj-column so it participates in side-by-side balancing
+            if (
+              component.getAttributes()?.["data-type"] ===
+              "column-frame-section"
+            ) {
+              const newCol = parent
+                .components()
+                .add(
+                  `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                );
+              newCol.append(component);
+              return;
+            }
+
             const innerCols = [];
             const directContent = [];
             component.components().each((c) => {
@@ -1438,7 +1518,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   grandParent
                     .components()
                     .add(
-                      `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#ffffff"></mj-section>`
+                      `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent"></mj-section>`
                     )
                 );
               }
@@ -1668,6 +1748,20 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (style["width"]) attributes["width"] = style["width"];
         if (style["height"]) attributes["height"] = style["height"];
 
+        if (style["padding-top"])
+          attributes["padding-top"] = style["padding-top"];
+        if (style["padding-right"])
+          attributes["padding-right"] = style["padding-right"];
+        if (style["padding-bottom"])
+          attributes["padding-bottom"] = style["padding-bottom"];
+        if (style["padding-left"])
+          attributes["padding-left"] = style["padding-left"];
+        if (style["padding"]) attributes["padding"] = style["padding"];
+
+        if (style["border"]) attributes["border"] = style["border"];
+        if (style["border-radius"])
+          attributes["border-radius"] = style["border-radius"];
+
         if (Object.keys(attributes).length > 0) {
           const currentAttrs = comp.getAttributes();
           const toUpdate = {};
@@ -1830,7 +1924,7 @@ function registerBlocks(editor) {
   bm.add("column", {
     label: "Frame - Column",
     category: "Blocks",
-    content: `<mj-section data-type="column-frame-section" data-is-empty="true" full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#ffffff">
+    content: `<mj-section data-type="column-frame-section" data-is-empty="true" full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent">
     </mj-section>`
   });
 
@@ -1865,7 +1959,7 @@ function registerBlocks(editor) {
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%" >
         <mj-text padding="0px" margin="0px">
-          <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 190px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
+          <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M19 2V8" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1906,7 +2000,7 @@ function registerBlocks(editor) {
     label: "Attachment",
     category: "Content",
     content: `
-      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="16px" margin="0px" width="100%" background-color="#ffffff" align="center" justify="center">
+      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="16px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-text align="center" padding="10px" margin="0px">
             <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
@@ -1938,7 +2032,7 @@ function registerBlocks(editor) {
     label: "Text Block",
     category: "Components",
     content: `
-      <mj-section full-width="full-width" background-color="#ffffff" padding="0px" margin="0px" width="100%">
+      <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
             Add your content here. This is a paragraph of text.
