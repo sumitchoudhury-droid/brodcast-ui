@@ -537,19 +537,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     if (rte.el) {
       const doc = rte.el.ownerDocument;
       const win = doc.defaultView;
-      const sel = win.getSelection();
 
-      // Ensure the contenteditable is focused before we manipulate selection
-      rte.el.focus();
-
-      if (savedRangeRef.current) {
-        sel.removeAllRanges();
-        sel.addRange(savedRangeRef.current);
-
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-
-        // Create the new link element manually
+      // Find the placeholder span we inserted when the modal was opened.
+      // Using a real DOM node as the marker means this works correctly for
+      // every link (including the first), even after React re-renders or
+      // GrapesJS model syncs that would otherwise invalidate a saved Range.
+      const placeholder = doc.getElementById("gjs-link-placeholder");
+      if (placeholder) {
         const link = doc.createElement("a");
         link.href = url || "#";
         link.target = "_blank";
@@ -557,10 +551,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         link.style.textDecoration = "underline";
         link.textContent = linkModalText || url || "Link";
 
-        // Insert the link at the range position
-        range.insertNode(link);
+        // Swap placeholder with the real link, preserving exact position
+        placeholder.parentNode.replaceChild(link, placeholder);
 
-        // Move the cursor to after the inserted link
+        // Focus the editor and place cursor after the inserted link
+        rte.el.focus();
+        const sel = win.getSelection();
         const newRange = doc.createRange();
         newRange.setStartAfter(link);
         newRange.collapse(true);
@@ -575,10 +571,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             gjsInstance.current.trigger("component:update", selected);
           }
         }
-
-        // Clear the saved range after use
-        savedRangeRef.current = null;
       }
+
+      savedRangeRef.current = null;
     }
 
     setIsLinkModalOpen(false);
@@ -1565,12 +1560,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         result: (rteInstance) => {
           const selection = rteInstance.selection();
 
-          // Capture the current range from the canvas window to restore it later
-          const win = rteInstance.el.ownerDocument.defaultView;
+          const doc = rteInstance.el.ownerDocument;
+          const win = doc.defaultView;
           const sel = win.getSelection();
-          if (sel.rangeCount > 0) {
-            savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-          }
 
           let plainText = "";
           if (selection) {
@@ -1581,6 +1573,19 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   ? selection.toString()
                   : "";
           }
+
+          // Immediately replace the selected text with a placeholder <span>
+          // so the insertion point is a real DOM node that survives React
+          // re-renders and GrapesJS model syncs triggered by opening the modal.
+          if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const placeholder = doc.createElement("span");
+            placeholder.id = "gjs-link-placeholder";
+            placeholder.textContent = plainText || "";
+            range.insertNode(placeholder);
+          }
+
           setLinkModalText(plainText || "");
           setLinkModalUrl("");
           currentRteRef.current = rteInstance;
@@ -2090,7 +2095,19 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
       <LinkModal
         isOpen={isLinkModalOpen}
-        onClose={() => setIsLinkModalOpen(false)}
+        onClose={() => {
+          // Restore the placeholder back to a plain text node on cancel
+          if (currentRteRef.current?.el) {
+            const doc = currentRteRef.current.el.ownerDocument;
+            const placeholder = doc.getElementById("gjs-link-placeholder");
+            if (placeholder) {
+              const textNode = doc.createTextNode(placeholder.textContent);
+              placeholder.parentNode.replaceChild(textNode, placeholder);
+            }
+          }
+          savedRangeRef.current = null;
+          setIsLinkModalOpen(false);
+        }}
         onConfirm={handleToolbarLinkConfirm}
         formName={linkModalText}
         setFormName={setLinkModalText}
