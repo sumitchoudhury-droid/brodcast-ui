@@ -8,6 +8,7 @@ import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
 import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 
 import "../style.scss";
+import "./style.scss";
 import { LinkModal } from "../linkModal/index";
 
 const EMPTY_TEMPLATE = `
@@ -303,6 +304,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const [linkModalUrl, setLinkModalUrl] = useState("");
   const currentRteRef = useRef(null);
   const savedRangeRef = useRef(null);
+
+  // Link Popup state for clicking existing links in canvas
+  const [linkPopupData, setLinkPopupData] = useState({
+    isOpen: false,
+    top: 0,
+    left: 0,
+    text: "",
+    url: "",
+    el: null
+  });
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -843,8 +854,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   border-top-right-radius: 10px !important;
                 }
 
-                /* Disable pointer events for links in editor */
-                a { pointer-events: none !important; }
+                /* Enable pointer events for links in editor so we can detect clicks */
+                a { 
+                  cursor: pointer !important;
+                  text-decoration: underline !important;
+                  pointer-events: auto !important;
+                }
             `,
       plugins: [mjmlPlugin],
       pluginsOpts: {
@@ -1612,7 +1627,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       });
 
       rte.add("case-toggle", {
-        icon: `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M1.5 12L4.52925 4.7325C4.55773 4.66418 4.6058 4.60581 4.66739 4.56476C4.72899 4.52371 4.80135 4.5018 4.87538 4.5018C4.9494 4.5018 5.02176 4.52371 5.08336 4.56476C5.14495 4.60581 5.19302 4.66418 5.2215 4.7325L8.25 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 6.75V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.47803 9.75H7.27203" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.875 12C15.3247 12 16.5 10.8247 16.5 9.375C16.5 7.92525 15.3247 6.75 13.875 6.75C12.4253 6.75 11.25 7.92525 11.25 9.375C11.25 10.8247 12.4253 12 13.875 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        icon: `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M1.5 12L4.52925 4.7325C4.55773 4.66418 4.6058 4.60581 4.66739 4.56476C4.72899 4.52371 4.80135 4.5018 4.87538 4.5018C4.9494 4.5018 5.02176 4.52371 5.08336 4.56476C5.14495 4.60581 5.19302 4.66418 5.2215 4.7325L8.25 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 6.75V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.47803 9.75H7.27203" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.875 12C15.3247 12 16.5 10.8247 16.5 9.375C16.5 7.92525 15.3247 6.75 13.875 6.75C12.4253 6.75 11.25 9.375C11.25 10.8247 12.4253 12 13.875 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
         attributes: { title: "Toggle Case" },
         result: (rteInstance) => {
           const selection = rteInstance.selection();
@@ -1635,7 +1650,53 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       if (attachedBodies.has(body)) return;
       attachedBodies.add(body);
 
-      // ── Canvas click handler ───────────────────────────────────────────────
+      // ── Canvas mousedown handler (using mousedown to catch before GrapesJS selection) ──
+      body.addEventListener("mousedown", (e) => {
+        // ── Hyperlink click ───────────────────────────────────────────────
+        const link = e.target.closest("a");
+        if (link) {
+          console.log("Link clicked in canvas:", link.href);
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Toggle behavior: if clicking the same link, close it
+          if (linkPopupData.isOpen && linkPopupData.el === link) {
+            setLinkPopupData((prev) => ({ ...prev, isOpen: false }));
+            return;
+          }
+
+          const rect = link.getBoundingClientRect();
+          const iframe = editor.Canvas.getFrameEl();
+          const iframeRect = iframe.getBoundingClientRect();
+          const containerRect = containerRef.current.getBoundingClientRect();
+
+          // Detect if there's enough space above the link (popup height ~150px)
+          const showBelow = rect.top < 150;
+
+          // Position popup relative to the editor container
+          setLinkPopupData({
+            isOpen: true,
+            top: showBelow
+              ? iframeRect.top - containerRect.top + rect.bottom + 12
+              : iframeRect.top - containerRect.top + rect.top - 12,
+            left:
+              iframeRect.left - containerRect.left + rect.left + rect.width / 2,
+            text: link.textContent,
+            url: link.getAttribute("href") || "",
+            el: link,
+            isBelow: showBelow
+          });
+          return;
+        } else {
+          // Close popup if clicking elsewhere
+          if (e.target.closest(".link-interaction-popup")) return;
+          setLinkPopupData((prev) =>
+            prev.isOpen ? { ...prev, isOpen: false } : prev
+          );
+        }
+      });
+
+      // ── Canvas click handler (for other elements) ──────────────────────────
       body.addEventListener("click", (e) => {
         // ── Image upload area click ───────────────────────────────────────
         if (e.target.closest(".image-click-area")) {
@@ -2070,7 +2131,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
   return (
     <>
-      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          zIndex: 999
+        }}
+      >
         <div
           ref={containerRef}
           id="gjs"
@@ -2091,6 +2159,112 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           accept="image/*"
           onChange={handleImageChange}
         />
+        {linkPopupData.isOpen && (
+          <div
+            className={`link-interaction-popup ${linkPopupData.isBelow ? "is-below" : ""}`}
+            style={{
+              top: linkPopupData.top,
+              left: linkPopupData.left,
+              position: "absolute",
+              transform: linkPopupData.isBelow
+                ? "translateX(-50%)"
+                : "translateX(-50%) translateY(-100%)",
+              zIndex: 100000,
+              pointerEvents: "auto"
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="popup-content">
+              <div className="popup-header">
+                <span className="link-text">{linkPopupData.text}</span>
+                <button
+                  className="close-popup"
+                  onClick={() =>
+                    setLinkPopupData({ ...linkPopupData, isOpen: false })
+                  }
+                >
+                  <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M9 3L3 9M3 3L9 9"
+                      stroke="#667085"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="popup-body">
+                <a
+                  href={linkPopupData.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link-url"
+                >
+                  {linkPopupData.url}
+                </a>
+              </div>
+              <div className="popup-footer">
+                <button
+                  className="edit-btn"
+                  onClick={() => {
+                    setLinkModalText(linkPopupData.text);
+                    setLinkModalUrl(linkPopupData.url);
+                    setIsLinkModalOpen(true);
+                    setLinkPopupData({ ...linkPopupData, isOpen: false });
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="remove-btn"
+                  onClick={() => {
+                    const link = linkPopupData.el;
+                    const editor = gjsInstance.current;
+
+                    // Find the component containing this link
+                    const comp = editor.Components.getWrapper().find((c) => {
+                      try {
+                        return c.getView()?.el?.contains(link);
+                      } catch {
+                        return false;
+                      }
+                    })[0];
+
+                    if (comp) {
+                      // Replace the <a> tag with its plain text children in the DOM
+                      const parent = link.parentNode;
+                      while (link.firstChild) {
+                        parent.insertBefore(link.firstChild, link);
+                      }
+                      parent.removeChild(link);
+
+                      // Read the updated HTML from the live DOM and sync to the model
+                      const viewEl = comp.getView()?.el;
+                      if (viewEl) {
+                        comp.set("content", viewEl.innerHTML);
+                      }
+
+                      editor.trigger("component:update", comp);
+                    }
+
+                    setLinkPopupData({
+                      isOpen: false,
+                      top: 0,
+                      left: 0,
+                      text: "",
+                      url: "",
+                      el: null
+                    });
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+            <div className="popup-arrow"></div>
+          </div>
+        )}
       </div>
 
       <LinkModal
@@ -2107,14 +2281,78 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           }
           savedRangeRef.current = null;
           setIsLinkModalOpen(false);
+          // Also clear popup ref if we were editing an existing link
+          setLinkPopupData((prev) => ({ ...prev, el: null }));
         }}
-        onConfirm={handleToolbarLinkConfirm}
+        onConfirm={() => {
+          try {
+            if (linkPopupData.el) {
+              // Updating existing link
+              const link = linkPopupData.el;
+              link.href = linkModalUrl;
+              link.textContent = linkModalText;
+
+              // Trigger GrapesJS update
+              const editor = gjsInstance.current;
+              const comp = editor.Components.getWrapper().find((c) => {
+                try {
+                  return c.getView()?.el?.contains(link);
+                } catch {
+                  return false;
+                }
+              })[0];
+              if (comp) {
+                const currentContent = comp.get("content");
+
+                // Get the old HTML of the link before we update its DOM
+                const tempDiv = document.createElement("div");
+                tempDiv.appendChild(link.cloneNode(true));
+                const oldLinkHTML = tempDiv.innerHTML;
+
+                // Update the DOM element
+                link.href = linkModalUrl;
+                link.textContent = linkModalText;
+
+                // Get the new HTML of the link
+                const newTempDiv = document.createElement("div");
+                newTempDiv.appendChild(link.cloneNode(true));
+                const newLinkHTML = newTempDiv.innerHTML;
+
+                // Replace in the model
+                const newContent = currentContent.replace(
+                  oldLinkHTML,
+                  newLinkHTML
+                );
+                comp.set("content", newContent);
+
+                editor.trigger("component:update", comp);
+              }
+            } else {
+              handleToolbarLinkConfirm();
+            }
+          } finally {
+            setIsLinkModalOpen(false);
+            setLinkPopupData({
+              isOpen: false,
+              top: 0,
+              left: 0,
+              text: "",
+              url: "",
+              el: null,
+              isBelow: false
+            });
+            setLinkModalText("");
+            setLinkModalUrl("");
+          }
+        }}
         formName={linkModalText}
         setFormName={setLinkModalText}
         linkValue={linkModalUrl}
         setLinkValue={setLinkModalUrl}
-        title="Add Link"
+        title={linkPopupData.el ? "Edit Link" : "Add Link"}
         textLabel="Link Text"
+        confirmText={linkPopupData.el ? "Edit" : "Send"}
+        urlLabel={linkPopupData.el ? "Edit Link" : "Add Link"}
       />
     </>
   );

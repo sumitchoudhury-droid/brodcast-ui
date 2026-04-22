@@ -11,7 +11,9 @@ export const LinkModal = ({
   linkValue,
   setLinkValue,
   title = "Add Link",
-  textLabel = "Form Name"
+  textLabel = "Form Name",
+  confirmText = "Send",
+  urlLabel = "Add Link"
 }) => {
   return (
     <ReusableModal
@@ -19,7 +21,7 @@ export const LinkModal = ({
       onClose={onClose}
       onConfirm={onConfirm}
       title={title}
-      confirmText="Send"
+      confirmText={confirmText}
       cancelText="Cancel"
     >
       <div className="linkModalWrapper">
@@ -36,7 +38,7 @@ export const LinkModal = ({
           style={{ marginTop: "16px" }}
         >
           <ReusableInput
-            label="Add Link"
+            label={urlLabel}
             placeholder="https://example.com"
             value={linkValue}
             onChange={(e) => setLinkValue(e.target.value)}
