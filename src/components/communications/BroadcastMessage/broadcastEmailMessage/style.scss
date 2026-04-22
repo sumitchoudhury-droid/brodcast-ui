@@ -217,6 +217,51 @@
   }
 }
 
+/* Rich Text Editor Toolbar Override */
+.gjs-rte-toolbar {
+  background-color: #ffffff !important;
+  border-radius: 10px !important;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12) !important;
+  padding: 8px 20px !important;
+  border: 1px solid #eaecf0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  z-index: 100 !important;
+  color: #404b5a !important;
+}
+
+.gjs-rte-action {
+  width: 32px !important;
+  height: 32px !important;
+  cursor: pointer !important;
+
+  &:hover {
+    color: #101828 !important;
+  }
+
+  &.gjs-rte-active {
+    color: #1570ef !important;
+  }
+
+  // Remove vertical dividers and borders
+  border: none !important;
+  &::after,
+  &::before {
+    display: none !important;
+  }
+
+  svg {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* Hide any specific separator elements */
+.gjs-rte-separator {
+  display: none !important;
+}
+
 /* Active Dropzone Placeholder */
 .gjs-placeholder,
 .gjs-placeholder-int {

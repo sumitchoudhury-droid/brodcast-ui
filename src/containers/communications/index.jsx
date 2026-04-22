@@ -56,13 +56,31 @@ function Communications() {
 
       {/* CONTENT CHANGES */}
       <div className="communicationContent">
+        <div
+          style={{
+            display: activeId === 1 ? "flex" : "none",
+            flexDirection: "column",
+            height: "100%"
+          }}
+        >
+          <PatientsMessages />
+        </div>
+        <div
+          style={{
+            display: activeId === 2 ? "flex" : "none",
+            flexDirection: "column",
+            height: "100%"
+          }}
+        >
+          <BroadcastMessage />
+        </div>
+
+        {/* Catch-all for default route redirection */}
         <Routes>
           <Route
             path="/"
             element={<Navigate to="broadcast-message" replace />}
           />
-          <Route path="broadcast-message" element={<BroadcastMessage />} />
-          <Route path="patients-messages" element={<PatientsMessages />} />
         </Routes>
       </div>
     </div>

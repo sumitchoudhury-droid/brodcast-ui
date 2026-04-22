@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
 import mjmlPlugin from "grapesjs-mjml";
 import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
@@ -8,6 +8,7 @@ import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
 import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 
 import "../style.scss";
+import { LinkModal } from "../linkModal/index";
 
 const EMPTY_TEMPLATE = `
 <mjml>
@@ -296,6 +297,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const isUnwrapping = useRef(false);
   const imageTargetCompRef = useRef(null);
 
+  // Link Modal state for toolbar Link icon
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkModalText, setLinkModalText] = useState("");
+  const [linkModalUrl, setLinkModalUrl] = useState("");
+  const currentRteRef = useRef(null);
+  const savedRangeRef = useRef(null);
+
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -358,11 +366,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     // Clear selection before removing the component
     editor.select(null);
-    targetComp.remove();
 
-    parent.components().add(sectionHtml, { at: idx });
-
-    editor.trigger("component:update", parent);
+    isUnwrapping.current = true;
+    try {
+      targetComp.remove();
+      parent.components().add(sectionHtml, { at: idx });
+      editor.trigger("component:update", parent);
+    } finally {
+      isUnwrapping.current = false;
+    }
     e.target.value = "";
   };
 
@@ -397,16 +409,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             target = target.parent();
           }
           if (target) {
-            const parent = target.parent();
-            const index = parent.components().indexOf(target);
-            target.remove();
-            parent
-              .components()
-              .add(
-                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
-                { at: index }
-              );
-            editor.trigger("component:update", parent);
+            target.addAttributes({
+              src: dataUrl,
+              width: widthAttr,
+              height: heightAttr
+            });
+            editor.trigger("component:update", target);
             return;
           }
 
@@ -428,13 +436,18 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
             if (placeholderTarget) {
               const index = column.components().indexOf(placeholderTarget);
-              placeholderTarget.remove();
-              column
-                .components()
-                .add(
-                  `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
-                  { at: index }
-                );
+              isUnwrapping.current = true;
+              try {
+                placeholderTarget.remove();
+                column
+                  .components()
+                  .add(
+                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                    { at: index }
+                  );
+              } finally {
+                isUnwrapping.current = false;
+              }
             } else {
               // Fallback: append to column if placeholder not found
               column.append(
@@ -469,13 +482,18 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
               if (placeholderComp) {
                 const index = col.components().indexOf(placeholderComp);
-                placeholderComp.remove();
-                col
-                  .components()
-                  .add(
-                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
-                    { at: index }
-                  );
+                isUnwrapping.current = true;
+                try {
+                  placeholderComp.remove();
+                  col
+                    .components()
+                    .add(
+                      `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                      { at: index }
+                    );
+                } finally {
+                  isUnwrapping.current = false;
+                }
               } else {
                 // Fallback: replace whole column only if individual component look-up fails
                 col.components().reset();
@@ -497,6 +515,75 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       // alert("Upload failed. Using local fallback.");
     }
     e.target.value = "";
+  };
+
+  const handleToolbarLinkConfirm = () => {
+    if (!currentRteRef.current) return;
+
+    // Ensure the URL has a protocol
+    let url = linkModalUrl;
+    if (
+      url &&
+      !url.includes("://") &&
+      !url.startsWith("#") &&
+      !url.startsWith("/") &&
+      !url.startsWith("mailto:") &&
+      !url.startsWith("tel:")
+    ) {
+      url = "https://" + url;
+    }
+
+    const rte = currentRteRef.current;
+    if (rte.el) {
+      const doc = rte.el.ownerDocument;
+      const win = doc.defaultView;
+      const sel = win.getSelection();
+
+      // Ensure the contenteditable is focused before we manipulate selection
+      rte.el.focus();
+
+      if (savedRangeRef.current) {
+        sel.removeAllRanges();
+        sel.addRange(savedRangeRef.current);
+
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+
+        // Create the new link element manually
+        const link = doc.createElement("a");
+        link.href = url || "#";
+        link.target = "_blank";
+        link.style.color = "#1570EF";
+        link.style.textDecoration = "underline";
+        link.textContent = linkModalText || url || "Link";
+
+        // Insert the link at the range position
+        range.insertNode(link);
+
+        // Move the cursor to after the inserted link
+        const newRange = doc.createRange();
+        newRange.setStartAfter(link);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+
+        // Trigger GrapesJS to recognize the change
+        rte.el.dispatchEvent(new Event("input", { bubbles: true }));
+        if (gjsInstance.current) {
+          const selected = gjsInstance.current.getSelected();
+          if (selected) {
+            gjsInstance.current.trigger("component:update", selected);
+          }
+        }
+
+        // Clear the saved range after use
+        savedRangeRef.current = null;
+      }
+    }
+
+    setIsLinkModalOpen(false);
+    setLinkModalText("");
+    setLinkModalUrl("");
   };
 
   useEffect(() => {
@@ -1340,6 +1427,26 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           scheduleSignatureReconcile();
         }
       }
+
+      // Recursive cleanup of empty parents (mj-section, mj-column)
+      // This prevents empty wrapper sections from lingering when their content is deleted.
+      if (isUnwrapping.current) return;
+
+      const parent = comp.parent();
+      if (parent) {
+        const type = parent.get("type");
+        const parentDt = parent.getAttributes?.()["data-type"];
+
+        // Only cleanup regular mj-column and mj-section containers that are now empty.
+        // We skip body, frames, signature-section, etc.
+        if (
+          (type === "mj-column" || type === "mj-section") &&
+          !parentDt &&
+          parent.components().length === 0
+        ) {
+          parent.remove();
+        }
+      }
     });
 
     editor.on("component:update", () => {
@@ -1444,6 +1551,81 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     const attachedBodies = new WeakSet();
 
     editor.on("load", () => {
+      // ── Custom RTE Configuration ───────────────────────────────────────────
+      const rte = editor.RichTextEditor;
+
+      // Clear standard link action to avoid collision with built-in behavior
+      rte.remove("link");
+
+      const linkIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7c-2.8 0-5 2.2-5 5s2.2 5 5 5h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4c2.8 0 5-2.2 5-5s-2.2-5-5-5z"></path></svg>`;
+
+      rte.add("link", {
+        icon: linkIcon,
+        attributes: { title: "Link" },
+        result: (rteInstance) => {
+          const selection = rteInstance.selection();
+
+          // Capture the current range from the canvas window to restore it later
+          const win = rteInstance.el.ownerDocument.defaultView;
+          const sel = win.getSelection();
+          if (sel.rangeCount > 0) {
+            savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+          }
+
+          let plainText = "";
+          if (selection) {
+            plainText =
+              typeof selection === "string"
+                ? selection.replace(/<[^>]*>/g, "")
+                : selection.toString
+                  ? selection.toString()
+                  : "";
+          }
+          setLinkModalText(plainText || "");
+          setLinkModalUrl("");
+          currentRteRef.current = rteInstance;
+          setIsLinkModalOpen(true);
+        }
+      });
+
+      // Restore other common actions
+      rte.add("bold", {
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.6 11.8c1 .7 1.6 1.8 1.6 3.2 0 2.8-2.2 5-5 5H6V4h5.5c2.5 0 4.5 2 4.5 4.5 0 1.4-.6 2.6-1.6 3.3zM10.5 7.5H8.5v3h2c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5zm1 6.5h-3v3h3c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5z"></path></svg>`,
+        result: (rteInstance) => rteInstance.exec("bold")
+      });
+      rte.add("italic", {
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 5v3h2.2l-3.4 8H6v3h8v-3h-2.2l3.4-8H18V5z"></path></svg>`,
+        result: (rteInstance) => rteInstance.exec("italic")
+      });
+      rte.add("underline", {
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 17c3.3 0 6-2.7 6-6V3h-2.5v8c0 1.9-1.6 3.5-3.5 3.5S8.5 12.9 8.5 11V3H6v8c0 3.3 2.7 6 6 6zm-7 2v2h14v-2H5z"></path></svg>`,
+        result: (rteInstance) => rteInstance.exec("underline")
+      });
+      rte.add("strikethrough", {
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 19h4v-3h-4v3zM5 4v3h5l1 1v3h1.4l1.4 1.4L15 8.9V7.6l1-1V4H5zM2 11v2h20v-2H2z"></path></svg>`,
+        result: (rteInstance) => rteInstance.exec("strikethrough")
+      });
+
+      rte.add("case-toggle", {
+        icon: `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M1.5 12L4.52925 4.7325C4.55773 4.66418 4.6058 4.60581 4.66739 4.56476C4.72899 4.52371 4.80135 4.5018 4.87538 4.5018C4.9494 4.5018 5.02176 4.52371 5.08336 4.56476C5.14495 4.60581 5.19302 4.66418 5.2215 4.7325L8.25 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 6.75V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.47803 9.75H7.27203" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.875 12C15.3247 12 16.5 10.8247 16.5 9.375C16.5 7.92525 15.3247 6.75 13.875 6.75C12.4253 6.75 11.25 7.92525 11.25 9.375C11.25 10.8247 12.4253 12 13.875 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        attributes: { title: "Toggle Case" },
+        result: (rteInstance) => {
+          const selection = rteInstance.selection();
+          if (!selection) return;
+          const plainText =
+            typeof selection === "string"
+              ? selection.replace(/<[^>]*>/g, "")
+              : selection.toString
+                ? selection.toString()
+                : "";
+          const isAllUpper = plainText === plainText.toUpperCase();
+          const toggled = isAllUpper
+            ? selection.toLowerCase()
+            : selection.toUpperCase();
+          rteInstance.insertHTML(toggled);
+        }
+      });
+
       const body = editor.Canvas.getBody();
       if (attachedBodies.has(body)) return;
       attachedBodies.add(body);
@@ -1882,28 +2064,42 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      <div
-        ref={containerRef}
-        id="gjs"
-        style={{ width: "100%", height: "100%", position: "relative" }}
+    <>
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        <div
+          ref={containerRef}
+          id="gjs"
+          style={{ width: "100%", height: "100%", position: "relative" }}
+        />
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          multiple
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={handleFileChange}
+        />
+        <input
+          type="file"
+          ref={imageInputRef}
+          style={{ display: "none" }}
+          accept="image/*"
+          onChange={handleImageChange}
+        />
+      </div>
+
+      <LinkModal
+        isOpen={isLinkModalOpen}
+        onClose={() => setIsLinkModalOpen(false)}
+        onConfirm={handleToolbarLinkConfirm}
+        formName={linkModalText}
+        setFormName={setLinkModalText}
+        linkValue={linkModalUrl}
+        setLinkValue={setLinkModalUrl}
+        title="Add Link"
+        textLabel="Link Text"
       />
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: "none" }}
-        multiple
-        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        onChange={handleFileChange}
-      />
-      <input
-        type="file"
-        ref={imageInputRef}
-        style={{ display: "none" }}
-        accept="image/*"
-        onChange={handleImageChange}
-      />
-    </div>
+    </>
   );
 }
 
