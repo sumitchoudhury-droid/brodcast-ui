@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 import selectIcon from "../../../../../../assets/commonIcons/selectIcon.svg";
 import editIcon from "../../../../../../assets/commonIcons/editIcon.svg";
@@ -8,9 +8,12 @@ import "./style.scss";
 export const ButtonSection = ({ buttonUrl, onUrlChange }) => {
   const [inputValue, setInputValue] = useState(buttonUrl);
 
-  useEffect(() => {
+  const [prevButtonUrl, setPrevButtonUrl] = useState(buttonUrl);
+
+  if (buttonUrl !== prevButtonUrl) {
     setInputValue(buttonUrl);
-  }, [buttonUrl]);
+    setPrevButtonUrl(buttonUrl);
+  }
 
   const handleUpdate = () => {
     onUrlChange(inputValue);

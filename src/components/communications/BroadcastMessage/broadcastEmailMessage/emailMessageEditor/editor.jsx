@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
+import ReactDOM from "react-dom";
+
 import mjmlPlugin from "grapesjs-mjml";
 import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
@@ -8,6 +10,8 @@ import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
 import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 
 import "../style.scss";
+import "./style.scss";
+import { LinkModal } from "../linkModal/index";
 
 const EMPTY_TEMPLATE = `
 <mjml>
@@ -296,6 +300,23 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const isUnwrapping = useRef(false);
   const imageTargetCompRef = useRef(null);
 
+  // Link Modal state for toolbar Link icon
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkModalText, setLinkModalText] = useState("");
+  const [linkModalUrl, setLinkModalUrl] = useState("");
+  const currentRteRef = useRef(null);
+  const savedRangeRef = useRef(null);
+
+  // Link Popup state for clicking existing links in canvas
+  const [linkPopupData, setLinkPopupData] = useState({
+    isOpen: false,
+    top: 0,
+    left: 0,
+    text: "",
+    url: "",
+    el: null
+  });
+
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -322,26 +343,31 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     const columnsHtml = files
       .map((file) => {
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        const sizeInBytes = file.size;
+        const sizeDisplay =
+          sizeInBytes < 1024 * 1024
+            ? `${(sizeInBytes / 1024).toFixed(2)} KB`
+            : `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
         const isDoc = /\.docx?$/i.test(file.name);
         const icon = isDoc ? docIcon : pdfIcon;
         const downloadId = Math.floor(Math.random() * 90000) + 10000;
+        const downloadUrl = URL.createObjectURL(file);
         return `<mj-column width="100%" vertical-align="top" padding="0px">
     <mj-text padding="0px 0px 10px 0px" width="100%">
-      <div style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box;">
+      <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box; margin-left: 0; margin-right: auto;">
         <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
           <img src="${icon}" width="40" height="40" style="display:block; flex-shrink:0;" />
           <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
             <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.name}</p>
-            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeMb} MB</p>
+            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeDisplay}</p>
           </div>
           <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;" />
         </div>
-        <div style="display:flex; align-items:center; gap:4px; width:101%; box-sizing:border-box; justify-content:center;">
+        <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
           <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; flex-shrink:0;">Download using Link:</p>
-          <p style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">
+          <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; cursor:pointer;">
             https://manipal.care/dl${downloadId}
-          </p>
+          </a>
         </div>
       </div>
     </mj-text>
@@ -349,7 +375,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       })
       .join("");
 
-    const sectionHtml = `<mj-section full-width="full-width" padding="4px 0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
+    const sectionHtml = `<mj-section full-width="full-width" padding="4px 20px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
       ${columnsHtml}
     </mj-section>`;
 
@@ -358,11 +384,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     // Clear selection before removing the component
     editor.select(null);
-    targetComp.remove();
 
-    parent.components().add(sectionHtml, { at: idx });
-
-    editor.trigger("component:update", parent);
+    isUnwrapping.current = true;
+    try {
+      targetComp.remove();
+      parent.components().add(sectionHtml, { at: idx });
+      editor.trigger("component:update", parent);
+    } finally {
+      isUnwrapping.current = false;
+    }
     e.target.value = "";
   };
 
@@ -397,16 +427,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             target = target.parent();
           }
           if (target) {
-            const parent = target.parent();
-            const index = parent.components().indexOf(target);
-            target.remove();
-            parent
-              .components()
-              .add(
-                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
-                { at: index }
-              );
-            editor.trigger("component:update", parent);
+            target.set("src", dataUrl);
+            target.addAttributes({
+              src: dataUrl,
+              width: widthAttr,
+              height: heightAttr
+            });
+            editor.trigger("component:update", target);
             return;
           }
 
@@ -428,13 +455,18 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
             if (placeholderTarget) {
               const index = column.components().indexOf(placeholderTarget);
-              placeholderTarget.remove();
-              column
-                .components()
-                .add(
-                  `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
-                  { at: index }
-                );
+              isUnwrapping.current = true;
+              try {
+                placeholderTarget.remove();
+                column
+                  .components()
+                  .add(
+                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                    { at: index }
+                  );
+              } finally {
+                isUnwrapping.current = false;
+              }
             } else {
               // Fallback: append to column if placeholder not found
               column.append(
@@ -469,13 +501,18 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
               if (placeholderComp) {
                 const index = col.components().indexOf(placeholderComp);
-                placeholderComp.remove();
-                col
-                  .components()
-                  .add(
-                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
-                    { at: index }
-                  );
+                isUnwrapping.current = true;
+                try {
+                  placeholderComp.remove();
+                  col
+                    .components()
+                    .add(
+                      `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                      { at: index }
+                    );
+                } finally {
+                  isUnwrapping.current = false;
+                }
               } else {
                 // Fallback: replace whole column only if individual component look-up fails
                 col.components().reset();
@@ -497,6 +534,123 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       // alert("Upload failed. Using local fallback.");
     }
     e.target.value = "";
+  };
+
+  const handleToolbarLinkConfirm = () => {
+    if (!currentRteRef.current) return;
+
+    // Ensure the URL has a protocol
+    let url = linkModalUrl;
+    if (
+      url &&
+      !url.includes("://") &&
+      !url.startsWith("#") &&
+      !url.startsWith("/") &&
+      !url.startsWith("mailto:") &&
+      !url.startsWith("tel:")
+    ) {
+      url = "https://" + url;
+    }
+
+    const rte = currentRteRef.current;
+    if (rte.el) {
+      const doc = rte.el.ownerDocument;
+      const win = doc.defaultView;
+
+      // Find the placeholder span we inserted when the modal was opened.
+      // Using a real DOM node as the marker means this works correctly for
+      // every link (including the first), even after React re-renders or
+      // GrapesJS model syncs that would otherwise invalidate a saved Range.
+      const placeholder = doc.getElementById("gjs-link-placeholder");
+      console.log(
+        "[Link] confirm — rte.el connected:",
+        rte.el?.isConnected,
+        "placeholder found:",
+        !!placeholder
+      );
+      if (placeholder) {
+        const link = doc.createElement("a");
+        link.href = url || "#";
+        link.target = "_blank";
+        link.style.color = "#1570EF";
+        link.style.textDecoration = "underline";
+        link.textContent = linkModalText || url || "Link";
+
+        // Swap placeholder with the real link, preserving exact position
+        placeholder.parentNode.replaceChild(link, placeholder);
+
+        // Try to restore focus and cursor (works when RTE is still active)
+        try {
+          rte.el.focus();
+          const sel = win.getSelection();
+          const newRange = doc.createRange();
+          newRange.setStartAfter(link);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        } catch {
+          // rte.el may be detached if the modal blur deactivated the RTE
+        }
+
+        // Update the GrapesJS model directly.
+        // When the modal input steals focus the iframe contenteditable blurs,
+        // GrapesJS deactivates the RTE and re-renders the component in view
+        // mode. At that point dispatching "input" on the (now detached) rte.el
+        // does nothing. We therefore find the component, replace the
+        // placeholder span inside its stored model content, and set it back —
+        // matching the same pattern used by the "edit existing link" flow.
+        const editor = gjsInstance.current;
+        if (editor) {
+          // Prefer the currently selected component; fall back to a DOM search.
+          let comp = editor.getSelected();
+          if (!comp || !comp.getView()?.el?.contains(link)) {
+            const found = editor.Components.getWrapper().find((c) => {
+              try {
+                return c.getView()?.el?.contains(link);
+              } catch {
+                return false;
+              }
+            });
+            comp = found[0];
+          }
+
+          if (comp) {
+            // Build the serialised link HTML
+            const tempDiv = doc.createElement("div");
+            tempDiv.appendChild(link.cloneNode(true));
+            const linkHTML = tempDiv.innerHTML;
+
+            // Replace the placeholder span in the stored model content
+            const currentContent = comp.get("content") || "";
+            console.log("[Link] currentContent:", currentContent);
+            const newContent = currentContent.replace(
+              /<span[^>]*id="gjs-link-placeholder"[^>]*>[\s\S]*?<\/span>/,
+              linkHTML
+            );
+            console.log(
+              "[Link] newContent:",
+              newContent,
+              "changed:",
+              newContent !== currentContent
+            );
+            comp.set("content", newContent);
+            editor.trigger("component:update", comp);
+          } else {
+            // Last-resort fallback: fire the input event (works when RTE is live)
+            console.log("[Link] comp not found, using fallback input event");
+            rte.el.dispatchEvent(new Event("input", { bubbles: true }));
+            const selected = editor.getSelected();
+            if (selected) editor.trigger("component:update", selected);
+          }
+        }
+      }
+
+      savedRangeRef.current = null;
+    }
+
+    setIsLinkModalOpen(false);
+    setLinkModalText("");
+    setLinkModalUrl("");
   };
 
   useEffect(() => {
@@ -573,6 +727,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   min-height: 100%;
                   word-break: break-word;
                   overflow-wrap: break-word;
+                }
+                .attachment-container {
+                  width: 60% !important;
+                  margin-left: 0;
+                  margin-right: auto;
+                }
+                @media only screen and (max-width: 480px) {
+                  .attachment-container {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                  }
                 }
                 [data-gjs-type] { min-height: 20px; }
 
@@ -761,8 +926,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   border-top-right-radius: 10px !important;
                 }
 
-                /* Disable pointer events for links in editor */
-                a { pointer-events: none !important; }
+                /* Enable pointer events for links in editor so we can detect clicks */
+                a { 
+                  cursor: pointer !important;
+                  pointer-events: auto !important;
+                }
             `,
       plugins: [mjmlPlugin],
       pluginsOpts: {
@@ -1340,6 +1508,26 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           scheduleSignatureReconcile();
         }
       }
+
+      // Recursive cleanup of empty parents (mj-section, mj-column)
+      // This prevents empty wrapper sections from lingering when their content is deleted.
+      if (isUnwrapping.current) return;
+
+      const parent = comp.parent();
+      if (parent) {
+        const type = parent.get("type");
+        const parentDt = parent.getAttributes?.()["data-type"];
+
+        // Only cleanup regular mj-column and mj-section containers that are now empty.
+        // We skip body, frames, signature-section, etc.
+        if (
+          (type === "mj-column" || type === "mj-section") &&
+          !parentDt &&
+          parent.components().length === 0
+        ) {
+          parent.remove();
+        }
+      }
     });
 
     editor.on("component:update", () => {
@@ -1444,11 +1632,113 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     const attachedBodies = new WeakSet();
 
     editor.on("load", () => {
+      // ── Custom RTE Configuration ───────────────────────────────────────────
+      const rte = editor.RichTextEditor;
+
+      // Clear standard link action to avoid collision with built-in behavior
+      rte.remove("link");
+
+      const linkIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7c-2.8 0-5 2.2-5 5s2.2 5 5 5h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4c2.8 0 5-2.2 5-5s-2.2-5-5-5z"></path></svg>`;
+
+      rte.add("link", {
+        icon: linkIcon,
+        attributes: { title: "Link" },
+        result: (rteInstance) => {
+          const selection = rteInstance.selection();
+
+          const doc = rteInstance.el.ownerDocument;
+          const win = doc.defaultView;
+          const sel = win.getSelection();
+
+          console.log(
+            "[Link] result fired. rangeCount:",
+            sel.rangeCount,
+            "selection:",
+            selection
+          );
+
+          let plainText = "";
+          if (selection) {
+            plainText =
+              typeof selection === "string"
+                ? selection.replace(/<[^>]*>/g, "")
+                : selection.toString
+                  ? selection.toString()
+                  : "";
+          }
+
+          // Immediately replace the selected text with a placeholder <span>
+          // so the insertion point is a real DOM node that survives React
+          // re-renders and GrapesJS model syncs triggered by opening the modal.
+          if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const placeholder = doc.createElement("span");
+            placeholder.id = "gjs-link-placeholder";
+            placeholder.textContent = plainText || "";
+            range.insertNode(placeholder);
+            console.log("[Link] placeholder inserted, plainText:", plainText);
+          } else {
+            console.log("[Link] NO selection range — placeholder NOT inserted");
+          }
+
+          setLinkModalText(plainText || "");
+          setLinkModalUrl("");
+          currentRteRef.current = rteInstance;
+          setLinkPopupData((prev) => ({ ...prev, el: null, isOpen: false }));
+          setIsLinkModalOpen(true);
+        }
+      });
+
       const body = editor.Canvas.getBody();
       if (attachedBodies.has(body)) return;
       attachedBodies.add(body);
 
-      // ── Canvas click handler ───────────────────────────────────────────────
+      // ── Canvas mousedown handler (using mousedown to catch before GrapesJS selection) ──
+      body.addEventListener("mousedown", (e) => {
+        // ── Hyperlink click ───────────────────────────────────────────────
+        const link = e.target.closest("a");
+        if (link) {
+          console.log("Link clicked in canvas:", link.href);
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Toggle behavior: if clicking the same link, close it
+          if (linkPopupData.isOpen && linkPopupData.el === link) {
+            setLinkPopupData((prev) => ({ ...prev, isOpen: false }));
+            return;
+          }
+
+          const rect = link.getBoundingClientRect();
+          const iframe = editor.Canvas.getFrameEl();
+          const iframeRect = iframe.getBoundingClientRect();
+
+          // Detect if there's enough space above the link (popup height ~150px)
+          const showBelow = rect.top < 150;
+
+          // Position popup relative to the viewport (for Portal)
+          setLinkPopupData({
+            isOpen: true,
+            top: showBelow
+              ? iframeRect.top + rect.bottom + 12
+              : iframeRect.top + rect.top - 12,
+            left: iframeRect.left + rect.left + rect.width / 2,
+            text: link.textContent,
+            url: link.getAttribute("href") || "",
+            el: link,
+            isBelow: showBelow
+          });
+          return;
+        } else {
+          // Close popup if clicking elsewhere
+          if (e.target.closest(".link-interaction-popup")) return;
+          setLinkPopupData((prev) =>
+            prev.isOpen ? { ...prev, isOpen: false, el: null } : prev
+          );
+        }
+      });
+
+      // ── Canvas click handler (for other elements) ──────────────────────────
       body.addEventListener("click", (e) => {
         // ── Image upload area click ───────────────────────────────────────
         if (e.target.closest(".image-click-area")) {
@@ -1882,28 +2172,235 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    <>
       <div
-        ref={containerRef}
-        id="gjs"
-        style={{ width: "100%", height: "100%", position: "relative" }}
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          zIndex: 999
+        }}
+      >
+        <div
+          ref={containerRef}
+          id="gjs"
+          style={{ width: "100%", height: "100%", position: "relative" }}
+        />
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          multiple
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={handleFileChange}
+        />
+        <input
+          type="file"
+          ref={imageInputRef}
+          style={{ display: "none" }}
+          accept="image/*"
+          onChange={handleImageChange}
+        />
+        {linkPopupData.isOpen &&
+          ReactDOM.createPortal(
+            <div
+              className={`link-interaction-popup ${
+                linkPopupData.isBelow ? "is-below" : ""
+              }`}
+              style={{
+                top: linkPopupData.top,
+                left: linkPopupData.left,
+                position: "fixed",
+                transform: linkPopupData.isBelow
+                  ? "translateX(-50%)"
+                  : "translateX(-50%) translateY(-100%)",
+                zIndex: 999999,
+                pointerEvents: "auto"
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="popup-content">
+                <div className="popup-header">
+                  <span className="link-text">{linkPopupData.text}</span>
+                  <button
+                    className="close-popup"
+                    onClick={() =>
+                      setLinkPopupData({ ...linkPopupData, isOpen: false })
+                    }
+                  >
+                    <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
+                      <path
+                        d="M9 3L3 9M3 3L9 9"
+                        stroke="#667085"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="popup-body">
+                  <a
+                    href={linkPopupData.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="link-url"
+                  >
+                    {linkPopupData.url}
+                  </a>
+                </div>
+                <div className="popup-footer">
+                  <button
+                    className="edit-btn"
+                    onClick={() => {
+                      setLinkModalText(linkPopupData.text);
+                      setLinkModalUrl(linkPopupData.url);
+                      setIsLinkModalOpen(true);
+                      setLinkPopupData({ ...linkPopupData, isOpen: false });
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="remove-btn"
+                    onClick={() => {
+                      const link = linkPopupData.el;
+                      const editor = gjsInstance.current;
+
+                      // Find the component containing this link
+                      const comp = editor.Components.getWrapper().find((c) => {
+                        try {
+                          return c.getView()?.el?.contains(link);
+                        } catch {
+                          return false;
+                        }
+                      })[0];
+
+                      if (comp) {
+                        // Replace the <a> tag with its plain text children in the DOM
+                        const parent = link.parentNode;
+                        while (link.firstChild) {
+                          parent.insertBefore(link.firstChild, link);
+                        }
+                        parent.removeChild(link);
+
+                        // Read the updated HTML from the live DOM and sync to the model
+                        const viewEl = comp.getView()?.el;
+                        if (viewEl) {
+                          comp.set("content", viewEl.innerHTML);
+                        }
+
+                        editor.trigger("component:update", comp);
+                      }
+
+                      setLinkPopupData({
+                        isOpen: false,
+                        top: 0,
+                        left: 0,
+                        text: "",
+                        url: "",
+                        el: null
+                      });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div className="popup-arrow"></div>
+            </div>,
+            document.body
+          )}
+      </div>
+
+      <LinkModal
+        isOpen={isLinkModalOpen}
+        onClose={() => {
+          // Restore the placeholder back to a plain text node on cancel
+          if (currentRteRef.current?.el) {
+            const doc = currentRteRef.current.el.ownerDocument;
+            const placeholder = doc.getElementById("gjs-link-placeholder");
+            if (placeholder) {
+              const textNode = doc.createTextNode(placeholder.textContent);
+              placeholder.parentNode.replaceChild(textNode, placeholder);
+            }
+          }
+          savedRangeRef.current = null;
+          setIsLinkModalOpen(false);
+          // Also clear popup ref if we were editing an existing link
+          setLinkPopupData((prev) => ({ ...prev, el: null }));
+        }}
+        onConfirm={() => {
+          try {
+            if (linkPopupData.el) {
+              // Updating existing link
+              const link = linkPopupData.el;
+              link.href = linkModalUrl;
+              link.textContent = linkModalText;
+
+              // Trigger GrapesJS update
+              const editor = gjsInstance.current;
+              const comp = editor.Components.getWrapper().find((c) => {
+                try {
+                  return c.getView()?.el?.contains(link);
+                } catch {
+                  return false;
+                }
+              })[0];
+              if (comp) {
+                const currentContent = comp.get("content");
+
+                // Get the old HTML of the link before we update its DOM
+                const tempDiv = document.createElement("div");
+                tempDiv.appendChild(link.cloneNode(true));
+                const oldLinkHTML = tempDiv.innerHTML;
+
+                // Update the DOM element
+                link.href = linkModalUrl;
+                link.textContent = linkModalText;
+
+                // Get the new HTML of the link
+                const newTempDiv = document.createElement("div");
+                newTempDiv.appendChild(link.cloneNode(true));
+                const newLinkHTML = newTempDiv.innerHTML;
+
+                // Replace in the model
+                const newContent = currentContent.replace(
+                  oldLinkHTML,
+                  newLinkHTML
+                );
+                comp.set("content", newContent);
+
+                editor.trigger("component:update", comp);
+              }
+            } else {
+              handleToolbarLinkConfirm();
+            }
+          } finally {
+            setIsLinkModalOpen(false);
+            setLinkPopupData({
+              isOpen: false,
+              top: 0,
+              left: 0,
+              text: "",
+              url: "",
+              el: null,
+              isBelow: false
+            });
+            setLinkModalText("");
+            setLinkModalUrl("");
+          }
+        }}
+        formName={linkModalText}
+        setFormName={setLinkModalText}
+        linkValue={linkModalUrl}
+        setLinkValue={setLinkModalUrl}
+        title={linkPopupData.el ? "Edit Link" : "Add Link"}
+        textLabel="Link Text"
+        confirmText={linkPopupData.el ? "Edit" : "Send"}
+        urlLabel={linkPopupData.el ? "Edit Link" : "Add Link"}
       />
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: "none" }}
-        multiple
-        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        onChange={handleFileChange}
-      />
-      <input
-        type="file"
-        ref={imageInputRef}
-        style={{ display: "none" }}
-        accept="image/*"
-        onChange={handleImageChange}
-      />
-    </div>
+    </>
   );
 }
 
@@ -1979,7 +2476,7 @@ function registerBlocks(editor) {
     category: "Content",
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
-        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center">
+        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
           Click Here
         </mj-button>
       </mj-column>
@@ -2047,7 +2544,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#">
+          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>

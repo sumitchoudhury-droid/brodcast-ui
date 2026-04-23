@@ -27,7 +27,7 @@ export const IS_CLOUDINARY_CONFIGURED =
  * @param {number} [targetKB=30]    Target max size of the resulting data URL in KB.
  * @returns {Promise<string>}       Compressed JPEG Data URL.
  */
-const compressImage = (file, targetKB = 30) => {
+const compressImage = (file, targetKB = 20) => {
   return new Promise((resolve) => {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
@@ -46,21 +46,22 @@ const compressImage = (file, targetKB = 30) => {
       };
 
       // Start at a reasonable size and step down until it fits
-      const widthSteps = [800, 600, 400, 300, 200];
-      const qualitySteps = [0.8, 0.65, 0.5, 0.35, 0.2];
+      const widthSteps = [800, 600, 400, 300, 200, 150];
+      const qualitySteps = [0.75, 0.6, 0.45, 0.3, 0.15];
       const targetBytes = targetKB * 1024;
 
       for (const maxWidth of widthSteps) {
         for (const quality of qualitySteps) {
           const dataUrl = compress(maxWidth, quality);
-          if (new Blob([dataUrl]).size <= targetBytes) {
+          // Base64 overhead is ~1.37x, so we check the actual base64 string size
+          if (dataUrl.length <= targetBytes * 1.33) {
             return resolve(dataUrl);
           }
         }
       }
 
       // Last resort: minimum size
-      resolve(compress(150, 0.15));
+      resolve(compress(150, 0.1));
     };
 
     img.onerror = () => {

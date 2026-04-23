@@ -61,6 +61,17 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
       max-width: 100%; 
       height: auto; 
     }
+    .attachment-container {
+      width: 60% !important;
+      margin-left: 0;
+      margin-right: auto;
+    }
+    @media only screen and (max-width: 480px) {
+      .attachment-container {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
   </style>
   ${scrollbarStyle}
 </head>
@@ -245,7 +256,7 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                   border: "none",
                   background: "#fff"
                 }}
-                sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads"
               />
             </div>
 

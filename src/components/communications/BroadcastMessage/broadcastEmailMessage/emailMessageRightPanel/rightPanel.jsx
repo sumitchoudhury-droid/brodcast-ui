@@ -285,7 +285,7 @@ function prepareHtmlForEmail(rawHtml) {
     /<style\b[^>]*>([\s\S]*?)<\/style>/gi,
     (match, content) => {
       const isEditorStyle =
-        /\.gjs-|#gjs-|\bsp-container\b|\.CodeMirror|pointer-events\s*:\s*none/.test(
+        /\.gjs-|#gjs-|\bsp-container\b|\.CodeMirror|pointer-events\s*:\s*none|\[data-gjs-type\]/.test(
           content
         );
       const hasMediaQuery = /@media\s/i.test(content);
@@ -299,7 +299,13 @@ function prepareHtmlForEmail(rawHtml) {
   html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
 
   // Remove GrapesJS component data attributes (data-gjs-*)
-  html = html.replace(/\s+data-gjs-[a-zA-Z-]+(?:="[^"]*"|='[^']*')?/g, "");
+  html = html.replace(/\s+data-gjs-[a-zA-Z0-9-]+(?:="[^"]*"|='[^']*')?/g, "");
+
+  // Remove other editor-specific attributes
+  html = html.replace(/\s+data-type(?:="[^"]*"|='[^']*')?/g, "");
+  html = html.replace(/\s+data-is-empty(?:="[^"]*"|='[^']*')?/g, "");
+  html = html.replace(/\s+data-column-count(?:="[^"]*"|='[^']*')?/g, "");
+  html = html.replace(/\s+data-manual-width(?:="[^"]*"|='[^']*')?/g, "");
 
   // Remove selection/hover classes that might be in the HTML
   html = html.replace(/\s*gjs-selected\b/g, "");
@@ -1553,12 +1559,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           if (hasBase64Still && !IS_CLOUDINARY_CONFIGURED) {
             toast.error(
               "Image Too Large to Send",
-              "The image makes the email exceed EmailJS's 50 KB limit. Use a smaller image, or configure Cloudinary in src/utils/uploadUtils.js to host images externally."
+              "One or more images are too large to be embedded in a single email. Please configure Cloudinary in src/utils/uploadUtils.js to host images externally, or use a much smaller image."
             );
           } else {
             toast.error(
               "Email Too Large",
-              `The email (${payloadSizeKB.toFixed(2)} KB) exceeds EmailJS's ~50 KB limit. Try reducing the number of sections or simplifying the layout.`
+              `The email (${payloadSizeKB.toFixed(2)} KB) exceeds EmailJS's 50 KB limit. Try reducing the number of sections or simplifying the content.`
             );
           }
           return;
@@ -1624,10 +1630,18 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   const handleButtonUrlChange = (val) => {
+    const previousUrl = buttonUrl;
     setButtonUrl(val);
     const selected = selectedComp;
     if (selected && selected.is("mj-button")) {
       selected.addAttributes({ href: val });
+      if (val && !previousUrl) {
+        toast.success("Link Added", "Button link added successfully.");
+      } else if (val && previousUrl && val !== previousUrl) {
+        toast.success("Link Updated", "Button link updated successfully.");
+      } else if (!val && previousUrl) {
+        toast.success("Link Removed", "Button link removed successfully.");
+      }
     }
   };
 

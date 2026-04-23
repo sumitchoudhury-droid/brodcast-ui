@@ -1,0 +1,147 @@
+.link-interaction-popup {
+  z-index: 999999 !important;
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  max-width: 300px;
+  width: 100%;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease-out;
+
+  .popup-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2px;
+
+    .link-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: #181d25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      font-family: "Inter", sans-serif;
+    }
+
+    .close-popup {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #667085;
+      margin-left: 8px;
+
+      &:hover {
+        color: #101828;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  .popup-body {
+    margin-bottom: 12px;
+    .link-url {
+      font-size: 14px;
+      color: #1570ef;
+      text-decoration: none;
+      word-break: break-all;
+      display: block;
+      font-family: "Inter", sans-serif;
+      line-height: 20px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .popup-footer {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 4px;
+
+    button {
+      padding: 8px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: "Inter", sans-serif;
+    }
+
+    .edit-btn {
+      background: #ffffff;
+      border: 1px solid #d0d5dd;
+      color: #181d25;
+
+      &:hover {
+        background: #f9fafb;
+      }
+    }
+
+    .remove-btn {
+      background: #d91d57; // Pinkish red like in screenshot
+      border: 1px solid #d91d57;
+      color: #ffffff;
+
+      &:hover {
+        background: #b41848;
+      }
+    }
+  }
+
+  .popup-arrow {
+    position: absolute;
+    bottom: -8px;
+    left: 20%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    border-right: 1px solid #eaecf0;
+    border-bottom: 1px solid #eaecf0;
+    z-index: -1;
+  }
+
+  &.is-below {
+    .popup-arrow {
+      bottom: auto;
+      top: -8px;
+      border-right: none;
+      border-bottom: none;
+      border-left: 1px solid #eaecf0;
+      border-top: 1px solid #eaecf0;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-95%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-100%) scale(1);
+  }
+}
