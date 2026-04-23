@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
+import ReactDOM from "react-dom";
+
 import mjmlPlugin from "grapesjs-mjml";
 import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
@@ -341,26 +343,31 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     const columnsHtml = files
       .map((file) => {
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        const sizeInBytes = file.size;
+        const sizeDisplay =
+          sizeInBytes < 1024 * 1024
+            ? `${(sizeInBytes / 1024).toFixed(2)} KB`
+            : `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
         const isDoc = /\.docx?$/i.test(file.name);
         const icon = isDoc ? docIcon : pdfIcon;
         const downloadId = Math.floor(Math.random() * 90000) + 10000;
+        const downloadUrl = URL.createObjectURL(file);
         return `<mj-column width="100%" vertical-align="top" padding="0px">
     <mj-text padding="0px 0px 10px 0px" width="100%">
-      <div style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box;">
+      <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box; margin-left: 0; margin-right: auto;">
         <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
           <img src="${icon}" width="40" height="40" style="display:block; flex-shrink:0;" />
           <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
             <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.name}</p>
-            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeMb} MB</p>
+            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeDisplay}</p>
           </div>
           <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;" />
         </div>
-        <div style="display:flex; align-items:center; gap:4px; width:101%; box-sizing:border-box; justify-content:center;">
+        <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
           <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; flex-shrink:0;">Download using Link:</p>
-          <p style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">
+          <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; cursor:pointer;">
             https://manipal.care/dl${downloadId}
-          </p>
+          </a>
         </div>
       </div>
     </mj-text>
@@ -368,7 +375,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       })
       .join("");
 
-    const sectionHtml = `<mj-section full-width="full-width" padding="4px 0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
+    const sectionHtml = `<mj-section full-width="full-width" padding="4px 20px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
       ${columnsHtml}
     </mj-section>`;
 
@@ -420,6 +427,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             target = target.parent();
           }
           if (target) {
+            target.set("src", dataUrl);
             target.addAttributes({
               src: dataUrl,
               width: widthAttr,
@@ -554,6 +562,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       // every link (including the first), even after React re-renders or
       // GrapesJS model syncs that would otherwise invalidate a saved Range.
       const placeholder = doc.getElementById("gjs-link-placeholder");
+      console.log(
+        "[Link] confirm — rte.el connected:",
+        rte.el?.isConnected,
+        "placeholder found:",
+        !!placeholder
+      );
       if (placeholder) {
         const link = doc.createElement("a");
         link.href = url || "#";
@@ -565,21 +579,68 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         // Swap placeholder with the real link, preserving exact position
         placeholder.parentNode.replaceChild(link, placeholder);
 
-        // Focus the editor and place cursor after the inserted link
-        rte.el.focus();
-        const sel = win.getSelection();
-        const newRange = doc.createRange();
-        newRange.setStartAfter(link);
-        newRange.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(newRange);
+        // Try to restore focus and cursor (works when RTE is still active)
+        try {
+          rte.el.focus();
+          const sel = win.getSelection();
+          const newRange = doc.createRange();
+          newRange.setStartAfter(link);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        } catch {
+          // rte.el may be detached if the modal blur deactivated the RTE
+        }
 
-        // Trigger GrapesJS to recognize the change
-        rte.el.dispatchEvent(new Event("input", { bubbles: true }));
-        if (gjsInstance.current) {
-          const selected = gjsInstance.current.getSelected();
-          if (selected) {
-            gjsInstance.current.trigger("component:update", selected);
+        // Update the GrapesJS model directly.
+        // When the modal input steals focus the iframe contenteditable blurs,
+        // GrapesJS deactivates the RTE and re-renders the component in view
+        // mode. At that point dispatching "input" on the (now detached) rte.el
+        // does nothing. We therefore find the component, replace the
+        // placeholder span inside its stored model content, and set it back —
+        // matching the same pattern used by the "edit existing link" flow.
+        const editor = gjsInstance.current;
+        if (editor) {
+          // Prefer the currently selected component; fall back to a DOM search.
+          let comp = editor.getSelected();
+          if (!comp || !comp.getView()?.el?.contains(link)) {
+            const found = editor.Components.getWrapper().find((c) => {
+              try {
+                return c.getView()?.el?.contains(link);
+              } catch {
+                return false;
+              }
+            });
+            comp = found[0];
+          }
+
+          if (comp) {
+            // Build the serialised link HTML
+            const tempDiv = doc.createElement("div");
+            tempDiv.appendChild(link.cloneNode(true));
+            const linkHTML = tempDiv.innerHTML;
+
+            // Replace the placeholder span in the stored model content
+            const currentContent = comp.get("content") || "";
+            console.log("[Link] currentContent:", currentContent);
+            const newContent = currentContent.replace(
+              /<span[^>]*id="gjs-link-placeholder"[^>]*>[\s\S]*?<\/span>/,
+              linkHTML
+            );
+            console.log(
+              "[Link] newContent:",
+              newContent,
+              "changed:",
+              newContent !== currentContent
+            );
+            comp.set("content", newContent);
+            editor.trigger("component:update", comp);
+          } else {
+            // Last-resort fallback: fire the input event (works when RTE is live)
+            console.log("[Link] comp not found, using fallback input event");
+            rte.el.dispatchEvent(new Event("input", { bubbles: true }));
+            const selected = editor.getSelected();
+            if (selected) editor.trigger("component:update", selected);
           }
         }
       }
@@ -666,6 +727,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   min-height: 100%;
                   word-break: break-word;
                   overflow-wrap: break-word;
+                }
+                .attachment-container {
+                  width: 60% !important;
+                  margin-left: 0;
+                  margin-right: auto;
+                }
+                @media only screen and (max-width: 480px) {
+                  .attachment-container {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                  }
                 }
                 [data-gjs-type] { min-height: 20px; }
 
@@ -857,7 +929,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 /* Enable pointer events for links in editor so we can detect clicks */
                 a { 
                   cursor: pointer !important;
-                  text-decoration: underline !important;
                   pointer-events: auto !important;
                 }
             `,
@@ -1579,6 +1650,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           const win = doc.defaultView;
           const sel = win.getSelection();
 
+          console.log(
+            "[Link] result fired. rangeCount:",
+            sel.rangeCount,
+            "selection:",
+            selection
+          );
+
           let plainText = "";
           if (selection) {
             plainText =
@@ -1599,50 +1677,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             placeholder.id = "gjs-link-placeholder";
             placeholder.textContent = plainText || "";
             range.insertNode(placeholder);
+            console.log("[Link] placeholder inserted, plainText:", plainText);
+          } else {
+            console.log("[Link] NO selection range — placeholder NOT inserted");
           }
 
           setLinkModalText(plainText || "");
           setLinkModalUrl("");
           currentRteRef.current = rteInstance;
+          setLinkPopupData((prev) => ({ ...prev, el: null, isOpen: false }));
           setIsLinkModalOpen(true);
-        }
-      });
-
-      // Restore other common actions
-      rte.add("bold", {
-        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.6 11.8c1 .7 1.6 1.8 1.6 3.2 0 2.8-2.2 5-5 5H6V4h5.5c2.5 0 4.5 2 4.5 4.5 0 1.4-.6 2.6-1.6 3.3zM10.5 7.5H8.5v3h2c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5zm1 6.5h-3v3h3c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5z"></path></svg>`,
-        result: (rteInstance) => rteInstance.exec("bold")
-      });
-      rte.add("italic", {
-        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 5v3h2.2l-3.4 8H6v3h8v-3h-2.2l3.4-8H18V5z"></path></svg>`,
-        result: (rteInstance) => rteInstance.exec("italic")
-      });
-      rte.add("underline", {
-        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 17c3.3 0 6-2.7 6-6V3h-2.5v8c0 1.9-1.6 3.5-3.5 3.5S8.5 12.9 8.5 11V3H6v8c0 3.3 2.7 6 6 6zm-7 2v2h14v-2H5z"></path></svg>`,
-        result: (rteInstance) => rteInstance.exec("underline")
-      });
-      rte.add("strikethrough", {
-        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 19h4v-3h-4v3zM5 4v3h5l1 1v3h1.4l1.4 1.4L15 8.9V7.6l1-1V4H5zM2 11v2h20v-2H2z"></path></svg>`,
-        result: (rteInstance) => rteInstance.exec("strikethrough")
-      });
-
-      rte.add("case-toggle", {
-        icon: `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M1.5 12L4.52925 4.7325C4.55773 4.66418 4.6058 4.60581 4.66739 4.56476C4.72899 4.52371 4.80135 4.5018 4.87538 4.5018C4.9494 4.5018 5.02176 4.52371 5.08336 4.56476C5.14495 4.60581 5.19302 4.66418 5.2215 4.7325L8.25 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 6.75V12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.47803 9.75H7.27203" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.875 12C15.3247 12 16.5 10.8247 16.5 9.375C16.5 7.92525 15.3247 6.75 13.875 6.75C12.4253 6.75 11.25 9.375C11.25 10.8247 12.4253 12 13.875 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        attributes: { title: "Toggle Case" },
-        result: (rteInstance) => {
-          const selection = rteInstance.selection();
-          if (!selection) return;
-          const plainText =
-            typeof selection === "string"
-              ? selection.replace(/<[^>]*>/g, "")
-              : selection.toString
-                ? selection.toString()
-                : "";
-          const isAllUpper = plainText === plainText.toUpperCase();
-          const toggled = isAllUpper
-            ? selection.toLowerCase()
-            : selection.toUpperCase();
-          rteInstance.insertHTML(toggled);
         }
       });
 
@@ -1668,19 +1712,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           const rect = link.getBoundingClientRect();
           const iframe = editor.Canvas.getFrameEl();
           const iframeRect = iframe.getBoundingClientRect();
-          const containerRect = containerRef.current.getBoundingClientRect();
 
           // Detect if there's enough space above the link (popup height ~150px)
           const showBelow = rect.top < 150;
 
-          // Position popup relative to the editor container
+          // Position popup relative to the viewport (for Portal)
           setLinkPopupData({
             isOpen: true,
             top: showBelow
-              ? iframeRect.top - containerRect.top + rect.bottom + 12
-              : iframeRect.top - containerRect.top + rect.top - 12,
-            left:
-              iframeRect.left - containerRect.left + rect.left + rect.width / 2,
+              ? iframeRect.top + rect.bottom + 12
+              : iframeRect.top + rect.top - 12,
+            left: iframeRect.left + rect.left + rect.width / 2,
             text: link.textContent,
             url: link.getAttribute("href") || "",
             el: link,
@@ -1691,7 +1733,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           // Close popup if clicking elsewhere
           if (e.target.closest(".link-interaction-popup")) return;
           setLinkPopupData((prev) =>
-            prev.isOpen ? { ...prev, isOpen: false } : prev
+            prev.isOpen ? { ...prev, isOpen: false, el: null } : prev
           );
         }
       });
@@ -2159,112 +2201,116 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           accept="image/*"
           onChange={handleImageChange}
         />
-        {linkPopupData.isOpen && (
-          <div
-            className={`link-interaction-popup ${linkPopupData.isBelow ? "is-below" : ""}`}
-            style={{
-              top: linkPopupData.top,
-              left: linkPopupData.left,
-              position: "absolute",
-              transform: linkPopupData.isBelow
-                ? "translateX(-50%)"
-                : "translateX(-50%) translateY(-100%)",
-              zIndex: 100000,
-              pointerEvents: "auto"
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <div className="popup-content">
-              <div className="popup-header">
-                <span className="link-text">{linkPopupData.text}</span>
-                <button
-                  className="close-popup"
-                  onClick={() =>
-                    setLinkPopupData({ ...linkPopupData, isOpen: false })
-                  }
-                >
-                  <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
-                    <path
-                      d="M9 3L3 9M3 3L9 9"
-                      stroke="#667085"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="popup-body">
-                <a
-                  href={linkPopupData.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="link-url"
-                >
-                  {linkPopupData.url}
-                </a>
-              </div>
-              <div className="popup-footer">
-                <button
-                  className="edit-btn"
-                  onClick={() => {
-                    setLinkModalText(linkPopupData.text);
-                    setLinkModalUrl(linkPopupData.url);
-                    setIsLinkModalOpen(true);
-                    setLinkPopupData({ ...linkPopupData, isOpen: false });
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  className="remove-btn"
-                  onClick={() => {
-                    const link = linkPopupData.el;
-                    const editor = gjsInstance.current;
-
-                    // Find the component containing this link
-                    const comp = editor.Components.getWrapper().find((c) => {
-                      try {
-                        return c.getView()?.el?.contains(link);
-                      } catch {
-                        return false;
-                      }
-                    })[0];
-
-                    if (comp) {
-                      // Replace the <a> tag with its plain text children in the DOM
-                      const parent = link.parentNode;
-                      while (link.firstChild) {
-                        parent.insertBefore(link.firstChild, link);
-                      }
-                      parent.removeChild(link);
-
-                      // Read the updated HTML from the live DOM and sync to the model
-                      const viewEl = comp.getView()?.el;
-                      if (viewEl) {
-                        comp.set("content", viewEl.innerHTML);
-                      }
-
-                      editor.trigger("component:update", comp);
+        {linkPopupData.isOpen &&
+          ReactDOM.createPortal(
+            <div
+              className={`link-interaction-popup ${
+                linkPopupData.isBelow ? "is-below" : ""
+              }`}
+              style={{
+                top: linkPopupData.top,
+                left: linkPopupData.left,
+                position: "fixed",
+                transform: linkPopupData.isBelow
+                  ? "translateX(-50%)"
+                  : "translateX(-50%) translateY(-100%)",
+                zIndex: 999999,
+                pointerEvents: "auto"
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="popup-content">
+                <div className="popup-header">
+                  <span className="link-text">{linkPopupData.text}</span>
+                  <button
+                    className="close-popup"
+                    onClick={() =>
+                      setLinkPopupData({ ...linkPopupData, isOpen: false })
                     }
+                  >
+                    <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
+                      <path
+                        d="M9 3L3 9M3 3L9 9"
+                        stroke="#667085"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="popup-body">
+                  <a
+                    href={linkPopupData.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="link-url"
+                  >
+                    {linkPopupData.url}
+                  </a>
+                </div>
+                <div className="popup-footer">
+                  <button
+                    className="edit-btn"
+                    onClick={() => {
+                      setLinkModalText(linkPopupData.text);
+                      setLinkModalUrl(linkPopupData.url);
+                      setIsLinkModalOpen(true);
+                      setLinkPopupData({ ...linkPopupData, isOpen: false });
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="remove-btn"
+                    onClick={() => {
+                      const link = linkPopupData.el;
+                      const editor = gjsInstance.current;
 
-                    setLinkPopupData({
-                      isOpen: false,
-                      top: 0,
-                      left: 0,
-                      text: "",
-                      url: "",
-                      el: null
-                    });
-                  }}
-                >
-                  Remove
-                </button>
+                      // Find the component containing this link
+                      const comp = editor.Components.getWrapper().find((c) => {
+                        try {
+                          return c.getView()?.el?.contains(link);
+                        } catch {
+                          return false;
+                        }
+                      })[0];
+
+                      if (comp) {
+                        // Replace the <a> tag with its plain text children in the DOM
+                        const parent = link.parentNode;
+                        while (link.firstChild) {
+                          parent.insertBefore(link.firstChild, link);
+                        }
+                        parent.removeChild(link);
+
+                        // Read the updated HTML from the live DOM and sync to the model
+                        const viewEl = comp.getView()?.el;
+                        if (viewEl) {
+                          comp.set("content", viewEl.innerHTML);
+                        }
+
+                        editor.trigger("component:update", comp);
+                      }
+
+                      setLinkPopupData({
+                        isOpen: false,
+                        top: 0,
+                        left: 0,
+                        text: "",
+                        url: "",
+                        el: null
+                      });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="popup-arrow"></div>
-          </div>
-        )}
+              <div className="popup-arrow"></div>
+            </div>,
+            document.body
+          )}
       </div>
 
       <LinkModal
@@ -2430,7 +2476,7 @@ function registerBlocks(editor) {
     category: "Content",
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
-        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center">
+        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
           Click Here
         </mj-button>
       </mj-column>
@@ -2498,7 +2544,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#">
+          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>

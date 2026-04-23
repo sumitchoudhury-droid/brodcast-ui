@@ -246,6 +246,7 @@
 
   // Remove vertical dividers and borders
   border: none !important;
+
   &::after,
   &::before {
     display: none !important;
