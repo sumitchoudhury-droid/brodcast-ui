@@ -42,6 +42,11 @@ export const PlaceHolderSection = ({ setShowPlaceholders }) => {
             draggable
             onDragStart={(e) => {
               e.dataTransfer.setData("text/plain", item.value);
+              e.dataTransfer.setData(
+                "text/html",
+                `<mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">${item.value}</mj-text>`
+              );
+              e.dataTransfer.setData("application/x-placeholder", "true");
             }}
             onDragEnd={(e) => {
               // If the drop effect is not none, it was dropped on a valid target

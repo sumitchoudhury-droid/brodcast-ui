@@ -41,6 +41,11 @@ const compressImage = (file, targetKB = 20) => {
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext("2d");
+
+        // Fill canvas with white background to prevent transparent PNGs from turning black
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         return canvas.toDataURL("image/jpeg", quality);
       };

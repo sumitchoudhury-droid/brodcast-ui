@@ -15,6 +15,12 @@ import { LinkModal } from "../linkModal/index";
 
 const EMPTY_TEMPLATE = `
 <mjml>
+  <mj-head>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Inter, sans-serif" />
+    </mj-attributes>
+  </mj-head>
   <mj-body width="100%" background-color="transparent" padding="0px" margin="0px">
  
   </mj-body>
@@ -25,6 +31,14 @@ const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="s
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text  padding="16px 0px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height=20px>
       Add Signature
+    </mj-text>
+  </mj-column>
+</mj-section>`;
+
+const UNSUBSCRIBE_SECTION_HTML = `<mj-section full-width="full-width" data-type="unsubscribe-section" padding="0px" margin="0px" width="100%" background-color="transparent">
+  <mj-column padding="0px" margin="0px" width="100%">
+    <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Inter" line-height="20px" align="center">
+      Click here to unsubscribe: <a href="https://mh.care/stop" style="color:#929FB1; text-decoration:underline;">https://mh.care/stop</a>
     </mj-text>
   </mj-column>
 </mj-section>`;
@@ -722,7 +736,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       showDevices: false,
       panels: { defaults: [] },
       canvasCss: `
-                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; }
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; font-family: 'Inter', sans-serif; }
                 body {
                   min-height: 100%;
                   word-break: break-word;
@@ -748,6 +763,43 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   outline: none !important;
                   border: none !important;
                   box-shadow: none !important;
+                }
+
+                /* Override GrapesJS default empty component placeholder (black box with </> icon) */
+                [data-gjs-type="mj-image"].gjs-no-app,
+                .gjs-plh-image {
+                  background-image: none !important;
+                  background-color: #F6F7F9 !important;
+                  border: 1px dashed #1570EF !important;
+                  border-radius: 8px !important;
+                  height: 116px !important;
+                  width: 100% !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                  outline: none !important;
+                }
+                [data-gjs-type="mj-image"].gjs-no-app::before,
+                .gjs-plh-image::before {
+                  content: "" !important;
+                  display: block !important;
+                  width: 24px !important;
+                  height: 24px !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M16 5H22' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M19 2V8' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 11.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H12.5' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 14.9999L17.914 11.9139C17.5389 11.539 17.0303 11.3284 16.5 11.3284C15.9697 11.3284 15.4611 11.539 15.086 11.9139L6 20.9999' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-repeat: no-repeat !important;
+                  background-position: center !important;
+                }
+                [data-gjs-type="mj-image"].gjs-no-app::after,
+                .gjs-plh-image::after {
+                  content: "Empty Image" !important;
+                  display: block !important;
+                  text-align: center !important;
+                  font-size: 14px !important;
+                  font-weight: 500 !important;
+                  color: #404B5A !important;
+                  font-family: Inter, sans-serif !important;
+                  margin-top: 6px !important;
                 }
 
                 /* ── Bullet / ordered-list fix ─────────────────────────────────
@@ -994,10 +1046,20 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
         // mj-section gets 20px all-side padding; everything else gets 0px.
         const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
-          ? { padding: "0px", margin: "0px", width: "100%" }
+          ? {
+              padding: "0px",
+              margin: "0px",
+              width: "100%",
+              "font-family": "Inter"
+            }
           : typeName === "mj-section"
-            ? { padding: "20px", margin: "0px", width: "100%" }
-            : {};
+            ? {
+                padding: "20px",
+                margin: "0px",
+                width: "100%",
+                "font-family": "Inter"
+              }
+            : { "font-family": "Inter" };
 
         editor.Components.addType(typeName, {
           model: {
@@ -1041,10 +1103,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
         const isSignature =
           comp.getAttributes?.()?.["data-type"] === "signature-section";
+        const isUnsubscribe =
+          comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
 
         comp.set({
           droppable: resolveDroppable(comp),
-          draggable: !inFrame && !isSignature
+          draggable: !inFrame && !isSignature && !isUnsubscribe
         });
 
         if (type === "mj-section") {
@@ -1118,32 +1182,54 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (!mjBody) return;
 
           let existingSig = null;
+          let existingUnsubscribe = null;
           const realSections = [];
           mjBody.components().each((c) => {
             if (c.get("type") === "textnode") return;
-            if (c.getAttributes()?.["data-type"] === "signature-section") {
+            const type = c.getAttributes()?.["data-type"];
+            if (type === "signature-section") {
               existingSig = c;
+            } else if (type === "unsubscribe-section") {
+              existingUnsubscribe = c;
             } else {
               realSections.push(c);
             }
           });
 
-          if (realSections.length === 0 && !existingSig) {
+          if (
+            realSections.length === 0 &&
+            !existingSig &&
+            !existingUnsubscribe
+          ) {
             return;
           }
 
-          // Real content exists — sig must be the last child
+          // Real content exists — sig and unsubscribe must be at the end
           const allNonText = [];
           mjBody.components().each((c) => {
             if (c.get("type") !== "textnode") allNonText.push(c);
           });
-          const lastComp = allNonText[allNonText.length - 1];
+          const n = allNonText.length;
+          const lastComp = n > 0 ? allNonText[n - 1] : null;
+          const secondLastComp = n > 1 ? allNonText[n - 2] : null;
 
-          if (!existingSig) {
-            mjBody.append(SIGNATURE_SECTION_HTML);
-          } else if (lastComp !== existingSig) {
-            // Sig exists but is not last — move it to the end
-            mjBody.append(existingSig);
+          // If signature or unsubscribe is missing, or they are not in the right order at the end:
+          if (
+            !existingSig ||
+            !existingUnsubscribe ||
+            lastComp !== existingUnsubscribe ||
+            secondLastComp !== existingSig
+          ) {
+            if (!existingSig) {
+              mjBody.append(SIGNATURE_SECTION_HTML);
+            } else {
+              mjBody.append(existingSig);
+            }
+            if (!existingUnsubscribe) {
+              mjBody.append(UNSUBSCRIBE_SECTION_HTML);
+            } else {
+              mjBody.append(existingUnsubscribe);
+            }
           }
         } finally {
           isEnsuringSig.current = false;
@@ -1397,9 +1483,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
               const isSignature =
                 comp.getAttributes?.()?.["data-type"] === "signature-section";
+              const isUnsubscribe =
+                comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
 
               comp.set({
-                draggable: !inFrame && !isSignature,
+                draggable: !inFrame && !isSignature && !isUnsubscribe,
                 droppable: resolveDroppable(comp)
               });
             }
@@ -1416,7 +1504,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       const type = comp.get("type");
 
       // Skip processing for the signature section — it's managed by the reconciler
-      if (comp.getAttributes()?.["data-type"] === "signature-section") {
+      if (
+        comp.getAttributes()?.["data-type"] === "signature-section" ||
+        comp.getAttributes()?.["data-type"] === "unsubscribe-section"
+      ) {
         comp.set({ draggable: false, droppable: false });
         return;
       }
@@ -1504,7 +1595,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       if (dt !== "frame-placeholder-ui") {
         scheduleReconcile();
         // Don't re-trigger sig reconcile when the sig itself is being removed
-        if (dt !== "signature-section") {
+        if (dt !== "signature-section" && dt !== "unsubscribe-section") {
           scheduleSignatureReconcile();
         }
       }
@@ -1819,103 +1910,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       });
 
-      // ── Handle external drop of placeholders ──────────────────────────────
-      body.addEventListener("dragover", (e) => {
-        if (e.target.isContentEditable) return;
-        const textData = e.dataTransfer.types.includes("text/plain");
-        if (textData) {
-          let targetEl =
-            e.target.closest && e.target.closest("[data-gjs-type]");
-          let comp =
-            targetEl && targetEl.id
-              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
-              : null;
-          if (comp) {
-            let current = comp;
-            while (current && current.get("type") !== "mj-text") {
-              current = current.parent();
-            }
-            if (current && current.get("type") === "mj-text") {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-            } else {
-              let container = comp;
-              while (
-                container &&
-                !["mj-column", "mj-section", "mj-body"].includes(
-                  container.get("type")
-                )
-              ) {
-                container = container.parent();
-              }
-              if (container) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-              }
-            }
-          }
-        }
-      });
-
-      body.addEventListener("drop", (e) => {
-        if (e.target.isContentEditable) return;
-        const text = e.dataTransfer.getData("text/plain");
-        if (text && text.trim().startsWith("$")) {
-          let targetEl =
-            e.target.closest && e.target.closest("[data-gjs-type]");
-          let comp =
-            targetEl && targetEl.id
-              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
-              : null;
-          if (comp) {
-            let current = comp;
-            while (current && current.get("type") !== "mj-text") {
-              current = current.parent();
-            }
-            if (current && current.get("type") === "mj-text") {
-              if (
-                current.getAttributes()["data-type"] === "frame-placeholder-ui"
-              ) {
-                let container = current.parent();
-                current.remove();
-                if (container) {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = "copy";
-                  container.append(
-                    `<mj-text padding="0px" margin="0px">${text}</mj-text>`
-                  );
-                }
-              } else {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-                const content = current.get("content") || "";
-                current.set("content", content + (content ? " " : "") + text);
-                editor.trigger("component:update", current);
-              }
-            } else {
-              let container = comp;
-              while (
-                container &&
-                !["mj-column", "mj-section", "mj-body"].includes(
-                  container.get("type")
-                )
-              ) {
-                container = container.parent();
-              }
-              if (container) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-
-                clearFramePlaceholder(container);
-
-                container.append(
-                  `<mj-text padding="0px" margin="0px">${text}</mj-text>`
-                );
-              }
-            }
-          }
-        }
-      });
+      // Handled natively by GrapesJS Sorter processing text/html drops.
 
       // ── Handle paste to clean up styles ──────────────────────────────────
       body.addEventListener("paste", (e) => {
@@ -2443,8 +2438,8 @@ function registerBlocks(editor) {
     category: "Content",
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
-        <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
-          Paragraph content
+        <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
+          Paragraph Text
         </mj-text>
       </mj-column>
     </mj-section>`
@@ -2518,7 +2513,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
+          <mj-text font-family="Inter" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
             Your Header Here
           </mj-text>
         </mj-column>
@@ -2531,7 +2526,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
             Add your content here. This is a paragraph of text.
           </mj-text>
         </mj-column>
@@ -2544,7 +2539,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
+          <mj-button font-family="Inter" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>
@@ -2558,7 +2553,7 @@ function registerBlocks(editor) {
       <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center" />
-          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
             Add Image.
           </mj-text>
         </mj-column>

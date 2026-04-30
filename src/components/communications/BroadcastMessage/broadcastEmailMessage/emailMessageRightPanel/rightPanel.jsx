@@ -19,6 +19,7 @@ import { PaddingContainer } from "./paddingContainer";
 import { DimensionContainer } from "./dimensionContainer/DimensionContainer";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
 import { ButtonSection } from "./buttonSection/index";
+import { ImageSection } from "./imageSection/index";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas iframe helpers
@@ -1679,6 +1680,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
         {!isEditorEmpty && (
           <>
+            <ImageSection />
             <PaddingContainer
               selectedComp={selectedComp}
               padding={padding}
