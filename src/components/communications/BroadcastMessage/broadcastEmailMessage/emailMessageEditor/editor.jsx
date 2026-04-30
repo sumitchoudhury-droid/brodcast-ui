@@ -15,6 +15,12 @@ import { LinkModal } from "../linkModal/index";
 
 const EMPTY_TEMPLATE = `
 <mjml>
+  <mj-head>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Inter, sans-serif" />
+    </mj-attributes>
+  </mj-head>
   <mj-body width="100%" background-color="transparent" padding="0px" margin="0px">
  
   </mj-body>
@@ -25,6 +31,14 @@ const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="s
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text  padding="16px 0px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height=20px>
       Add Signature
+    </mj-text>
+  </mj-column>
+</mj-section>`;
+
+const UNSUBSCRIBE_SECTION_HTML = `<mj-section full-width="full-width" data-type="unsubscribe-section" padding="0px" margin="0px" width="100%" background-color="transparent">
+  <mj-column padding="0px" margin="0px" width="100%">
+    <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Inter" line-height="20px" align="center">
+      Click here to unsubscribe: <a href="https://mh.care/stop" style="color:#929FB1; text-decoration:underline;">https://mh.care/stop</a>
     </mj-text>
   </mj-column>
 </mj-section>`;
@@ -305,6 +319,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const [linkModalText, setLinkModalText] = useState("");
   const [linkModalUrl, setLinkModalUrl] = useState("");
   const currentRteRef = useRef(null);
+  const currentCompRef = useRef(null);
+  const currentRteContentRef = useRef(null); // innerHTML of rte.el at click time (with placeholder)
   const savedRangeRef = useRef(null);
 
   // Link Popup state for clicking existing links in canvas
@@ -537,9 +553,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   };
 
   const handleToolbarLinkConfirm = () => {
-    if (!currentRteRef.current) return;
-
-    // Ensure the URL has a protocol
     let url = linkModalUrl;
     if (
       url &&
@@ -552,102 +565,48 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       url = "https://" + url;
     }
 
-    const rte = currentRteRef.current;
-    if (rte.el) {
-      const doc = rte.el.ownerDocument;
-      const win = doc.defaultView;
+    const editor = gjsInstance.current;
+    const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
 
-      // Find the placeholder span we inserted when the modal was opened.
-      // Using a real DOM node as the marker means this works correctly for
-      // every link (including the first), even after React re-renders or
-      // GrapesJS model syncs that would otherwise invalidate a saved Range.
-      const placeholder = doc.getElementById("gjs-link-placeholder");
-      console.log(
-        "[Link] confirm — rte.el connected:",
-        rte.el?.isConnected,
-        "placeholder found:",
-        !!placeholder
-      );
-      if (placeholder) {
-        const link = doc.createElement("a");
-        link.href = url || "#";
-        link.target = "_blank";
-        link.style.color = "#1570EF";
-        link.style.textDecoration = "underline";
-        link.textContent = linkModalText || url || "Link";
+    if (editor) {
+      const comp = currentCompRef.current;
+      if (comp) {
+        const getCompHtml = (c) =>
+          c.components().length > 0 ? c.getInnerHTML() : c.get("content") || "";
+        const baseContent = currentRteContentRef.current || getCompHtml(comp);
+        const finalUrl = url || "#";
+        const linkText = linkModalText || "Link";
 
-        // Swap placeholder with the real link, preserving exact position
-        placeholder.parentNode.replaceChild(link, placeholder);
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = baseContent;
 
-        // Try to restore focus and cursor (works when RTE is still active)
-        try {
-          rte.el.focus();
-          const sel = win.getSelection();
-          const newRange = doc.createRange();
-          newRange.setStartAfter(link);
-          newRange.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(newRange);
-        } catch {
-          // rte.el may be detached if the modal blur deactivated the RTE
+        const placeholderLink =
+          tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+          tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+        if (placeholderLink) {
+          placeholderLink.href = finalUrl;
+          placeholderLink.target = "_blank";
+          placeholderLink.style.color = "#1570EF";
+          placeholderLink.style.textDecoration = "underline";
+          placeholderLink.textContent = linkText;
         }
 
-        // Update the GrapesJS model directly.
-        // When the modal input steals focus the iframe contenteditable blurs,
-        // GrapesJS deactivates the RTE and re-renders the component in view
-        // mode. At that point dispatching "input" on the (now detached) rte.el
-        // does nothing. We therefore find the component, replace the
-        // placeholder span inside its stored model content, and set it back —
-        // matching the same pattern used by the "edit existing link" flow.
-        const editor = gjsInstance.current;
-        if (editor) {
-          // Prefer the currently selected component; fall back to a DOM search.
-          let comp = editor.getSelected();
-          if (!comp || !comp.getView()?.el?.contains(link)) {
-            const found = editor.Components.getWrapper().find((c) => {
-              try {
-                return c.getView()?.el?.contains(link);
-              } catch {
-                return false;
-              }
-            });
-            comp = found[0];
-          }
+        const newContent = tempDiv.innerHTML;
+        comp.components().reset();
+        comp.set("content", newContent);
 
-          if (comp) {
-            // Build the serialised link HTML
-            const tempDiv = doc.createElement("div");
-            tempDiv.appendChild(link.cloneNode(true));
-            const linkHTML = tempDiv.innerHTML;
-
-            // Replace the placeholder span in the stored model content
-            const currentContent = comp.get("content") || "";
-            console.log("[Link] currentContent:", currentContent);
-            const newContent = currentContent.replace(
-              /<span[^>]*id="gjs-link-placeholder"[^>]*>[\s\S]*?<\/span>/,
-              linkHTML
-            );
-            console.log(
-              "[Link] newContent:",
-              newContent,
-              "changed:",
-              newContent !== currentContent
-            );
-            comp.set("content", newContent);
-            editor.trigger("component:update", comp);
-          } else {
-            // Last-resort fallback: fire the input event (works when RTE is live)
-            console.log("[Link] comp not found, using fallback input event");
-            rte.el.dispatchEvent(new Event("input", { bubbles: true }));
-            const selected = editor.getSelected();
-            if (selected) editor.trigger("component:update", selected);
-          }
+        const view = comp.getView?.();
+        if (view && typeof view.render === "function") {
+          view.render();
+        } else {
+          editor.trigger("component:update", comp);
         }
       }
-
-      savedRangeRef.current = null;
     }
 
+    savedRangeRef.current = null;
+    currentCompRef.current = null;
+    currentRteContentRef.current = null;
     setIsLinkModalOpen(false);
     setLinkModalText("");
     setLinkModalUrl("");
@@ -722,7 +681,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       showDevices: false,
       panels: { defaults: [] },
       canvasCss: `
-                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; }
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; font-family: 'Inter', sans-serif; }
                 body {
                   min-height: 100%;
                   word-break: break-word;
@@ -748,6 +708,43 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   outline: none !important;
                   border: none !important;
                   box-shadow: none !important;
+                }
+
+                /* Override GrapesJS default empty component placeholder (black box with </> icon) */
+                [data-gjs-type="mj-image"].gjs-no-app,
+                .gjs-plh-image {
+                  background-image: none !important;
+                  background-color: #F6F7F9 !important;
+                  border: 1px dashed #1570EF !important;
+                  border-radius: 8px !important;
+                  height: 116px !important;
+                  width: 100% !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                  outline: none !important;
+                }
+                [data-gjs-type="mj-image"].gjs-no-app::before,
+                .gjs-plh-image::before {
+                  content: "" !important;
+                  display: block !important;
+                  width: 24px !important;
+                  height: 24px !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M16 5H22' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M19 2V8' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 11.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H12.5' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 14.9999L17.914 11.9139C17.5389 11.539 17.0303 11.3284 16.5 11.3284C15.9697 11.3284 15.4611 11.539 15.086 11.9139L6 20.9999' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-repeat: no-repeat !important;
+                  background-position: center !important;
+                }
+                [data-gjs-type="mj-image"].gjs-no-app::after,
+                .gjs-plh-image::after {
+                  content: "Empty Image" !important;
+                  display: block !important;
+                  text-align: center !important;
+                  font-size: 14px !important;
+                  font-weight: 500 !important;
+                  color: #404B5A !important;
+                  font-family: Inter, sans-serif !important;
+                  margin-top: 6px !important;
                 }
 
                 /* ── Bullet / ordered-list fix ─────────────────────────────────
@@ -994,10 +991,20 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
         // mj-section gets 20px all-side padding; everything else gets 0px.
         const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
-          ? { padding: "0px", margin: "0px", width: "100%" }
+          ? {
+              padding: "0px",
+              margin: "0px",
+              width: "100%",
+              "font-family": "Inter"
+            }
           : typeName === "mj-section"
-            ? { padding: "20px", margin: "0px", width: "100%" }
-            : {};
+            ? {
+                padding: "20px",
+                margin: "0px",
+                width: "100%",
+                "font-family": "Inter"
+              }
+            : { "font-family": "Inter" };
 
         editor.Components.addType(typeName, {
           model: {
@@ -1041,10 +1048,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
         const isSignature =
           comp.getAttributes?.()?.["data-type"] === "signature-section";
+        const isUnsubscribe =
+          comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
 
         comp.set({
           droppable: resolveDroppable(comp),
-          draggable: !inFrame && !isSignature
+          draggable: !inFrame && !isSignature && !isUnsubscribe
         });
 
         if (type === "mj-section") {
@@ -1118,32 +1127,54 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (!mjBody) return;
 
           let existingSig = null;
+          let existingUnsubscribe = null;
           const realSections = [];
           mjBody.components().each((c) => {
             if (c.get("type") === "textnode") return;
-            if (c.getAttributes()?.["data-type"] === "signature-section") {
+            const type = c.getAttributes()?.["data-type"];
+            if (type === "signature-section") {
               existingSig = c;
+            } else if (type === "unsubscribe-section") {
+              existingUnsubscribe = c;
             } else {
               realSections.push(c);
             }
           });
 
-          if (realSections.length === 0 && !existingSig) {
+          if (
+            realSections.length === 0 &&
+            !existingSig &&
+            !existingUnsubscribe
+          ) {
             return;
           }
 
-          // Real content exists — sig must be the last child
+          // Real content exists — sig and unsubscribe must be at the end
           const allNonText = [];
           mjBody.components().each((c) => {
             if (c.get("type") !== "textnode") allNonText.push(c);
           });
-          const lastComp = allNonText[allNonText.length - 1];
+          const n = allNonText.length;
+          const lastComp = n > 0 ? allNonText[n - 1] : null;
+          const secondLastComp = n > 1 ? allNonText[n - 2] : null;
 
-          if (!existingSig) {
-            mjBody.append(SIGNATURE_SECTION_HTML);
-          } else if (lastComp !== existingSig) {
-            // Sig exists but is not last — move it to the end
-            mjBody.append(existingSig);
+          // If signature or unsubscribe is missing, or they are not in the right order at the end:
+          if (
+            !existingSig ||
+            !existingUnsubscribe ||
+            lastComp !== existingUnsubscribe ||
+            secondLastComp !== existingSig
+          ) {
+            if (!existingSig) {
+              mjBody.append(SIGNATURE_SECTION_HTML);
+            } else {
+              mjBody.append(existingSig);
+            }
+            if (!existingUnsubscribe) {
+              mjBody.append(UNSUBSCRIBE_SECTION_HTML);
+            } else {
+              mjBody.append(existingUnsubscribe);
+            }
           }
         } finally {
           isEnsuringSig.current = false;
@@ -1397,9 +1428,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
               const isSignature =
                 comp.getAttributes?.()?.["data-type"] === "signature-section";
+              const isUnsubscribe =
+                comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
 
               comp.set({
-                draggable: !inFrame && !isSignature,
+                draggable: !inFrame && !isSignature && !isUnsubscribe,
                 droppable: resolveDroppable(comp)
               });
             }
@@ -1416,7 +1449,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       const type = comp.get("type");
 
       // Skip processing for the signature section — it's managed by the reconciler
-      if (comp.getAttributes()?.["data-type"] === "signature-section") {
+      if (
+        comp.getAttributes()?.["data-type"] === "signature-section" ||
+        comp.getAttributes()?.["data-type"] === "unsubscribe-section"
+      ) {
         comp.set({ draggable: false, droppable: false });
         return;
       }
@@ -1504,7 +1540,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       if (dt !== "frame-placeholder-ui") {
         scheduleReconcile();
         // Don't re-trigger sig reconcile when the sig itself is being removed
-        if (dt !== "signature-section") {
+        if (dt !== "signature-section" && dt !== "unsubscribe-section") {
           scheduleSignatureReconcile();
         }
       }
@@ -1667,24 +1703,51 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   : "";
           }
 
-          // Immediately replace the selected text with a placeholder <span>
-          // so the insertion point is a real DOM node that survives React
-          // re-renders and GrapesJS model syncs triggered by opening the modal.
+          // Use execCommand('createLink') while the RTE is active and the
+          // selection is still valid. The browser wraps the selected text in
+          // <a href="__GJS_LINK_PLACEHOLDER__"> — we update the real URL on
+          // confirm. This is more reliable than inserting a span placeholder
+          // because execCommand handles partial selections, nested elements, etc.
+          const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
           if (sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            range.deleteContents();
-            const placeholder = doc.createElement("span");
-            placeholder.id = "gjs-link-placeholder";
-            placeholder.textContent = plainText || "";
-            range.insertNode(placeholder);
-            console.log("[Link] placeholder inserted, plainText:", plainText);
-          } else {
-            console.log("[Link] NO selection range — placeholder NOT inserted");
+            doc.execCommand("createLink", false, PLACEHOLDER_URL);
+            // Apply preview styles to the inserted link
+            const placeholderLink = rteInstance.el.querySelector(
+              `a[href="${PLACEHOLDER_URL}"]`
+            );
+            if (placeholderLink) {
+              placeholderLink.style.color = "#1570EF";
+              placeholderLink.style.textDecoration = "underline";
+              placeholderLink.target = "_blank";
+            }
           }
 
           setLinkModalText(plainText || "");
           setLinkModalUrl("");
           currentRteRef.current = rteInstance;
+          // Find the DEEPEST component whose view contains rteInstance.el.
+          // editor.getSelected() can return a parent (mj-column/mj-section)
+          // instead of the mj-text, which would corrupt the wrong component.
+          // Deepest-match search always resolves to the mj-text itself.
+          let editingComp = null;
+          (function searchDeep(c) {
+            try {
+              const viewEl = c.getView()?.el;
+              if (viewEl && viewEl.contains(rteInstance.el)) {
+                editingComp = c; // overwrite — deeper match is more specific
+                c.components().each(searchDeep);
+              }
+            } catch {
+              /* skip */
+            }
+          })(editor.Components.getWrapper());
+          if (!editingComp) editingComp = editor.getSelected();
+          currentCompRef.current = editingComp;
+          // Snapshot rte.el.innerHTML synchronously (contains the placeholder
+          // link). Used as fallback if GrapesJS hasn't synced to model yet.
+          currentRteContentRef.current = rteInstance.el
+            ? rteInstance.el.innerHTML
+            : null;
           setLinkPopupData((prev) => ({ ...prev, el: null, isOpen: false }));
           setIsLinkModalOpen(true);
         }
@@ -1819,103 +1882,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       });
 
-      // ── Handle external drop of placeholders ──────────────────────────────
-      body.addEventListener("dragover", (e) => {
-        if (e.target.isContentEditable) return;
-        const textData = e.dataTransfer.types.includes("text/plain");
-        if (textData) {
-          let targetEl =
-            e.target.closest && e.target.closest("[data-gjs-type]");
-          let comp =
-            targetEl && targetEl.id
-              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
-              : null;
-          if (comp) {
-            let current = comp;
-            while (current && current.get("type") !== "mj-text") {
-              current = current.parent();
-            }
-            if (current && current.get("type") === "mj-text") {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-            } else {
-              let container = comp;
-              while (
-                container &&
-                !["mj-column", "mj-section", "mj-body"].includes(
-                  container.get("type")
-                )
-              ) {
-                container = container.parent();
-              }
-              if (container) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-              }
-            }
-          }
-        }
-      });
-
-      body.addEventListener("drop", (e) => {
-        if (e.target.isContentEditable) return;
-        const text = e.dataTransfer.getData("text/plain");
-        if (text && text.trim().startsWith("$")) {
-          let targetEl =
-            e.target.closest && e.target.closest("[data-gjs-type]");
-          let comp =
-            targetEl && targetEl.id
-              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
-              : null;
-          if (comp) {
-            let current = comp;
-            while (current && current.get("type") !== "mj-text") {
-              current = current.parent();
-            }
-            if (current && current.get("type") === "mj-text") {
-              if (
-                current.getAttributes()["data-type"] === "frame-placeholder-ui"
-              ) {
-                let container = current.parent();
-                current.remove();
-                if (container) {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = "copy";
-                  container.append(
-                    `<mj-text padding="0px" margin="0px">${text}</mj-text>`
-                  );
-                }
-              } else {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-                const content = current.get("content") || "";
-                current.set("content", content + (content ? " " : "") + text);
-                editor.trigger("component:update", current);
-              }
-            } else {
-              let container = comp;
-              while (
-                container &&
-                !["mj-column", "mj-section", "mj-body"].includes(
-                  container.get("type")
-                )
-              ) {
-                container = container.parent();
-              }
-              if (container) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-
-                clearFramePlaceholder(container);
-
-                container.append(
-                  `<mj-text padding="0px" margin="0px">${text}</mj-text>`
-                );
-              }
-            }
-          }
-        }
-      });
+      // Handled natively by GrapesJS Sorter processing text/html drops.
 
       // ── Handle paste to clean up styles ──────────────────────────────────
       body.addEventListener("paste", (e) => {
@@ -2316,15 +2283,46 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       <LinkModal
         isOpen={isLinkModalOpen}
         onClose={() => {
-          // Restore the placeholder back to a plain text node on cancel
-          if (currentRteRef.current?.el) {
-            const doc = currentRteRef.current.el.ownerDocument;
-            const placeholder = doc.getElementById("gjs-link-placeholder");
-            if (placeholder) {
-              const textNode = doc.createTextNode(placeholder.textContent);
-              placeholder.parentNode.replaceChild(textNode, placeholder);
+          // On cancel: unwrap the placeholder link, restoring the plain text
+          const comp = currentCompRef.current;
+          const editor = gjsInstance.current;
+          const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
+          if (comp && editor) {
+            const getCompHtml = (c) =>
+              c.components().length > 0
+                ? c.getInnerHTML()
+                : c.get("content") || "";
+            const currentContent =
+              currentRteContentRef.current || getCompHtml(comp);
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = currentContent;
+
+            const placeholderLink =
+              tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+              tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+            if (placeholderLink) {
+              const parent = placeholderLink.parentNode;
+              while (placeholderLink.firstChild) {
+                parent.insertBefore(
+                  placeholderLink.firstChild,
+                  placeholderLink
+                );
+              }
+              parent.removeChild(placeholderLink);
+            }
+
+            const restoredContent = tempDiv.innerHTML;
+            comp.components().reset();
+            comp.set("content", restoredContent);
+            const view = comp.getView?.();
+            if (view && typeof view.render === "function") {
+              view.render();
+            } else {
+              editor.trigger("component:update", comp);
             }
           }
+          currentCompRef.current = null;
+          currentRteContentRef.current = null;
           savedRangeRef.current = null;
           setIsLinkModalOpen(false);
           // Also clear popup ref if we were editing an existing link
@@ -2348,30 +2346,47 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
               })[0];
               if (comp) {
-                const currentContent = comp.get("content");
+                const getCompHtml = (c) =>
+                  c.components().length > 0
+                    ? c.getInnerHTML()
+                    : c.get("content") || "";
+                const currentContent = getCompHtml(comp);
 
-                // Get the old HTML of the link before we update its DOM
                 const tempDiv = document.createElement("div");
-                tempDiv.appendChild(link.cloneNode(true));
-                const oldLinkHTML = tempDiv.innerHTML;
+                tempDiv.innerHTML = currentContent;
 
-                // Update the DOM element
-                link.href = linkModalUrl;
-                link.textContent = linkModalText;
+                const oldHref = link.getAttribute("href");
+                const oldText = link.textContent.trim();
 
-                // Get the new HTML of the link
-                const newTempDiv = document.createElement("div");
-                newTempDiv.appendChild(link.cloneNode(true));
-                const newLinkHTML = newTempDiv.innerHTML;
-
-                // Replace in the model
-                const newContent = currentContent.replace(
-                  oldLinkHTML,
-                  newLinkHTML
+                const matchingLinks = Array.from(
+                  tempDiv.querySelectorAll("a")
+                ).filter(
+                  (a) =>
+                    a.getAttribute("href") === oldHref &&
+                    a.textContent.trim() === oldText
                 );
-                comp.set("content", newContent);
 
-                editor.trigger("component:update", comp);
+                if (matchingLinks.length > 0) {
+                  const targetLink = matchingLinks[0];
+                  targetLink.href = linkModalUrl;
+                  targetLink.textContent = linkModalText;
+
+                  const newContent = tempDiv.innerHTML;
+                  comp.components().reset();
+                  comp.set("content", newContent);
+
+                  const view = comp.getView?.();
+                  if (view && typeof view.render === "function") {
+                    view.render();
+                  } else {
+                    editor.trigger("component:update", comp);
+                  }
+                } else {
+                  // Fallback: update the live DOM link and let GrapesJS re-render
+                  link.href = linkModalUrl;
+                  link.textContent = linkModalText;
+                  editor.trigger("component:update", comp);
+                }
               }
             } else {
               handleToolbarLinkConfirm();
@@ -2443,8 +2458,8 @@ function registerBlocks(editor) {
     category: "Content",
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
-        <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
-          Paragraph content
+        <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
+          Paragraph Text
         </mj-text>
       </mj-column>
     </mj-section>`
@@ -2518,7 +2533,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
+          <mj-text font-family="Inter" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
             Your Header Here
           </mj-text>
         </mj-column>
@@ -2531,7 +2546,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
             Add your content here. This is a paragraph of text.
           </mj-text>
         </mj-column>
@@ -2544,7 +2559,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
+          <mj-button font-family="Inter" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>
@@ -2558,7 +2573,7 @@ function registerBlocks(editor) {
       <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center" />
-          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
             Add Image.
           </mj-text>
         </mj-column>
