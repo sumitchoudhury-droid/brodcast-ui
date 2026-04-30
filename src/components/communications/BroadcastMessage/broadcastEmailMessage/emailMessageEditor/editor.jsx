@@ -319,6 +319,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const [linkModalText, setLinkModalText] = useState("");
   const [linkModalUrl, setLinkModalUrl] = useState("");
   const currentRteRef = useRef(null);
+  const currentCompRef = useRef(null);
+  const currentRteContentRef = useRef(null); // innerHTML of rte.el at click time (with placeholder)
   const savedRangeRef = useRef(null);
 
   // Link Popup state for clicking existing links in canvas
@@ -551,9 +553,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   };
 
   const handleToolbarLinkConfirm = () => {
-    if (!currentRteRef.current) return;
-
-    // Ensure the URL has a protocol
     let url = linkModalUrl;
     if (
       url &&
@@ -566,102 +565,48 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       url = "https://" + url;
     }
 
-    const rte = currentRteRef.current;
-    if (rte.el) {
-      const doc = rte.el.ownerDocument;
-      const win = doc.defaultView;
+    const editor = gjsInstance.current;
+    const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
 
-      // Find the placeholder span we inserted when the modal was opened.
-      // Using a real DOM node as the marker means this works correctly for
-      // every link (including the first), even after React re-renders or
-      // GrapesJS model syncs that would otherwise invalidate a saved Range.
-      const placeholder = doc.getElementById("gjs-link-placeholder");
-      console.log(
-        "[Link] confirm — rte.el connected:",
-        rte.el?.isConnected,
-        "placeholder found:",
-        !!placeholder
-      );
-      if (placeholder) {
-        const link = doc.createElement("a");
-        link.href = url || "#";
-        link.target = "_blank";
-        link.style.color = "#1570EF";
-        link.style.textDecoration = "underline";
-        link.textContent = linkModalText || url || "Link";
+    if (editor) {
+      const comp = currentCompRef.current;
+      if (comp) {
+        const getCompHtml = (c) =>
+          c.components().length > 0 ? c.getInnerHTML() : c.get("content") || "";
+        const baseContent = currentRteContentRef.current || getCompHtml(comp);
+        const finalUrl = url || "#";
+        const linkText = linkModalText || "Link";
 
-        // Swap placeholder with the real link, preserving exact position
-        placeholder.parentNode.replaceChild(link, placeholder);
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = baseContent;
 
-        // Try to restore focus and cursor (works when RTE is still active)
-        try {
-          rte.el.focus();
-          const sel = win.getSelection();
-          const newRange = doc.createRange();
-          newRange.setStartAfter(link);
-          newRange.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(newRange);
-        } catch {
-          // rte.el may be detached if the modal blur deactivated the RTE
+        const placeholderLink =
+          tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+          tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+        if (placeholderLink) {
+          placeholderLink.href = finalUrl;
+          placeholderLink.target = "_blank";
+          placeholderLink.style.color = "#1570EF";
+          placeholderLink.style.textDecoration = "underline";
+          placeholderLink.textContent = linkText;
         }
 
-        // Update the GrapesJS model directly.
-        // When the modal input steals focus the iframe contenteditable blurs,
-        // GrapesJS deactivates the RTE and re-renders the component in view
-        // mode. At that point dispatching "input" on the (now detached) rte.el
-        // does nothing. We therefore find the component, replace the
-        // placeholder span inside its stored model content, and set it back —
-        // matching the same pattern used by the "edit existing link" flow.
-        const editor = gjsInstance.current;
-        if (editor) {
-          // Prefer the currently selected component; fall back to a DOM search.
-          let comp = editor.getSelected();
-          if (!comp || !comp.getView()?.el?.contains(link)) {
-            const found = editor.Components.getWrapper().find((c) => {
-              try {
-                return c.getView()?.el?.contains(link);
-              } catch {
-                return false;
-              }
-            });
-            comp = found[0];
-          }
+        const newContent = tempDiv.innerHTML;
+        comp.components().reset();
+        comp.set("content", newContent);
 
-          if (comp) {
-            // Build the serialised link HTML
-            const tempDiv = doc.createElement("div");
-            tempDiv.appendChild(link.cloneNode(true));
-            const linkHTML = tempDiv.innerHTML;
-
-            // Replace the placeholder span in the stored model content
-            const currentContent = comp.get("content") || "";
-            console.log("[Link] currentContent:", currentContent);
-            const newContent = currentContent.replace(
-              /<span[^>]*id="gjs-link-placeholder"[^>]*>[\s\S]*?<\/span>/,
-              linkHTML
-            );
-            console.log(
-              "[Link] newContent:",
-              newContent,
-              "changed:",
-              newContent !== currentContent
-            );
-            comp.set("content", newContent);
-            editor.trigger("component:update", comp);
-          } else {
-            // Last-resort fallback: fire the input event (works when RTE is live)
-            console.log("[Link] comp not found, using fallback input event");
-            rte.el.dispatchEvent(new Event("input", { bubbles: true }));
-            const selected = editor.getSelected();
-            if (selected) editor.trigger("component:update", selected);
-          }
+        const view = comp.getView?.();
+        if (view && typeof view.render === "function") {
+          view.render();
+        } else {
+          editor.trigger("component:update", comp);
         }
       }
-
-      savedRangeRef.current = null;
     }
 
+    savedRangeRef.current = null;
+    currentCompRef.current = null;
+    currentRteContentRef.current = null;
     setIsLinkModalOpen(false);
     setLinkModalText("");
     setLinkModalUrl("");
@@ -1758,24 +1703,51 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   : "";
           }
 
-          // Immediately replace the selected text with a placeholder <span>
-          // so the insertion point is a real DOM node that survives React
-          // re-renders and GrapesJS model syncs triggered by opening the modal.
+          // Use execCommand('createLink') while the RTE is active and the
+          // selection is still valid. The browser wraps the selected text in
+          // <a href="__GJS_LINK_PLACEHOLDER__"> — we update the real URL on
+          // confirm. This is more reliable than inserting a span placeholder
+          // because execCommand handles partial selections, nested elements, etc.
+          const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
           if (sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            range.deleteContents();
-            const placeholder = doc.createElement("span");
-            placeholder.id = "gjs-link-placeholder";
-            placeholder.textContent = plainText || "";
-            range.insertNode(placeholder);
-            console.log("[Link] placeholder inserted, plainText:", plainText);
-          } else {
-            console.log("[Link] NO selection range — placeholder NOT inserted");
+            doc.execCommand("createLink", false, PLACEHOLDER_URL);
+            // Apply preview styles to the inserted link
+            const placeholderLink = rteInstance.el.querySelector(
+              `a[href="${PLACEHOLDER_URL}"]`
+            );
+            if (placeholderLink) {
+              placeholderLink.style.color = "#1570EF";
+              placeholderLink.style.textDecoration = "underline";
+              placeholderLink.target = "_blank";
+            }
           }
 
           setLinkModalText(plainText || "");
           setLinkModalUrl("");
           currentRteRef.current = rteInstance;
+          // Find the DEEPEST component whose view contains rteInstance.el.
+          // editor.getSelected() can return a parent (mj-column/mj-section)
+          // instead of the mj-text, which would corrupt the wrong component.
+          // Deepest-match search always resolves to the mj-text itself.
+          let editingComp = null;
+          (function searchDeep(c) {
+            try {
+              const viewEl = c.getView()?.el;
+              if (viewEl && viewEl.contains(rteInstance.el)) {
+                editingComp = c; // overwrite — deeper match is more specific
+                c.components().each(searchDeep);
+              }
+            } catch {
+              /* skip */
+            }
+          })(editor.Components.getWrapper());
+          if (!editingComp) editingComp = editor.getSelected();
+          currentCompRef.current = editingComp;
+          // Snapshot rte.el.innerHTML synchronously (contains the placeholder
+          // link). Used as fallback if GrapesJS hasn't synced to model yet.
+          currentRteContentRef.current = rteInstance.el
+            ? rteInstance.el.innerHTML
+            : null;
           setLinkPopupData((prev) => ({ ...prev, el: null, isOpen: false }));
           setIsLinkModalOpen(true);
         }
@@ -2311,15 +2283,46 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       <LinkModal
         isOpen={isLinkModalOpen}
         onClose={() => {
-          // Restore the placeholder back to a plain text node on cancel
-          if (currentRteRef.current?.el) {
-            const doc = currentRteRef.current.el.ownerDocument;
-            const placeholder = doc.getElementById("gjs-link-placeholder");
-            if (placeholder) {
-              const textNode = doc.createTextNode(placeholder.textContent);
-              placeholder.parentNode.replaceChild(textNode, placeholder);
+          // On cancel: unwrap the placeholder link, restoring the plain text
+          const comp = currentCompRef.current;
+          const editor = gjsInstance.current;
+          const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
+          if (comp && editor) {
+            const getCompHtml = (c) =>
+              c.components().length > 0
+                ? c.getInnerHTML()
+                : c.get("content") || "";
+            const currentContent =
+              currentRteContentRef.current || getCompHtml(comp);
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = currentContent;
+
+            const placeholderLink =
+              tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+              tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+            if (placeholderLink) {
+              const parent = placeholderLink.parentNode;
+              while (placeholderLink.firstChild) {
+                parent.insertBefore(
+                  placeholderLink.firstChild,
+                  placeholderLink
+                );
+              }
+              parent.removeChild(placeholderLink);
+            }
+
+            const restoredContent = tempDiv.innerHTML;
+            comp.components().reset();
+            comp.set("content", restoredContent);
+            const view = comp.getView?.();
+            if (view && typeof view.render === "function") {
+              view.render();
+            } else {
+              editor.trigger("component:update", comp);
             }
           }
+          currentCompRef.current = null;
+          currentRteContentRef.current = null;
           savedRangeRef.current = null;
           setIsLinkModalOpen(false);
           // Also clear popup ref if we were editing an existing link
@@ -2343,30 +2346,47 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
               })[0];
               if (comp) {
-                const currentContent = comp.get("content");
+                const getCompHtml = (c) =>
+                  c.components().length > 0
+                    ? c.getInnerHTML()
+                    : c.get("content") || "";
+                const currentContent = getCompHtml(comp);
 
-                // Get the old HTML of the link before we update its DOM
                 const tempDiv = document.createElement("div");
-                tempDiv.appendChild(link.cloneNode(true));
-                const oldLinkHTML = tempDiv.innerHTML;
+                tempDiv.innerHTML = currentContent;
 
-                // Update the DOM element
-                link.href = linkModalUrl;
-                link.textContent = linkModalText;
+                const oldHref = link.getAttribute("href");
+                const oldText = link.textContent.trim();
 
-                // Get the new HTML of the link
-                const newTempDiv = document.createElement("div");
-                newTempDiv.appendChild(link.cloneNode(true));
-                const newLinkHTML = newTempDiv.innerHTML;
-
-                // Replace in the model
-                const newContent = currentContent.replace(
-                  oldLinkHTML,
-                  newLinkHTML
+                const matchingLinks = Array.from(
+                  tempDiv.querySelectorAll("a")
+                ).filter(
+                  (a) =>
+                    a.getAttribute("href") === oldHref &&
+                    a.textContent.trim() === oldText
                 );
-                comp.set("content", newContent);
 
-                editor.trigger("component:update", comp);
+                if (matchingLinks.length > 0) {
+                  const targetLink = matchingLinks[0];
+                  targetLink.href = linkModalUrl;
+                  targetLink.textContent = linkModalText;
+
+                  const newContent = tempDiv.innerHTML;
+                  comp.components().reset();
+                  comp.set("content", newContent);
+
+                  const view = comp.getView?.();
+                  if (view && typeof view.render === "function") {
+                    view.render();
+                  } else {
+                    editor.trigger("component:update", comp);
+                  }
+                } else {
+                  // Fallback: update the live DOM link and let GrapesJS re-render
+                  link.href = linkModalUrl;
+                  link.textContent = linkModalText;
+                  editor.trigger("component:update", comp);
+                }
               }
             } else {
               handleToolbarLinkConfirm();
