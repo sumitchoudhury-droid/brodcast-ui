@@ -1,3 +1,4 @@
+import ReactDOM from "react-dom";
 import { ReusableButton } from "../resuableButton";
 import CloseButton from "../../assets/commonIcons/CloseButton.svg";
 import "./style.scss";
@@ -13,7 +14,7 @@ export const ReusableModal = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div className="reusableModal">
       {/* Overlay */}
       <div className="modalOverlay" onClick={onClose} />
@@ -28,10 +29,8 @@ export const ReusableModal = ({
             <img src={CloseButton} alt="CloseButton" />
           </div>
         </div>
-
         {/* Body */}
         <div className="modalBody">{children}</div>
-
         {/* Footer */}
         <div className="modalFooter">
           <ReusableButton
@@ -46,6 +45,7 @@ export const ReusableModal = ({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

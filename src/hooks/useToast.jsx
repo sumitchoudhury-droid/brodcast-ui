@@ -30,7 +30,9 @@ export const ToastProvider = ({ children }) => {
       success: (title, message, duration) =>
         addToast("success", title, message, duration),
       error: (title, message, duration) =>
-        addToast("error", title, message, duration)
+        addToast("error", title, message, duration),
+      warning: (title, message, duration) =>
+        addToast("warning", title, message, duration)
     }),
     [addToast]
   );

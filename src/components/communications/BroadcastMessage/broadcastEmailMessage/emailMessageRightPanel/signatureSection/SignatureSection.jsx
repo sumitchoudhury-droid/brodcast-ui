@@ -1,18 +1,25 @@
 import { useState } from "react";
 import "./style.scss";
 import signatureIcon from "../../../../../../assets/commonIcons/signatureIcon.svg";
-
 import fileTextIcon from "../../../../../../assets/commonIcons/fileTextIcon.svg";
 import fileHtmlIcon from "../../../../../../assets/commonIcons/fileHtmlIcon.svg";
 import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal";
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
+import { htmlToMjml, isMjml } from "../../../../../../utils/htmlToMjml";
+import { useToast } from "../../../../../../hooks/useToast";
+import { LinkModal } from "../../linkModal/index";
 
 export default function SignatureSection({ editorRef }) {
   const [signature, setSignature] = useState("");
   const [onDemandForm, setOnDemandForm] = useState("");
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkValue, setLinkValue] = useState("");
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
 
   const applySignatureToEditor = (selectedValue) => {
     const editor = editorRef?.current?.getEditor();
@@ -39,12 +46,12 @@ export default function SignatureSection({ editorRef }) {
         existingSig = c;
       }
     });
-    if (!existingSig) return;
+    if (existingSig) {
+      existingSig.remove();
+    }
 
     // Build replacement MJML with the selected signature text.
-    // Remove old first (reconciler ignores sig-section removals), then append
-    // the new one so GrapesJS parses and renders it fresh.
-    const newSigHtml = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="#ffffff">
+    const newSigHtml = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text padding="16px 0px" margin="0px" color="#181D25" font-size="20px" font-weight="500" font-family="Inter" line-height="20px">
       ${selectedValue}
@@ -52,7 +59,6 @@ export default function SignatureSection({ editorRef }) {
   </mj-column>
 </mj-section>`;
 
-    existingSig.remove();
     mjBody.append(newSigHtml);
   };
 
@@ -91,23 +97,117 @@ export default function SignatureSection({ editorRef }) {
   ];
 
   const handleImportClick = () => {
+    setSelectedFile(null);
     setOpenUploadModal(true);
   };
 
   const handleUploadConfirm = () => {
-    // Don't close the upload modal, just open the confirm modal
+    if (!selectedFile) {
+      toast.error("No file selected", "Please select an HTML or MJML file.");
+      return;
+    }
     setOpenConfirmModal(true);
   };
 
-  const handleFinalConfirm = () => {
-    console.log("Confirmed");
-    setOpenConfirmModal(false);
-    setOpenUploadModal(false); // Close both modals after final confirmation
+  const handleFinalConfirm = async () => {
+    if (!selectedFile || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      const text = await selectedFile.text();
+
+      let mjmlContent;
+      if (isMjml(text) || selectedFile.name.toLowerCase().endsWith(".mjml")) {
+        // File is already MJML — use it directly
+        mjmlContent = text;
+        console.log(
+          "[ImportTemplate] File detected as MJML, loading directly."
+        );
+      } else {
+        // Convert HTML → MJML
+        console.log("[ImportTemplate] Converting HTML → MJML…");
+        mjmlContent = htmlToMjml(text);
+      }
+
+      const loadFn = editorRef?.current?.loadTemplate;
+      if (!loadFn)
+        throw new Error("Editor not ready — loadTemplate unavailable.");
+
+      loadFn(mjmlContent);
+
+      setOpenConfirmModal(false);
+      setOpenUploadModal(false);
+      setSelectedFile(null);
+      toast.success(
+        "Template imported",
+        "Your template has been loaded into the editor."
+      );
+    } catch (err) {
+      console.error("[ImportTemplate] failed:", err);
+      toast.error(
+        "Import failed",
+        err?.message ||
+          "Could not parse the file. Check the format and try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancelConfirm = () => {
     setOpenConfirmModal(false);
-    // Upload modal remains open
+    // Upload modal stays open so the user can re-pick a file
+  };
+
+  const handleCloseUploadModal = () => {
+    setOpenUploadModal(false);
+    setSelectedFile(null);
+  };
+
+  const handleOnDemandFormClick = (value) => {
+    setOnDemandForm(value);
+    setLinkValue(""); // Reset link value when a new form is selected
+    setIsLinkModalOpen(true);
+  };
+
+  const handleLinkModalConfirm = () => {
+    const editor = editorRef?.current?.getEditor();
+    if (!editor) {
+      toast.error("Editor Error", "Editor instance not found");
+      return;
+    }
+
+    if (!linkValue) {
+      toast.error("Invalid Link", "Please enter a URL for the form");
+      return;
+    }
+
+    // Find mj-body
+    const wrapper = editor.getWrapper();
+    let mjBody = null;
+    const findBody = (comp) => {
+      if (mjBody) return;
+      if (comp.get("type") === "mj-body") {
+        mjBody = comp;
+        return;
+      }
+      comp.components().each(findBody);
+    };
+    findBody(wrapper);
+    if (!mjBody) return;
+
+    // Build MJML for the on-demand form link (as a blue text link opening in new tab)
+    const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" padding="10px 0px" margin="0px" width="100%" background-color="transparent">
+  <mj-column padding="0px" margin="0px" width="100%">
+    <mj-text padding="10px 0px" font-family="Inter" font-size="16px" color="#007bff">
+      <a href="${linkValue}" target="_blank" style="color: #007bff; text-decoration: underline;">${onDemandForm}</a>
+    </mj-text>
+  </mj-column>
+</mj-section>`;
+
+    mjBody.append(newFormHtml);
+    setIsLinkModalOpen(false);
+    toast.success("Success", "On-demand form link added to editor");
   };
 
   return (
@@ -124,7 +224,7 @@ export default function SignatureSection({ editorRef }) {
           options={OnDemandFormsOptions}
           value={onDemandForm}
           placeholder="Select On-Demand Form"
-          onChange={setOnDemandForm}
+          onChange={handleOnDemandFormClick}
           valueImage={fileTextIcon}
         />
 
@@ -138,38 +238,51 @@ export default function SignatureSection({ editorRef }) {
         </div>
       </div>
 
+      {/* ── Upload modal ──────────────────────────────────────────────────── */}
       <ReusableModal
         isOpen={openUploadModal}
         title="Upload Template"
-        onClose={() => setOpenUploadModal(false)}
+        onClose={handleCloseUploadModal}
         onConfirm={handleUploadConfirm}
         cancelText="Cancel"
         confirmText="Upload"
       >
-        <ReusableUpload />
+        <ReusableUpload
+          accept=".html,.htm,.mjml"
+          onChange={(file) => setSelectedFile(file)}
+        />
       </ReusableModal>
 
+      {/* ── Confirm replace modal ─────────────────────────────────────────── */}
       <ReusableModal
         isOpen={openConfirmModal}
-        title="Confirm Upload Template"
+        title="Confirm Template Import"
         onClose={handleCancelConfirm}
         onConfirm={handleFinalConfirm}
         cancelText="Cancel"
-        confirmText="Confirm & Upload"
+        confirmText={isLoading ? "Importing…" : "Confirm & Import"}
       >
         <div className="confirmUploadTemplateContainer">
           <p className="confirmUploadTemplateContainerTitle">
             Are you sure you want to{" "}
-            <span style={{ fontWeight: "600" }}>
-              upload this HTML template?
-            </span>
+            <span style={{ fontWeight: "600" }}>import this template?</span>
           </p>
           <p className="confirmUploadTemplateContainerTitle">
-            Your current content will be replaced with the uploaded template
-            content.
+            Your current editor content will be replaced with the content from{" "}
+            <span style={{ fontWeight: "600" }}>{selectedFile?.name}</span>.
           </p>
         </div>
       </ReusableModal>
+
+      <LinkModal
+        isOpen={isLinkModalOpen}
+        onClose={() => setIsLinkModalOpen(false)}
+        onConfirm={handleLinkModalConfirm}
+        formName={onDemandForm}
+        setFormName={setOnDemandForm}
+        linkValue={linkValue}
+        setLinkValue={setLinkValue}
+      />
     </>
   );
 }

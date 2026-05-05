@@ -30,7 +30,13 @@
         "Draggability",
         "checkin",
         "asyst",
-        "boardcost"
+        "boardcost",
+        "serialised",
+        "bgcolor",
+        "serialise",
+        "ajst",
+        "optimisations",
+        "networkidle"
     ],
     "ignorePaths": [
         "dist",

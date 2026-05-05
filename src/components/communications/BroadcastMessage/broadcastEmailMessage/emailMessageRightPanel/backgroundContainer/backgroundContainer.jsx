@@ -1,5 +1,19 @@
+import { useState, useRef, useEffect } from "react";
 import "./style.scss";
 import { getOpacityFromColor } from "../../../../../../utils/colorUtils";
+import { ColorPicker } from "./ColorPicker";
+
+const DEFAULT_COLORS = [
+  "#D91515",
+  "#EB9F13",
+  "#F1F12B",
+  "#25D825",
+  "#2E2EF5",
+  "#6941C6",
+  "#74B154",
+  "#2563EB",
+  "#18B2F5"
+];
 
 export const BackgroundContainer = ({
   bgColor,
@@ -13,14 +27,41 @@ export const BackgroundContainer = ({
   handleBgRepeatChange,
   bgSize,
   handleBgSizeChange,
-  width,
-  widthUnit,
-  handleWidthChange,
-  height,
-  heightUnit,
-  handleHeightChange,
   onResetColor
 }) => {
+  const [showColorPopover, setShowColorPopover] = useState(false);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+  const anchorRef = useRef(null);
+  const popoverRef = useRef(null);
+
+  const openPopover = () => {
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPopoverPos({
+        top: rect.bottom + 6,
+        left: rect.left
+      });
+    }
+    setShowColorPopover((prev) => !prev);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(e.target)
+      ) {
+        setShowColorPopover(false);
+      }
+    };
+    if (showColorPopover) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showColorPopover]);
+
   return (
     <div className="backgroundContainer">
       <div className="backgroundContainerHeader">
@@ -44,10 +85,7 @@ export const BackgroundContainer = ({
       <div className="backgroundControls">
         <div className="backgroundControlsTop">
           <div className="colorControlWrapper">
-            <div
-              className="colorControl"
-              onClick={() => colorInputRef.current?.click()}
-            >
+            <div ref={anchorRef} className="colorControl" onClick={openPopover}>
               <div
                 className="colorPreview"
                 style={{ backgroundColor: bgColor }}
@@ -64,6 +102,20 @@ export const BackgroundContainer = ({
                 onChange={(e) => handleBgColorChange(e.target.value)}
               />
             </div>
+
+            {showColorPopover && (
+              <div
+                ref={popoverRef}
+                className="colorPopover"
+                style={{ top: popoverPos.top, left: popoverPos.left }}
+              >
+                <ColorPicker
+                  color={bgColor}
+                  onChange={handleBgColorChange}
+                  defaultColors={DEFAULT_COLORS}
+                />
+              </div>
+            )}
           </div>
           <div className="backgroundControlsTopRight" onClick={onResetColor}>
             <svg
@@ -90,63 +142,7 @@ export const BackgroundContainer = ({
             </svg>
           </div>
         </div>
-        <div className="bgDimensions">
-          <div className="optionGroup">
-            <p className="optionLabel">Width</p>
-            <div className="dimensionInputWrapper">
-              <input
-                type="number"
-                className="dimensionInput"
-                value={width}
-                onChange={(e) => handleWidthChange(e.target.value)}
-              />
-              <div className="segmentedControl">
-                <button
-                  className={`segment ${widthUnit === "%" ? "active" : ""}`}
-                  style={{ minWidth: "30px" }}
-                  onClick={() => handleWidthChange(width, "%")}
-                >
-                  %
-                </button>
-                <button
-                  className={`segment ${widthUnit === "px" ? "active" : ""}`}
-                  style={{ minWidth: "30px" }}
-                  onClick={() => handleWidthChange(width, "px")}
-                >
-                  px
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div className="optionGroup">
-            <p className="optionLabel">Height</p>
-            <div className="dimensionInputWrapper">
-              <input
-                type="number"
-                className="dimensionInput"
-                value={height}
-                onChange={(e) => handleHeightChange(e.target.value)}
-              />
-              <div className="segmentedControl">
-                <button
-                  className={`segment ${heightUnit === "%" ? "active" : ""}`}
-                  style={{ minWidth: "30px" }}
-                  onClick={() => handleHeightChange(height, "%")}
-                >
-                  %
-                </button>
-                <button
-                  className={`segment ${heightUnit === "px" ? "active" : ""}`}
-                  style={{ minWidth: "30px" }}
-                  onClick={() => handleHeightChange(height, "px")}
-                >
-                  px
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
         <div className="bgImageActions">
           {bgImage ? (
             <div className="bgImagePreviewContainer">

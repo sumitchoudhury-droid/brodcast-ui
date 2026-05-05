@@ -41,6 +41,8 @@ $color-red-1: #fda29b;
 $color-red-2: #fef3f2;
 
 $color-blue-0: #1570ef;
+$color-blue-1: #e0ebfc;
+$color-blue-2: #2c538f;
 
 $placeholder-color: #929fb1;
 
@@ -52,7 +54,7 @@ $secondary-color:
     rgba(255, 255, 255, 0.17) 100%
   ),
   var(--Brand-Primary, #107a6c);
-$font-inter: "Inter", sans-serif;
+$font-inter: "Inter";
 
 $shadow-1:
   0px 1px 3px rgba(16, 24, 40, 0.1),

@@ -4,21 +4,27 @@ import greenCrossIcon from "../../assets/commonIcons/greenCrossIcon.svg";
 import fileIcon from "../../assets/commonIcons/fileIcon.svg";
 import "./style.scss";
 
-export const ReusableUpload = () => {
+export const ReusableUpload = ({ onChange, accept }) => {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
 
   /* ---------- FILE SELECT ---------- */
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile) setFile(selectedFile);
+    if (selectedFile) {
+      setFile(selectedFile);
+      onChange?.(selectedFile);
+    }
   };
 
   /* ---------- DRAG DROP ---------- */
   const handleDrop = (e) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) setFile(droppedFile);
+    if (droppedFile) {
+      setFile(droppedFile);
+      onChange?.(droppedFile);
+    }
   };
 
   /* ---------- REMOVE FILE ---------- */
@@ -26,6 +32,7 @@ export const ReusableUpload = () => {
     e.stopPropagation();
     setFile(null);
     inputRef.current.value = "";
+    onChange?.(null);
   };
 
   return (
@@ -45,7 +52,13 @@ export const ReusableUpload = () => {
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
       >
-        <input ref={inputRef} type="file" hidden onChange={handleFileChange} />
+        <input
+          ref={inputRef}
+          type="file"
+          hidden
+          onChange={handleFileChange}
+          accept={accept}
+        />
 
         <div className="uploadContent">
           <div className="uploadIcon">

@@ -1,25 +1,45 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
+import ReactDOM from "react-dom";
+
 import mjmlPlugin from "grapesjs-mjml";
+import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
 import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 
 import "../style.scss";
+import "./style.scss";
+import { LinkModal } from "../linkModal/index";
+import { useToast } from "../../../../../hooks/useToast";
 
 const EMPTY_TEMPLATE = `
 <mjml>
-  <mj-body width="100%" background-color="#ffffff" padding="0px" margin="0px">
-
+  <mj-head>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Inter, sans-serif" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body width="100%" background-color="transparent" padding="0px" margin="0px">
+ 
   </mj-body>
 </mjml>
 `.trim();
 
-const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="#ffffff">
+const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text  padding="16px 0px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height=20px>
       Add Signature
+    </mj-text>
+  </mj-column>
+</mj-section>`;
+
+const UNSUBSCRIBE_SECTION_HTML = `<mj-section full-width="full-width" data-type="unsubscribe-section" padding="0px" margin="0px" width="100%" background-color="transparent">
+  <mj-column padding="0px" margin="0px" width="100%">
+    <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Inter" line-height="20px" align="center">
+      Click here to unsubscribe: <a href="https://mh.care/stop" style="color:#929FB1; text-decoration:underline;">https://mh.care/stop</a>
     </mj-text>
   </mj-column>
 </mj-section>`;
@@ -39,6 +59,11 @@ const COLUMN_VALID_CHILDREN = [
 
 // Check if a component is nested inside a row/column frame
 function isInsideFrame(comp) {
+  return !!findNearestFrame(comp);
+}
+
+// Find the nearest frame ancestor for a component
+function findNearestFrame(comp) {
   let ancestor = comp.parent();
   while (ancestor) {
     try {
@@ -48,14 +73,77 @@ function isInsideFrame(comp) {
         dt === "column-frame-column" ||
         dt === "column-frame-section"
       ) {
-        return true;
+        return ancestor;
       }
     } catch {
       /* skip destroyed */
     }
     ancestor = ancestor.parent();
   }
+  return null;
+}
+
+// Calculate the nesting depth of frames
+function getFrameDepth(comp) {
+  let depth = 0;
+  let current = comp;
+  while (current) {
+    try {
+      const dt = current.getAttributes?.()?.["data-type"];
+      if (dt === "column-frame-section" || dt === "row-frame-column") {
+        depth++;
+      }
+    } catch {
+      /* skip errors */
+    }
+    current = current.parent();
+  }
+  return depth;
+}
+
+// Check if a component model is a Frame block
+function isFrameBlock(model) {
+  if (!model) return false;
+  const type = model.get("type");
+  const dt = model.getAttributes?.()["data-type"];
+
+  if (dt === "column-frame-section" || dt === "row-frame-column") return true;
+
+  // Check if it's a section that contains a row-frame-column (typical for Row block)
+  if (type === "mj-section") {
+    let hasRowFrame = false;
+    model.components().each((c) => {
+      if (c.getAttributes?.()["data-type"] === "row-frame-column") {
+        hasRowFrame = true;
+      }
+    });
+    return hasRowFrame;
+  }
+
   return false;
+}
+
+// Check if a component is nested inside a column frame
+function isInsideColumnFrame(comp) {
+  return !!findNearestColumnFrame(comp);
+}
+
+// Find the nearest column-frame ancestor
+function findNearestColumnFrame(comp) {
+  let ancestor = comp.parent();
+  while (ancestor) {
+    try {
+      if (
+        ancestor.getAttributes?.()?.["data-type"] === "column-frame-section"
+      ) {
+        return ancestor;
+      }
+    } catch {
+      /* skip destroyed */
+    }
+    ancestor = ancestor.parent();
+  }
+  return null;
 }
 
 // Walk a component tree and collect every leaf-level content node
@@ -89,18 +177,40 @@ function clearFramePlaceholder(container) {
 // last section's column.
 function resolveDroppable(comp) {
   const type = comp.get("type");
+  const dt = comp.getAttributes?.()?.["data-type"];
+  const depth = getFrameDepth(comp);
+
+  if (type === "mj-body") return true;
+
+  // Level restriction function
+  const checkNesting = (droppedModel) => {
+    // If we are already at depth 3, we only allow content blocks (not frames)
+    if (depth >= 3 && isFrameBlock(droppedModel)) {
+      return false;
+    }
+    return true;
+  };
+
   if (type === "mj-section") {
-    const dt = comp.getAttributes?.()?.["data-type"];
-    return dt === "column-frame-section";
+    if (dt === "column-frame-section") {
+      return (droppedModel) => checkNesting(droppedModel);
+    }
+    return false;
   }
+
   if (type === "mj-column") {
-    const dt = comp.getAttributes?.()?.["data-type"];
-    if (dt === "row-frame-column") return true;
+    if (dt === "row-frame-column") {
+      return (droppedModel) => checkNesting(droppedModel);
+    }
+
     const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
-    return parentDt === "column-frame-section";
+    if (parentDt === "column-frame-section") {
+      return (droppedModel) => checkNesting(droppedModel);
+    }
   }
-  // mj-body and leaf types remain droppable (true)
-  return true;
+
+  // leaf types remain non-droppable to prevent accidental block nesting
+  return type === "mj-body";
 }
 
 // Scan every frame column and sync placeholder visibility via data-is-empty attribute
@@ -142,14 +252,16 @@ function reconcileFramePlaceholders(editor, isReconciling) {
         }
 
         // Check if it's real content:
-        // - If it's a textnode, it must have non-whitespace content
-        // - Otherwise, it's real if it's not a textnode
+        // - If it's a textnode or text, it must have non-whitespace content
+        // - If it's a frame placeholder UI component, skip it
+        // - Otherwise, any component (sections, columns, images, etc.) is real content
         if (childType === "textnode" || childType === "text") {
           const content = c.get("content")?.trim();
           if (content && content.length > 0) {
             hasReal = true;
           }
-        } else {
+        } else if (childDt !== "frame-placeholder-ui") {
+          // Any other component (mj-section, mj-column, mj-image, etc.) counts as content
           hasReal = true;
         }
       });
@@ -164,8 +276,10 @@ function reconcileFramePlaceholders(editor, isReconciling) {
 
     // Rebalance mj-column widths inside every column-frame-section
     // so blocks are displayed side-by-side with equal width.
+    // FORCE EQUAL only if column count changed.
     frameCols.forEach((col) => {
-      if (col.getAttributes()?.["data-type"] !== "column-frame-section") return;
+      const attrs = col.getAttributes() || {};
+      if (attrs["data-type"] !== "column-frame-section") return;
 
       const columns = [];
       col.components().each((c) => {
@@ -175,12 +289,18 @@ function reconcileFramePlaceholders(editor, isReconciling) {
       const n = columns.length;
       if (n === 0) return;
 
-      const equalWidth = `${(100 / n).toFixed(4)}%`;
-      columns.forEach((c) => {
-        if (c.getAttributes()["width"] !== equalWidth) {
-          c.addAttributes({ width: equalWidth });
-        }
-      });
+      const lastN = parseInt(attrs["data-column-count"] || "0", 10);
+      if (n !== lastN) {
+        // Enforce equal widths and reset manual tags
+        const equalWidth = `${(100 / n).toFixed(4)}%`;
+        columns.forEach((c) => {
+          c.addAttributes({
+            width: equalWidth,
+            "data-manual-width": "false"
+          });
+        });
+        col.addAttributes({ "data-column-count": n.toString() });
+      }
     });
   } finally {
     isReconciling.current = false;
@@ -188,12 +308,32 @@ function reconcileFramePlaceholders(editor, isReconciling) {
 }
 
 export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
+  const toast = useToast();
   const containerRef = useRef(null);
   const gjsInstance = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const isUnwrapping = useRef(false);
   const imageTargetCompRef = useRef(null);
+
+  // Link Modal state for toolbar Link icon
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkModalText, setLinkModalText] = useState("");
+  const [linkModalUrl, setLinkModalUrl] = useState("");
+  const currentRteRef = useRef(null);
+  const currentCompRef = useRef(null);
+  const currentRteContentRef = useRef(null); // innerHTML of rte.el at click time (with placeholder)
+  const savedRangeRef = useRef(null);
+
+  // Link Popup state for clicking existing links in canvas
+  const [linkPopupData, setLinkPopupData] = useState({
+    isOpen: false,
+    top: 0,
+    left: 0,
+    text: "",
+    url: "",
+    el: null
+  });
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -221,26 +361,31 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     const columnsHtml = files
       .map((file) => {
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        const sizeInBytes = file.size;
+        const sizeDisplay =
+          sizeInBytes < 1024 * 1024
+            ? `${(sizeInBytes / 1024).toFixed(2)} KB`
+            : `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
         const isDoc = /\.docx?$/i.test(file.name);
         const icon = isDoc ? docIcon : pdfIcon;
         const downloadId = Math.floor(Math.random() * 90000) + 10000;
+        const downloadUrl = URL.createObjectURL(file);
         return `<mj-column width="100%" vertical-align="top" padding="0px">
     <mj-text padding="0px 0px 10px 0px" width="100%">
-      <div style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box;">
+      <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box; margin-left: 0; margin-right: auto;">
         <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
           <img src="${icon}" width="40" height="40" style="display:block; flex-shrink:0;" />
           <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
             <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.name}</p>
-            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeMb} MB</p>
+            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeDisplay}</p>
           </div>
           <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;" />
         </div>
-        <div style="display:flex; align-items:center; gap:4px; width:101%; box-sizing:border-box; justify-content:center;">
+        <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
           <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; flex-shrink:0;">Download using Link:</p>
-          <p style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">
+          <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; cursor:pointer;">
             https://manipal.care/dl${downloadId}
-          </p>
+          </a>
         </div>
       </div>
     </mj-text>
@@ -248,7 +393,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       })
       .join("");
 
-    const sectionHtml = `<mj-section full-width="full-width" padding="4px 0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
+    const sectionHtml = `<mj-section full-width="full-width" padding="4px 20px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
       ${columnsHtml}
     </mj-section>`;
 
@@ -257,23 +402,29 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     // Clear selection before removing the component
     editor.select(null);
-    targetComp.remove();
 
-    parent.components().add(sectionHtml, { at: idx });
-
-    editor.trigger("component:update", parent);
+    isUnwrapping.current = true;
+    try {
+      targetComp.remove();
+      parent.components().add(sectionHtml, { at: idx });
+      editor.trigger("component:update", parent);
+    } finally {
+      isUnwrapping.current = false;
+    }
     e.target.value = "";
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     // Capture the target ref before async operations clear it
     const capturedTarget = imageTargetCompRef.current;
     imageTargetCompRef.current = null;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target.result;
+
+    try {
+      const dataUrl = await uploadToCloudinary(file);
+      if (!dataUrl) return;
 
       // Resolve actual pixel dimensions before inserting into the editor
       const img = new window.Image();
@@ -294,30 +445,52 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             target = target.parent();
           }
           if (target) {
-            const parent = target.parent();
-            const index = parent.components().indexOf(target);
-            target.remove();
-            parent
-              .components()
-              .add(
-                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
-                { at: index }
-              );
-            editor.trigger("component:update", parent);
+            target.set("src", dataUrl);
+            target.addAttributes({
+              src: dataUrl,
+              width: widthAttr,
+              height: heightAttr
+            });
+            editor.trigger("component:update", target);
             return;
           }
 
-          // Case 2: The image placeholder div is inside an mj-column — replace with mj-image
+          // Case 2: The image placeholder div is inside an mj-column — replace only the placeholder
           let column = selected;
           while (column && column.get("type") !== "mj-column") {
             column = column.parent();
           }
           if (column) {
             editor.select(null);
-            column.components().reset();
-            column.append(
-              `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
-            );
+            // Find the active placeholder component within this column
+            const placeholderTarget = column.components().find((c) => {
+              try {
+                return c.getView()?.el?.querySelector(".image-click-area");
+              } catch {
+                return false;
+              }
+            });
+
+            if (placeholderTarget) {
+              const index = column.components().indexOf(placeholderTarget);
+              isUnwrapping.current = true;
+              try {
+                placeholderTarget.remove();
+                column
+                  .components()
+                  .add(
+                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                    { at: index }
+                  );
+              } finally {
+                isUnwrapping.current = false;
+              }
+            } else {
+              // Fallback: append to column if placeholder not found
+              column.append(
+                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+              );
+            }
             editor.trigger("component:update", column);
             return;
           }
@@ -335,10 +508,36 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           try {
             const view = col.getView?.();
             if (view?.el?.querySelector?.(".image-click-area")) {
-              col.components().reset();
-              col.append(
-                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
-              );
+              // Find the specific component within this column that is the placeholder
+              const placeholderComp = col.components().find((c) => {
+                try {
+                  return c.getView()?.el?.querySelector(".image-click-area");
+                } catch {
+                  return false;
+                }
+              });
+
+              if (placeholderComp) {
+                const index = col.components().indexOf(placeholderComp);
+                isUnwrapping.current = true;
+                try {
+                  placeholderComp.remove();
+                  col
+                    .components()
+                    .add(
+                      `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                      { at: index }
+                    );
+                } finally {
+                  isUnwrapping.current = false;
+                }
+              } else {
+                // Fallback: replace whole column only if individual component look-up fails
+                col.components().reset();
+                col.append(
+                  `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+                );
+              }
               editor.trigger("component:update", col);
               break;
             }
@@ -348,9 +547,71 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       };
       img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      // alert("Upload failed. Using local fallback.");
+    }
     e.target.value = "";
+  };
+
+  const handleToolbarLinkConfirm = () => {
+    let url = linkModalUrl;
+    if (
+      url &&
+      !url.includes("://") &&
+      !url.startsWith("#") &&
+      !url.startsWith("/") &&
+      !url.startsWith("mailto:") &&
+      !url.startsWith("tel:")
+    ) {
+      url = "https://" + url;
+    }
+
+    const editor = gjsInstance.current;
+    const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
+
+    if (editor) {
+      const comp = currentCompRef.current;
+      if (comp) {
+        const getCompHtml = (c) =>
+          c.components().length > 0 ? c.getInnerHTML() : c.get("content") || "";
+        const baseContent = currentRteContentRef.current || getCompHtml(comp);
+        const finalUrl = url || "#";
+        const linkText = linkModalText || "Link";
+
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = baseContent;
+
+        const placeholderLink =
+          tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+          tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+        if (placeholderLink) {
+          placeholderLink.href = finalUrl;
+          placeholderLink.target = "_blank";
+          placeholderLink.style.color = "#1570EF";
+          placeholderLink.style.textDecoration = "underline";
+          placeholderLink.textContent = linkText;
+        }
+
+        const newContent = tempDiv.innerHTML;
+        comp.components().reset();
+        comp.set("content", newContent);
+
+        const view = comp.getView?.();
+        if (view && typeof view.render === "function") {
+          view.render();
+        } else {
+          editor.trigger("component:update", comp);
+        }
+      }
+    }
+
+    savedRangeRef.current = null;
+    currentCompRef.current = null;
+    currentRteContentRef.current = null;
+    setIsLinkModalOpen(false);
+    setLinkModalText("");
+    setLinkModalUrl("");
   };
 
   useEffect(() => {
@@ -422,11 +683,23 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       showDevices: false,
       panels: { defaults: [] },
       canvasCss: `
-                html, body { margin: 0; height: 100%; width: 100%; overflow-x: hidden; }
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; font-family: 'Inter', sans-serif; }
                 body {
                   min-height: 100%;
                   word-break: break-word;
                   overflow-wrap: break-word;
+                }
+                .attachment-container {
+                  width: 60% !important;
+                  margin-left: 0;
+                  margin-right: auto;
+                }
+                @media only screen and (max-width: 480px) {
+                  .attachment-container {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                  }
                 }
                 [data-gjs-type] { min-height: 20px; }
 
@@ -437,6 +710,40 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   outline: none !important;
                   border: none !important;
                   box-shadow: none !important;
+                }
+
+                /* Override GrapesJS default empty component placeholder (black box with </> icon) */
+                [data-gjs-type="mj-image"].gjs-no-app {
+                  background-image: none !important;
+                  background-color: #F6F7F9 !important;
+                  border: 1px dashed #1570EF !important;
+                  border-radius: 8px !important;
+                  height: 116px !important;
+                  width: 100% !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                  outline: none !important;
+                }
+                [data-gjs-type="mj-image"].gjs-no-app::before {
+                  content: "" !important;
+                  display: block !important;
+                  width: 24px !important;
+                  height: 24px !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M16 5H22' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M19 2V8' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 11.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H12.5' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 14.9999L17.914 11.9139C17.5389 11.539 17.0303 11.3284 16.5 11.3284C15.9697 11.3284 15.4611 11.539 15.086 11.9139L6 20.9999' stroke='%23606E80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-repeat: no-repeat !important;
+                  background-position: center !important;
+                }
+                [data-gjs-type="mj-image"].gjs-no-app::after {
+                  content: "Empty Image" !important;
+                  display: block !important;
+                  text-align: center !important;
+                  font-size: 14px !important;
+                  font-weight: 500 !important;
+                  color: #404B5A !important;
+                  font-family: Inter, sans-serif !important;
+                  margin-top: 6px !important;
                 }
 
                 /* ── Bullet / ordered-list fix ─────────────────────────────────
@@ -457,6 +764,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   list-style-type: disc;
                   padding-left: 0;
                   margin-left: 20px;
+                  text-align: left !important;
                 }
                 ol {
                   list-style-type: decimal;
@@ -464,6 +772,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 li {
                   display: list-item !important;
                   overflow: visible !important;
+                  text-align: left !important;
                 }
                 .list-content-cell p, .list-content-cell div {
                   display: inline !important;
@@ -472,7 +781,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
                   .list-item-row {
                     display: flex !important;
-                    align-items: center !important;
                   }
 
                 /* Hide scrollbar track */
@@ -504,10 +812,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
                 [data-type="row-frame-column"][data-is-empty="true"] {
                   position: relative !important;
-                  background: white !important;
-                  border: none !important;
-                  min-height: 80px !important;
+                  background: transparent !important;
+                  border: 1px dashed transparent !important;
+                  min-height: 100px !important;
                   box-sizing: border-box !important;
+                  cursor: pointer !important;
+                  transition: all 0.2s ease !important;
+                }
+
+                [data-type="row-frame-column"][data-is-empty="true"]:hover {
+                  background: transparent !important;
+                  border-color: #1570ef !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::before {
@@ -515,13 +830,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   position: absolute !important;
                   top: 50% !important;
                   left: 50% !important;
-                  transform: translate(-50%, -22px) !important;
-                  width: 20px !important;
-                  height: 20px !important;
+                  transform: translate(-50%, -24px) !important;
+                  width: 24px !important;
+                  height: 24px !important;
                   display: block !important;
-                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M4 12H20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%231570EF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
                   background-size: contain !important;
                   background-repeat: no-repeat !important;
+                  opacity: 0.7 !important;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"]::after {
@@ -529,14 +845,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   position: absolute !important;
                   top: 50% !important;
                   left: 50% !important;
-                  transform: translate(-50%, 6px) !important;
+                  transform: translate(-50%, 8px) !important;
                   font-family: Inter, Arial, sans-serif !important;
-                  font-size: 14px !important;
+                  font-size: 13px !important;
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
-                  white-space: nowrap !important;
+                  white-space: normal !important;
+                  text-align: center !important;
+                  width: 90% !important;
                   box-sizing: border-box !important;
+                  opacity: 0.8 !important;
                 }
 
                 /* Column Frame Placeholder Styles */
@@ -548,39 +867,66 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
                 [data-type="column-frame-section"][data-is-empty="true"],
                 [data-type="column-frame-column"][data-is-empty="true"] {
-                  display: flex !important;
-                  flex-direction: column !important;
-                  align-items: center !important;
-                  justify-content: center !important;
-                  gap: 8px !important;
-                  background: white !important;
-                  border: none !important;
-                  min-height: 80px !important;
-                  text-align: center !important;
+                  position: relative !important;
+                  background: transparent !important;
+                  border: 1px dashed transparent !important;
+                  min-height: 100px !important;
                   box-sizing: border-box !important;
+                  cursor: pointer !important;
+                  transition: all 0.2s ease !important;
+                }
+
+                [data-type="column-frame-section"][data-is-empty="true"]:hover,
+                [data-type="column-frame-column"][data-is-empty="true"]:hover {
+                  background: transparent !important;
+                  border-color: #1570ef !important;
                 }
 
                 [data-type="column-frame-section"][data-is-empty="true"]::before,
                 [data-type="column-frame-column"][data-is-empty="true"]::before {
-                  content: "";
-                  width: 20px;
-                  height: 20px;
-                  display: block;
-                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'><path d='M3.33301 9.99992H16.6663M3.33301 4.99992C3.33301 4.55789 3.5086 4.13397 3.82116 3.82141C4.13372 3.50885 4.55765 3.33325 4.99967 3.33325H14.9997C15.4417 3.33325 15.8656 3.50885 16.1782 3.82141C16.4907 4.13397 16.6663 4.55789 16.6663 4.99992V14.9999C16.6663 15.4419 16.4907 15.8659 16.1782 16.1784C15.8656 16.491 15.4417 16.6666 14.9997 16.6666H4.99967C4.55765 16.6666 4.13372 16.491 3.82116 16.1784C3.5086 15.8659 3.33301 15.4419 3.33301 14.9999V4.99992Z' stroke='%23555F75' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-                  background-size: contain;
-                  background-repeat: no-repeat;
+                  content: "" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, -24px) !important;
+                  width: 24px !important;
+                  height: 24px !important;
+                  display: block !important;
+                  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M12 4V20M4 6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V18C20 18.5304 19.7893 19.0391 19.4142 19.4142C19.0391 19.7893 18.5304 20 18 20H6C5.46957 20 4.96086 19.7893 4.58579 19.4142C4.21071 19.0391 4 18.5304 4 18V6Z' stroke='%231570EF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+                  background-size: contain !important;
+                  background-repeat: no-repeat !important;
+                  opacity: 0.7 !important;
                 }
 
                 [data-type="column-frame-section"][data-is-empty="true"]::after,
                 [data-type="column-frame-column"][data-is-empty="true"]::after {
                   content: "Drag and drop items here to stack them in columns" !important;
+                  position: absolute !important;
+                  top: 50% !important;
+                  left: 50% !important;
+                  transform: translate(-50%, 8px) !important;
                   font-family: Inter, Arial, sans-serif !important;
-                  font-size: 14px !important;
+                  font-size: 13px !important;
                   color: #4D5761 !important;
                   font-weight: 500 !important;
                   display: block !important;
-                  max-width: 100% !important;
+                  white-space: normal !important;
+                  text-align: center !important;
+                  width: 90% !important;
                   box-sizing: border-box !important;
+                  opacity: 0.8 !important;
+                }
+
+                /* First section top border-radius */
+                [data-gjs-type="mj-section"]:first-child {
+                  border-top-left-radius: 10px !important;
+                  border-top-right-radius: 10px !important;
+                }
+
+                /* Enable pointer events for links in editor so we can detect clicks */
+                a { 
+                  cursor: pointer !important;
+                  pointer-events: auto !important;
                 }
             `,
       plugins: [mjmlPlugin],
@@ -645,10 +991,20 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
         // mj-section gets 20px all-side padding; everything else gets 0px.
         const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
-          ? { padding: "0px", margin: "0px", width: "100%" }
+          ? {
+              padding: "0px",
+              margin: "0px",
+              width: "100%",
+              "font-family": "Inter"
+            }
           : typeName === "mj-section"
-            ? { padding: "20px", margin: "0px", width: "100%" }
-            : {};
+            ? {
+                padding: "20px",
+                margin: "0px",
+                width: "100%",
+                "font-family": "Inter"
+              }
+            : { "font-family": "Inter" };
 
         editor.Components.addType(typeName, {
           model: {
@@ -665,11 +1021,40 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         });
       });
 
+      // ── Extend mj-text stylable to include 'width' ────────────────────────
+      // grapesjs-mjml's renderStyle() only applies CSS to the component's DOM
+      // element for properties listed in the `stylable` array.  'width' is NOT
+      // in mj-text's default stylable list, so width changes had no visual
+      // effect.  Adding it here lets the canvas reflect per-item width when a
+      // mj-text sits inside a row-frame-column.
+      const mjTextType = editor.Components.getType("mj-text");
+      if (mjTextType) {
+        const existingStylable =
+          mjTextType.model.prototype.defaults.stylable || [];
+        if (!existingStylable.includes("width")) {
+          editor.Components.addType("mj-text", {
+            model: {
+              defaults: {
+                stylable: [...existingStylable, "width", "max-width"]
+              }
+            }
+          });
+        }
+      }
+
       const patchInstance = (comp) => {
         const type = comp.get("type");
         const inFrame =
           COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
-        comp.set({ droppable: resolveDroppable(comp), draggable: !inFrame });
+        const isSignature =
+          comp.getAttributes?.()?.["data-type"] === "signature-section";
+        const isUnsubscribe =
+          comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
+
+        comp.set({
+          droppable: resolveDroppable(comp),
+          draggable: !inFrame && !isSignature && !isUnsubscribe
+        });
 
         if (type === "mj-section") {
           comp.addAttributes({ padding: "20px", margin: "0px" });
@@ -714,9 +1099,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     // ── Signature-section reconciler ──────────────────────────────────────────
     // Ensures the "Add Signature" section is always present at the bottom
     // whenever there is real content, and absent when the canvas is empty.
+    // Set suppressSigReconcile = true before calling setComponents() during
+    // a template import so the reconciler does not add a signature mid-load.
+    const suppressSigReconcile = { current: false };
     const isEnsuringSig = { current: false };
     let sigTimer = null;
     const scheduleSignatureReconcile = () => {
+      if (suppressSigReconcile.current) return;
       if (sigTimer) clearTimeout(sigTimer);
       sigTimer = setTimeout(() => {
         sigTimer = null;
@@ -738,35 +1127,54 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (!mjBody) return;
 
           let existingSig = null;
+          let existingUnsubscribe = null;
           const realSections = [];
           mjBody.components().each((c) => {
             if (c.get("type") === "textnode") return;
-            if (c.getAttributes()?.["data-type"] === "signature-section") {
+            const type = c.getAttributes()?.["data-type"];
+            if (type === "signature-section") {
               existingSig = c;
+            } else if (type === "unsubscribe-section") {
+              existingUnsubscribe = c;
             } else {
               realSections.push(c);
             }
           });
 
-          if (realSections.length === 0) {
-            // No real content — remove sig if present
-            if (existingSig) existingSig.remove();
+          if (
+            realSections.length === 0 &&
+            !existingSig &&
+            !existingUnsubscribe
+          ) {
             return;
           }
 
-          // Real content exists — sig must be the last child
+          // Real content exists — sig and unsubscribe must be at the end
           const allNonText = [];
           mjBody.components().each((c) => {
             if (c.get("type") !== "textnode") allNonText.push(c);
           });
-          const lastComp = allNonText[allNonText.length - 1];
+          const n = allNonText.length;
+          const lastComp = n > 0 ? allNonText[n - 1] : null;
+          const secondLastComp = n > 1 ? allNonText[n - 2] : null;
 
-          if (!existingSig) {
-            mjBody.append(SIGNATURE_SECTION_HTML);
-          } else if (lastComp !== existingSig) {
-            // Sig exists but is not last — remove and re-append at the end
-            existingSig.remove();
-            mjBody.append(SIGNATURE_SECTION_HTML);
+          // If signature or unsubscribe is missing, or they are not in the right order at the end:
+          if (
+            !existingSig ||
+            !existingUnsubscribe ||
+            lastComp !== existingUnsubscribe ||
+            secondLastComp !== existingSig
+          ) {
+            if (!existingSig) {
+              mjBody.append(SIGNATURE_SECTION_HTML);
+            } else {
+              mjBody.append(existingSig);
+            }
+            if (!existingUnsubscribe) {
+              mjBody.append(UNSUBSCRIBE_SECTION_HTML);
+            } else {
+              mjBody.append(existingUnsubscribe);
+            }
           }
         } finally {
           isEnsuringSig.current = false;
@@ -798,8 +1206,93 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (!parent) return;
           const parentType = parent.get("type");
 
+          // ── Case 0: Deep nesting inside a frame ──────────────────
+          // If a section is dropped inside a frame but not directly into
+          // its primary container (e.g. dropped inside an mj-text),
+          // we force unwrap it into the frame's container.
+          const frameContainer = findNearestFrame(component);
+          if (
+            type === "mj-section" &&
+            frameContainer &&
+            parent !== frameContainer
+          ) {
+            // EXEMPT: If it's a Column Frame, move it to the root of the frame container but do NOT unwrap it.
+            // HOWEVER, if the parent is already an mj-column (part of a frame), we want to RETAIN that nesting
+            // for multi-level recursive structures.
+            if (
+              component.getAttributes()?.["data-type"] ===
+              "column-frame-section"
+            ) {
+              if (parentType === "mj-column") {
+                return; // Stay where you are (in the column)
+              }
+              // Wrap in mj-column so it participates in side-by-side balancing
+              const newCol = frameContainer
+                .components()
+                .add(
+                  `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                );
+              newCol.append(component);
+              return;
+            }
+
+            const fcType = frameContainer.get("type");
+            const fcDt = frameContainer.getAttributes?.()["data-type"];
+
+            if (fcType === "mj-column") {
+              const fcDt = frameContainer.getAttributes?.()["data-type"];
+
+              // SMART TARGETING for Case 0: If we are deep-nested, we might want
+              // to snap to the Column Frame instead of the Row Frame if we are dropping a section.
+              if (
+                fcDt === "row-frame-column" &&
+                isInsideColumnFrame(frameContainer)
+              ) {
+                const columnFrame = findNearestColumnFrame(frameContainer);
+                if (columnFrame) {
+                  columnFrame.append(component);
+                  return;
+                }
+              }
+
+              // Target is row-frame-column or similar
+              const leaves = collectLeafContent(component);
+              clearFramePlaceholder(frameContainer);
+              leaves.forEach((leaf) => frameContainer.append(leaf.clone()));
+              component.remove();
+              return;
+            } else if (fcDt === "column-frame-section") {
+              // Target is column-frame-section
+              const innerCols = [];
+              const directContent = [];
+              component.components().each((c) => {
+                if (c.get("type") === "mj-column") innerCols.push(c.clone());
+                else directContent.push(c.clone());
+              });
+              innerCols.forEach((col) => frameContainer.append(col));
+              if (directContent.length > 0) {
+                const newCol = frameContainer
+                  .components()
+                  .add(
+                    `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                  );
+                directContent.forEach((c) => newCol.append(c));
+              }
+              component.remove();
+              return;
+            }
+          }
+
           // ── Case 1: mj-section landed inside mj-column ───────────
           if (type === "mj-section" && parentType === "mj-column") {
+            // EXEMPT: If it's a Column Frame, allow it to stay inside the column (useful for nesting in row-frames)
+            if (
+              component.getAttributes()?.["data-type"] ===
+              "column-frame-section"
+            ) {
+              return;
+            }
+
             const leaves = collectLeafContent(component);
             clearFramePlaceholder(parent);
             leaves.forEach((leaf) => parent.append(leaf.clone()));
@@ -809,6 +1302,21 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
           // ── Case 2: mj-section inside another mj-section ─────────
           if (type === "mj-section" && parentType === "mj-section") {
+            // EXEMPT: If it's a Column Frame, allow it to stay inside the section (useful for nesting)
+            // Wrap in mj-column so it participates in side-by-side balancing
+            if (
+              component.getAttributes()?.["data-type"] ===
+              "column-frame-section"
+            ) {
+              const newCol = parent
+                .components()
+                .add(
+                  `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                );
+              newCol.append(component);
+              return;
+            }
+
             const innerCols = [];
             const directContent = [];
             component.components().each((c) => {
@@ -918,8 +1426,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             if (type && type !== "textnode" && type !== "text") {
               const inFrame =
                 COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+              const isSignature =
+                comp.getAttributes?.()?.["data-type"] === "signature-section";
+              const isUnsubscribe =
+                comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
+
               comp.set({
-                draggable: !inFrame,
+                draggable: !inFrame && !isSignature && !isUnsubscribe,
                 droppable: resolveDroppable(comp)
               });
             }
@@ -936,7 +1449,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       const type = comp.get("type");
 
       // Skip processing for the signature section — it's managed by the reconciler
-      if (comp.getAttributes()?.["data-type"] === "signature-section") {
+      if (
+        comp.getAttributes()?.["data-type"] === "signature-section" ||
+        comp.getAttributes()?.["data-type"] === "unsubscribe-section"
+      ) {
         comp.set({ draggable: false, droppable: false });
         return;
       }
@@ -1024,10 +1540,34 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       if (dt !== "frame-placeholder-ui") {
         scheduleReconcile();
         // Don't re-trigger sig reconcile when the sig itself is being removed
-        if (dt !== "signature-section") {
+        if (dt !== "signature-section" && dt !== "unsubscribe-section") {
           scheduleSignatureReconcile();
         }
       }
+
+      // Recursive cleanup of empty parents (mj-section, mj-column)
+      // This prevents empty wrapper sections from lingering when their content is deleted.
+      if (isUnwrapping.current) return;
+
+      const parent = comp.parent();
+      if (parent) {
+        const type = parent.get("type");
+        const parentDt = parent.getAttributes?.()["data-type"];
+
+        // Only cleanup regular mj-column and mj-section containers that are now empty.
+        // We skip body, frames, signature-section, etc.
+        if (
+          (type === "mj-column" || type === "mj-section") &&
+          !parentDt &&
+          parent.components().length === 0
+        ) {
+          parent.remove();
+        }
+      }
+    });
+
+    editor.on("component:update", () => {
+      scheduleReconcile();
     });
 
     registerBlocks(editor);
@@ -1091,7 +1631,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         `;
     const gjsRoot = containerRef.current;
     if (gjsRoot) {
-      gjsRoot.style.position = "relative";
       gjsRoot.appendChild(overlay);
     }
 
@@ -1128,11 +1667,184 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     const attachedBodies = new WeakSet();
 
     editor.on("load", () => {
+      // ── Custom RTE Configuration ───────────────────────────────────────────
+      const rte = editor.RichTextEditor;
+
+      // Clear standard link action to avoid collision with built-in behavior
+      rte.remove("link");
+
+      const linkIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7c-2.8 0-5 2.2-5 5s2.2 5 5 5h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4c2.8 0 5-2.2 5-5s-2.2-5-5-5z"></path></svg>`;
+      const codeIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"></path></svg>`;
+      const superscriptIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.23 6L6.5 18H8.13L9.2 15.22H14.17L15.24 18H16.94L12.21 6H11.23ZM9.72 13.88L11.71 8.7L13.68 13.88H9.72Z"/><path d="M18.15 8.16C18.15 8.65 18.06 9.07 17.88 9.42C17.7 9.77 17.44 10.12 17.11 10.47L15.42 12.16V12.18H18.3V13H14.54V12.24L16.48 10.3C16.8 9.98 17.03 9.7 17.17 9.47C17.31 9.24 17.38 8.99 17.38 8.73C17.38 8.49 17.31 8.29 17.16 8.13C17.01 7.97 16.82 7.89 16.59 7.89C16.35 7.89 16.15 7.98 15.99 8.15C15.83 8.32 15.75 8.54 15.75 8.81H14.93C14.93 8.35 15.08 7.98 15.39 7.7C15.7 7.42 16.09 7.28 16.58 7.28C17.08 7.28 17.47 7.42 17.74 7.69C18.01 7.96 18.15 8.16 18.15 8.16Z"/></svg>`;
+      const subscriptIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.23 3L6.5 15H8.13L9.2 12.22H14.17L15.24 15H16.94L12.21 3H11.23ZM9.72 10.88L11.71 5.7L13.68 10.88H9.72Z"/><path d="M18.15 15.16C18.15 15.65 18.06 16.07 17.88 16.42C17.7 16.77 17.44 17.12 17.11 17.47L15.42 19.16V19.18H18.3V20H14.54V19.24L16.48 17.3C16.8 16.98 17.03 16.7 17.17 16.47C17.31 16.24 17.38 15.99 17.38 15.73C17.38 15.49 17.31 15.29 17.16 15.13C17.01 14.97 16.82 14.89 16.59 14.89C16.35 14.89 16.15 14.98 15.99 15.15C15.83 15.32 15.75 15.54 15.75 15.81H14.93C14.93 15.35 15.08 14.98 15.39 14.7C15.7 14.42 16.09 14.28 16.58 14.28C17.08 14.28 17.47 14.42 17.74 14.69C18.01 14.96 18.15 15.16 18.15 15.16Z"/></svg>`;
+
+      rte.add("superscript", {
+        icon: superscriptIcon,
+        attributes: { title: "Superscript" },
+        result: (rteInstance) => rteInstance.exec("superscript")
+      });
+
+      rte.add("subscript", {
+        icon: subscriptIcon,
+        attributes: { title: "Subscript" },
+        result: (rteInstance) => rteInstance.exec("subscript")
+      });
+
+      rte.add("code", {
+        icon: codeIcon,
+        attributes: { title: "Code Block" },
+        result: (rteInstance) => {
+          const selection = rteInstance.selection();
+          if (selection) {
+            rteInstance.insertHTML(
+              `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">${selection}</code>`
+            );
+          } else {
+            rteInstance.insertHTML(
+              `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">&nbsp;</code>`
+            );
+          }
+        }
+      });
+
+      rte.add("link", {
+        icon: linkIcon,
+        attributes: { title: "Link" },
+        result: (rteInstance) => {
+          const selection = rteInstance.selection();
+
+          const doc = rteInstance.el.ownerDocument;
+          const win = doc.defaultView;
+          const sel = win.getSelection();
+
+          console.log(
+            "[Link] result fired. rangeCount:",
+            sel.rangeCount,
+            "selection:",
+            selection
+          );
+
+          let plainText = "";
+          if (selection) {
+            plainText =
+              typeof selection === "string"
+                ? selection.replace(/<[^>]*>/g, "")
+                : selection.toString
+                  ? selection.toString()
+                  : "";
+          }
+
+          // Use execCommand('createLink') while the RTE is active and the
+          // selection is still valid. The browser wraps the selected text in
+          // <a href="__GJS_LINK_PLACEHOLDER__"> — we update the real URL on
+          // confirm. This is more reliable than inserting a span placeholder
+          // because execCommand handles partial selections, nested elements, etc.
+          const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
+          if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            if (range.collapsed) {
+              // Handle collapsed selection (just a cursor)
+              const placeholder = doc.createElement("a");
+              placeholder.href = PLACEHOLDER_URL;
+              placeholder.textContent = "\u200B"; // Zero-width space
+              placeholder.style.color = "#1570EF";
+              placeholder.style.textDecoration = "underline";
+              placeholder.target = "_blank";
+              range.insertNode(placeholder);
+            } else {
+              doc.execCommand("createLink", false, PLACEHOLDER_URL);
+              // Apply preview styles to the inserted link
+              const placeholderLink = rteInstance.el.querySelector(
+                `a[href="${PLACEHOLDER_URL}"]`
+              );
+              if (placeholderLink) {
+                placeholderLink.style.color = "#1570EF";
+                placeholderLink.style.textDecoration = "underline";
+                placeholderLink.target = "_blank";
+              }
+            }
+          }
+
+          setLinkModalText(plainText || "");
+          setLinkModalUrl("");
+          currentRteRef.current = rteInstance;
+          // Find the DEEPEST component whose view contains rteInstance.el.
+          // editor.getSelected() can return a parent (mj-column/mj-section)
+          // instead of the mj-text, which would corrupt the wrong component.
+          // Deepest-match search always resolves to the mj-text itself.
+          let editingComp = null;
+          (function searchDeep(c) {
+            try {
+              const viewEl = c.getView()?.el;
+              if (viewEl && viewEl.contains(rteInstance.el)) {
+                editingComp = c; // overwrite — deeper match is more specific
+                c.components().each(searchDeep);
+              }
+            } catch {
+              /* skip */
+            }
+          })(editor.Components.getWrapper());
+          if (!editingComp) editingComp = editor.getSelected();
+          currentCompRef.current = editingComp;
+          // Snapshot rte.el.innerHTML synchronously (contains the placeholder
+          // link). Used as fallback if GrapesJS hasn't synced to model yet.
+          currentRteContentRef.current = rteInstance.el
+            ? rteInstance.el.innerHTML
+            : null;
+          setLinkPopupData((prev) => ({ ...prev, el: null, isOpen: false }));
+          setIsLinkModalOpen(true);
+        }
+      });
+
       const body = editor.Canvas.getBody();
       if (attachedBodies.has(body)) return;
       attachedBodies.add(body);
 
-      // ── Canvas click handler ───────────────────────────────────────────────
+      // ── Canvas mousedown handler (using mousedown to catch before GrapesJS selection) ──
+      body.addEventListener("mousedown", (e) => {
+        // ── Hyperlink click ───────────────────────────────────────────────
+        const link = e.target.closest("a");
+        if (link) {
+          console.log("Link clicked in canvas:", link.href);
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Toggle behavior: if clicking the same link, close it
+          if (linkPopupData.isOpen && linkPopupData.el === link) {
+            setLinkPopupData((prev) => ({ ...prev, isOpen: false }));
+            return;
+          }
+
+          const rect = link.getBoundingClientRect();
+          const iframe = editor.Canvas.getFrameEl();
+          const iframeRect = iframe.getBoundingClientRect();
+
+          // Detect if there's enough space above the link (popup height ~150px)
+          const showBelow = rect.top < 150;
+
+          // Position popup relative to the viewport (for Portal)
+          setLinkPopupData({
+            isOpen: true,
+            top: showBelow
+              ? iframeRect.top + rect.bottom + 12
+              : iframeRect.top + rect.top - 12,
+            left: iframeRect.left + rect.left + rect.width / 2,
+            text: link.textContent,
+            url: link.getAttribute("href") || "",
+            el: link,
+            isBelow: showBelow
+          });
+          return;
+        } else {
+          // Close popup if clicking elsewhere
+          if (e.target.closest(".link-interaction-popup")) return;
+          setLinkPopupData((prev) =>
+            prev.isOpen ? { ...prev, isOpen: false, el: null } : prev
+          );
+        }
+      });
+
+      // ── Canvas click handler (for other elements) ──────────────────────────
       body.addEventListener("click", (e) => {
         // ── Image upload area click ───────────────────────────────────────
         if (e.target.closest(".image-click-area")) {
@@ -1202,7 +1914,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   grandParent
                     .components()
                     .add(
-                      `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#ffffff"></mj-section>`
+                      `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent"></mj-section>`
                     )
                 );
               }
@@ -1213,103 +1925,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
       });
 
-      // ── Handle external drop of placeholders ──────────────────────────────
-      body.addEventListener("dragover", (e) => {
-        if (e.target.isContentEditable) return;
-        const textData = e.dataTransfer.types.includes("text/plain");
-        if (textData) {
-          let targetEl =
-            e.target.closest && e.target.closest("[data-gjs-type]");
-          let comp =
-            targetEl && targetEl.id
-              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
-              : null;
-          if (comp) {
-            let current = comp;
-            while (current && current.get("type") !== "mj-text") {
-              current = current.parent();
-            }
-            if (current && current.get("type") === "mj-text") {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-            } else {
-              let container = comp;
-              while (
-                container &&
-                !["mj-column", "mj-section", "mj-body"].includes(
-                  container.get("type")
-                )
-              ) {
-                container = container.parent();
-              }
-              if (container) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-              }
-            }
-          }
-        }
-      });
-
-      body.addEventListener("drop", (e) => {
-        if (e.target.isContentEditable) return;
-        const text = e.dataTransfer.getData("text/plain");
-        if (text && text.trim().startsWith("$")) {
-          let targetEl =
-            e.target.closest && e.target.closest("[data-gjs-type]");
-          let comp =
-            targetEl && targetEl.id
-              ? editor.Components.getWrapper().find("#" + targetEl.id)[0]
-              : null;
-          if (comp) {
-            let current = comp;
-            while (current && current.get("type") !== "mj-text") {
-              current = current.parent();
-            }
-            if (current && current.get("type") === "mj-text") {
-              if (
-                current.getAttributes()["data-type"] === "frame-placeholder-ui"
-              ) {
-                let container = current.parent();
-                current.remove();
-                if (container) {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = "copy";
-                  container.append(
-                    `<mj-text padding="0px" margin="0px">${text}</mj-text>`
-                  );
-                }
-              } else {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-                const content = current.get("content") || "";
-                current.set("content", content + (content ? " " : "") + text);
-                editor.trigger("component:update", current);
-              }
-            } else {
-              let container = comp;
-              while (
-                container &&
-                !["mj-column", "mj-section", "mj-body"].includes(
-                  container.get("type")
-                )
-              ) {
-                container = container.parent();
-              }
-              if (container) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-
-                clearFramePlaceholder(container);
-
-                container.append(
-                  `<mj-text padding="0px" margin="0px">${text}</mj-text>`
-                );
-              }
-            }
-          }
-        }
-      });
+      // Handled natively by GrapesJS Sorter processing text/html drops.
 
       // ── Handle paste to clean up styles ──────────────────────────────────
       body.addEventListener("paste", (e) => {
@@ -1364,9 +1980,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const components = mjBody.components();
         if (components.length === 0) return false;
         const realComponents = components.filter(
-          (c) =>
-            c.get("type") !== "textnode" &&
-            c.getAttributes()?.["data-type"] !== "signature-section"
+          (c) => c.get("type") !== "textnode"
         );
         if (realComponents.length === 0) return false;
         if (realComponents.length === 1) {
@@ -1434,6 +2048,20 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (style["width"]) attributes["width"] = style["width"];
         if (style["height"]) attributes["height"] = style["height"];
 
+        if (style["padding-top"])
+          attributes["padding-top"] = style["padding-top"];
+        if (style["padding-right"])
+          attributes["padding-right"] = style["padding-right"];
+        if (style["padding-bottom"])
+          attributes["padding-bottom"] = style["padding-bottom"];
+        if (style["padding-left"])
+          attributes["padding-left"] = style["padding-left"];
+        if (style["padding"]) attributes["padding"] = style["padding"];
+
+        if (style["border"]) attributes["border"] = style["border"];
+        if (style["border-radius"])
+          attributes["border-radius"] = style["border-radius"];
+
         if (Object.keys(attributes).length > 0) {
           const currentAttrs = comp.getAttributes();
           const toUpdate = {};
@@ -1444,16 +2072,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           if (Object.keys(toUpdate).length > 0) comp.addAttributes(toUpdate);
         }
       });
-    });
-
-    // ── Redirect mj-column selection to its parent mj-section ────────────────
-    editor.on("component:selected", (cmp) => {
-      if (cmp && cmp.get("type") === "mj-column") {
-        const parentSection = cmp.parent();
-        if (parentSection && parentSection.get("type") === "mj-section") {
-          editor.select(parentSection);
-        }
-      }
     });
 
     // ── Auto-open image picker when a blank mj-image is selected ─────────────
@@ -1504,7 +2122,25 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         getEditor: () => editor,
         setDevice: (device) => editor.setDevice(device),
         runCommand: (command, options) => editor.runCommand(command, options),
-        getCompiledHtml: getCompiledHtmlFromCanvas
+        getCompiledHtml: getCompiledHtmlFromCanvas,
+        /**
+         * Load a full MJML string into the editor, replacing all current
+         * content. The signature-section reconciler is suppressed during the
+         * load and re-enabled immediately after so the import does not
+         * accidentally inject a signature mid-parse.
+         */
+        loadTemplate: (mjmlString) => {
+          suppressSigReconcile.current = true;
+          try {
+            editor.setComponents(mjmlString);
+          } finally {
+            // Re-enable after a short delay so any in-flight timers from
+            // setComponents() have already been skipped.
+            setTimeout(() => {
+              suppressSigReconcile.current = false;
+            }, 200);
+          }
+        }
       };
     }
 
@@ -1529,7 +2165,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         ".rightPanel",
         ".leftPanel",
         ".placeholderSection",
-        ".reusable-modal",
+        ".reusableModal",
         ".gjs-mdl-container",
         ".sp-container"
       ];
@@ -1546,28 +2182,322 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    <>
       <div
-        ref={containerRef}
-        id="gjs"
-        style={{ width: "100%", height: "100%", position: "relative" }}
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          zIndex: 999
+        }}
+      >
+        <div
+          ref={containerRef}
+          id="gjs"
+          style={{ width: "100%", height: "100%", position: "relative" }}
+        />
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          multiple
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={handleFileChange}
+        />
+        <input
+          type="file"
+          ref={imageInputRef}
+          style={{ display: "none" }}
+          accept="image/*"
+          onChange={handleImageChange}
+        />
+        {linkPopupData.isOpen &&
+          ReactDOM.createPortal(
+            <div
+              className={`link-interaction-popup ${
+                linkPopupData.isBelow ? "is-below" : ""
+              }`}
+              style={{
+                top: linkPopupData.top,
+                left: linkPopupData.left,
+                position: "fixed",
+                transform: linkPopupData.isBelow
+                  ? "translateX(-50%)"
+                  : "translateX(-50%) translateY(-100%)",
+                zIndex: 999999,
+                pointerEvents: "auto"
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="popup-content">
+                <div className="popup-header">
+                  <span className="link-text">{linkPopupData.text}</span>
+                  <button
+                    className="close-popup"
+                    onClick={() =>
+                      setLinkPopupData({ ...linkPopupData, isOpen: false })
+                    }
+                  >
+                    <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
+                      <path
+                        d="M9 3L3 9M3 3L9 9"
+                        stroke="#667085"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="popup-body">
+                  <a
+                    href={linkPopupData.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="link-url"
+                  >
+                    {linkPopupData.url}
+                  </a>
+                </div>
+                <div className="popup-footer">
+                  <button
+                    className="edit-btn"
+                    onClick={() => {
+                      setLinkModalText(linkPopupData.text);
+                      setLinkModalUrl(linkPopupData.url);
+                      setIsLinkModalOpen(true);
+                      setLinkPopupData({ ...linkPopupData, isOpen: false });
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="remove-btn"
+                    onClick={() => {
+                      const link = linkPopupData.el;
+                      const editor = gjsInstance.current;
+
+                      // Find the deepest component containing this link (usually an mj-text)
+                      const comp = editor.Components.getWrapper()
+                        .find("*")
+                        .filter((c) => {
+                          try {
+                            return c.getView()?.el?.contains(link);
+                          } catch {
+                            return false;
+                          }
+                        })
+                        .pop();
+
+                      if (comp) {
+                        const getCompHtml = (c) =>
+                          c.components().length > 0
+                            ? c.getInnerHTML()
+                            : c.get("content") || "";
+                        const currentContent = getCompHtml(comp);
+
+                        const tempDiv = document.createElement("div");
+                        tempDiv.innerHTML = currentContent;
+
+                        const href = link.getAttribute("href");
+                        const text = link.textContent.trim();
+
+                        const matchingLinks = Array.from(
+                          tempDiv.querySelectorAll("a")
+                        ).filter(
+                          (a) =>
+                            a.getAttribute("href") === href &&
+                            a.textContent.trim() === text
+                        );
+
+                        if (matchingLinks.length > 0) {
+                          const targetLink = matchingLinks[0];
+                          const parent = targetLink.parentNode;
+                          while (targetLink.firstChild) {
+                            parent.insertBefore(
+                              targetLink.firstChild,
+                              targetLink
+                            );
+                          }
+                          parent.removeChild(targetLink);
+
+                          const newContent = tempDiv.innerHTML;
+                          comp.components().reset();
+                          comp.set("content", newContent);
+
+                          const view = comp.getView?.();
+                          if (view && typeof view.render === "function") {
+                            view.render();
+                          } else {
+                            editor.trigger("component:update", comp);
+                          }
+                        }
+                        toast.success(
+                          "Link Removed",
+                          "The link has been successfully removed from the text."
+                        );
+                      }
+
+                      setLinkPopupData({
+                        isOpen: false,
+                        top: 0,
+                        left: 0,
+                        text: "",
+                        url: "",
+                        el: null
+                      });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div className="popup-arrow"></div>
+            </div>,
+            document.body
+          )}
+      </div>
+
+      <LinkModal
+        isOpen={isLinkModalOpen}
+        onClose={() => {
+          // On cancel: unwrap the placeholder link, restoring the plain text
+          const comp = currentCompRef.current;
+          const editor = gjsInstance.current;
+          const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
+          if (comp && editor) {
+            const getCompHtml = (c) =>
+              c.components().length > 0
+                ? c.getInnerHTML()
+                : c.get("content") || "";
+            const currentContent =
+              currentRteContentRef.current || getCompHtml(comp);
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = currentContent;
+
+            const placeholderLink =
+              tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+              tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+            if (placeholderLink) {
+              const parent = placeholderLink.parentNode;
+              while (placeholderLink.firstChild) {
+                parent.insertBefore(
+                  placeholderLink.firstChild,
+                  placeholderLink
+                );
+              }
+              parent.removeChild(placeholderLink);
+            }
+
+            const restoredContent = tempDiv.innerHTML;
+            comp.components().reset();
+            comp.set("content", restoredContent);
+            const view = comp.getView?.();
+            if (view && typeof view.render === "function") {
+              view.render();
+            } else {
+              editor.trigger("component:update", comp);
+            }
+          }
+          currentCompRef.current = null;
+          currentRteContentRef.current = null;
+          savedRangeRef.current = null;
+          setIsLinkModalOpen(false);
+          // Also clear popup ref if we were editing an existing link
+          setLinkPopupData((prev) => ({ ...prev, el: null }));
+        }}
+        onConfirm={() => {
+          try {
+            if (linkPopupData.el) {
+              // Updating existing link
+              const link = linkPopupData.el;
+              link.href = linkModalUrl;
+              link.textContent = linkModalText;
+
+              // Trigger GrapesJS update
+              const editor = gjsInstance.current;
+              // Find the deepest component containing this link
+              const comp = editor.Components.getWrapper()
+                .find("*")
+                .filter((c) => {
+                  try {
+                    return c.getView()?.el?.contains(link);
+                  } catch {
+                    return false;
+                  }
+                })
+                .pop();
+              if (comp) {
+                const getCompHtml = (c) =>
+                  c.components().length > 0
+                    ? c.getInnerHTML()
+                    : c.get("content") || "";
+                const currentContent = getCompHtml(comp);
+
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = currentContent;
+
+                const oldHref = link.getAttribute("href");
+                const oldText = link.textContent.trim();
+
+                const matchingLinks = Array.from(
+                  tempDiv.querySelectorAll("a")
+                ).filter(
+                  (a) =>
+                    a.getAttribute("href") === oldHref &&
+                    a.textContent.trim() === oldText
+                );
+
+                if (matchingLinks.length > 0) {
+                  const targetLink = matchingLinks[0];
+                  targetLink.href = linkModalUrl;
+                  targetLink.textContent = linkModalText;
+
+                  const newContent = tempDiv.innerHTML;
+                  comp.components().reset();
+                  comp.set("content", newContent);
+
+                  const view = comp.getView?.();
+                  if (view && typeof view.render === "function") {
+                    view.render();
+                  } else {
+                    editor.trigger("component:update", comp);
+                  }
+                } else {
+                  // Fallback: update the live DOM link and let GrapesJS re-render
+                  link.href = linkModalUrl;
+                  link.textContent = linkModalText;
+                  editor.trigger("component:update", comp);
+                }
+              }
+            } else {
+              handleToolbarLinkConfirm();
+            }
+          } finally {
+            setIsLinkModalOpen(false);
+            setLinkPopupData({
+              isOpen: false,
+              top: 0,
+              left: 0,
+              text: "",
+              url: "",
+              el: null,
+              isBelow: false
+            });
+            setLinkModalText("");
+            setLinkModalUrl("");
+          }
+        }}
+        formName={linkModalText}
+        setFormName={setLinkModalText}
+        linkValue={linkModalUrl}
+        setLinkValue={setLinkModalUrl}
+        title={linkPopupData.el ? "Edit Link" : "Add Link"}
+        textLabel="Link Text"
+        confirmText={linkPopupData.el ? "Edit" : "Send"}
+        urlLabel={linkPopupData.el ? "Edit Link" : "Add Link"}
       />
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: "none" }}
-        multiple
-        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        onChange={handleFileChange}
-      />
-      <input
-        type="file"
-        ref={imageInputRef}
-        style={{ display: "none" }}
-        accept="image/*"
-        onChange={handleImageChange}
-      />
-    </div>
+    </>
   );
 }
 
@@ -1588,7 +2518,7 @@ function registerBlocks(editor) {
   bm.add("column", {
     label: "Frame - Column",
     category: "Blocks",
-    content: `<mj-section data-type="column-frame-section" data-is-empty="true" full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#ffffff">
+    content: `<mj-section data-type="column-frame-section" data-is-empty="true" full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent">
     </mj-section>`
   });
 
@@ -1610,8 +2540,8 @@ function registerBlocks(editor) {
     category: "Content",
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
-        <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
-          Paragraph content
+        <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
+          Paragraph Text
         </mj-text>
       </mj-column>
     </mj-section>`
@@ -1623,7 +2553,7 @@ function registerBlocks(editor) {
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%" >
         <mj-text padding="0px" margin="0px">
-          <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 190px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
+          <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M19 2V8" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1643,7 +2573,7 @@ function registerBlocks(editor) {
     category: "Content",
     content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
-        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center">
+        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
           Click Here
         </mj-button>
       </mj-column>
@@ -1664,7 +2594,7 @@ function registerBlocks(editor) {
     label: "Attachment",
     category: "Content",
     content: `
-      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="16px" margin="0px" width="100%" background-color="#ffffff" align="center" justify="center">
+      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="16px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-text align="center" padding="10px" margin="0px">
             <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
@@ -1685,7 +2615,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
+          <mj-text font-family="Inter" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
             Your Header Here
           </mj-text>
         </mj-column>
@@ -1696,9 +2626,9 @@ function registerBlocks(editor) {
     label: "Text Block",
     category: "Components",
     content: `
-      <mj-section full-width="full-width" background-color="#ffffff" padding="0px" margin="0px" width="100%">
+      <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
             Add your content here. This is a paragraph of text.
           </mj-text>
         </mj-column>
@@ -1711,7 +2641,7 @@ function registerBlocks(editor) {
     content: `
       <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#">
+          <mj-button font-family="Inter" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>
@@ -1725,7 +2655,7 @@ function registerBlocks(editor) {
       <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center" />
-          <mj-text font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
             Add Image.
           </mj-text>
         </mj-column>

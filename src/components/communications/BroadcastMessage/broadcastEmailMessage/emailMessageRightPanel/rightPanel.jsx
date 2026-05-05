@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import emailjs from "@emailjs/browser";
 import { useToast } from "../../../../../hooks/useToast";
+import {
+  uploadToCloudinary,
+  IS_CLOUDINARY_CONFIGURED,
+  uploadBase64ToCloudinary
+} from "../../../../../utils/uploadUtils";
 
 import "./style.scss";
 import PreviewModal from "../emailMessagePreviewModal/previewModal";
@@ -10,7 +16,10 @@ import { BackgroundContainer } from "./backgroundContainer/backgroundContainer";
 import { TextStyleContainer } from "./textStyleContainer/textStyleContainer";
 import BorderContainer from "./borderContainer";
 import { PaddingContainer } from "./paddingContainer";
+import { DimensionContainer } from "./dimensionContainer/DimensionContainer";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
+import { ButtonSection } from "./buttonSection/index";
+import { ImageSection } from "./imageSection/index";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas iframe helpers
@@ -111,7 +120,11 @@ function focusFirstListCell(editor) {
       range.setStartBefore(firstChild);
       range.collapse(true);
     } else {
-      range.selectNodeContents(cell);
+      // setStart on the child node itself (not the element container) so
+      // range.startContainer is the text node, not cell. If it were cell,
+      // pressing Enter would extractContents from offset 0 of the element,
+      // capturing the entire cell content into the new row.
+      range.setStart(firstChild, 0);
       range.collapse(true);
     }
 
@@ -129,22 +142,23 @@ function buildListHtml({ tag, lines, color, fontSize, fontFamily }) {
   const rows = lines
     .map((line, i) => {
       const marker = isOrdered
-        ? `<span class="list-marker-cell" style="flex-shrink:0;width:20px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">${i + 1}.&nbsp;</span>`
-        : `<span class="list-marker-cell" style="flex-shrink:0;width:20px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">&bull;&nbsp;</span>`;
+        ? `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5; padding-right:16px">${i + 1}.&nbsp;</div>`
+        : `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5; padding-right:16px">&bull;</div>`;
 
-      return `<div class="list-item-row" style="display:flex;align-items:center;width:100%;padding:0px 0;">
+      return `<div class="list-item-row" style="display:flex;width:100%;padding:0px 0;">
         ${marker}
-        <span class="list-content-cell" style="flex:1;color:${color};font-size:${fontSize};font-family:${fontFamily};line-height:1.5;">${line}</span>
+        <div class="list-content-cell" style="flex:1;color:${color};font-size:${fontSize};font-family:${fontFamily};line-height:1.5;text-align:left;">${line}</div>
       </div>`;
     })
     .join("\n");
 
-  return `<div data-list-type="${tag}" style="width:100%; display: flex; flex-direction: column;  align-items: center; justify-content: center;">${rows}</div>`;
+  return `<div data-list-type="${tag}" style="width:100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding-left: 20px; box-sizing: border-box;">${rows}</div>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // extractLinesFromContent
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────
+// ─────────────────────────────────────────────────────
 function extractLinesFromContent(html, doc) {
   const d = doc || window.document;
   const tmp = d.createElement("div");
@@ -156,6 +170,13 @@ function extractLinesFromContent(html, doc) {
     return text ? [text] : ["List item"];
   }
 
+  // Strip leading and trailing <br> tags that MJML injects around <p> elements.
+  const cleanLine = (s) =>
+    s
+      .replace(/^(\s*<br\s*\/?>\s*)+/gi, "")
+      .replace(/(\s*<br\s*\/?>\s*)+$/gi, "")
+      .trim();
+
   // 1. Our div-based list format
   const listRows = tmp.querySelectorAll(
     "div.list-item-row, div[data-list-type] div.list-item-row"
@@ -164,7 +185,7 @@ function extractLinesFromContent(html, doc) {
     const lines = [];
     listRows.forEach((row) => {
       const cell = row.querySelector(".list-content-cell");
-      if (cell) lines.push(cell.innerHTML.trim());
+      if (cell) lines.push(cleanLine(cell.innerHTML.trim()));
     });
     const filtered = lines.filter(Boolean);
     if (filtered.length > 0) return filtered;
@@ -174,7 +195,7 @@ function extractLinesFromContent(html, doc) {
   const lis = tmp.querySelectorAll("li");
   if (lis.length > 0) {
     return Array.from(lis)
-      .map((li) => li.innerHTML.trim())
+      .map((li) => cleanLine(li.innerHTML.trim()))
       .filter(Boolean);
   }
 
@@ -182,7 +203,7 @@ function extractLinesFromContent(html, doc) {
   const blocks = tmp.querySelectorAll("h1, h2, h3, h4, h5, h6, p, div");
   if (blocks.length > 0) {
     const lines = Array.from(blocks)
-      .map((b) => b.innerHTML.trim())
+      .map((b) => cleanLine(b.innerHTML.trim()))
       .filter(Boolean);
     if (lines.length > 0) return lines;
   }
@@ -245,6 +266,64 @@ function clearInternalStyles(html, doc, styles = []) {
 
   Array.from(tmp.childNodes).forEach(cleanNode);
   return tmp.innerHTML;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// minifyHTML
+// ─────────────────────────────────────────────────────────────────────────────
+function minifyHTML(html) {
+  if (!html) return "";
+  return html
+    .replace(/<!--[\s\S]*?-->/g, "") // Remove HTML comments (incl. MSO conditionals)
+    .replace(/\s+/g, " ") // Collapse whitespace
+    .replace(/>\s+</g, "><") // Remove whitespace between tags
+    .trim();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// prepareHtmlForEmail
+// Strips GrapesJS canvas editor artifacts (style blocks, data-gjs-* attributes,
+// scripts) that are injected into the canvas iframe but are NOT part of the
+// actual email HTML.  This typically saves 20-40 KB before the EmailJS check.
+// ─────────────────────────────────────────────────────────────────────────────
+function prepareHtmlForEmail(rawHtml) {
+  if (!rawHtml) return "";
+
+  let html = rawHtml;
+
+  // Remove <style> blocks that contain GrapesJS editor-specific selectors
+  // but do NOT contain @media queries (those are the real email responsive styles).
+  html = html.replace(
+    /<style\b[^>]*>([\s\S]*?)<\/style>/gi,
+    (match, content) => {
+      const isEditorStyle =
+        /\.gjs-|#gjs-|\bsp-container\b|\.CodeMirror|pointer-events\s*:\s*none|\[data-gjs-type\]/.test(
+          content
+        );
+      const hasMediaQuery = /@media\s/i.test(content);
+      // Drop pure-editor style blocks; keep anything that has responsive CSS
+      if (isEditorStyle && !hasMediaQuery) return "";
+      return match;
+    }
+  );
+
+  // Remove <script> tags – not valid in email bodies
+  html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+
+  // Remove GrapesJS component data attributes (data-gjs-*)
+  html = html.replace(/\s+data-gjs-[a-zA-Z0-9-]+(?:="[^"]*"|='[^']*')?/g, "");
+
+  // Remove other editor-specific attributes
+  html = html.replace(/\s+data-type(?:="[^"]*"|='[^']*')?/g, "");
+  html = html.replace(/\s+data-is-empty(?:="[^"]*"|='[^']*')?/g, "");
+  html = html.replace(/\s+data-column-count(?:="[^"]*"|='[^']*')?/g, "");
+  html = html.replace(/\s+data-manual-width(?:="[^"]*"|='[^']*')?/g, "");
+
+  // Remove selection/hover classes that might be in the HTML
+  html = html.replace(/\s*gjs-selected\b/g, "");
+  html = html.replace(/\s*gjs-hovered\b/g, "");
+
+  return minifyHTML(html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -360,6 +439,9 @@ function setupBulletListKeyHandler(editor) {
     // ─── Case: Enter ───────────────────────────────────────────────────────
     if (e.key === "Enter") {
       e.preventDefault();
+      // stopImmediatePropagation prevents GrapesJS's RTE from also handling
+      // Enter and injecting its own <br> into the current cell.
+      e.stopImmediatePropagation();
 
       // Native <li> branch
       if (li) {
@@ -411,34 +493,18 @@ function setupBulletListKeyHandler(editor) {
         const contentCell = divRow.querySelector(".list-content-cell");
         if (!contentCell) return;
 
-        // Walk up to contenteditable root
         let editableRoot = contentCell.parentNode;
         while (editableRoot && !editableRoot.hasAttribute("contenteditable")) {
           editableRoot = editableRoot.parentNode;
         }
 
-        const afterRange = doc.createRange();
-        afterRange.setStart(range.startContainer, range.startOffset);
-        if (contentCell.lastChild)
-          afterRange.setEndAfter(contentCell.lastChild);
-        else afterRange.setEnd(contentCell, 0);
-
-        let fragment;
-        if (contentCell.contains(range.startContainer))
-          fragment = afterRange.extractContents();
-        else fragment = doc.createDocumentFragment();
-
-        // Clone the row and clear its content cell
         const newRow = divRow.cloneNode(true);
         const newContentCell = newRow.querySelector(".list-content-cell");
+        // Empty string — no <br> placeholder. An empty div has exactly one
+        // valid cursor position (offset 0) so Chrome can't render it
+        // ambiguously. <br> in an empty div causes Chrome to place the cursor
+        // on the line AFTER the break instead of before it.
         newContentCell.innerHTML = "";
-        if (fragment && fragment.childNodes.length > 0)
-          newContentCell.appendChild(fragment);
-        if (
-          !newContentCell.textContent.trim() &&
-          !newContentCell.querySelector("br")
-        )
-          newContentCell.innerHTML = "<br>";
 
         divRow.parentNode.insertBefore(newRow, divRow.nextSibling);
 
@@ -451,6 +517,9 @@ function setupBulletListKeyHandler(editor) {
             if (mc) mc.innerHTML = `${i + 1}.&nbsp;`;
           });
         }
+
+        // Focus the contenteditable container first so the selection sticks.
+        if (editableRoot) editableRoot.focus();
 
         const newRange = doc.createRange();
         newRange.setStart(newContentCell, 0);
@@ -482,9 +551,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [showSendTestMail, setShowSendTestMail] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [testEmail, setTestEmail] = useState("");
+  const [testSubject, setTestSubject] = useState("");
   const [selectedComp, setSelectedComp] = useState(null);
 
-  const [bgColor, setBgColor] = useState("#FFFFFF");
+  const [bgColor, setBgColor] = useState("transparent");
   const [bgImage, setBgImage] = useState("");
   const [bgRepeat, setBgRepeat] = useState("no-repeat");
   const [bgSize, setBgSize] = useState("contain");
@@ -492,7 +562,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [borderWidth, setBorderWidth] = useState("0");
   const [borderStyle, setBorderStyle] = useState("solid");
   const [borderColor, setBorderColor] = useState("#000000");
-  const [borderRadius, setBorderRadius] = useState("0");
+  const [borderRadius, setBorderRadius] = useState({
+    tl: "0",
+    tr: "0",
+    br: "0",
+    bl: "0"
+  });
 
   const [width, setWidth] = useState("100");
   const [widthUnit, setWidthUnit] = useState("%");
@@ -516,17 +591,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     bottom: "0",
     left: "0"
   });
-  const [margin, setMargin] = useState({
-    top: "0",
-    right: "0",
-    bottom: "0",
-    left: "0"
-  });
+
+  const [buttonUrl, setButtonUrl] = useState("");
 
   const colorInputRef = useRef(null);
-  const textColorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
-  const borderColorInputRef = useRef(null);
   const cleanupRef = useRef(null);
 
   // ─── Attach bullet-list key handler ────────────────────────────────────────
@@ -566,24 +635,72 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       setSelectedComp(selected);
       if (!selected) return;
 
-      const style = selected.getStyle();
+      let dimTarget = selected;
+      if (
+        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
+          selected.get("type")
+        )
+      ) {
+        const parent = selected.parent();
+        if (parent && parent.get("type") === "mj-column") {
+          const isInsideRowFrame =
+            parent.getAttributes?.()?.["data-type"] === "row-frame-column";
+          if (!isInsideRowFrame) {
+            dimTarget = parent;
+          }
+        }
+      }
 
-      setBgColor(style["background-color"] || "#FFFFFF");
+      const style = selected.getStyle();
+      const dimStyle = dimTarget.getStyle() || {};
+      const dimAttrs = dimTarget.getAttributes() || {};
+
+      setBgColor(dimStyle["background-color"] || "transparent");
       setBgImage(
-        style["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
+        dimStyle["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
       );
-      setBgRepeat(style["background-repeat"] || "no-repeat");
-      const rawSize = style["background-size"] || "contain";
+      setBgRepeat(dimStyle["background-repeat"] || "no-repeat");
+      const rawSize = dimStyle["background-size"] || "contain";
       setBgSize(rawSize === "100% 100%" ? "fill" : rawSize);
 
-      const border = style["border"] || "0px solid #000000";
+      const border =
+        dimAttrs["border"] || dimStyle["border"] || "0px solid #000000";
       const bp = border.split(" ");
       if (bp.length >= 3) {
         setBorderWidth(bp[0].replace("px", ""));
         setBorderStyle(bp[1]);
         setBorderColor(bp[2]);
       }
-      setBorderRadius(style["border-radius"]?.replace("px", "") || "0");
+      // Read border-radius from MJML attribute first, then fall back to CSS style
+      const rawBrAttr =
+        dimAttrs["border-radius"] || dimStyle["border-radius"] || "0";
+      const brShorthand = rawBrAttr.split(" ");
+      const getBrPart = (idx) => {
+        if (brShorthand.length === 1) return brShorthand[0].replace("px", "");
+        if (brShorthand.length === 2)
+          return brShorthand[idx % 2].replace("px", "");
+        if (brShorthand.length === 3) {
+          if (idx === 0) return brShorthand[0].replace("px", "");
+          if (idx === 1 || idx === 3) return brShorthand[1].replace("px", "");
+          if (idx === 2) return brShorthand[2].replace("px", "");
+        }
+        if (brShorthand.length >= 4) return brShorthand[idx].replace("px", "");
+        return "0";
+      };
+
+      setBorderRadius({
+        tl:
+          dimStyle["border-top-left-radius"]?.replace("px", "") || getBrPart(0),
+        tr:
+          dimStyle["border-top-right-radius"]?.replace("px", "") ||
+          getBrPart(1),
+        br:
+          dimStyle["border-bottom-right-radius"]?.replace("px", "") ||
+          getBrPart(2),
+        bl:
+          dimStyle["border-bottom-left-radius"]?.replace("px", "") ||
+          getBrPart(3)
+      });
 
       if (selected.is("mj-text") || selected.is("mj-button")) {
         const currentFontSize = style["font-size"]?.replace("px", "") || "14";
@@ -620,6 +737,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             parseInt(style["padding-left"] || "0", 10) / 24
           )
         });
+
+        if (selected.is("mj-button")) {
+          setButtonUrl(selected.getAttributes().href || "");
+        }
       } else {
         // Sync textAlign for other components (like mj-column or sections)
         setTypography((prev) => ({
@@ -651,24 +772,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           style["padding"]?.split(" ")[3]?.replace("px", "") ||
           "0"
       });
-      setMargin({
-        top:
-          style["margin-top"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[0]?.replace("px", "") ||
-          "0",
-        right:
-          style["margin-right"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[1]?.replace("px", "") ||
-          "0",
-        bottom:
-          style["margin-bottom"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[2]?.replace("px", "") ||
-          "0",
-        left:
-          style["margin-left"]?.replace("px", "") ||
-          style["margin"]?.split(" ")[3]?.replace("px", "") ||
-          "0"
-      });
 
       const parseValueAndUnit = (val) => {
         if (!val) return { value: "", unit: "%" };
@@ -680,13 +783,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           unit: val.replace(/[\d.]/g, "") || "%"
         };
       };
-      const attrs = selected.getAttributes();
+
       const { value: wVal, unit: wUnit } = parseValueAndUnit(
-        attrs["width"] || style["width"] || ""
+        dimAttrs["width"] || dimStyle["width"] || ""
       );
       const { value: hVal, unit: hUnit } = parseValueAndUnit(
-        attrs["height"] || style["height"] || ""
+        dimAttrs["height"] || dimStyle["height"] || ""
       );
+
       if (wVal) {
         setWidth(wVal);
         setWidthUnit(wUnit);
@@ -705,72 +809,196 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
     editor.on("component:selected", updateState);
     editor.on("component:update:style", updateState);
+    editor.on("component:update:attributes", updateState);
     return () => {
       editor.off("component:selected", updateState);
       editor.off("component:update:style", updateState);
+      editor.off("component:update:attributes", updateState);
     };
   }, [editorRef]);
 
   // ─── Layout ────────────────────────────────────────────────────────────────
 
+  // Helper to fetch the proper target (mj-column usually, unless section is explicitly targeted)
+  const getStyleTarget = () => {
+    if (!selectedComp) return null;
+    let target = selectedComp;
+    if (
+      ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
+        selectedComp.get("type")
+      )
+    ) {
+      const parent = selectedComp.parent();
+      if (parent && parent.get("type") === "mj-column") {
+        const isInsideRowFrame =
+          parent.getAttributes?.()?.["data-type"] === "row-frame-column";
+        if (!isInsideRowFrame) {
+          target = parent;
+        }
+      }
+    }
+    return target;
+  };
+
   // ─── Background ────────────────────────────────────────────────────────────
   const handleBgColorChange = (c) => {
     setBgColor(c);
-    selectedComp?.addStyle({ "background-color": c });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-color": c });
+      // For MJML leaf components (mj-text, mj-image, etc.) the per-cell
+      // background is controlled by the container-background-color attribute.
+      if (
+        ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
+          target.get("type")
+        )
+      ) {
+        target.addAttributes({ "container-background-color": c });
+      }
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
   const removeBgImage = () => {
     setBgImage("");
-    selectedComp?.addStyle({ "background-image": "none" });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-image": "none" });
+      if (
+        ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
+          target.get("type")
+        )
+      ) {
+        target.addAttributes({ "container-background-color": "" });
+      }
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
   const handleBgRepeatChange = (r) => {
     setBgRepeat(r);
-    selectedComp?.addStyle({ "background-repeat": r });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-repeat": r });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
   const handleBgSizeChange = (s) => {
     setBgSize(s);
-    selectedComp?.addStyle({
-      "background-size": s === "fill" ? "100% 100%" : s
-    });
+    const target = getStyleTarget();
+    if (target) {
+      target.addStyle({ "background-size": s === "fill" ? "100% 100%" : s });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
-  const handleBgImageUpload = (e) => {
+  const handleBgImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !selectedComp) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target.result;
+    const target = getStyleTarget();
+    if (!file || !target) return;
+
+    try {
+      const url = await uploadToCloudinary(file);
+      if (!url) return;
+
       setBgImage(url);
-      selectedComp.addStyle({
+      target.addStyle({
         "background-image": `url(${url})`,
         "background-repeat": "no-repeat",
         "background-size": "contain",
         "background-position": "center"
       });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
       e.target.value = "";
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Error uploading background image:", err);
+      toast.error(
+        "Upload Failed",
+        "Could not upload image to hosting service."
+      );
+    }
   };
 
   // ─── Dimensions ────────────────────────────────────────────────────────────
+  const updateDimensionOnTarget = (target, dim, fullValue) => {
+    target.set(dim, fullValue);
+    target.addAttributes({ [dim]: fullValue });
+    target.addStyle({ [dim]: fullValue });
+    editorRef.current?.getEditor()?.trigger("component:update", target);
+
+    // In MJML, a column's width determines the sibling/parent table layout.
+    // If the target is an inner column, we must re-render its parent mj-section.
+    if (
+      target.get("type") === "mj-column" &&
+      target.parent()?.get("type") === "mj-section"
+    ) {
+      const parent = target.parent();
+      if (parent.getView) {
+        setTimeout(() => {
+          parent.getView()?.render();
+          editorRef.current?.getEditor()?.trigger("component:update", parent);
+        }, 50);
+      }
+    }
+  };
+
   const handleWidthChange = (val, unit = widthUnit) => {
     const full = `${val}${unit}`;
     setWidth(val);
     setWidthUnit(unit);
     if (selectedComp) {
-      selectedComp.set("width", full);
-      selectedComp.addAttributes({ width: full });
-      selectedComp.addStyle({ width: full });
-      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
+      const target = getStyleTarget();
+      updateDimensionOnTarget(target, "width", full);
+
+      // ─── Dynamic Column Rebalancing (v2: Selective) ───
+      // Mark the edited column as "manual" and only rebalance the "auto" ones.
+      if (
+        target.get("type") === "mj-column" &&
+        unit === "%" &&
+        target.parent()?.getAttributes()["data-type"] === "column-frame-section"
+      ) {
+        const parent = target.parent();
+        target.addAttributes({ "data-manual-width": "true" });
+
+        const allCols = parent
+          .components()
+          .filter((c) => c.get("type") === "mj-column");
+
+        const manualCols = allCols.filter(
+          (c) => c.getAttributes()["data-manual-width"] === "true"
+        );
+        const autoCols = allCols.filter(
+          (c) => c.getAttributes()["data-manual-width"] !== "true"
+        );
+
+        if (autoCols.length > 0) {
+          // Calculate sum of manual widths
+          let manualSum = 0;
+          manualCols.forEach((mc) => {
+            const wAttr = mc.getAttributes()["width"] || "0%";
+            manualSum += parseFloat(wAttr);
+          });
+
+          const remaining = Math.max(0, 100 - manualSum);
+          const sharedWidth = `${(remaining / autoCols.length).toFixed(4)}%`;
+
+          autoCols.forEach((ac) => {
+            ac.addAttributes({ width: sharedWidth });
+            ac.addStyle({ width: sharedWidth });
+            ac.set("width", sharedWidth);
+          });
+        }
+
+        // Pulse parent to update canvas
+        editorRef.current?.getEditor()?.trigger("component:update", parent);
+      }
     }
   };
+
   const handleHeightChange = (val, unit = heightUnit) => {
     const full = `${val}${unit}`;
     setHeight(val);
     setHeightUnit(unit);
     if (selectedComp) {
-      selectedComp.set("height", full);
-      selectedComp.addAttributes({ height: full });
-      selectedComp.addStyle({ height: full });
-      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
+      const target = getStyleTarget();
+      updateDimensionOnTarget(target, "height", full);
     }
   };
 
@@ -791,11 +1019,34 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       nC = value;
       setBorderColor(value);
     }
-    selectedComp?.addStyle({ border: `${nW}px ${nS} ${nC}` });
+    const target = getStyleTarget();
+    if (target) {
+      const borderValue = `${nW}px ${nS} ${nC}`;
+      target.addStyle({ border: borderValue });
+      // Set as MJML attribute so it compiles into preview/inbox HTML
+      target.addAttributes({ border: borderValue });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
-  const handleBorderRadiusChange = (r) => {
-    setBorderRadius(r);
-    selectedComp?.addStyle({ "border-radius": `${r}px` });
+  const handleBorderRadiusChange = (corner, value) => {
+    const newBorderRadius = { ...borderRadius, [corner]: value };
+    setBorderRadius(newBorderRadius);
+    const target = getStyleTarget();
+    if (target) {
+      const cornerMap = {
+        tl: "border-top-left-radius",
+        tr: "border-top-right-radius",
+        br: "border-bottom-right-radius",
+        bl: "border-bottom-left-radius"
+      };
+      // Apply individual corner as CSS style for canvas display
+      target.addStyle({ [cornerMap[corner]]: `${value}px` });
+      // Also set combined border-radius as MJML attribute so it compiles into preview/inbox HTML
+      const { tl, tr, br, bl } = newBorderRadius;
+      const radiusShorthand = `${tl || 0}px ${tr || 0}px ${br || 0}px ${bl || 0}px`;
+      target.addAttributes({ "border-radius": radiusShorthand });
+      editorRef.current?.getEditor()?.trigger("component:update", target);
+    }
   };
 
   // ─── Typography ────────────────────────────────────────────────────────────
@@ -913,10 +1164,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     setPadding((prev) => ({ ...prev, [side]: value }));
     selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
   };
-  const handleMarginChange = (side, value) => {
-    setMargin((prev) => ({ ...prev, [side]: value }));
-    selectedComp?.addStyle({ [`margin-${side}`]: `${value}px` });
-  };
 
   const handleAlignItemsChange = (value) => {
     setAlignItems(value);
@@ -933,6 +1180,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     (action) => {
       const editor = editorRef.current?.getEditor();
       if (!editor) return;
+
+      syncContentToModel(editor);
 
       const selectedAll = editor.getSelectedAll();
       if (!selectedAll || selectedAll.length === 0) return;
@@ -995,7 +1244,20 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           });
 
           editable.innerHTML = html;
-          component.set("content", html, { silent: true });
+
+          // Chrome's contenteditable engine sometimes injects a leading <br>
+          // before text in block children. Strip it from every content cell
+          // that still has actual text so it doesn't persist in the model.
+          editable.querySelectorAll(".list-content-cell").forEach((cell) => {
+            while (
+              cell.firstChild?.nodeName === "BR" &&
+              cell.childNodes.length > 1
+            ) {
+              cell.removeChild(cell.firstChild);
+            }
+          });
+
+          component.set("content", editable.innerHTML, { silent: true });
           focusFirstListCell(editor);
 
           if (component === selectedComp) {
@@ -1120,17 +1382,99 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
           case "unorderedList": {
             const content = component.get("content") || "";
-            const isOn = /data-list-type="ul"/i.test(content);
-            if (isOn) clearListRecursive();
-            else convertToListRecursive("ul");
+            const canvasDoc = getCanvasDoc(editor);
+            const totalLines = extractLinesFromContent(content, canvasDoc);
+
+            const view = component.getView?.();
+            const el = view?.el;
+            const editable = el?.querySelector("[contenteditable]") || el;
+            const rows = editable?.querySelectorAll(".list-item-row, li");
+            const listItemsCount = rows ? rows.length : 0;
+
+            // If we have more lines than list items, it means there's un-bulleted text.
+            // In that case, we should "re-list" everything instead of toggling off.
+            const shouldReList = totalLines.length > listItemsCount;
+
+            const isAlreadyList =
+              /data-list-type="ul"/i.test(content) || /<ul[\s>]/i.test(content);
+
+            if (isAlreadyList && !shouldReList) {
+              if (rows && rows.length > 1) {
+                const lastRow = rows[rows.length - 1];
+                const text =
+                  lastRow.querySelector(".list-content-cell")?.innerHTML ||
+                  lastRow.innerHTML ||
+                  "";
+                lastRow.remove();
+                const listContainer = editable.querySelector(
+                  '[data-list-type="ul"]'
+                );
+                if (listContainer) {
+                  listContainer.insertAdjacentHTML(
+                    "afterend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                } else {
+                  editable.insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                }
+                syncContentToModel(editor);
+              } else {
+                clearListRecursive();
+              }
+            } else {
+              convertToListRecursive("ul");
+            }
             break;
           }
 
           case "orderedList": {
             const content = component.get("content") || "";
-            const isOn = /data-list-type="ol"/i.test(content);
-            if (isOn) clearListRecursive();
-            else convertToListRecursive("ol");
+            const canvasDoc = getCanvasDoc(editor);
+            const totalLines = extractLinesFromContent(content, canvasDoc);
+
+            const view = component.getView?.();
+            const el = view?.el;
+            const editable = el?.querySelector("[contenteditable]") || el;
+            const rows = editable?.querySelectorAll(".list-item-row, li");
+            const listItemsCount = rows ? rows.length : 0;
+
+            const shouldReList = totalLines.length > listItemsCount;
+
+            const isAlreadyList =
+              /data-list-type="ol"/i.test(content) || /<ol[\s>]/i.test(content);
+
+            if (isAlreadyList && !shouldReList) {
+              if (rows && rows.length > 1) {
+                const lastRow = rows[rows.length - 1];
+                const text =
+                  lastRow.querySelector(".list-content-cell")?.innerHTML ||
+                  lastRow.innerHTML ||
+                  "";
+                lastRow.remove();
+                const listContainer = editable.querySelector(
+                  '[data-list-type="ol"]'
+                );
+                if (listContainer) {
+                  listContainer.insertAdjacentHTML(
+                    "afterend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                } else {
+                  editable.insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                }
+                syncContentToModel(editor);
+              } else {
+                clearListRecursive();
+              }
+            } else {
+              convertToListRecursive("ol");
+            }
             break;
           }
 
@@ -1220,11 +1564,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   );
 
   // ─── Send test mail ────────────────────────────────────────────────────────
-  const handleSendTestMail = () => {
+  const handleSendTestMail = async () => {
     if (!testEmail) {
       toast.error(
-        "Failed to Save Template",
-        "An error occurred while saving your template. Please try again."
+        "Invalid Email",
+        "Please enter a valid email address to send the test mail."
       );
       return;
     }
@@ -1240,15 +1584,116 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         toast.error("Compile Error", "Could not compile MJML to HTML.");
         return;
       }
-      console.log(`Sending test email to: ${testEmail}`, html);
-      toast.success("Template Saved Successfully", `Sent to ${testEmail}!`);
+
+      const serviceId = "service_ajst25q";
+      const templateId = "template_5x27f1d";
+      const publicKey = "tX62HCCPekA42gNY0";
+
+      // ── Step 1: Strip GrapesJS canvas artifacts + minify ────────────────────
+      // This removes editor-only <style> blocks (.gjs-*, pointer-events, etc.)
+      // and <script> tags that inflate the canvas iframe HTML by 20-40 KB but
+      // are not part of the real email.
+      let minifiedHtml = prepareHtmlForEmail(html);
+      let payloadSizeKB = new Blob([minifiedHtml]).size / 1024;
+
+      console.log(
+        `[EmailJS] Size after stripping editor artifacts: ${payloadSizeKB.toFixed(2)} KB`
+      );
+
+      // ── Step 2: If still over limit, try hosting base64 images via Cloudinary ─
+      if (payloadSizeKB > 50) {
+        const base64SrcMatches = [
+          ...minifiedHtml.matchAll(/src="(data:image\/[^"]+)"/g)
+        ];
+        const base64BgMatches = [
+          ...minifiedHtml.matchAll(/url\(["']?(data:image\/[^)"']+)["']?\)/g)
+        ];
+        const hasBase64 =
+          base64SrcMatches.length > 0 || base64BgMatches.length > 0;
+
+        if (hasBase64 && IS_CLOUDINARY_CONFIGURED) {
+          // Upload each embedded image to Cloudinary and replace the src
+          let processedHtml = minifiedHtml;
+          let idx = 0;
+
+          for (const [fullMatch, base64Url] of base64SrcMatches) {
+            const hostedUrl = await uploadBase64ToCloudinary(
+              base64Url,
+              `email_img_${++idx}.jpg`
+            );
+            if (hostedUrl) {
+              processedHtml = processedHtml.replace(
+                fullMatch,
+                `src="${hostedUrl}"`
+              );
+            }
+          }
+
+          for (const [fullMatch, base64Url] of base64BgMatches) {
+            const hostedUrl = await uploadBase64ToCloudinary(
+              base64Url,
+              `email_bg_${++idx}.jpg`
+            );
+            if (hostedUrl) {
+              processedHtml = processedHtml.replace(
+                fullMatch,
+                `url(${hostedUrl})`
+              );
+            }
+          }
+
+          minifiedHtml = processedHtml;
+          payloadSizeKB = new Blob([minifiedHtml]).size / 1024;
+          console.log(
+            `[EmailJS] Size after Cloudinary upload: ${payloadSizeKB.toFixed(2)} KB`
+          );
+        }
+
+        // Final size check after all optimisations
+        if (payloadSizeKB > 50) {
+          const hasBase64Still =
+            /src="data:image\//.test(minifiedHtml) ||
+            /url\(["']?data:image\//.test(minifiedHtml);
+
+          if (hasBase64Still && !IS_CLOUDINARY_CONFIGURED) {
+            toast.error(
+              "Image Too Large to Send",
+              "One or more images are too large to be embedded in a single email. Please configure Cloudinary in src/utils/uploadUtils.js to host images externally, or use a much smaller image."
+            );
+          } else {
+            toast.error(
+              "Email Too Large",
+              `The email (${payloadSizeKB.toFixed(2)} KB) exceeds EmailJS's 50 KB limit. Try reducing the number of sections or simplifying the content.`
+            );
+          }
+          return;
+        }
+      }
+
+      const templateParams = {
+        to_email: testEmail,
+        subject: testSubject || "Test Broadcast Email",
+        html_content: minifiedHtml,
+        name: "Admin",
+        email: "admin@example.com"
+      };
+
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+
+      toast.success(
+        "Test Email Sent",
+        `A test email has been sent to ${testEmail} successfully!`
+      );
+
+      // Clear state and close modal
       setShowSendTestMail(false);
       setTestEmail("");
+      setTestSubject("");
     } catch (err) {
-      console.error(err);
+      console.error("Error sending test email:", err);
       toast.error(
-        "Failed to Save Template",
-        "An error occurred. Please try again."
+        "Failed to Send Email",
+        "An error occurred while sending the test email. Please check your EmailJS configuration."
       );
     }
   };
@@ -1258,19 +1703,44 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     try {
       const editor = editorRef.current?.getEditor();
       if (!editor) return;
+
+      // UNSELECT before capturing HTML to avoid capturing selection borders/overlays
+      const selected = editor.getSelected();
+      if (selected) editor.select(null);
+
       let html = editorRef.current?.getCompiledHtml?.() || "";
       if (!html) {
         const raw = editor.getHtml();
         if (raw && !raw.includes("<mj-") && !raw.includes("<mjml")) html = raw;
       }
+
+      // RESTORE selection
+      if (selected) editor.select(selected);
+
       if (!html) {
         alert("Could not compile MJML to HTML.");
         return;
       }
-      setPreviewHtml(html);
+      setPreviewHtml(prepareHtmlForEmail(html));
       setShowPreview(true);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleButtonUrlChange = (val) => {
+    const previousUrl = buttonUrl;
+    setButtonUrl(val);
+    const selected = selectedComp;
+    if (selected && selected.is("mj-button")) {
+      selected.addAttributes({ href: val });
+      if (val && !previousUrl) {
+        toast.success("Link Added", "Button link added successfully.");
+      } else if (val && previousUrl && val !== previousUrl) {
+        toast.success("Link Updated", "Button link updated successfully.");
+      } else if (!val && previousUrl) {
+        toast.success("Link Removed", "Button link removed successfully.");
+      }
     }
   };
 
@@ -1287,6 +1757,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         <SignatureSection editorRef={editorRef} />
         {/* <LayoutContainer handleAddLayout={handleAddLayout} /> */}
 
+        {selectedComp && selectedComp.is("mj-button") && (
+          <ButtonSection
+            buttonUrl={buttonUrl}
+            onUrlChange={handleButtonUrlChange}
+          />
+        )}
+
         {selectedComp &&
           (selectedComp.is("mj-text") || selectedComp.is("mj-button")) && (
             <TextStyleContainer
@@ -1294,58 +1771,70 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               handleTypographyChange={handleTypographyChange}
               textColor={textColor}
               handleTextColorChange={handleTextColorChange}
-              textColorInputRef={textColorInputRef}
               activeFormats={activeFormats}
               onFormatToggle={handleFormatToggle}
             />
           )}
 
-        <PaddingContainer
-          selectedComp={selectedComp}
-          padding={padding}
-          handlePaddingChange={handlePaddingChange}
-          margin={margin}
-          handleMarginChange={handleMarginChange}
-          alignItems={alignItems}
-          handleAlignItemsChange={handleAlignItemsChange}
-          justifyContent={justifyContent}
-          handleJustifyContentChange={handleJustifyContentChange}
-          textAlign={typography.textAlign}
-          handleTextAlignChange={(val) =>
-            handleTypographyChange("textAlign", val)
-          }
-        />
+        {!isEditorEmpty && (
+          <>
+            <ImageSection />
+            <PaddingContainer
+              selectedComp={selectedComp}
+              padding={padding}
+              handlePaddingChange={handlePaddingChange}
+              alignItems={alignItems}
+              handleAlignItemsChange={handleAlignItemsChange}
+              justifyContent={justifyContent}
+              handleJustifyContentChange={handleJustifyContentChange}
+              textAlign={typography.textAlign}
+              handleTextAlignChange={(val) =>
+                handleTypographyChange("textAlign", val)
+              }
+            />
 
-        <BackgroundContainer
-          bgColor={bgColor}
-          handleBgColorChange={handleBgColorChange}
-          bgImage={bgImage}
-          removeBgImage={removeBgImage}
-          bgImageInputRef={bgImageInputRef}
-          handleBgImageUpload={handleBgImageUpload}
-          colorInputRef={colorInputRef}
-          bgRepeat={bgRepeat}
-          handleBgRepeatChange={handleBgRepeatChange}
-          bgSize={bgSize}
-          handleBgSizeChange={handleBgSizeChange}
-          width={width}
-          widthUnit={widthUnit}
-          handleWidthChange={handleWidthChange}
-          height={height}
-          heightUnit={heightUnit}
-          handleHeightChange={handleHeightChange}
-          onResetColor={() => handleBgColorChange("#FFFFFF")}
-        />
+            {selectedComp &&
+              (selectedComp.is("mj-column") ||
+                selectedComp.is("mj-section") ||
+                selectedComp.is("mj-hero") ||
+                ["mj-text", "mj-button", "mj-image", "mj-divider"].includes(
+                  selectedComp.get("type")
+                )) && (
+                <DimensionContainer
+                  width={width}
+                  widthUnit={widthUnit}
+                  handleWidthChange={handleWidthChange}
+                  height={height}
+                  heightUnit={heightUnit}
+                  handleHeightChange={handleHeightChange}
+                />
+              )}
 
-        <BorderContainer
-          borderWidth={borderWidth}
-          borderStyle={borderStyle}
-          borderColor={borderColor}
-          borderRadius={borderRadius}
-          handleBorderChange={handleBorderChange}
-          handleBorderRadiusChange={handleBorderRadiusChange}
-          borderColorInputRef={borderColorInputRef}
-        />
+            <BackgroundContainer
+              bgColor={bgColor}
+              handleBgColorChange={handleBgColorChange}
+              bgImage={bgImage}
+              removeBgImage={removeBgImage}
+              bgImageInputRef={bgImageInputRef}
+              handleBgImageUpload={handleBgImageUpload}
+              colorInputRef={colorInputRef}
+              bgRepeat={bgRepeat}
+              handleBgRepeatChange={handleBgRepeatChange}
+              bgSize={bgSize}
+              handleBgSizeChange={handleBgSizeChange}
+              onResetColor={() => handleBgColorChange("transparent")}
+            />
+
+            <BorderContainer
+              borderWidth={borderWidth}
+              borderStyle={borderStyle}
+              borderColor={borderColor}
+              borderRadius={borderRadius}
+              handleBorderChange={handleBorderChange}
+              handleBorderRadiusChange={handleBorderRadiusChange}
+            />
+          </>
+        )}
       </div>
 
       <div className="actionFooter">
@@ -1409,6 +1898,21 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               className="emailInput"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="emailInputContainer" style={{ marginTop: "16px" }}>
+            <label htmlFor="subject" className="emailLabel">
+              Subject
+            </label>
+          </div>
+          <div className="emailInputWrapper">
+            <input
+              type="text"
+              placeholder="Enter subject (optional)"
+              className="emailInput"
+              value={testSubject}
+              onChange={(e) => setTestSubject(e.target.value)}
             />
           </div>
         </div>
