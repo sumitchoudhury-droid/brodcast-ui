@@ -27,7 +27,10 @@
         "Containerstyle",
         "draggability",
         "reconcile",
-        "Draggability"
+        "Draggability",
+        "checkin",
+        "asyst",
+        "boardcost"
     ],
     "ignorePaths": [
         "dist",

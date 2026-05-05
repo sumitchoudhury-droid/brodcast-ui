@@ -7,7 +7,16 @@
   height: 100vh;
   border-radius: 8px;
   width: 100%;
-  padding: 16px;
+  padding: 16px 24px;
+  overflow-y: auto;
+  padding-bottom: 80px;
+
+  h1 {
+    width: 100%;
+    @include variable.font-style($fs: 24px, $fw: 600, $lh: 32px);
+    color: variable.$color-black-6;
+    margin-bottom: 12px;
+  }
 
   .addBroadcastMessageContent {
     width: 100%;

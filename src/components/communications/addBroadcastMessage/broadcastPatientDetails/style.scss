@@ -1,0 +1,99 @@
+@use "../../../../style/variable" as variable;
+
+.broadcastPatientDetailsContainer {
+  background-color: variable.$color-white-0;
+  border-radius: 12px;
+  box-shadow: variable.$shadow-1;
+  border: 1px solid variable.$color-white-10;
+
+  .patientDetailsHeader {
+    padding: 18px 24px;
+    border-bottom: 1px solid variable.$color-white-10;
+
+    h1 {
+      @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
+      color: variable.$color-black-6;
+    }
+  }
+
+  .patientDetailsForm {
+    padding: 18px 24px;
+    @include variable.d-flex($fd: column, $g: 24px);
+
+    .patientTypeSection {
+      @include variable.d-flex($g: 12px, $fd: column);
+
+      .patientDetailsLabel {
+        @include variable.d-flex($al: center, $g: 6px);
+        min-width: 100px;
+
+        p {
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-black-9;
+        }
+
+        span {
+          color: variable.$color-red-0;
+        }
+      }
+
+      .patientDetailsValue {
+        @include variable.d-flex($al: center, $g: 24px);
+      }
+    }
+
+    .formRow {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      width: 100%;
+
+      .formGroup {
+        @include variable.d-flex($fd: column, $g: 8px);
+
+        &.ageGroup {
+          .fieldLabel {
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+            color: variable.$color-black-9;
+            margin: 0;
+          }
+
+          .ageInputs {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 8px;
+            align-items: flex-end;
+
+            .ageSelect,
+            .ageInput {
+              width: 100%;
+            }
+          }
+        }
+      }
+    }
+    .dateAndTimeContainer {
+      width: 100%;
+      @include variable.d-flex($g: 30px);
+      .dateContainer {
+        width: 33.33%;
+        @include variable.d-flex($fd: column, $g: 8px);
+      }
+    }
+    .toggleButtonContainer {
+      width: 33.33%;
+      @include variable.d-flex($fd: column, $g: 8px);
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1024px) {
+  .broadcastPatientDetailsContainer {
+    .patientDetailsForm {
+      .formRow {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  }
+}

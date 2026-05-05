@@ -10,19 +10,19 @@ export const BroadCastSchedule = () => {
   const [sendType, setSendType] = useState("immediately");
 
   return (
-    <div className="broadcastDetails">
-      <div className="broadcastDetailsTitle">
+    <div className="broadcastSchedule">
+      <div className="broadcastScheduleTitle">
         <p>Schedule</p>
       </div>
 
-      <div className="broadcastDetailsContent">
-        <div className="broadcastDetailsContentRow">
-          <div className="broadcastDetailsContentRowLabel">
+      <div className="broadcastScheduleContent">
+        <div className="broadcastScheduleContentRow">
+          <div className="broadcastScheduleContentRowLabel">
             <p>Send</p>
             <span>*</span>
           </div>
 
-          <div className="broadcastDetailsContentRowValue">
+          <div className="broadcastScheduleContentRowValue">
             <ReusableRadioButton
               label="Immediately"
               value="immediately"
@@ -49,7 +49,7 @@ export const BroadCastSchedule = () => {
           </div>
         </div>
 
-        <div className="broadcastDetailsContentRowValue">
+        <div className="broadcastScheduleInfoBox">
           <img src={infoIcon} alt="infoIcon" className="infoIcon" />
           {sendType === "immediately" && (
             <p>The broadcast will be delivered instantly once scheduled.</p>

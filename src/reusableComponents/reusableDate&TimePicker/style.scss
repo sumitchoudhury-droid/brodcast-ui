@@ -1,0 +1,313 @@
+@use "../../style/variable.scss" as variable;
+
+.dateTimeWrapper {
+  @include variable.d-flex($fd: column, $g: 6px);
+  width: 100%;
+  position: relative;
+}
+
+.dateTimeLabel {
+  @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+  color: variable.$color-black-6;
+}
+
+.required {
+  @include variable.font-style($fs: 10px, $fw: 400, $lh: 18px);
+  color: variable.$color-red-0;
+}
+
+.pickerContainer {
+  width: 100%;
+  position: relative;
+}
+
+.dateTimeInputContainer {
+  display: flex;
+  align-items: center;
+  border: 1px solid variable.$color-white-10;
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: 0.2s ease;
+  width: 100%;
+  cursor: pointer;
+  background-color: variable.$color-white-0;
+
+  &:hover {
+    border-color: variable.$primary-color;
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    background-color: variable.$color-white-1;
+    opacity: 0.7;
+  }
+}
+
+.inputFieldWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.dateTimeInputField {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  background: transparent;
+  cursor: inherit;
+  color: variable.$color-black-6;
+
+  &::placeholder {
+    color: variable.$placeholder-color;
+  }
+}
+
+.dateTimeIcon {
+  display: flex;
+  align-items: center;
+  color: variable.$color-black-7;
+  margin-left: 8px;
+}
+
+.inputError {
+  border-color: variable.$color-red-0;
+}
+
+.errorText {
+  font-size: 12px;
+  color: variable.$color-red-0;
+  margin-top: 4px;
+}
+
+// Custom Picker Popup
+.customDatePickerPopup {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  background-color: variable.$color-white-0;
+  border: 1px solid variable.$color-white-10;
+  border-radius: 12px;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  width: fit-content;
+  min-width: 330px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pickerContent {
+  display: flex;
+}
+
+.calendarSection {
+  padding: 15px;
+  flex: 1;
+}
+
+.customDatePickerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+
+  .monthDisplay {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    @include variable.font-style($fs: 16px, $fw: 600);
+    color: variable.$color-black-4;
+    cursor: pointer;
+
+    .dropdownIcon {
+      color: variable.$color-white-12;
+    }
+  }
+
+  .navigationWrapper {
+    display: flex;
+    gap: 10px;
+
+    .navBtn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: variable.$color-black-9;
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      border-radius: 4px;
+
+      &:hover {
+        background-color: variable.$color-white-1;
+        color: variable.$primary-color;
+      }
+    }
+  }
+}
+
+.weekDaysRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 10px;
+
+  .weekDay {
+    text-align: center;
+    color: variable.$color-white-12;
+    @include variable.font-style($fs: 13px, $fw: 500);
+    padding: 5px 0;
+  }
+}
+
+.daysGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+
+  .dayCell {
+    background: none;
+    border: none;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    @include variable.font-style($fs: 14px, $fw: 400);
+    color: variable.$color-black-6;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: variable.$color-white-1;
+      color: variable.$primary-color;
+    }
+
+    &.outsideMonth {
+      color: variable.$color-white-12;
+      opacity: 0.5;
+    }
+
+    &.selected {
+      background-color: #e8f0fe !important;
+      color: variable.$primary-color !important;
+      border: 1px solid variable.$primary-color !important;
+      font-weight: 600;
+    }
+
+    &.today {
+      color: variable.$primary-color;
+      font-weight: 700;
+      text-decoration: underline;
+    }
+  }
+}
+
+.timeSection {
+  border-left: 1px solid variable.$color-white-10;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeColumns {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.timeColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  &:first-child {
+    border-right: 1px solid variable.$color-white-10;
+  }
+}
+
+.columnTitle {
+  @include variable.font-style($fs: 11px, $fw: 600);
+  color: variable.$color-white-12;
+  text-align: center;
+  padding: 4px 0;
+  background-color: variable.$color-white-1;
+  border-bottom: 1px solid variable.$color-white-10;
+}
+
+.timeHeader {
+  @include variable.font-style($fs: 14px, $fw: 600);
+  padding: 15px 0;
+  text-align: center;
+  border-bottom: 1px solid variable.$color-white-10;
+}
+
+.timeList {
+  overflow-y: auto;
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+
+  // Custom Scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: variable.$color-white-10;
+    border-radius: 10px;
+  }
+}
+
+.timeCell {
+  background: none;
+  border: none;
+  padding: 10px 0;
+  cursor: pointer;
+  @include variable.font-style($fs: 13px, $fw: 400);
+  color: variable.$color-black-6;
+  text-align: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: variable.$color-green-2;
+    color: variable.$primary-color;
+  }
+
+  &.selectedTime {
+    background-color: variable.$primary-color !important;
+    color: white !important;
+    font-weight: 600;
+  }
+}
+
+.datePickerFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 15px;
+  gap: 15px;
+  border-top: 1px solid variable.$color-white-10;
+  background-color: variable.$color-white-0;
+
+  .footerBtn {
+    background: none;
+    border: none;
+    @include variable.font-style($fs: 14px, $fw: 600);
+    color: variable.$color-blue-0;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+
+    &:hover {
+      background-color: variable.$color-white-1;
+    }
+
+    &.cancel {
+      color: variable.$color-blue-0;
+    }
+
+    &.ok {
+      color: variable.$color-blue-0;
+    }
+  }
+}

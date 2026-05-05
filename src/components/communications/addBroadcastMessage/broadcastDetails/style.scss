@@ -5,6 +5,7 @@
   @include variable.d-flex($g: 20px, $fd: column);
   border-radius: 8px;
   border: 1px solid variable.$color-white-10;
+  box-shadow: variable.$shadow-1;
 
   .broadcastDetailsTitle {
     width: 100%;
