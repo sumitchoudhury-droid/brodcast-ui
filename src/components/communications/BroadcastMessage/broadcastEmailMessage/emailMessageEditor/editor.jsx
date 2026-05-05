@@ -12,6 +12,7 @@ import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 import "../style.scss";
 import "./style.scss";
 import { LinkModal } from "../linkModal/index";
+import { useToast } from "../../../../../hooks/useToast";
 
 const EMPTY_TEMPLATE = `
 <mjml>
@@ -307,6 +308,7 @@ function reconcileFramePlaceholders(editor, isReconciling) {
 }
 
 export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
+  const toast = useToast();
   const containerRef = useRef(null);
   const gjsInstance = useRef(null);
   const fileInputRef = useRef(null);
@@ -711,8 +713,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
 
                 /* Override GrapesJS default empty component placeholder (black box with </> icon) */
-                [data-gjs-type="mj-image"].gjs-no-app,
-                .gjs-plh-image {
+                [data-gjs-type="mj-image"].gjs-no-app {
                   background-image: none !important;
                   background-color: #F6F7F9 !important;
                   border: 1px dashed #1570EF !important;
@@ -725,8 +726,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   justify-content: center !important;
                   outline: none !important;
                 }
-                [data-gjs-type="mj-image"].gjs-no-app::before,
-                .gjs-plh-image::before {
+                [data-gjs-type="mj-image"].gjs-no-app::before {
                   content: "" !important;
                   display: block !important;
                   width: 24px !important;
@@ -735,8 +735,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   background-repeat: no-repeat !important;
                   background-position: center !important;
                 }
-                [data-gjs-type="mj-image"].gjs-no-app::after,
-                .gjs-plh-image::after {
+                [data-gjs-type="mj-image"].gjs-no-app::after {
                   content: "Empty Image" !important;
                   display: block !important;
                   text-align: center !important;
@@ -765,6 +764,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   list-style-type: disc;
                   padding-left: 0;
                   margin-left: 20px;
+                  text-align: left !important;
                 }
                 ol {
                   list-style-type: decimal;
@@ -772,6 +772,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 li {
                   display: list-item !important;
                   overflow: visible !important;
+                  text-align: left !important;
                 }
                 .list-content-cell p, .list-content-cell div {
                   display: inline !important;
@@ -1631,7 +1632,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         `;
     const gjsRoot = containerRef.current;
     if (gjsRoot) {
-      gjsRoot.style.position = "relative";
       gjsRoot.appendChild(overlay);
     }
 
@@ -1675,6 +1675,38 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       rte.remove("link");
 
       const linkIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7c-2.8 0-5 2.2-5 5s2.2 5 5 5h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4c2.8 0 5-2.2 5-5s-2.2-5-5-5z"></path></svg>`;
+      const codeIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"></path></svg>`;
+      const superscriptIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.23 6L6.5 18H8.13L9.2 15.22H14.17L15.24 18H16.94L12.21 6H11.23ZM9.72 13.88L11.71 8.7L13.68 13.88H9.72Z"/><path d="M18.15 8.16C18.15 8.65 18.06 9.07 17.88 9.42C17.7 9.77 17.44 10.12 17.11 10.47L15.42 12.16V12.18H18.3V13H14.54V12.24L16.48 10.3C16.8 9.98 17.03 9.7 17.17 9.47C17.31 9.24 17.38 8.99 17.38 8.73C17.38 8.49 17.31 8.29 17.16 8.13C17.01 7.97 16.82 7.89 16.59 7.89C16.35 7.89 16.15 7.98 15.99 8.15C15.83 8.32 15.75 8.54 15.75 8.81H14.93C14.93 8.35 15.08 7.98 15.39 7.7C15.7 7.42 16.09 7.28 16.58 7.28C17.08 7.28 17.47 7.42 17.74 7.69C18.01 7.96 18.15 8.16 18.15 8.16Z"/></svg>`;
+      const subscriptIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.23 3L6.5 15H8.13L9.2 12.22H14.17L15.24 15H16.94L12.21 3H11.23ZM9.72 10.88L11.71 5.7L13.68 10.88H9.72Z"/><path d="M18.15 15.16C18.15 15.65 18.06 16.07 17.88 16.42C17.7 16.77 17.44 17.12 17.11 17.47L15.42 19.16V19.18H18.3V20H14.54V19.24L16.48 17.3C16.8 16.98 17.03 16.7 17.17 16.47C17.31 16.24 17.38 15.99 17.38 15.73C17.38 15.49 17.31 15.29 17.16 15.13C17.01 14.97 16.82 14.89 16.59 14.89C16.35 14.89 16.15 14.98 15.99 15.15C15.83 15.32 15.75 15.54 15.75 15.81H14.93C14.93 15.35 15.08 14.98 15.39 14.7C15.7 14.42 16.09 14.28 16.58 14.28C17.08 14.28 17.47 14.42 17.74 14.69C18.01 14.96 18.15 15.16 18.15 15.16Z"/></svg>`;
+
+      rte.add("superscript", {
+        icon: superscriptIcon,
+        attributes: { title: "Superscript" },
+        result: (rteInstance) => rteInstance.exec("superscript")
+      });
+
+      rte.add("subscript", {
+        icon: subscriptIcon,
+        attributes: { title: "Subscript" },
+        result: (rteInstance) => rteInstance.exec("subscript")
+      });
+
+      rte.add("code", {
+        icon: codeIcon,
+        attributes: { title: "Code Block" },
+        result: (rteInstance) => {
+          const selection = rteInstance.selection();
+          if (selection) {
+            rteInstance.insertHTML(
+              `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">${selection}</code>`
+            );
+          } else {
+            rteInstance.insertHTML(
+              `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">&nbsp;</code>`
+            );
+          }
+        }
+      });
 
       rte.add("link", {
         icon: linkIcon,
@@ -1710,15 +1742,27 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           // because execCommand handles partial selections, nested elements, etc.
           const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
           if (sel.rangeCount > 0) {
-            doc.execCommand("createLink", false, PLACEHOLDER_URL);
-            // Apply preview styles to the inserted link
-            const placeholderLink = rteInstance.el.querySelector(
-              `a[href="${PLACEHOLDER_URL}"]`
-            );
-            if (placeholderLink) {
-              placeholderLink.style.color = "#1570EF";
-              placeholderLink.style.textDecoration = "underline";
-              placeholderLink.target = "_blank";
+            const range = sel.getRangeAt(0);
+            if (range.collapsed) {
+              // Handle collapsed selection (just a cursor)
+              const placeholder = doc.createElement("a");
+              placeholder.href = PLACEHOLDER_URL;
+              placeholder.textContent = "\u200B"; // Zero-width space
+              placeholder.style.color = "#1570EF";
+              placeholder.style.textDecoration = "underline";
+              placeholder.target = "_blank";
+              range.insertNode(placeholder);
+            } else {
+              doc.execCommand("createLink", false, PLACEHOLDER_URL);
+              // Apply preview styles to the inserted link
+              const placeholderLink = rteInstance.el.querySelector(
+                `a[href="${PLACEHOLDER_URL}"]`
+              );
+              if (placeholderLink) {
+                placeholderLink.style.color = "#1570EF";
+                placeholderLink.style.textDecoration = "underline";
+                placeholderLink.target = "_blank";
+              }
             }
           }
 
@@ -2234,30 +2278,65 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                       const link = linkPopupData.el;
                       const editor = gjsInstance.current;
 
-                      // Find the component containing this link
-                      const comp = editor.Components.getWrapper().find((c) => {
-                        try {
-                          return c.getView()?.el?.contains(link);
-                        } catch {
-                          return false;
-                        }
-                      })[0];
+                      // Find the deepest component containing this link (usually an mj-text)
+                      const comp = editor.Components.getWrapper()
+                        .find("*")
+                        .filter((c) => {
+                          try {
+                            return c.getView()?.el?.contains(link);
+                          } catch {
+                            return false;
+                          }
+                        })
+                        .pop();
 
                       if (comp) {
-                        // Replace the <a> tag with its plain text children in the DOM
-                        const parent = link.parentNode;
-                        while (link.firstChild) {
-                          parent.insertBefore(link.firstChild, link);
-                        }
-                        parent.removeChild(link);
+                        const getCompHtml = (c) =>
+                          c.components().length > 0
+                            ? c.getInnerHTML()
+                            : c.get("content") || "";
+                        const currentContent = getCompHtml(comp);
 
-                        // Read the updated HTML from the live DOM and sync to the model
-                        const viewEl = comp.getView()?.el;
-                        if (viewEl) {
-                          comp.set("content", viewEl.innerHTML);
-                        }
+                        const tempDiv = document.createElement("div");
+                        tempDiv.innerHTML = currentContent;
 
-                        editor.trigger("component:update", comp);
+                        const href = link.getAttribute("href");
+                        const text = link.textContent.trim();
+
+                        const matchingLinks = Array.from(
+                          tempDiv.querySelectorAll("a")
+                        ).filter(
+                          (a) =>
+                            a.getAttribute("href") === href &&
+                            a.textContent.trim() === text
+                        );
+
+                        if (matchingLinks.length > 0) {
+                          const targetLink = matchingLinks[0];
+                          const parent = targetLink.parentNode;
+                          while (targetLink.firstChild) {
+                            parent.insertBefore(
+                              targetLink.firstChild,
+                              targetLink
+                            );
+                          }
+                          parent.removeChild(targetLink);
+
+                          const newContent = tempDiv.innerHTML;
+                          comp.components().reset();
+                          comp.set("content", newContent);
+
+                          const view = comp.getView?.();
+                          if (view && typeof view.render === "function") {
+                            view.render();
+                          } else {
+                            editor.trigger("component:update", comp);
+                          }
+                        }
+                        toast.success(
+                          "Link Removed",
+                          "The link has been successfully removed from the text."
+                        );
                       }
 
                       setLinkPopupData({
@@ -2338,13 +2417,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
               // Trigger GrapesJS update
               const editor = gjsInstance.current;
-              const comp = editor.Components.getWrapper().find((c) => {
-                try {
-                  return c.getView()?.el?.contains(link);
-                } catch {
-                  return false;
-                }
-              })[0];
+              // Find the deepest component containing this link
+              const comp = editor.Components.getWrapper()
+                .find("*")
+                .filter((c) => {
+                  try {
+                    return c.getView()?.el?.contains(link);
+                  } catch {
+                    return false;
+                  }
+                })
+                .pop();
               if (comp) {
                 const getCompHtml = (c) =>
                   c.components().length > 0
