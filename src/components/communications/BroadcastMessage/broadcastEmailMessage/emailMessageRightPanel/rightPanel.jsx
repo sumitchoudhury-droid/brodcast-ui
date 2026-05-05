@@ -120,7 +120,11 @@ function focusFirstListCell(editor) {
       range.setStartBefore(firstChild);
       range.collapse(true);
     } else {
-      range.selectNodeContents(cell);
+      // setStart on the child node itself (not the element container) so
+      // range.startContainer is the text node, not cell. If it were cell,
+      // pressing Enter would extractContents from offset 0 of the element,
+      // capturing the entire cell content into the new row.
+      range.setStart(firstChild, 0);
       range.collapse(true);
     }
 
@@ -138,10 +142,10 @@ function buildListHtml({ tag, lines, color, fontSize, fontFamily }) {
   const rows = lines
     .map((line, i) => {
       const marker = isOrdered
-        ? `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">${i + 1}.&nbsp;</div>`
-        : `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">&bull;</div>`;
+        ? `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5; padding-right:16px">${i + 1}.&nbsp;</div>`
+        : `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5; padding-right:16px">&bull;</div>`;
 
-      return `<div class="list-item-row" style="display:flex;align-items:center;width:100%;padding:0px 0;">
+      return `<div class="list-item-row" style="display:flex;width:100%;padding:0px 0;">
         ${marker}
         <div class="list-content-cell" style="flex:1;color:${color};font-size:${fontSize};font-family:${fontFamily};line-height:1.5;text-align:left;">${line}</div>
       </div>`;
@@ -166,6 +170,13 @@ function extractLinesFromContent(html, doc) {
     return text ? [text] : ["List item"];
   }
 
+  // Strip leading and trailing <br> tags that MJML injects around <p> elements.
+  const cleanLine = (s) =>
+    s
+      .replace(/^(\s*<br\s*\/?>\s*)+/gi, "")
+      .replace(/(\s*<br\s*\/?>\s*)+$/gi, "")
+      .trim();
+
   // 1. Our div-based list format
   const listRows = tmp.querySelectorAll(
     "div.list-item-row, div[data-list-type] div.list-item-row"
@@ -174,7 +185,7 @@ function extractLinesFromContent(html, doc) {
     const lines = [];
     listRows.forEach((row) => {
       const cell = row.querySelector(".list-content-cell");
-      if (cell) lines.push(cell.innerHTML.trim());
+      if (cell) lines.push(cleanLine(cell.innerHTML.trim()));
     });
     const filtered = lines.filter(Boolean);
     if (filtered.length > 0) return filtered;
@@ -184,7 +195,7 @@ function extractLinesFromContent(html, doc) {
   const lis = tmp.querySelectorAll("li");
   if (lis.length > 0) {
     return Array.from(lis)
-      .map((li) => li.innerHTML.trim())
+      .map((li) => cleanLine(li.innerHTML.trim()))
       .filter(Boolean);
   }
 
@@ -192,7 +203,7 @@ function extractLinesFromContent(html, doc) {
   const blocks = tmp.querySelectorAll("h1, h2, h3, h4, h5, h6, p, div");
   if (blocks.length > 0) {
     const lines = Array.from(blocks)
-      .map((b) => b.innerHTML.trim())
+      .map((b) => cleanLine(b.innerHTML.trim()))
       .filter(Boolean);
     if (lines.length > 0) return lines;
   }
@@ -428,6 +439,9 @@ function setupBulletListKeyHandler(editor) {
     // ─── Case: Enter ───────────────────────────────────────────────────────
     if (e.key === "Enter") {
       e.preventDefault();
+      // stopImmediatePropagation prevents GrapesJS's RTE from also handling
+      // Enter and injecting its own <br> into the current cell.
+      e.stopImmediatePropagation();
 
       // Native <li> branch
       if (li) {
@@ -479,34 +493,18 @@ function setupBulletListKeyHandler(editor) {
         const contentCell = divRow.querySelector(".list-content-cell");
         if (!contentCell) return;
 
-        // Walk up to contenteditable root
         let editableRoot = contentCell.parentNode;
         while (editableRoot && !editableRoot.hasAttribute("contenteditable")) {
           editableRoot = editableRoot.parentNode;
         }
 
-        const afterRange = doc.createRange();
-        afterRange.setStart(range.startContainer, range.startOffset);
-        if (contentCell.lastChild)
-          afterRange.setEndAfter(contentCell.lastChild);
-        else afterRange.setEnd(contentCell, 0);
-
-        let fragment;
-        if (contentCell.contains(range.startContainer))
-          fragment = afterRange.extractContents();
-        else fragment = doc.createDocumentFragment();
-
-        // Clone the row and clear its content cell
         const newRow = divRow.cloneNode(true);
         const newContentCell = newRow.querySelector(".list-content-cell");
+        // Empty string — no <br> placeholder. An empty div has exactly one
+        // valid cursor position (offset 0) so Chrome can't render it
+        // ambiguously. <br> in an empty div causes Chrome to place the cursor
+        // on the line AFTER the break instead of before it.
         newContentCell.innerHTML = "";
-        if (fragment && fragment.childNodes.length > 0)
-          newContentCell.appendChild(fragment);
-        if (
-          !newContentCell.textContent.trim() &&
-          !newContentCell.querySelector("br")
-        )
-          newContentCell.innerHTML = "<br>";
 
         divRow.parentNode.insertBefore(newRow, divRow.nextSibling);
 
@@ -519,6 +517,9 @@ function setupBulletListKeyHandler(editor) {
             if (mc) mc.innerHTML = `${i + 1}.&nbsp;`;
           });
         }
+
+        // Focus the contenteditable container first so the selection sticks.
+        if (editableRoot) editableRoot.focus();
 
         const newRange = doc.createRange();
         newRange.setStart(newContentCell, 0);
@@ -1243,7 +1244,20 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           });
 
           editable.innerHTML = html;
-          component.set("content", html, { silent: true });
+
+          // Chrome's contenteditable engine sometimes injects a leading <br>
+          // before text in block children. Strip it from every content cell
+          // that still has actual text so it doesn't persist in the model.
+          editable.querySelectorAll(".list-content-cell").forEach((cell) => {
+            while (
+              cell.firstChild?.nodeName === "BR" &&
+              cell.childNodes.length > 1
+            ) {
+              cell.removeChild(cell.firstChild);
+            }
+          });
+
+          component.set("content", editable.innerHTML, { silent: true });
           focusFirstListCell(editor);
 
           if (component === selectedComp) {
