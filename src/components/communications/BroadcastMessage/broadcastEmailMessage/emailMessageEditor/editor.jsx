@@ -2166,7 +2166,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         ".rightPanel",
         ".leftPanel",
         ".placeholderSection",
-        ".reusable-modal",
+        ".reusableModal",
         ".gjs-mdl-container",
         ".sp-container"
       ];
