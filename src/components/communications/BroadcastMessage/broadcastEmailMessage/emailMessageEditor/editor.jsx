@@ -781,7 +781,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 }
                   .list-item-row {
                     display: flex !important;
-                    align-items: center !important;
                   }
 
                 /* Hide scrollbar track */
