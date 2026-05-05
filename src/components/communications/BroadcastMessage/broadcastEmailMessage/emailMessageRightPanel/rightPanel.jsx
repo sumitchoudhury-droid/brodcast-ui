@@ -138,17 +138,17 @@ function buildListHtml({ tag, lines, color, fontSize, fontFamily }) {
   const rows = lines
     .map((line, i) => {
       const marker = isOrdered
-        ? `<span class="list-marker-cell" style="flex-shrink:0;width:20px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">${i + 1}.&nbsp;</span>`
-        : `<span class="list-marker-cell" style="flex-shrink:0;width:20px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">&bull;&nbsp;</span>`;
+        ? `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">${i + 1}.&nbsp;</div>`
+        : `<div class="list-marker-cell" style="flex-shrink:0;width:15px;color:${color};font-size:${fontSize};font-family:${fontFamily};white-space:nowrap;line-height:1.5;">&bull;</div>`;
 
       return `<div class="list-item-row" style="display:flex;align-items:center;width:100%;padding:0px 0;">
         ${marker}
-        <span class="list-content-cell" style="flex:1;color:${color};font-size:${fontSize};font-family:${fontFamily};line-height:1.5;">${line}</span>
+        <div class="list-content-cell" style="flex:1;color:${color};font-size:${fontSize};font-family:${fontFamily};line-height:1.5;text-align:left;">${line}</div>
       </div>`;
     })
     .join("\n");
 
-  return `<div data-list-type="${tag}" style="width:100%; display: flex; flex-direction: column;  align-items: center; justify-content: center;">${rows}</div>`;
+  return `<div data-list-type="${tag}" style="width:100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding-left: 20px; box-sizing: border-box;">${rows}</div>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1180,6 +1180,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       const editor = editorRef.current?.getEditor();
       if (!editor) return;
 
+      syncContentToModel(editor);
+
       const selectedAll = editor.getSelectedAll();
       if (!selectedAll || selectedAll.length === 0) return;
 
@@ -1366,17 +1368,99 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
           case "unorderedList": {
             const content = component.get("content") || "";
-            const isOn = /data-list-type="ul"/i.test(content);
-            if (isOn) clearListRecursive();
-            else convertToListRecursive("ul");
+            const canvasDoc = getCanvasDoc(editor);
+            const totalLines = extractLinesFromContent(content, canvasDoc);
+
+            const view = component.getView?.();
+            const el = view?.el;
+            const editable = el?.querySelector("[contenteditable]") || el;
+            const rows = editable?.querySelectorAll(".list-item-row, li");
+            const listItemsCount = rows ? rows.length : 0;
+
+            // If we have more lines than list items, it means there's un-bulleted text.
+            // In that case, we should "re-list" everything instead of toggling off.
+            const shouldReList = totalLines.length > listItemsCount;
+
+            const isAlreadyList =
+              /data-list-type="ul"/i.test(content) || /<ul[\s>]/i.test(content);
+
+            if (isAlreadyList && !shouldReList) {
+              if (rows && rows.length > 1) {
+                const lastRow = rows[rows.length - 1];
+                const text =
+                  lastRow.querySelector(".list-content-cell")?.innerHTML ||
+                  lastRow.innerHTML ||
+                  "";
+                lastRow.remove();
+                const listContainer = editable.querySelector(
+                  '[data-list-type="ul"]'
+                );
+                if (listContainer) {
+                  listContainer.insertAdjacentHTML(
+                    "afterend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                } else {
+                  editable.insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                }
+                syncContentToModel(editor);
+              } else {
+                clearListRecursive();
+              }
+            } else {
+              convertToListRecursive("ul");
+            }
             break;
           }
 
           case "orderedList": {
             const content = component.get("content") || "";
-            const isOn = /data-list-type="ol"/i.test(content);
-            if (isOn) clearListRecursive();
-            else convertToListRecursive("ol");
+            const canvasDoc = getCanvasDoc(editor);
+            const totalLines = extractLinesFromContent(content, canvasDoc);
+
+            const view = component.getView?.();
+            const el = view?.el;
+            const editable = el?.querySelector("[contenteditable]") || el;
+            const rows = editable?.querySelectorAll(".list-item-row, li");
+            const listItemsCount = rows ? rows.length : 0;
+
+            const shouldReList = totalLines.length > listItemsCount;
+
+            const isAlreadyList =
+              /data-list-type="ol"/i.test(content) || /<ol[\s>]/i.test(content);
+
+            if (isAlreadyList && !shouldReList) {
+              if (rows && rows.length > 1) {
+                const lastRow = rows[rows.length - 1];
+                const text =
+                  lastRow.querySelector(".list-content-cell")?.innerHTML ||
+                  lastRow.innerHTML ||
+                  "";
+                lastRow.remove();
+                const listContainer = editable.querySelector(
+                  '[data-list-type="ol"]'
+                );
+                if (listContainer) {
+                  listContainer.insertAdjacentHTML(
+                    "afterend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                } else {
+                  editable.insertAdjacentHTML(
+                    "beforeend",
+                    `<div style="text-align:left;">${text}</div>`
+                  );
+                }
+                syncContentToModel(editor);
+              } else {
+                clearListRecursive();
+              }
+            } else {
+              convertToListRecursive("ol");
+            }
             break;
           }
 

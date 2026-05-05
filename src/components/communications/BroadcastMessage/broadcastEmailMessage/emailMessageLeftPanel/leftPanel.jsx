@@ -26,6 +26,14 @@ export default function LeftPanel({
 
   const handleDragStart = (blockId) => (e) => {
     e.dataTransfer.setData("text/plain", blockId);
+
+    // Create a transparent 1x1 pixel image to hide the browser's default drag ghost
+    // which often gets stuck at (0,0) when using GrapesJS's manual startDrag.
+    const img = new Image();
+    img.src =
+      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    e.dataTransfer.setDragImage(img, 0, 0);
+
     const editor = editorRef?.current?.getEditor?.();
     if (!editor) return;
     const block = editor.BlockManager.get(blockId);

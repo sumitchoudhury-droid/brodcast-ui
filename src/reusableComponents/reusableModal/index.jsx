@@ -28,10 +28,8 @@ export const ReusableModal = ({
             <img src={CloseButton} alt="CloseButton" />
           </div>
         </div>
-
         {/* Body */}
         <div className="modalBody">{children}</div>
-
         {/* Footer */}
         <div className="modalFooter">
           <ReusableButton
