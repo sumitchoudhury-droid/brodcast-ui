@@ -298,6 +298,14 @@ function reconcileFramePlaceholders(editor, isReconciling) {
             width: equalWidth,
             "data-manual-width": "false"
           });
+          // Each mj-column renders independently via grapesjs-mjml's
+          // getTemplateFromMjml. addAttributes updates the model but the
+          // view only picks up the new width when render() is called on
+          // the column itself (not the parent section).
+          const view = c.getView?.();
+          if (view && typeof view.render === "function") {
+            view.render();
+          }
         });
         col.addAttributes({ "data-column-count": n.toString() });
       }
@@ -915,6 +923,19 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   width: 90% !important;
                   box-sizing: border-box !important;
                   opacity: 0.8 !important;
+                }
+
+                /* Column-frame side-by-side layout in the canvas preview.
+                   grapesjs-mjml places mj-column view elements inside the
+                   section's <td>. Using flexbox here avoids inline-block
+                   whitespace-gap issues that would push the second column down.
+                   The column's own render sets max-width from its width attribute,
+                   so flex children still respect the calculated equal widths. */
+                [data-type="column-frame-section"] > table > tbody > tr > td {
+                  display: flex !important;
+                  flex-direction: row !important;
+                  flex-wrap: nowrap !important;
+                  align-items: flex-start !important;
                 }
 
                 /* First section top border-radius */
@@ -2526,7 +2547,7 @@ function registerBlocks(editor) {
   bm.add("column", {
     label: "Frame - Column",
     category: "Blocks",
-    content: `<mj-section data-type="column-frame-section" data-is-empty="true" full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent">
+    content: `<mj-section data-type="column-frame-section" data-is-empty="true" padding="0px" margin="0px" width="100%" background-color="transparent">
     </mj-section>`
   });
 
