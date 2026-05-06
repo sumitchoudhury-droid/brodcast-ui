@@ -1675,8 +1675,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
       const linkIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7c-2.8 0-5 2.2-5 5s2.2 5 5 5h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4c2.8 0 5-2.2 5-5s-2.2-5-5-5z"></path></svg>`;
       const codeIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"></path></svg>`;
-      const superscriptIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.23 6L6.5 18H8.13L9.2 15.22H14.17L15.24 18H16.94L12.21 6H11.23ZM9.72 13.88L11.71 8.7L13.68 13.88H9.72Z"/><path d="M18.15 8.16C18.15 8.65 18.06 9.07 17.88 9.42C17.7 9.77 17.44 10.12 17.11 10.47L15.42 12.16V12.18H18.3V13H14.54V12.24L16.48 10.3C16.8 9.98 17.03 9.7 17.17 9.47C17.31 9.24 17.38 8.99 17.38 8.73C17.38 8.49 17.31 8.29 17.16 8.13C17.01 7.97 16.82 7.89 16.59 7.89C16.35 7.89 16.15 7.98 15.99 8.15C15.83 8.32 15.75 8.54 15.75 8.81H14.93C14.93 8.35 15.08 7.98 15.39 7.7C15.7 7.42 16.09 7.28 16.58 7.28C17.08 7.28 17.47 7.42 17.74 7.69C18.01 7.96 18.15 8.16 18.15 8.16Z"/></svg>`;
-      const subscriptIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.23 3L6.5 15H8.13L9.2 12.22H14.17L15.24 15H16.94L12.21 3H11.23ZM9.72 10.88L11.71 5.7L13.68 10.88H9.72Z"/><path d="M18.15 15.16C18.15 15.65 18.06 16.07 17.88 16.42C17.7 16.77 17.44 17.12 17.11 17.47L15.42 19.16V19.18H18.3V20H14.54V19.24L16.48 17.3C16.8 16.98 17.03 16.7 17.17 16.47C17.31 16.24 17.38 15.99 17.38 15.73C17.38 15.49 17.31 15.29 17.16 15.13C17.01 14.97 16.82 14.89 16.59 14.89C16.35 14.89 16.15 14.98 15.99 15.15C15.83 15.32 15.75 15.54 15.75 15.81H14.93C14.93 15.35 15.08 14.98 15.39 14.7C15.7 14.42 16.09 14.28 16.58 14.28C17.08 14.28 17.47 14.42 17.74 14.69C18.01 14.96 18.15 15.16 18.15 15.16Z"/></svg>`;
+      const superscriptIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+  <path d="M3 14.25L9 8.25" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9 14.25L3 8.25" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 9H12C12 7.875 12.3315 7.5 13.125 7.125C13.9185 6.75 15 6.2505 15 5.2515C15 4.8975 14.8725 4.554 14.637 4.284C14.397 4.01255 14.071 3.8319 13.7136 3.77236C13.3562 3.71282 12.9893 3.77801 12.6743 3.957C12.3593 4.13625 12.1207 4.4175 12 4.752" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+      const subscriptIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+  <path d="M3 3.75L9 9.75" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9 3.75L3 9.75" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 14.25H12C12 13.125 12.33 12.75 13.125 12.375C13.92 12 15 11.4975 15 10.5C15 10.1475 14.8725 9.8025 14.64 9.5325C14.3999 9.26063 14.0737 9.07949 13.716 9.01942C13.3582 8.95934 12.9907 9.02398 12.675 9.2025C12.36 9.3825 12.12 9.6675 12 10.005" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
 
       rte.add("superscript", {
         icon: superscriptIcon,
