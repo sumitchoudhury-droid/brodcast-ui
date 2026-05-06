@@ -938,6 +938,21 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   align-items: flex-start !important;
                 }
 
+                /* When a column-frame-section is nested inside another frame
+                   (row or column), grapesjs-mjml renders an MJML outer wrapper
+                   div/table with max-width:600px and margin:0 auto from the
+                   email body width. Override so the inner frame fills its
+                   parent column with a 90% max-width instead. */
+                [data-type="row-frame-column"] [data-type="column-frame-section"] > div,
+                [data-type="row-frame-column"] [data-type="column-frame-section"] > table,
+                [data-type="column-frame-section"] [data-type="column-frame-section"] > div,
+                [data-type="column-frame-section"] [data-type="column-frame-section"] > table {
+                  max-width: 100% !important;
+                  width: 100% !important;
+                  margin-left: 0 !important;
+                  margin-right: 0 !important;
+                }
+
                 /* First section top border-radius */
                 [data-gjs-type="mj-section"]:first-child {
                   border-top-left-radius: 10px !important;
