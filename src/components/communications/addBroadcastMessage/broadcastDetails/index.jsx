@@ -1,12 +1,9 @@
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
-import { useState } from "react";
 
 import "./style.scss";
 
-export const BroadcastDetails = () => {
-  const [selectedModes, setSelectedModes] = useState([]);
-
+export const BroadcastDetails = ({ selectedModes, setSelectedModes }) => {
   const categoryOptions = [
     {
       value: "balance_payment_reminder",
