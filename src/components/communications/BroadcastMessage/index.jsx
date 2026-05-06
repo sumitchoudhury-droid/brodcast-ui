@@ -14,6 +14,7 @@ import Footer from "./broadcastMessageFooter/footer";
 export const BroadcastMessage = () => {
   const [currentStep, setCurrentStep] = useState("setup");
   const [selectedModes, setSelectedModes] = useState([]);
+  const [activeTab, setActiveTab] = useState(null);
 
   const editorRef = useRef(null);
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
@@ -27,15 +28,30 @@ export const BroadcastMessage = () => {
     setCurrentStep("setup");
   };
 
-  const heading = selectedModes.includes("Email")
-    ? "Add Email Message for Broadcast"
-    : selectedModes.includes("Text")
-      ? "Add Text Message for Broadcast"
-      : "Add Voice Message for Broadcast";
+  const heading =
+    selectedModes.length > 1
+      ? "Add Broadcast Message"
+      : selectedModes.includes("Email")
+        ? "Add Email Message for Broadcast"
+        : selectedModes.includes("Text")
+          ? "Add Text Message for Broadcast"
+          : "Add Voice Message for Broadcast";
 
   const renderBuilder = () => {
     if (selectedModes.length > 1) {
-      return <MultipleBroadMessages selectedModes={selectedModes} />;
+      return (
+        <MultipleBroadMessages
+          selectedModes={selectedModes}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          editorRef={editorRef}
+          handleLoadTemplate={handleLoadTemplate}
+          showPlaceholders={showPlaceholders}
+          setShowPlaceholders={setShowPlaceholders}
+          isEditorEmpty={isEditorEmpty}
+          setIsEditorEmpty={setIsEditorEmpty}
+        />
+      );
     }
 
     if (selectedModes.includes("Email")) {
@@ -65,11 +81,32 @@ export const BroadcastMessage = () => {
   return (
     <>
       {currentStep === "editor" ? (
-        <div className="broadcastMessageContainer">
+        <div
+          className={`broadcastMessageContainer ${selectedModes.length > 1 ? "multiple" : ""}`}
+        >
           {/* Header */}
-          <div className="header">
-            <h2 className="mainTitle">{heading}</h2>
-            <div className="headerRight">
+          <div
+            className={`header ${selectedModes.length > 1 ? "multipleHeader" : ""}`}
+          >
+            {selectedModes.length > 1 ? (
+              <div className="broadcastMessageTabs">
+                {selectedModes.map((mode) => (
+                  <button
+                    key={mode}
+                    className={`tab ${activeTab === mode ? "active" : ""}`}
+                    onClick={() => setActiveTab(mode)}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <h2 className="mainTitle">{heading}</h2>
+            )}
+
+            <div
+              className={`headerRight ${selectedModes.length > 1 ? "noDisplay" : ""}`}
+            >
               <img src={languageIcon} alt="languageIcon" />
               <p>English</p>
               <img src={greenChevronRight} alt="greenChevronRight" />
@@ -88,7 +125,10 @@ export const BroadcastMessage = () => {
         <AddBroadcastMessage
           selectedModes={selectedModes}
           setSelectedModes={setSelectedModes}
-          onNext={() => setCurrentStep("editor")}
+          onNext={() => {
+            setCurrentStep("editor");
+            setActiveTab(selectedModes[0]);
+          }}
         />
       )}
     </>

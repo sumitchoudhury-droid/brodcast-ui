@@ -20,6 +20,25 @@
     align-items: center;
     flex-shrink: 0;
 
+    .broadcastMessageTabs {
+      padding: 0;
+      @include variable.d-flex($al: center, $fd: row, $g: 10px);
+      .tab {
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 8px 24px;
+        background-color: variable.$color-white-5;
+        border: none;
+      }
+
+      .active {
+        background-color: variable.$color-white-0;
+        border-top: 1px solid variable.$color-white-5;
+        border-left: 1px solid variable.$color-white-5;
+        border-right: 1px solid variable.$color-white-5;
+      }
+    }
+
     .mainTitle {
       font-size: 16px;
       font-weight: 600;
@@ -47,6 +66,20 @@
         color: variable.$color-black-4;
         line-height: 24px;
       }
+    }
+  }
+}
+
+.multiple {
+  padding: 0;
+  border: none;
+  gap: 0;
+
+  .multipleHeader {
+    background-color: variable.$color-white-1;
+
+    .noDisplay {
+      border: none;
     }
   }
 }
