@@ -49,15 +49,11 @@ export default function LeftPanel({
     switch (blockId) {
       case "row":
         return (
-          <img src={leftPanelRow} alt="leftPanelRow" className="icon"></img>
+          <img src={leftPanelColumn} alt="leftPanelRow" className="icon"></img>
         );
       case "column":
         return (
-          <img
-            src={leftPanelColumn}
-            alt="leftPanelColumn"
-            className="icon"
-          ></img>
+          <img src={leftPanelRow} alt="leftPanelColumn" className="icon"></img>
         );
       case "heading":
         return (

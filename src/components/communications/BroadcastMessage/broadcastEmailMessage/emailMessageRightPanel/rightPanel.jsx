@@ -597,6 +597,9 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const colorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
   const cleanupRef = useRef(null);
+  // Tracks the DOM node where the cursor last was inside the canvas iframe.
+  // Read by toggleListAtCursor after the iframe loses focus on button click.
+  const lastCursorNodeRef = useRef(null);
 
   // ─── Attach bullet-list key handler ────────────────────────────────────────
   useEffect(() => {
@@ -622,6 +625,43 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         cleanupRef.current();
         cleanupRef.current = null;
       }
+    };
+  }, [editorRef]);
+
+  // ─── Track last canvas cursor node (before iframe loses focus on button click) ─
+  useEffect(() => {
+    const editor = editorRef.current?.getEditor();
+    if (!editor) return;
+
+    let cleanupTracker = null;
+
+    const attachTracker = () => {
+      if (cleanupTracker) return;
+      const doc = getCanvasDoc(editor);
+      if (!doc) return;
+
+      const track = () => {
+        const sel = doc.defaultView?.getSelection();
+        if (!sel || sel.rangeCount === 0) return;
+        let node = sel.getRangeAt(0).startContainer;
+        if (node.nodeType === 3) node = node.parentNode;
+        lastCursorNodeRef.current = node;
+      };
+
+      doc.addEventListener("mouseup", track);
+      doc.addEventListener("keyup", track);
+      cleanupTracker = () => {
+        doc.removeEventListener("mouseup", track);
+        doc.removeEventListener("keyup", track);
+      };
+    };
+
+    editor.on("load", attachTracker);
+    if (editor.Canvas?.getFrames?.()?.length) attachTracker();
+
+    return () => {
+      editor.off("load", attachTracker);
+      if (cleanupTracker) cleanupTracker();
     };
   }, [editorRef]);
 
@@ -1293,6 +1333,160 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           }
         };
 
+        // Toggle only the list (or text block) where the cursor currently sits.
+        const toggleListAtCursor = (tag) => {
+          const canvasDoc = getCanvasDoc(editor);
+          const view = component.getView?.();
+          const el = view?.el;
+          if (!el) return;
+          const editable = el.querySelector("[contenteditable]") || el;
+
+          const s2 = component.getStyle();
+          const currentTextColor = s2["color"] || textColor || "#000000";
+          const currentFontSize = s2["font-size"] || `${typography.fontSize}px`;
+          const currentFontFamily = s2["font-family"] || typography.fontFamily;
+
+          // Use the node recorded on the last mouseup/keyup inside the canvas
+          // (the live selection is gone by the time a panel button is clicked).
+          let cursorNode = lastCursorNodeRef.current;
+
+          // Verify the tracked node is still in the DOM and inside this editable
+          if (cursorNode) {
+            let inEditable = false;
+            let c = cursorNode;
+            while (c) {
+              if (c === editable) {
+                inEditable = true;
+                break;
+              }
+              c = c.parentNode;
+            }
+            if (!inEditable) cursorNode = null;
+          }
+
+          if (cursorNode) {
+            let listContainer = null;
+            let directChild = null;
+            let walk = cursorNode;
+
+            while (walk && walk !== editable) {
+              if (walk.nodeType === 1) {
+                if (
+                  walk.getAttribute?.("data-list-type") ||
+                  walk.nodeName === "UL" ||
+                  walk.nodeName === "OL"
+                ) {
+                  listContainer = walk;
+                  break;
+                }
+                if (walk.parentNode === editable) {
+                  directChild = walk;
+                }
+              }
+              walk = walk.parentNode;
+            }
+
+            if (listContainer) {
+              const currentType =
+                listContainer.getAttribute("data-list-type") ||
+                (listContainer.nodeName === "UL" ? "ul" : "ol");
+
+              if (currentType === tag) {
+                // Toggle OFF: replace this list with plain text
+                const lines = extractLinesFromContent(
+                  listContainer.outerHTML,
+                  canvasDoc
+                );
+                const p = canvasDoc.createElement("p");
+                p.innerHTML = lines.join("<br>") || "<br>";
+                listContainer.parentNode.insertBefore(p, listContainer);
+                listContainer.remove();
+                component.set("content", editable.innerHTML, { silent: true });
+                if (component === selectedComp) {
+                  setActiveFormats((prev) => ({
+                    ...prev,
+                    unorderedList: false,
+                    orderedList: false
+                  }));
+                }
+              } else {
+                // Convert to the other list type
+                const lines = extractLinesFromContent(
+                  listContainer.outerHTML,
+                  canvasDoc
+                );
+                const newHtml = buildListHtml({
+                  tag,
+                  lines,
+                  color: currentTextColor,
+                  fontSize: currentFontSize,
+                  fontFamily: currentFontFamily
+                });
+                const tmp = canvasDoc.createElement("div");
+                tmp.innerHTML = newHtml;
+                const newList = tmp.firstChild;
+                if (newList)
+                  listContainer.parentNode.replaceChild(newList, listContainer);
+                component.set("content", editable.innerHTML, { silent: true });
+                focusFirstListCell(editor);
+                if (component === selectedComp) {
+                  setActiveFormats((prev) => ({
+                    ...prev,
+                    unorderedList: tag === "ul",
+                    orderedList: tag === "ol"
+                  }));
+                }
+              }
+              return;
+            }
+
+            if (directChild) {
+              // Convert only the block under the cursor to a list
+              const lines = extractLinesFromContent(
+                directChild.outerHTML,
+                canvasDoc
+              );
+              const newHtml = buildListHtml({
+                tag,
+                lines,
+                color: currentTextColor,
+                fontSize: currentFontSize,
+                fontFamily: currentFontFamily
+              });
+              const tmp = canvasDoc.createElement("div");
+              tmp.innerHTML = newHtml;
+              const newList = tmp.firstChild;
+              if (newList)
+                directChild.parentNode.replaceChild(newList, directChild);
+              component.set("content", editable.innerHTML, { silent: true });
+              focusFirstListCell(editor);
+              if (component === selectedComp) {
+                setActiveFormats((prev) => ({
+                  ...prev,
+                  unorderedList: tag === "ul",
+                  orderedList: tag === "ol"
+                }));
+              }
+              return;
+            }
+          }
+
+          // Fallback: no usable cursor — toggle whole component content
+          const content = component.get("content") || "";
+          const isAlreadySameType =
+            tag === "ul"
+              ? /data-list-type="ul"/i.test(content) ||
+                /<ul[\s>]/i.test(content)
+              : /data-list-type="ol"/i.test(content) ||
+                /<ol[\s>]/i.test(content);
+
+          if (isAlreadySameType) {
+            clearListRecursive();
+          } else {
+            convertToListRecursive(tag);
+          }
+        };
+
         switch (action) {
           case "underline":
             if (selectionActive && component === selectedComp) {
@@ -1381,100 +1575,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             break;
 
           case "unorderedList": {
-            const content = component.get("content") || "";
-            const canvasDoc = getCanvasDoc(editor);
-            const totalLines = extractLinesFromContent(content, canvasDoc);
-
-            const view = component.getView?.();
-            const el = view?.el;
-            const editable = el?.querySelector("[contenteditable]") || el;
-            const rows = editable?.querySelectorAll(".list-item-row, li");
-            const listItemsCount = rows ? rows.length : 0;
-
-            // If we have more lines than list items, it means there's un-bulleted text.
-            // In that case, we should "re-list" everything instead of toggling off.
-            const shouldReList = totalLines.length > listItemsCount;
-
-            const isAlreadyList =
-              /data-list-type="ul"/i.test(content) || /<ul[\s>]/i.test(content);
-
-            if (isAlreadyList && !shouldReList) {
-              if (rows && rows.length > 1) {
-                const lastRow = rows[rows.length - 1];
-                const text =
-                  lastRow.querySelector(".list-content-cell")?.innerHTML ||
-                  lastRow.innerHTML ||
-                  "";
-                lastRow.remove();
-                const listContainer = editable.querySelector(
-                  '[data-list-type="ul"]'
-                );
-                if (listContainer) {
-                  listContainer.insertAdjacentHTML(
-                    "afterend",
-                    `<div style="text-align:left;">${text}</div>`
-                  );
-                } else {
-                  editable.insertAdjacentHTML(
-                    "beforeend",
-                    `<div style="text-align:left;">${text}</div>`
-                  );
-                }
-                syncContentToModel(editor);
-              } else {
-                clearListRecursive();
-              }
-            } else {
-              convertToListRecursive("ul");
-            }
+            toggleListAtCursor("ul");
             break;
           }
 
           case "orderedList": {
-            const content = component.get("content") || "";
-            const canvasDoc = getCanvasDoc(editor);
-            const totalLines = extractLinesFromContent(content, canvasDoc);
-
-            const view = component.getView?.();
-            const el = view?.el;
-            const editable = el?.querySelector("[contenteditable]") || el;
-            const rows = editable?.querySelectorAll(".list-item-row, li");
-            const listItemsCount = rows ? rows.length : 0;
-
-            const shouldReList = totalLines.length > listItemsCount;
-
-            const isAlreadyList =
-              /data-list-type="ol"/i.test(content) || /<ol[\s>]/i.test(content);
-
-            if (isAlreadyList && !shouldReList) {
-              if (rows && rows.length > 1) {
-                const lastRow = rows[rows.length - 1];
-                const text =
-                  lastRow.querySelector(".list-content-cell")?.innerHTML ||
-                  lastRow.innerHTML ||
-                  "";
-                lastRow.remove();
-                const listContainer = editable.querySelector(
-                  '[data-list-type="ol"]'
-                );
-                if (listContainer) {
-                  listContainer.insertAdjacentHTML(
-                    "afterend",
-                    `<div style="text-align:left;">${text}</div>`
-                  );
-                } else {
-                  editable.insertAdjacentHTML(
-                    "beforeend",
-                    `<div style="text-align:left;">${text}</div>`
-                  );
-                }
-                syncContentToModel(editor);
-              } else {
-                clearListRecursive();
-              }
-            } else {
-              convertToListRecursive("ol");
-            }
+            toggleListAtCursor("ol");
             break;
           }
 
