@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import searchIcon from "../../../../../../assets/leftPanel/leftPanelSearch.svg";
 import placeholderIcon from "../../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
 import "./style.scss";
@@ -13,12 +13,76 @@ const PLACEHOLDERS = [
   { label: "Patient Last Name", value: "$LNAME" }
 ];
 
-export const PlaceHolderSection = ({ setShowPlaceholders }) => {
+export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
   const [search, setSearch] = useState("");
+  const savedRangeRef = useRef(null);
+  const savedActiveElRef = useRef(null);
 
   const filteredPlaceholders = PLACEHOLDERS.filter((item) =>
     `${item.label} ${item.value}`.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Continuously track the cursor position inside the canvas iframe.
+  useEffect(() => {
+    const editor = editorRef?.current?.getEditor?.();
+    if (!editor) return;
+    const canvasWindow = editor.Canvas.getWindow();
+    if (!canvasWindow) return;
+
+    const saveRange = () => {
+      const sel = canvasWindow.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+        savedActiveElRef.current = canvasWindow.document.activeElement;
+      }
+    };
+
+    canvasWindow.document.addEventListener("selectionchange", saveRange);
+    return () =>
+      canvasWindow.document.removeEventListener("selectionchange", saveRange);
+  }, [editorRef]);
+
+  // Called at mousedown — the earliest moment to snapshot the iframe selection
+  // before the browser shifts focus and GrapesJS deactivates the RTE.
+  const snapshotSelection = () => {
+    const editor = editorRef?.current?.getEditor?.();
+    if (!editor) return;
+    const canvasWindow = editor.Canvas.getWindow();
+    if (!canvasWindow) return;
+    const sel = canvasWindow.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+      savedActiveElRef.current = canvasWindow.document.activeElement;
+    }
+  };
+
+  const insertPlaceholder = (value) => {
+    const editor = editorRef?.current?.getEditor?.();
+    if (!editor) return;
+    const canvasWindow = editor.Canvas.getWindow();
+    if (!canvasWindow) return;
+
+    const savedRange = savedRangeRef.current;
+    const el = savedActiveElRef.current;
+    if (!savedRange || !el) return;
+
+    // GrapesJS removes contenteditable when it deactivates the RTE on blur.
+    // Force it back so execCommand can write into the element.
+    el.contentEditable = "true";
+    el.focus();
+
+    // Restore the exact cursor position captured at mousedown.
+    const sel = canvasWindow.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+
+    // execCommand handles text-node splitting and caret placement correctly
+    // for all cursor positions — avoids Range.insertNode's spec quirks around
+    // post-insertion range repositioning.
+    canvasWindow.document.execCommand("insertText", false, value);
+  };
 
   return (
     <div className="placeholderSection">
@@ -40,6 +104,11 @@ export const PlaceHolderSection = ({ setShowPlaceholders }) => {
             key={index}
             className="placeholderItem"
             draggable
+            onMouseDown={(e) => {
+              e.preventDefault();
+              snapshotSelection();
+            }}
+            onClick={() => insertPlaceholder(item.value)}
             onDragStart={(e) => {
               e.dataTransfer.setData("text/plain", item.value);
               e.dataTransfer.setData(
@@ -48,15 +117,8 @@ export const PlaceHolderSection = ({ setShowPlaceholders }) => {
               );
               e.dataTransfer.setData("application/x-placeholder", "true");
             }}
-            onDragEnd={(e) => {
-              // If the drop effect is not none, it was dropped on a valid target
-              if (e.dataTransfer.dropEffect !== "none" && setShowPlaceholders) {
-                setShowPlaceholders(false);
-              } else if (setShowPlaceholders) {
-                // Fallback just in case iframe boundary eats the dropEffect
-                // We can just close it unconditionally to fulfill the feature completely
-                setShowPlaceholders(false);
-              }
+            onDragEnd={() => {
+              if (setShowPlaceholders) setShowPlaceholders(false);
             }}
           >
             <div className="iconContainer">
