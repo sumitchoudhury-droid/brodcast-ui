@@ -1,5 +1,7 @@
 import "./style.scss";
-
+import downloadIcon from "../../assets/commonIcons/downLoadIcon.svg";
+import greenDownloadIcon from "../../assets/commonIcons/greenDownloadIcon.svg";
+import eyeIcon from "../../assets/commonIcons/eyeIcon.svg";
 export const ReusableButton = ({
   label = "Button",
   onClick,
@@ -7,7 +9,10 @@ export const ReusableButton = ({
   variant = "primary", // primary | danger | secondary
   disabled = false,
   loading = false,
-  className = ""
+  className = "",
+  downloadImage = false,
+  greenDownloadImage = false,
+  eyeImage = false
 }) => {
   const handleClick = (e) => {
     if (disabled || loading) return;
@@ -25,6 +30,30 @@ export const ReusableButton = ({
         <span className="btn-loader"></span>
       ) : (
         <>
+          {downloadImage && (
+            <img
+              src={downloadIcon}
+              alt="downloadIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+          {greenDownloadImage && (
+            <img
+              src={greenDownloadIcon}
+              alt="greenDownloadIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+          {eyeImage && (
+            <img
+              src={eyeIcon}
+              alt="eyeIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
           <span className="btn-label">{label}</span>
         </>
       )}

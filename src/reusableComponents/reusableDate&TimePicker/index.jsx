@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, forwardRef, useMemo } from "react";
 import {
   Calendar as CalendarIcon,
   Clock,
-  ChevronDown,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -53,7 +52,7 @@ export const ReusableDateTime = ({
   onChange,
   placeholder = "Select Date & Time",
   showTimeSelect = true,
-  dateFormat = "MMMM d, yyyy h:mm aa",
+  dateFormat = "MM/dd/yyyy, h:mm:ss aa",
   required = false,
   error = "",
   disabled = false,
@@ -68,6 +67,8 @@ export const ReusableDateTime = ({
   const hourListRef = useRef(null);
   const minuteListRef = useRef(null);
 
+  const [amPm, setAmPm] = useState(getHours(tempDate) >= 12 ? "PM" : "AM");
+
   const [prevSelected, setPrevSelected] = useState(selected);
 
   if (selected !== prevSelected) {
@@ -75,6 +76,7 @@ export const ReusableDateTime = ({
     if (selected) {
       setTempDate(selected);
       setViewDate(selected);
+      setAmPm(getHours(selected) >= 12 ? "PM" : "AM");
     }
   }
 
@@ -104,13 +106,10 @@ export const ReusableDateTime = ({
           }
         }
       };
-
-      // Small timeout to ensure DOM elements are fully rendered and styles applied
       const timer = setTimeout(() => {
         scrollToSelected(hourListRef);
         scrollToSelected(minuteListRef);
       }, 100);
-
       return () => clearTimeout(timer);
     }
   }, [isOpen, showTimeSelect]);
@@ -121,6 +120,7 @@ export const ReusableDateTime = ({
       if (!isOpen && selected) {
         setTempDate(selected);
         setViewDate(selected);
+        setAmPm(getHours(selected) >= 12 ? "PM" : "AM");
       }
     }
   };
@@ -136,14 +136,29 @@ export const ReusableDateTime = ({
     setTempDate(newDate);
   };
 
-  const handleHourSelect = (hour) => {
-    const newDate = setHours(tempDate, hour);
-    setTempDate(newDate);
+  // Get 12-hour display value (1–12)
+  const get12Hour = (date) => {
+    const h = getHours(date) % 12;
+    return h === 0 ? 12 : h;
+  };
+
+  const handleHourSelect = (displayHour) => {
+    let h24 = displayHour % 12;
+    if (amPm === "PM") h24 += 12;
+    setTempDate(setHours(tempDate, h24));
   };
 
   const handleMinuteSelect = (minute) => {
-    const newDate = setMinutes(tempDate, minute);
-    setTempDate(newDate);
+    setTempDate(setMinutes(tempDate, minute));
+  };
+
+  const handleAmPmToggle = (val) => {
+    setAmPm(val);
+    const currentH = getHours(tempDate);
+    let newH = currentH;
+    if (val === "AM" && currentH >= 12) newH = currentH - 12;
+    if (val === "PM" && currentH < 12) newH = currentH + 12;
+    setTempDate(setHours(tempDate, newH));
   };
 
   const handleOk = () => {
@@ -163,15 +178,16 @@ export const ReusableDateTime = ({
     return eachDayOfInterval({ start, end });
   }, [viewDate]);
 
-  const hoursList = useMemo(() => {
-    return Array.from({ length: 24 }, (_, i) => i);
-  }, []);
+  const hoursList = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => i + 1),
+    []
+  );
+  const minutesList = useMemo(
+    () => Array.from({ length: 60 }, (_, i) => i),
+    []
+  );
 
-  const minutesList = useMemo(() => {
-    return Array.from({ length: 60 }, (_, i) => i);
-  }, []);
-
-  const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
+  const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
   return (
     <div className={`dateTimeWrapper ${className}`} ref={containerRef}>
@@ -196,28 +212,26 @@ export const ReusableDateTime = ({
         {isOpen && (
           <div className="customDatePickerPopup">
             <div className="pickerContent">
+              {/* ── Calendar ── */}
               <div className="calendarSection">
                 <div className="customDatePickerHeader">
-                  <div className="monthDisplay">
+                  <button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    className="navBtn"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="monthDisplay">
                     {format(viewDate, "MMMM yyyy")}
-                    <ChevronDown size={18} className="dropdownIcon" />
-                  </div>
-                  <div className="navigationWrapper">
-                    <button
-                      type="button"
-                      onClick={handlePrevMonth}
-                      className="navBtn"
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleNextMonth}
-                      className="navBtn"
-                    >
-                      <ChevronRight size={20} />
-                    </button>
-                  </div>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="navBtn"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
 
                 <div className="weekDaysRow">
@@ -233,7 +247,11 @@ export const ReusableDateTime = ({
                     <button
                       key={idx}
                       type="button"
-                      className={`dayCell ${!isSameMonth(day, viewDate) ? "outsideMonth" : ""} ${isSameDay(day, tempDate) ? "selected" : ""} ${isToday(day) ? "today" : ""}`}
+                      className={`dayCell
+                        ${!isSameMonth(day, viewDate) ? "outsideMonth" : ""}
+                        ${isSameDay(day, tempDate) ? "selected" : ""}
+                        ${isToday(day) && !isSameDay(day, tempDate) ? "today" : ""}
+                      `}
                       onClick={() => handleDateSelect(day)}
                     >
                       {format(day, "d")}
@@ -242,15 +260,15 @@ export const ReusableDateTime = ({
                 </div>
               </div>
 
+              {/* ── Time ── */}
               {showTimeSelect && (
                 <div className="timeSection">
-                  <div className="timeHeader">Time</div>
                   <div className="timeColumns">
+                    {/* Hours */}
                     <div className="timeColumn">
-                      <div className="columnTitle">HH</div>
                       <div className="timeList" ref={hourListRef}>
                         {hoursList.map((hour) => {
-                          const isSelected = getHours(tempDate) === hour;
+                          const isSelected = get12Hour(tempDate) === hour;
                           return (
                             <button
                               key={hour}
@@ -264,8 +282,12 @@ export const ReusableDateTime = ({
                         })}
                       </div>
                     </div>
+
+                    {/* Divider */}
+                    <div className="timeColumnDivider" />
+
+                    {/* Minutes */}
                     <div className="timeColumn">
-                      <div className="columnTitle">MM</div>
                       <div className="timeList" ref={minuteListRef}>
                         {minutesList.map((minute) => {
                           const isSelected = getMinutes(tempDate) === minute;
@@ -282,21 +304,40 @@ export const ReusableDateTime = ({
                         })}
                       </div>
                     </div>
+
+                    {/* AM / PM — 3rd column, right side */}
+                    <div className="amPmColumn">
+                      <button
+                        type="button"
+                        className={`amPmBtn ${amPm === "AM" ? "active" : ""}`}
+                        onClick={() => handleAmPmToggle("AM")}
+                      >
+                        AM
+                      </button>
+                      <button
+                        type="button"
+                        className={`amPmBtn ${amPm === "PM" ? "active" : ""}`}
+                        onClick={() => handleAmPmToggle("PM")}
+                      >
+                        PM
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
+            {/* ── Footer ── */}
             <div className="datePickerFooter">
               <button
                 type="button"
                 className="footerBtn cancel"
                 onClick={handleCancel}
               >
-                CANCEL
+                Cancel
               </button>
               <button type="button" className="footerBtn ok" onClick={handleOk}>
-                OK
+                Apply
               </button>
             </div>
           </div>

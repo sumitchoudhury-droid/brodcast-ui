@@ -33,16 +33,20 @@ export const ReusableModal = ({
         <div className="modalBody">{children}</div>
         {/* Footer */}
         <div className="modalFooter">
-          <ReusableButton
-            label={cancelText}
-            variant="primary"
-            onClick={onClose}
-          />
-          <ReusableButton
-            label={confirmText}
-            variant="secondary"
-            onClick={onConfirm}
-          />
+          {cancelText && (
+            <ReusableButton
+              label={cancelText}
+              variant="primary"
+              onClick={onClose}
+            />
+          )}
+          {confirmText && (
+            <ReusableButton
+              label={confirmText}
+              variant="secondary"
+              onClick={onConfirm}
+            />
+          )}
         </div>
       </div>
     </div>,

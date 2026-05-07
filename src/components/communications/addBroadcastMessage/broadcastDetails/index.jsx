@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 
 import "./style.scss";
 
 export const BroadcastDetails = ({ selectedModes, setSelectedModes }) => {
+  const [category, setCategory] = useState("");
   const categoryOptions = [
     {
       value: "balance_payment_reminder",
@@ -68,7 +70,11 @@ export const BroadcastDetails = ({ selectedModes, setSelectedModes }) => {
             label="Category"
             greenIcon={false}
             placeholder="Select Category"
-            options={categoryOptions} // ✅ FIXED
+            options={categoryOptions}
+            value={
+              categoryOptions.find((o) => o.value === category)?.label || ""
+            }
+            onChange={(val) => setCategory(val)}
           />
         </div>
       </div>

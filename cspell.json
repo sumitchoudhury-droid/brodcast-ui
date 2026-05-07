@@ -36,7 +36,12 @@
         "serialise",
         "ajst",
         "optimisations",
-        "networkidle"
+        "networkidle",
+        "hoverable",
+        "badgable",
+        "gabriella",
+        "checkmark",
+        "nums"
     ],
     "ignorePaths": [
         "dist",

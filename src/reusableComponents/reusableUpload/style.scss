@@ -2,7 +2,6 @@
 
 .uploadWrapper {
   @include variable.d-flex($fd: column);
-  max-width: 720px;
   width: 100%;
 }
 
@@ -65,7 +64,7 @@
 
 .uploadedSection {
   margin-top: 22px;
-  width: 100%;
+  @include variable.d-flex($fd: column, $g: 12px);
 }
 
 .uploadedTitle {
@@ -83,6 +82,7 @@
   border-radius: 8px;
   border: 1px solid variable.$color-white-5;
   background: variable.$color-white-13;
+  gap: 16px;
 }
 
 .fileLeft {

@@ -1,6 +1,7 @@
 @use "../../../../style/variable" as variable;
 
 .broadcastPatientDetailsContainer {
+  width: 100%;
   background-color: variable.$color-white-0;
   border-radius: 12px;
   box-shadow: variable.$shadow-1;
@@ -83,6 +84,105 @@
     .toggleButtonContainer {
       width: 33.33%;
       @include variable.d-flex($fd: column, $g: 8px);
+    }
+
+    .patientsFoundContainer {
+      @include variable.d-flex(
+        $jc: space-between,
+        $al: center,
+        $g: 6px,
+        $fd: column
+      );
+      border: 1px dashed variable.$color-white-10;
+      background-color: variable.$color-white-13;
+      padding: 16px 0px;
+      border-radius: 12px;
+      .patientsFoundHeading {
+        padding: 0px 16px;
+        @include variable.d-flex($jc: space-between, $al: center, $g: 12px);
+        p {
+          @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
+          color: variable.$color-black-6;
+        }
+        .patientCountContainer {
+          @include variable.d-flex($jc: space-between, $al: center, $g: 12px);
+        }
+      }
+
+      .patientsFoundDivider {
+        width: 100%;
+        background-color: variable.$color-white-10;
+        height: 1px;
+        margin: 16px 0px;
+      }
+
+      .patientsFoundContent {
+        width: 100%;
+        padding: 0px 16px;
+        @include variable.d-flex($jc: space-between, $al: center, $g: 16px);
+        .patientsFound {
+          width: 49%;
+          @include variable.d-flex($g: 4px, $fd: column);
+          .patientName {
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+            color: variable.$color-white-12;
+          }
+          .patientId {
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+            color: variable.$color-black-6;
+          }
+        }
+      }
+    }
+
+    .patientUploadFileContainer {
+      width: 100%;
+      @include variable.d-flex($fd: column, $g: 24px);
+      .patientUploadFileContent {
+        width: 600px;
+        @include variable.d-flex($fd: column, $g: 6px);
+        background-color: variable.$color-green-4;
+        border-radius: 12px;
+        padding: 12px;
+        border-top: 2px solid variable.$color-green-5;
+        h1 {
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-black-6;
+        }
+        .guidelineListContainer {
+          @include variable.d-flex($fd: column, $g: 4px);
+          .guidelineItemContainer {
+            @include variable.d-flex($g: 8px);
+            .guidelineNumber {
+              padding: 4px;
+              span {
+                display: block;
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background-color: variable.$color-green-5;
+              }
+            }
+            .guidelineText {
+              @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+              color: variable.$color-black-9;
+            }
+          }
+        }
+      }
+
+      .uploadComponentContainer {
+        width: 100%;
+      }
+    }
+
+    .oneTimeBroadcastContainer {
+      width: 100%;
+      @include variable.d-flex($g: 16px, $al: flex-end);
+      .dateContainer {
+        width: 33.33%;
+        @include variable.d-flex($fd: column, $g: 8px);
+      }
     }
   }
 }

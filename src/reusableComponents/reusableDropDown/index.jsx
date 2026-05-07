@@ -58,9 +58,7 @@ export const ReusableDropDown = ({
             )}
             <p
               className="dropdownSelectContainerValueText"
-              style={
-                !greenIcon ? { color: placeholder ? "#929FB1" : "#181D25" } : {}
-              }
+              style={!greenIcon ? { color: value ? "#181D25" : "#929FB1" } : {}}
             >
               {value || placeholder}
             </p>

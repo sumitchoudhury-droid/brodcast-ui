@@ -1,10 +1,84 @@
 @use "../../../../../style//variable.scss" as variable;
 
 .BroadcastTextMessageEditor {
-  width: 51.02%;
-  background: variable.$color-white-0;
-  border-radius: 10px;
+  width: 52.03%;
+  border: 1px solid #eaedf2;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #ffffff;
   padding: 16px;
-  display: flex;
-  flex-direction: column;
+
+  .editor-canvas {
+    height: 100%;
+    width: 100%;
+  }
+
+  // GrapesJS UI Overrides
+  .gjs-cv-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+  }
+
+  // Hide the toolbar by default and only show the RTE toolbar
+  .gjs-toolbar {
+    display: none !important;
+  }
+
+  // Hide the badges (component names)
+  .gjs-badge {
+    display: none !important;
+  }
+
+  // Hide selection border
+  .gjs-highlighter {
+    display: none !important;
+  }
+
+  // Customize RTE toolbar
+  .gjs-rte-toolbar {
+    background-color: #1e1e1e !important;
+    border-radius: 4px !important;
+    padding: 5px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .gjs-rte-action {
+    color: #ffffff !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 4px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: background 0.2s !important;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    &.gjs-rte-active {
+      background-color: #1570ef !important;
+    }
+
+    select.gjs-rte-action {
+      padding: 2px 4px !important;
+      font-size: 12px !important;
+
+      option {
+        background: #1e1e1e;
+        color: white;
+      }
+    }
+  }
+
+  // Hide panels if they somehow appear
+  .gjs-pn-panels {
+    display: none !important;
+  }
 }

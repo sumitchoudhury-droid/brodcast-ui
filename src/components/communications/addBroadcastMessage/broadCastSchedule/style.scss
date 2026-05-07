@@ -46,18 +46,120 @@
       }
     }
 
+    .scheduleOptionsContainer {
+      @include variable.d-flex($fd: column, $g: 16px);
+      animation: fadeIn 0.3s ease-out;
+
+      .scheduleOptionsGrid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        align-items: flex-end;
+
+        .sendTypeContainer {
+          @include variable.d-flex($fd: column, $g: 8px);
+
+          .radioGroup {
+            @include variable.d-flex($al: center, $g: 16px);
+            height: 48px; // Align with input heights
+          }
+        }
+
+        .scheduleLabel {
+          @include variable.d-flex($al: center, $g: 4px);
+
+          p {
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+            color: variable.$color-black-6;
+            margin: 0;
+          }
+
+          span {
+            color: variable.$color-red-0;
+          }
+        }
+
+        .dateContainer,
+        .frequencyContainer,
+        .repeatEveryContainer,
+        .repeatDayContainer {
+          width: 100%;
+        }
+
+        .repeatEveryContainer {
+          .customRepeatGroup {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            align-items: flex-end;
+
+            .repeatTypeDropdown {
+              width: 100%;
+            }
+          }
+        }
+
+        .endsOnFull {
+          grid-column: 1;
+        }
+      }
+
+      .repeatOnMainContainer {
+        @include variable.d-flex($fd: column, $g: 8px);
+
+        .daysSelector {
+          @include variable.d-flex($al: center, $g: 12px);
+          height: 48px; // Align with other fields
+
+          .dayCircle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid variable.$color-white-10;
+            @include variable.d-flex($jc: center, $al: center);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: variable.$color-white-0;
+
+            span {
+              @include variable.font-style($fs: 13px, $fw: 500);
+              color: variable.$color-black-6;
+            }
+
+            &:hover {
+              border-color: variable.$primary-color;
+              background: variable.$color-green-4;
+            }
+
+            &.active {
+              background: variable.$primary-color;
+              border-color: variable.$primary-color;
+
+              span {
+                color: variable.$color-white-0;
+              }
+            }
+          }
+        }
+      }
+    }
+
     .broadcastScheduleInfoBox {
-      @include variable.d-flex($al: flex-start, $g: 8px);
-      padding: 8px;
+      @include variable.d-flex($al: center, $g: 8px);
+      padding: 12px 0;
+      border-top: 1px solid variable.$color-white-10;
+      margin-top: 10px;
 
       .infoIcon {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
+        opacity: 0.7;
       }
 
       p {
-        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
-        color: variable.$color-black-9;
+        @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+        color: variable.$color-black-7;
+        margin: 0;
       }
     }
   }
@@ -66,7 +168,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(10px);
   }
 
   to {

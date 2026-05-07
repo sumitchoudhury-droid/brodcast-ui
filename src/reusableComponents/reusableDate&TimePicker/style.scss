@@ -1,5 +1,8 @@
 @use "../../style/variable.scss" as variable;
 
+// ─────────────────────────────────────────
+// Wrapper / Label
+// ─────────────────────────────────────────
 .dateTimeWrapper {
   @include variable.d-flex($fd: column, $g: 6px);
   width: 100%;
@@ -16,6 +19,9 @@
   color: variable.$color-red-0;
 }
 
+// ─────────────────────────────────────────
+// Input trigger
+// ─────────────────────────────────────────
 .pickerContainer {
   width: 100%;
   position: relative;
@@ -40,6 +46,10 @@
     cursor: not-allowed;
     background-color: variable.$color-white-1;
     opacity: 0.7;
+  }
+
+  &.inputError {
+    border-color: variable.$color-red-0;
   }
 }
 
@@ -70,17 +80,15 @@
   margin-left: 8px;
 }
 
-.inputError {
-  border-color: variable.$color-red-0;
-}
-
 .errorText {
   font-size: 12px;
   color: variable.$color-red-0;
   margin-top: 4px;
 }
 
-// Custom Picker Popup
+// ─────────────────────────────────────────
+// Popup container  —  502 × 400
+// ─────────────────────────────────────────
 .customDatePickerPopup {
   position: absolute;
   top: calc(100% + 8px);
@@ -89,169 +97,168 @@
   background-color: variable.$color-white-0;
   border: 1px solid variable.$color-white-10;
   border-radius: 12px;
-  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
   overflow: hidden;
-  width: fit-content;
-  min-width: 330px;
+  min-width: 502px;
+  height: 400px;
   display: flex;
   flex-direction: column;
 }
 
+// ─────────────────────────────────────────
+// Content row  (calendar + time)
+// ─────────────────────────────────────────
 .pickerContent {
   display: flex;
-}
-
-.calendarSection {
-  padding: 15px;
   flex: 1;
+  overflow: hidden;
 }
 
+// ─────────────────────────────────────────
+// Calendar section
+// ─────────────────────────────────────────
+.calendarSection {
+  padding: 12px 14px 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+// Header: ← Month Year →
 .customDatePickerHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 
   .monthDisplay {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    @include variable.font-style($fs: 16px, $fw: 600);
+    @include variable.font-style($fs: 14px, $fw: 600);
     color: variable.$color-black-4;
-    cursor: pointer;
-
-    .dropdownIcon {
-      color: variable.$color-white-12;
-    }
+    text-align: center;
+    flex: 1;
   }
 
-  .navigationWrapper {
+  .navBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: variable.$color-black-9;
     display: flex;
-    gap: 10px;
+    align-items: center;
+    padding: 4px 5px;
+    border-radius: 4px;
+    transition: background 0.15s;
 
-    .navBtn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: variable.$color-black-9;
-      display: flex;
-      align-items: center;
-      padding: 5px;
-      border-radius: 4px;
-
-      &:hover {
-        background-color: variable.$color-white-1;
-        color: variable.$primary-color;
-      }
+    &:hover {
+      background-color: variable.$color-white-1;
+      color: variable.$primary-color;
     }
   }
 }
 
+// Week day header row
 .weekDaysRow {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 
   .weekDay {
     text-align: center;
-    color: variable.$color-white-12;
-    @include variable.font-style($fs: 13px, $fw: 500);
-    padding: 5px 0;
+    color: variable.$color-black-5;
+    @include variable.font-style($fs: 12px, $fw: 500);
+    padding: 3px 0;
   }
 }
 
+// Day grid
 .daysGrid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  gap: 1px;
+  flex: 1;
 
   .dayCell {
     background: none;
     border: none;
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     border-radius: 50%;
-    @include variable.font-style($fs: 14px, $fw: 400);
+    @include variable.font-style($fs: 13px, $fw: 400);
     color: variable.$color-black-6;
-    transition: all 0.2s ease;
+    transition:
+      background 0.15s,
+      color 0.15s;
+    margin: 0 auto;
 
-    &:hover {
+    &:hover:not(.selected) {
       background-color: variable.$color-white-1;
       color: variable.$primary-color;
     }
 
     &.outsideMonth {
       color: variable.$color-white-12;
-      opacity: 0.5;
     }
 
+    // Solid teal circle — matches screenshot 1
     &.selected {
-      background-color: #e8f0fe !important;
-      color: variable.$primary-color !important;
-      border: 1px solid variable.$primary-color !important;
+      background-color: variable.$primary-color !important;
+      color: #fff !important;
       font-weight: 600;
     }
 
     &.today {
       color: variable.$primary-color;
       font-weight: 700;
-      text-decoration: underline;
     }
   }
 }
 
+// ─────────────────────────────────────────
+// Time section  (right panel)
+// ─────────────────────────────────────────
 .timeSection {
   border-left: 1px solid variable.$color-white-10;
-  width: 160px;
   display: flex;
   flex-direction: column;
+  width: 155px;
+  flex-shrink: 0;
 }
 
+// Three-column flex row:  Hours | Divider | Minutes | AM/PM
 .timeColumns {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
+.timeColumnDivider {
+  width: 1px;
+  background-color: variable.$color-white-10;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
 .timeColumn {
   flex: 1;
   display: flex;
   flex-direction: column;
-  &:first-child {
-    border-right: 1px solid variable.$color-white-10;
-  }
-}
-
-.columnTitle {
-  @include variable.font-style($fs: 11px, $fw: 600);
-  color: variable.$color-white-12;
-  text-align: center;
-  padding: 4px 0;
-  background-color: variable.$color-white-1;
-  border-bottom: 1px solid variable.$color-white-10;
-}
-
-.timeHeader {
-  @include variable.font-style($fs: 14px, $fw: 600);
-  padding: 15px 0;
-  text-align: center;
-  border-bottom: 1px solid variable.$color-white-10;
+  overflow: hidden;
 }
 
 .timeList {
   overflow-y: auto;
-  height: 280px;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0;
+  padding: 4px 0;
+  scroll-behavior: smooth;
 
-  // Custom Scrollbar
   &::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
   }
   &::-webkit-scrollbar-thumb {
     background: variable.$color-white-10;
@@ -262,52 +269,108 @@
 .timeCell {
   background: none;
   border: none;
-  padding: 10px 0;
+  padding: 8px 0;
   cursor: pointer;
   @include variable.font-style($fs: 13px, $fw: 400);
   color: variable.$color-black-6;
   text-align: center;
-  transition: all 0.2s ease;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  flex-shrink: 0;
 
-  &:hover {
-    background-color: variable.$color-green-2;
+  &:hover:not(.selectedTime) {
+    background-color: variable.$color-white-1;
     color: variable.$primary-color;
   }
 
+  // Solid teal pill — matches screenshot 1
   &.selectedTime {
     background-color: variable.$primary-color !important;
-    color: white !important;
+    color: #fff !important;
+    font-weight: 600;
+    border-radius: 6px;
+    margin: 0 3px;
+  }
+}
+
+// AM/PM — 3rd column, right side of time section
+.amPmColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px 0;
+  gap: 4px;
+  width: 46px;
+  flex-shrink: 0;
+}
+
+.amPmBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  @include variable.font-style($fs: 13px, $fw: 500);
+  color: variable.$color-black-5;
+  padding: 5px 6px;
+  border-radius: 6px;
+  width: 100%;
+  text-align: center;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover:not(.active) {
+    background-color: variable.$color-white-1;
+    color: variable.$primary-color;
+  }
+
+  &.active {
+    background-color: variable.$primary-color;
+    color: #fff;
     font-weight: 600;
   }
 }
 
+// ─────────────────────────────────────────
+// Footer  (Cancel / Apply)
+// ─────────────────────────────────────────
 .datePickerFooter {
   display: flex;
   justify-content: flex-end;
-  padding: 10px 15px;
-  gap: 15px;
+  align-items: center;
+  padding: 10px 14px;
+  gap: 10px;
   border-top: 1px solid variable.$color-white-10;
   background-color: variable.$color-white-0;
+  flex-shrink: 0;
 
   .footerBtn {
-    background: none;
-    border: none;
-    @include variable.font-style($fs: 14px, $fw: 600);
-    color: variable.$color-blue-0;
+    @include variable.font-style($fs: 14px, $fw: 500);
     cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 4px;
-
-    &:hover {
-      background-color: variable.$color-white-1;
-    }
+    padding: 7px 18px;
+    border-radius: 8px;
+    transition: all 0.15s;
 
     &.cancel {
-      color: variable.$color-blue-0;
+      background: variable.$color-white-0;
+      border: 1px solid variable.$color-white-10;
+      color: variable.$color-black-6;
+
+      &:hover {
+        background-color: variable.$color-white-1;
+        border-color: variable.$color-white-9;
+      }
     }
 
     &.ok {
-      color: variable.$color-blue-0;
+      background-color: variable.$primary-color;
+      border: 1px solid variable.$primary-color;
+      color: #fff;
+      font-weight: 600;
+
+      &:hover {
+        opacity: 0.88;
+      }
     }
   }
 }

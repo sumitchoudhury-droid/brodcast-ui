@@ -1,0 +1,201 @@
+.broadcastVoicePreviewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 8px 0;
+
+  // ── Message preview card ──────────────────────────────────────────────
+  .messagePreviewCard {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+
+    .cardHeader {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f5f9;
+
+      .textIcon {
+        width: 32px;
+        height: 32px;
+        background: #3b82f6;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+    }
+
+    .cardBody {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .messageText {
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #1e293b;
+        min-height: 80px;
+        white-space: pre-wrap;
+
+        p {
+          margin-bottom: 12px;
+        }
+      }
+
+      .optOutText {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  // ── Audio preview section ─────────────────────────────────────────────
+  .audioPreviewSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .audioPreviewHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .sectionTitle {
+        font-size: 13px;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0;
+      }
+
+      .voiceBadge {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: #eff6ff;
+        color: #3b82f6;
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: "Inter", sans-serif;
+
+        svg {
+          flex-shrink: 0;
+        }
+      }
+    }
+
+    .audioPlayerWrapper {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      // ── Progress bar ────────────────────────────────────────────────
+      .progressBarTrack {
+        width: 100%;
+        height: 4px;
+        background: #e2e8f0;
+        border-radius: 99px;
+        overflow: hidden;
+
+        .progressBarFill {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6, #6366f1);
+          border-radius: 99px;
+          width: 0%;
+        }
+      }
+
+      // ── Controls row ────────────────────────────────────────────────
+      .playerControls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .controlBtn {
+          border: none;
+          cursor: pointer;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition:
+            background 0.15s,
+            transform 0.1s,
+            opacity 0.15s;
+
+          &:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+          }
+
+          &:not(:disabled):active {
+            transform: scale(0.92);
+          }
+        }
+
+        .stopBtn {
+          width: 32px;
+          height: 32px;
+          background: #fee2e2;
+          color: #ef4444;
+
+          &:not(:disabled):hover {
+            background: #fecaca;
+          }
+        }
+
+        .playBtn {
+          width: 44px;
+          height: 44px;
+          background: #3b82f6;
+          color: #fff;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+
+          &:hover {
+            background: #2563eb;
+          }
+        }
+
+        .playerStatusLabel {
+          font-size: 13px;
+          color: #64748b;
+          font-family: "Inter", sans-serif;
+          margin-left: 4px;
+        }
+      }
+    }
+  }
+}
+
+// ── Modal overrides ───────────────────────────────────────────────────────
+.reusableModal {
+  .modalContent {
+    max-width: 520px;
+    width: 90%;
+  }
+
+  .modalFooter {
+    justify-content: flex-end;
+
+    button:last-child:empty,
+    button:last-child:not(:has(span)):not(:has(p)) {
+      display: none;
+    }
+  }
+}

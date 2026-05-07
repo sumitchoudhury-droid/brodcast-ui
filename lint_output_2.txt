@@ -2,3 +2,97 @@
 > checkinasystboardcost@0.0.0 lint
 > eslint .
 
+
+/Users/vuyyuruvenkatasivasubrahmanyam/Desktop/checkinAsystBoardCost/src/components/communications/BroadcastMessage/broadcastTextVoiceMessage/broadcastTextVoiceMessageRightPanel/textVoicePreview.jsx
+   37:7   error    Error: Cannot access variable before it is declared
+
+`startProgressTimer` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  35 |       setIsPaused(false);
+  36 |       setIsPlaying(true);
+> 37 |       startProgressTimer(durationRef.current, progress);
+     |       ^^^^^^^^^^^^^^^^^^ `startProgressTimer` accessed before it is declared
+  38 |       return;
+  39 |     }
+  40 |
+
+  185 |   };
+  186 |
+> 187 |   const startProgressTimer = (estimatedMs, startPct = 0) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 188 |     clearInterval(intervalRef.current);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 189 |     const startMs = Date.now() - (estimatedMs * (startPct / 100));
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 198 |     }, 200);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 199 |   };
+      | ^^^^^ `startProgressTimer` is declared here
+  200 |
+  201 |
+  202 |   const handleSeek = (e) => {                                                                                                                                                                                                                                 react-hooks/immutability
+   52:22  error    Error: Cannot access variable before it is declared
+
+`pickSystemVoice` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  50 |
+  51 |     const utterance = new SpeechSynthesisUtterance(textToSpeak);
+> 52 |     const sysVoice = pickSystemVoice(selectedVoiceCfg);
+     |                      ^^^^^^^^^^^^^^^ `pickSystemVoice` accessed before it is declared
+  53 |     if (sysVoice) utterance.voice = sysVoice;
+  54 |     if (selectedVoiceCfg) {
+  55 |       utterance.lang  = selectedVoiceCfg.lang;
+
+  168 |
+  169 |   // Pick best system voice matching the voice config
+> 170 |   const pickSystemVoice = (cfg) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 171 |     if (!cfg) return null;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 172 |     const systemVoices = synthRef.current.getVoices();
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 184 |     return genderMatch || langVoices[0] || systemVoices.find((v) => v.lang.startsWith("en")) || systemVoices[0];
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 185 |   };
+      | ^^^^^ `pickSystemVoice` is declared here
+  186 |
+  187 |   const startProgressTimer = (estimatedMs, startPct = 0) => {
+  188 |     clearInterval(intervalRef.current);  react-hooks/immutability
+  108:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  106 |   useEffect(() => {
+  107 |     if (!isOpen) {
+> 108 |       stopAll();
+      |       ^^^^^^^ Avoid calling setState() directly within an effect
+  109 |     }
+  110 |     return () => stopAll();
+  111 |   }, [isOpen]);                                                                                                                                                                                                                                                                                                                                            react-hooks/set-state-in-effect
+  167:6   warning  React Hook useEffect has a missing dependency: 'handlePlay'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+
+/Users/vuyyuruvenkatasivasubrahmanyam/Desktop/checkinAsystBoardCost/src/components/communications/BroadcastMessage/broadcastTextVoiceMessage/broadcastVoicePreview/index.jsx
+  27:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  25 |   useEffect(() => {
+  26 |     if (!isOpen) {
+> 27 |       stopAll();
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  28 |     }
+  29 |     return () => stopAll();
+  30 |   }, [isOpen]);  react-hooks/set-state-in-effect
+
+✖ 5 problems (4 errors, 1 warning)
+
