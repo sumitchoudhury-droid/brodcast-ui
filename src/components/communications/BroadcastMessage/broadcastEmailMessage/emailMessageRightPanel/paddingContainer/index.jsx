@@ -4,6 +4,8 @@ export const PaddingContainer = ({
   selectedComp,
   padding,
   handlePaddingChange,
+  gap,
+  handleGapChange,
   alignItems,
   handleAlignItemsChange,
   justifyContent,
@@ -18,6 +20,11 @@ export const PaddingContainer = ({
     { key: "bottom", label: "Bottom" },
     { key: "left", label: "Left" },
     { key: "right", label: "Right" }
+  ];
+
+  const gaps = [
+    { key: "row", label: "Row gap" },
+    { key: "col", label: "Column gap" }
   ];
 
   const alignmentOptions = [
@@ -71,6 +78,25 @@ export const PaddingContainer = ({
                 >
                   {opt.label}
                 </button>
+              ))}
+            </div>
+          </div>
+          <div className="styleGroup">
+            <p className="groupLabel">Gap</p>
+            <div className="inputsGrid">
+              {gaps.map((g) => (
+                <div key={`gap-${g.key}`} className="inputWrapper">
+                  <span className="sideLabel">{g.label}</span>
+                  <div className="numInputGroup">
+                    <input
+                      type="number"
+                      value={gap?.[g.key] ?? 0}
+                      onChange={(e) => handleGapChange(g.key, e.target.value)}
+                      className="numInput"
+                    />
+                    <span className="unit">px</span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
