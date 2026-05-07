@@ -591,6 +591,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     bottom: "0",
     left: "0"
   });
+  const [gap, setGap] = useState({ row: "0", col: "0" });
 
   const [buttonUrl, setButtonUrl] = useState("");
 
@@ -825,6 +826,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           style["padding-left"]?.replace("px", "") ||
           style["padding"]?.split(" ")[3]?.replace("px", "") ||
           "0"
+      });
+
+      setGap({
+        row: dimStyle["row-gap"]?.replace("px", "") || "0",
+        col: dimStyle["column-gap"]?.replace("px", "") || "0"
       });
 
       const parseValueAndUnit = (val) => {
@@ -1217,6 +1223,26 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const handlePaddingChange = (side, value) => {
     setPadding((prev) => ({ ...prev, [side]: value }));
     selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
+  };
+
+  const handleGapChange = (axis, value) => {
+    setGap((prev) => ({ ...prev, [axis]: value }));
+    const target = getStyleTarget();
+    if (!target) return;
+
+    const cssProp = axis === "row" ? "row-gap" : "column-gap";
+    target.addStyle({ [cssProp]: `${value}px` });
+
+    const el = target.getView?.()?.el;
+    const td = getColumnContainerTd(el);
+    if (td) {
+      td.style.setProperty("display", "flex", "important");
+      td.style.setProperty("flex-direction", "row", "important");
+      td.style.setProperty("flex-wrap", "nowrap", "important");
+      td.style.setProperty(cssProp, `${value}px`, "important");
+    }
+
+    editorRef.current?.getEditor()?.trigger("component:update", target);
   };
 
   // Returns the <td> that directly parents all mj-column divs inside a section view.
@@ -1955,6 +1981,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               selectedComp={selectedComp}
               padding={padding}
               handlePaddingChange={handlePaddingChange}
+              gap={gap}
+              handleGapChange={handleGapChange}
               alignItems={alignItems}
               handleAlignItemsChange={handleAlignItemsChange}
               justifyContent={justifyContent}
