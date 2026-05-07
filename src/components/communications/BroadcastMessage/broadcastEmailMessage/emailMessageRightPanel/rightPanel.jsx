@@ -791,8 +791,22 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setActiveFormats({});
       }
 
-      setAlignItems(style["align-items"] || "flex-start");
-      setJustifyContent(style["justify-content"] || "flex-start");
+      if (dimTarget.get("type") === "mj-column") {
+        // Column: vertical-align is the MJML inline-block equivalent of align-items
+        const va =
+          dimStyle["vertical-align"] || dimAttrs["vertical-align"] || "top";
+        setAlignItems(
+          va === "middle"
+            ? "center"
+            : va === "bottom"
+              ? "flex-end"
+              : "flex-start"
+        );
+      } else {
+        // Section: align-items is stored directly in the model style
+        setAlignItems(dimStyle["align-items"] || "flex-start");
+      }
+      setJustifyContent(dimStyle["justify-content"] || "flex-start");
 
       setPadding({
         top:
@@ -1205,14 +1219,66 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
   };
 
+  // Returns the <td> that directly parents all mj-column divs inside a section view.
+  // Works whether `el` is the section root or an mj-column inside it.
+  const getColumnContainerTd = (el) => {
+    if (!el) return null;
+    // If el is an mj-column div, its parentElement is the td.
+    if (el.dataset?.gjsType === "mj-column")
+      return el.parentElement?.tagName === "TD" ? el.parentElement : null;
+    // Otherwise (section root), find the first column child and climb up.
+    const firstCol = el.querySelector("[data-gjs-type='mj-column']");
+    return firstCol?.parentElement?.tagName === "TD"
+      ? firstCol.parentElement
+      : null;
+  };
+
   const handleAlignItemsChange = (value) => {
     setAlignItems(value);
-    selectedComp?.addStyle({ "align-items": value });
+    const target = getStyleTarget();
+    if (!target) return;
+
+    const el = target.getView?.()?.el;
+    const type = target.get("type");
+
+    if (type === "mj-column") {
+      // mj-column is display:inline-block — vertical-align positions it within the line box
+      const va =
+        value === "center" ? "middle" : value === "flex-end" ? "bottom" : "top";
+      target.addAttributes({ "vertical-align": va });
+      if (el) el.style.verticalAlign = va;
+    } else {
+      // Section: flexbox lives on the inner <td> that holds all columns.
+      // Store in model for state read-back on re-selection.
+      target.addStyle({ "align-items": value });
+      const td = getColumnContainerTd(el);
+      if (td) {
+        // Ensure the td is a flex row (canvas CSS does this for column-frame-section,
+        // but we also need it for regular sections; !important beats canvas CSS rules).
+        td.style.setProperty("display", "flex", "important");
+        td.style.setProperty("flex-direction", "row", "important");
+        td.style.setProperty("flex-wrap", "nowrap", "important");
+        td.style.setProperty("align-items", value, "important");
+      }
+    }
   };
 
   const handleJustifyContentChange = (value) => {
     setJustifyContent(value);
-    selectedComp?.addStyle({ "justify-content": value });
+    const target = getStyleTarget();
+    if (!target) return;
+
+    // Store in model for state read-back on re-selection
+    target.addStyle({ "justify-content": value });
+
+    const el = target.getView?.()?.el;
+    const td = getColumnContainerTd(el);
+    if (td) {
+      td.style.setProperty("display", "flex", "important");
+      td.style.setProperty("flex-direction", "row", "important");
+      td.style.setProperty("flex-wrap", "nowrap", "important");
+      td.style.setProperty("justify-content", value, "important");
+    }
   };
 
   // ─── Format toggle ─────────────────────────────────────────────────────────
