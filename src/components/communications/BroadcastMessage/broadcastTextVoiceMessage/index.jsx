@@ -11,7 +11,10 @@ function BroadcastTextVoiceMessage() {
     <div className="broadcastTexVoiceMessageContainer">
       <BroadcastTextVoiceMessageLeftPanel />
       <BroadcastTextVoiceMessageEditor onContentChange={setContent} />
-      <BroadcastTextVoiceMessageRightPanel editorContent={content} />
+      <BroadcastTextVoiceMessageRightPanel
+        editorContent={content}
+        isEditorEmpty={!content || content.trim() === ""}
+      />
     </div>
   );
 }

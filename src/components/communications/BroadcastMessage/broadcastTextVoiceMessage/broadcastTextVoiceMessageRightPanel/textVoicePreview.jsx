@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
+import closeIcon from "../../../../../assets/commonIcons/CloseButton.svg";
+import playIcon from "../../../../../assets/voiceTextIcons/pausedIcon.svg";
+import pauseIcon from "../../../../../assets/voiceTextIcons/playIcon.svg";
 
 const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -17,52 +20,74 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
   const trackRef = useRef(null);
 
   // Helper functions moved to top to avoid declaration order issues
-  const pickSystemVoice = useCallback((cfg) => {
-    if (!cfg) return null;
+  const pickSystemVoice = useCallback((voiceCfg) => {
+    if (!voiceCfg) return null;
     const synth = synthRef.current;
     const systemVoices = synth.getVoices();
     if (!systemVoices.length) return null;
-    const isFemale = cfg.type === "Female";
-    const langVoices = systemVoices.filter((v) =>
-      v.lang.startsWith(cfg.lang.split("-")[0])
+
+    const isFemale = voiceCfg.type === "Female";
+    const preferredLang = voiceCfg.lang;
+    const personaName = voiceCfg.name.toLowerCase();
+
+    // 1. Try to find a voice that matches the persona name exactly (e.g., "Samantha")
+    const exactNameMatch = systemVoices.find((v) =>
+      v.name.toLowerCase().includes(personaName)
     );
-    const femaleKeywords = [
-      "samantha",
-      "karen",
-      "moira",
-      "tessa",
-      "fiona",
-      "victoria",
-      "allison",
-      "ava",
-      "susan",
-      "zoe",
-      "female",
-      "woman"
-    ];
-    const maleKeywords = [
-      "alex",
-      "daniel",
-      "fred",
-      "lee",
-      "rishi",
-      "tom",
-      "aaron",
-      "jorge",
-      "diego",
-      "male",
-      "man"
-    ];
-    const keywords = isFemale ? femaleKeywords : maleKeywords;
-    const genderMatch = langVoices.find((v) =>
-      keywords.some((k) => v.name.toLowerCase().includes(k))
+    if (exactNameMatch) return exactNameMatch;
+
+    // 2. Try to find "Natural", "Google", "Enhanced", "Siri", or "Alex" for the specific language
+    const highQualityMatch = systemVoices.find((v) => {
+      const name = v.name.toLowerCase();
+      const isCorrectLang = v.lang.includes(preferredLang.split("-")[0]);
+      const isNatural =
+        name.includes("natural") ||
+        name.includes("google") ||
+        name.includes("enhanced") ||
+        name.includes("premium") ||
+        name.includes("siri") ||
+        name.includes("alex") ||
+        name.includes("rishi");
+      const genderKeywords = isFemale
+        ? [
+            "female",
+            "woman",
+            "samantha",
+            "victoria",
+            "moira",
+            "tessa",
+            "karen",
+            "siri"
+          ]
+        : ["male", "man", "alex", "daniel", "fred", "rishi", "siri"];
+      const isCorrectGender = genderKeywords.some((k) => name.includes(k));
+
+      return isCorrectLang && isNatural && isCorrectGender;
+    });
+
+    if (highQualityMatch) return highQualityMatch;
+
+    // 3. Try any voice for the specific language + gender
+    const langGenderMatch = systemVoices.find((v) => {
+      const name = v.name.toLowerCase();
+      const isCorrectLang = v.lang.includes(preferredLang.split("-")[0]);
+      const genderKeywords = isFemale
+        ? ["female", "woman", "samantha", "victoria", "moira", "tessa", "karen"]
+        : ["male", "man", "alex", "daniel", "fred", "rishi"];
+      const isCorrectGender = genderKeywords.some((k) => name.includes(k));
+      return isCorrectLang && isCorrectGender;
+    });
+
+    if (langGenderMatch) return langGenderMatch;
+
+    // 4. Fallback to any voice for that language
+    const langMatch = systemVoices.find((v) =>
+      v.lang.includes(preferredLang.split("-")[0])
     );
-    return (
-      genderMatch ||
-      langVoices[0] ||
-      systemVoices.find((v) => v.lang.startsWith("en")) ||
-      systemVoices[0]
-    );
+    if (langMatch) return langMatch;
+
+    // 5. Global fallback
+    return systemVoices[0];
   }, []);
 
   const startProgressTimer = useCallback((estimatedMs, startPct = 0) => {
@@ -104,7 +129,12 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
       clearInterval(intervalRef.current);
 
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      const sysVoice = pickSystemVoice(selectedVoiceCfg);
+      const sysVoice = selectedVoiceCfg?.systemVoiceName
+        ? synth
+            .getVoices()
+            .find((v) => v.name === selectedVoiceCfg.systemVoiceName)
+        : pickSystemVoice(selectedVoiceCfg);
+
       if (sysVoice) utterance.voice = sysVoice;
       if (selectedVoiceCfg) {
         utterance.lang = selectedVoiceCfg.lang;
@@ -313,20 +343,7 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
           <div className="textVoicePreviewHeader">
             <h3>Voice Preview</h3>
             <button className="closeBtn" onClick={handleClose}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
+              <img src={closeIcon} alt="close" />
             </button>
           </div>
 
@@ -353,26 +370,17 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
                       }
                     >
                       {isPlaying ? (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <rect x="6" y="4" width="4" height="16" />
-                          <rect x="14" y="4" width="4" height="16" />
-                        </svg>
+                        <img
+                          src={pauseIcon}
+                          alt="pause"
+                          style={{ width: "16px", height: "16px" }}
+                        />
                       ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <polygon points="5 3 19 12 5 21 5 3" />
-                        </svg>
+                        <img
+                          src={playIcon}
+                          alt="play"
+                          style={{ width: "16px", height: "16px" }}
+                        />
                       )}
                     </button>
 

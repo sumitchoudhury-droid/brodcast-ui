@@ -2,6 +2,9 @@ import "./style.scss";
 import downloadIcon from "../../assets/commonIcons/downloadIcon.svg";
 import greenDownloadIcon from "../../assets/commonIcons/greenDownloadIcon.svg";
 import eyeIcon from "../../assets/commonIcons/eyeIcon.svg";
+import sendIcon from "../../assets/voiceTextIcons/messageIcon.svg";
+import playIcon from "../../assets/voiceTextIcons/pausedIcon.svg";
+import pauseIcon from "../../assets/voiceTextIcons/playIcon.svg";
 export const ReusableButton = ({
   label = "Button",
   onClick,
@@ -12,7 +15,10 @@ export const ReusableButton = ({
   className = "",
   downloadImage = false,
   greenDownloadImage = false,
-  eyeImage = false
+  eyeImage = false,
+  sendImage = false,
+  playImage = false,
+  pauseImage = false
 }) => {
   const handleClick = (e) => {
     if (disabled || loading) return;
@@ -52,6 +58,30 @@ export const ReusableButton = ({
               alt="eyeIcon"
               className="icon"
               style={{ width: "20px", height: "20px" }}
+            />
+          )}
+          {sendImage && (
+            <img
+              src={sendIcon}
+              alt="sendIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+          {playImage && (
+            <img
+              src={playIcon}
+              alt="playIcon"
+              className="icon"
+              style={{ width: "16px", height: "16px" }}
+            />
+          )}
+          {pauseImage && (
+            <img
+              src={pauseIcon}
+              alt="pauseIcon"
+              className="icon"
+              style={{ width: "16px", height: "16px" }}
             />
           )}
           <span className="btn-label">{label}</span>
