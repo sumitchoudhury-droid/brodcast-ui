@@ -6,13 +6,19 @@
   border-radius: 8px;
   overflow: hidden;
   background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
 
   .editor-canvas {
-    height: 100%;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    flex: 1;
     overflow: hidden;
-    margin-top: 10px;
+
+    // Hide GrapesJS default borders
+    .gjs-cv-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      top: 0 !important;
+    }
   }
 }
 
