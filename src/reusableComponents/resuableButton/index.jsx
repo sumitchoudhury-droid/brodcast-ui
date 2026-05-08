@@ -1,5 +1,5 @@
 import "./style.scss";
-import downloadIcon from "../../assets/commonIcons/downLoadIcon.svg";
+import downloadIcon from "../../assets/commonIcons/downloadIcon.svg";
 import greenDownloadIcon from "../../assets/commonIcons/greenDownloadIcon.svg";
 import eyeIcon from "../../assets/commonIcons/eyeIcon.svg";
 export const ReusableButton = ({
