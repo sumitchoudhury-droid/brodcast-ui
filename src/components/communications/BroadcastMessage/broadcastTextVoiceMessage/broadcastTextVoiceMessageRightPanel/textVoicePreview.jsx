@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
 
 const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
@@ -17,7 +17,7 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
   const trackRef = useRef(null);
 
   // Helper functions moved to top to avoid declaration order issues
-  function pickSystemVoice(cfg) {
+  const pickSystemVoice = useCallback((cfg) => {
     if (!cfg) return null;
     const synth = synthRef.current;
     const systemVoices = synth.getVoices();
@@ -63,9 +63,9 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
       systemVoices.find((v) => v.lang.startsWith("en")) ||
       systemVoices[0]
     );
-  }
+  }, []);
 
-  function startProgressTimer(estimatedMs, startPct = 0) {
+  const startProgressTimer = useCallback((estimatedMs, startPct = 0) => {
     clearInterval(intervalRef.current);
     const startMs = Date.now() - estimatedMs * (startPct / 100);
     startTimeRef.current = startMs;
@@ -77,79 +77,89 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
       const pct = Math.min((elapsed / estimatedMs) * 100, 99);
       setProgress(pct);
     }, 200);
-  }
+  }, []);
 
-  function handlePlay(startCharIndex = 0) {
-    const synth = synthRef.current;
+  const handlePlay = useCallback(
+    (startCharIndex = 0) => {
+      const synth = synthRef.current;
 
-    if (isPaused && utteranceRef.current && startCharIndex === 0) {
-      synth.resume();
-      setIsPaused(false);
-      setIsPlaying(true);
-      startProgressTimer(durationRef.current, progress);
-      return;
-    }
-
-    const fullText =
-      content && content.trim()
-        ? content.trim().replace(/<[^>]*>?/gm, "")
-        : "Hello, this is a preview of your broadcast voice message. Welcome to Manipal Hospitals.";
-
-    const textToSpeak =
-      startCharIndex > 0 ? fullText.slice(startCharIndex) : fullText;
-    offsetRef.current = startCharIndex;
-
-    synth.cancel();
-    clearInterval(intervalRef.current);
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    const sysVoice = pickSystemVoice(selectedVoiceCfg);
-    if (sysVoice) utterance.voice = sysVoice;
-    if (selectedVoiceCfg) {
-      utterance.lang = selectedVoiceCfg.lang;
-      utterance.pitch = selectedVoiceCfg.type === "Female" ? 1.1 : 0.9;
-    }
-    utterance.rate = 0.95;
-
-    const wordCount = fullText.split(/\s+/).length;
-    const estimatedMs = (wordCount / 126) * 60 * 1000;
-
-    utterance.onstart = () => {
-      setIsPlaying(true);
-      setIsPaused(false);
-      setSpeakingCharIndex(startCharIndex);
-      const initialPct = (startCharIndex / fullText.length) * 100;
-      setProgress(initialPct);
-      startProgressTimer(estimatedMs, initialPct);
-    };
-
-    utterance.onboundary = (event) => {
-      if (event.name === "word") {
-        const absoluteIndex = offsetRef.current + event.charIndex;
-        setSpeakingCharIndex(absoluteIndex);
-        const pct = (absoluteIndex / fullText.length) * 100;
-        setProgress(pct);
-        const elapsedSoFar = (pct / 100) * estimatedMs;
-        startTimeRef.current = Date.now() - elapsedSoFar;
+      if (isPaused && utteranceRef.current && startCharIndex === 0) {
+        synth.resume();
+        setIsPaused(false);
+        setIsPlaying(true);
+        startProgressTimer(durationRef.current, progress);
+        return;
       }
-    };
-    utterance.onend = () => {
-      clearInterval(intervalRef.current);
-      setIsPlaying(false);
-      setIsPaused(false);
-      setProgress(100);
-      setTimeout(() => setProgress(0), 600);
-    };
-    utterance.onerror = () => {
-      clearInterval(intervalRef.current);
-      setIsPlaying(false);
-      setIsPaused(false);
-      setProgress(0);
-    };
 
-    utteranceRef.current = utterance;
-    synth.speak(utterance);
-  }
+      const fullText =
+        content && content.trim()
+          ? content.trim().replace(/<[^>]*>?/gm, "")
+          : "Hello, this is a preview of your broadcast voice message. Welcome to Manipal Hospitals.";
+
+      const textToSpeak =
+        startCharIndex > 0 ? fullText.slice(startCharIndex) : fullText;
+      offsetRef.current = startCharIndex;
+
+      synth.cancel();
+      clearInterval(intervalRef.current);
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      const sysVoice = pickSystemVoice(selectedVoiceCfg);
+      if (sysVoice) utterance.voice = sysVoice;
+      if (selectedVoiceCfg) {
+        utterance.lang = selectedVoiceCfg.lang;
+        utterance.pitch = selectedVoiceCfg.type === "Female" ? 1.1 : 0.9;
+      }
+      utterance.rate = 0.95;
+
+      const wordCount = fullText.split(/\s+/).length;
+      const estimatedMs = (wordCount / 126) * 60 * 1000;
+
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setIsPaused(false);
+        setSpeakingCharIndex(startCharIndex);
+        const initialPct = (startCharIndex / fullText.length) * 100;
+        setProgress(initialPct);
+        startProgressTimer(estimatedMs, initialPct);
+      };
+
+      utterance.onboundary = (event) => {
+        if (event.name === "word") {
+          const absoluteIndex = offsetRef.current + event.charIndex;
+          setSpeakingCharIndex(absoluteIndex);
+          const pct = (absoluteIndex / fullText.length) * 100;
+          setProgress(pct);
+          const elapsedSoFar = (pct / 100) * estimatedMs;
+          startTimeRef.current = Date.now() - elapsedSoFar;
+        }
+      };
+      utterance.onend = () => {
+        clearInterval(intervalRef.current);
+        setIsPlaying(false);
+        setIsPaused(false);
+        setProgress(100);
+        setTimeout(() => setProgress(0), 600);
+      };
+      utterance.onerror = () => {
+        clearInterval(intervalRef.current);
+        setIsPlaying(false);
+        setIsPaused(false);
+        setProgress(0);
+      };
+
+      utteranceRef.current = utterance;
+      synth.speak(utterance);
+    },
+    [
+      isPaused,
+      progress,
+      content,
+      selectedVoiceCfg,
+      pickSystemVoice,
+      startProgressTimer
+    ]
+  );
 
   function stopAll() {
     synthRef.current.cancel();
@@ -279,7 +289,7 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, content]);
+  }, [isDragging, content, handlePlay]);
 
   if (!isOpen) return null;
 
