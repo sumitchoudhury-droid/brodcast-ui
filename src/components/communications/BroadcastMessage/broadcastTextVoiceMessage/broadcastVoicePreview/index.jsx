@@ -1,5 +1,5 @@
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import "./style.scss";
 
 function BroadcastVoicePreview({ isOpen, onClose, content, selectedVoiceCfg }) {
@@ -13,7 +13,7 @@ function BroadcastVoicePreview({ isOpen, onClose, content, selectedVoiceCfg }) {
   const durationRef = useRef(null); // estimated ms
 
   // Helper functions moved to top
-  function pickSystemVoice(cfg) {
+  const pickSystemVoice = useCallback((cfg) => {
     if (!cfg) return null;
     const synth = synthRef.current;
     const systemVoices = synth.getVoices();
@@ -59,9 +59,9 @@ function BroadcastVoicePreview({ isOpen, onClose, content, selectedVoiceCfg }) {
       systemVoices.find((v) => v.lang.startsWith("en")) ||
       systemVoices[0]
     );
-  }
+  }, []);
 
-  function startProgressTimer(estimatedMs) {
+  const startProgressTimer = useCallback((estimatedMs) => {
     clearInterval(intervalRef.current);
     startTimeRef.current = Date.now();
     durationRef.current = estimatedMs;
@@ -70,9 +70,9 @@ function BroadcastVoicePreview({ isOpen, onClose, content, selectedVoiceCfg }) {
       const pct = Math.min((elapsed / estimatedMs) * 100, 99);
       setProgress(pct);
     }, 200);
-  }
+  }, []);
 
-  function handlePlay() {
+  const handlePlay = useCallback(() => {
     const synth = synthRef.current;
 
     if (isPaused) {
@@ -125,7 +125,14 @@ function BroadcastVoicePreview({ isOpen, onClose, content, selectedVoiceCfg }) {
 
     utteranceRef.current = utterance;
     synth.speak(utterance);
-  }
+  }, [
+    isPaused,
+    progress,
+    content,
+    selectedVoiceCfg,
+    pickSystemVoice,
+    startProgressTimer
+  ]);
 
   function stopAll() {
     synthRef.current.cancel();
