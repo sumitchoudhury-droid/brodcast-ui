@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import greenDownArrow from "../../assets/mainScreen/greenChevronRight.svg";
+import downArrow from "../../assets/mainScreen/chevronRight.svg";
 import "./style.scss";
 
 export const ReusableDropDown = ({
@@ -8,7 +9,8 @@ export const ReusableDropDown = ({
   value = "",
   placeholder = "Select option",
   onChange,
-  valueImage
+  valueImage,
+  greenIcon = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -39,7 +41,10 @@ export const ReusableDropDown = ({
   return (
     <div className={`dropdown ${isOpen ? "open" : ""}`} ref={dropdownRef}>
       {label && <label className="dropdownLabel">{label}</label>}
-      <div className="dropdownSelectContainer">
+      <div
+        className="dropdownSelectContainer"
+        style={!greenIcon ? { borderColor: "#E1E5EA" } : {}}
+      >
         <div className="dropdownSelectContainerValue" onClick={handleToggle}>
           <div className="dropdownSelectContainerValueImage">
             {valueImage && (
@@ -51,12 +56,15 @@ export const ReusableDropDown = ({
                 />
               </div>
             )}
-            <p className="dropdownSelectContainerValueText">
+            <p
+              className="dropdownSelectContainerValueText"
+              style={!greenIcon ? { color: value ? "#181D25" : "#929FB1" } : {}}
+            >
               {value || placeholder}
             </p>
           </div>
           <img
-            src={greenDownArrow}
+            src={greenIcon ? greenDownArrow : downArrow}
             alt="downArrow"
             className={`dropdownSelectContainerValueArrow ${isOpen ? "rotated" : ""}`}
           />

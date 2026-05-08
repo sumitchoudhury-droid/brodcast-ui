@@ -1,0 +1,48 @@
+@use "../../../../style/variable.scss" as variable;
+
+.broadcastDetails {
+  width: 100%;
+  @include variable.d-flex($g: 20px, $fd: column);
+  border-radius: 8px;
+  border: 1px solid variable.$color-white-10;
+  box-shadow: variable.$shadow-1;
+
+  .broadcastDetailsTitle {
+    width: 100%;
+    @include variable.d-flex();
+    padding: 18px 24px;
+    border-bottom: 1px solid variable.$color-white-10;
+
+    p {
+      @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
+      color: variable.$color-black-6;
+    }
+  }
+
+  .broadcastDetailsContent {
+    width: 100%;
+    @include variable.d-flex($g: 30px, $al: center);
+    padding: 0px 24px 18px 24px;
+
+    .broadcastDetailsContentRow {
+      width: 28%;
+      @include variable.d-flex($g: 12px, $fd: column);
+
+      .broadcastDetailsContentRowLabel {
+        @include variable.d-flex($g: 4px, $al: center);
+
+        p {
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-black-6;
+        }
+        span {
+          @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+          color: variable.$color-red-0;
+        }
+      }
+      .broadcastDetailsContentRowValue {
+        @include variable.d-flex($g: 24px, $al: center);
+      }
+    }
+  }
+}

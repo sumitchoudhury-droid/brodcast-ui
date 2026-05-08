@@ -1,0 +1,13 @@
+@use "../../../../style/variable.scss" as variable;
+
+.broadcastTexVoiceMessageContainer {
+  width: 100%;
+  flex: 1;
+  background-color: variable.$color-white-1;
+  border-radius: 10px;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  overflow: hidden;
+  justify-content: space-between;
+}

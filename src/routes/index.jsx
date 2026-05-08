@@ -17,7 +17,7 @@ export const AppRoutes = () => {
         path="/"
         element={<Navigate to="/patient-communication" replace />}
       />
-      <Route element={<MainScreen />}>
+      <Route path="/*" element={<MainScreen />}>
         {tabs.map((tab) => {
           const path = tab.title.toLowerCase().replace(/\s+/g, "-");
           return (

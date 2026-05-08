@@ -1,0 +1,90 @@
+import { useState } from "react";
+
+import infoIcon from "../../../../assets/mainScreen/infoCircle.svg";
+import ScheduleOptions from "./scheduleOptions";
+
+import "./style.scss";
+
+export const BroadCastSchedule = () => {
+  const [sendType, setSendType] = useState("immediately");
+  const [startDateTime, setStartDateTime] = useState(null);
+  const [endDateTime, setEndDateTime] = useState(null);
+  const [frequency, setFrequency] = useState("Daily");
+  const [repeatEvery, setRepeatEvery] = useState("1");
+  const [repeatType, setRepeatType] = useState("Week");
+  const [repeatOn, setRepeatOn] = useState([]);
+  const [repeatDay, setRepeatDay] = useState("1st day");
+
+  const scheduleProps = {
+    sendType,
+    setSendType,
+    startDateTime,
+    setStartDateTime,
+    endDateTime,
+    setEndDateTime,
+    frequency,
+    setFrequency,
+    repeatEvery,
+    setRepeatEvery,
+    repeatType,
+    setRepeatType,
+    repeatOn,
+    setRepeatOn,
+    repeatDay,
+    setRepeatDay
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "...";
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "numeric",
+      day: "2-digit",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true
+    })
+      .format(date)
+      .replace(",", "");
+  };
+
+  const getSummaryText = () => {
+    if (sendType === "immediately") {
+      return "The broadcast will be delivered instantly once scheduled.";
+    }
+    if (sendType === "notifyLater") {
+      return `The broadcast will be delivered at ${formatDate(startDateTime)}.`;
+    }
+    if (sendType === "recurring") {
+      let recurrence = frequency.toLowerCase();
+      if (frequency === "Custom") {
+        recurrence = `every ${repeatEvery} ${repeatType.toLowerCase()}${repeatEvery > 1 ? "s" : ""}`;
+        if (repeatType === "Week" && repeatOn.length > 0) {
+          recurrence += ` on ${repeatOn.join(", ")}`;
+        } else if (repeatType === "Month") {
+          recurrence += ` on the ${repeatDay}`;
+        }
+      }
+      return `Occurs ${recurrence} from ${formatDate(startDateTime)} until ${formatDate(endDateTime)}.`;
+    }
+    return "";
+  };
+
+  return (
+    <div className="broadcastSchedule">
+      <div className="broadcastScheduleTitle">
+        <p>Schedule</p>
+      </div>
+
+      <div className="broadcastScheduleContent">
+        <ScheduleOptions {...scheduleProps} />
+
+        <div className="broadcastScheduleInfoBox">
+          <img src={infoIcon} alt="infoIcon" className="infoIcon" />
+          <p>{getSummaryText()}</p>
+        </div>
+      </div>
+    </div>
+  );
+};

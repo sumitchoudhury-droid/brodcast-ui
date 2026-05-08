@@ -1,0 +1,69 @@
+@use "sass:color";
+@use "../../../../../../style/variable.scss" as variable;
+
+.deviceSwitcherContainer {
+  @include variable.d-flex($al: center, $jc: space-between);
+  padding: 16px;
+  border-bottom: 1px solid variable.$color-white-6;
+  width: 100%;
+
+  .deviceToggle {
+    @include variable.d-flex($g: 4px);
+    background: variable.$color-white-2;
+    padding: 4px;
+    border-radius: 8px;
+
+    .deviceBtn {
+      @include variable.d-flex($al: center, $jc: center);
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      color: variable.$color-black-5;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &.active {
+        background: variable.$color-white-0;
+        color: variable.$color-black-4;
+        box-shadow: variable.$shadow-2;
+        border: 1px solid variable.$color-white-6;
+      }
+
+      &:hover:not(.active) {
+        background: variable.$color-white-3;
+      }
+    }
+  }
+
+  .previewBtn {
+    @include variable.d-flex($al: center, $g: 8px);
+    padding: 8px 16px;
+    border: 1px solid variable.$primary-color;
+    border-radius: 8px;
+    background: variable.$color-white-0;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: variable.$color-white-9;
+
+      p {
+        color: #98a2b3;
+      }
+
+      svg path {
+        stroke: #98a2b3;
+      }
+    }
+
+    p {
+      @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+      color: variable.$primary-color;
+      margin: 0;
+    }
+  }
+}

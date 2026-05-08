@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
-import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
-import { ReusableInput } from "../../../../../reusableComponents/reusableInput/index";
-import { ReusableCheckbox } from "../../../../../reusableComponents/reusableCheckbox/index";
-import { useToast } from "../../../../../hooks/useToast";
 
-import externalLinkIcon from "../../../../../../src/assets/commonIcons/externalLinkIcon.svg";
+import { ReusableButton } from "../../../../reusableComponents/resuableButton";
+import { ReusableInput } from "../../../../reusableComponents/reusableInput/index";
+import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
+import { useToast } from "../../../../hooks/useToast";
+import { ReusableModal } from "../../../../reusableComponents/reusableModal/index";
+
+import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
 import "./style.scss";
 
-export default function Footer() {
+export default function Footer({ onBack }) {
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
@@ -61,11 +62,7 @@ export default function Footer() {
       {/* Footer Buttons */}
       <div className="footer">
         <div className="buttonBlock">
-          <ReusableButton
-            label="Back"
-            variant="primary"
-            onClick={() => console.log("Back")}
-          />
+          <ReusableButton label="Back" variant="primary" onClick={onBack} />
 
           <ReusableButton
             label="Save as Template"
