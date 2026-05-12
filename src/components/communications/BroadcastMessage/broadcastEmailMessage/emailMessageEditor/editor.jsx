@@ -11,8 +11,8 @@ import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 
 import "../style.scss";
 import "./style.scss";
-import { LinkModal } from "../linkModal/index";
 import { useToast } from "../../../../../hooks/useToast";
+import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkModal/index";
 
 const EMPTY_TEMPLATE = `
 <mjml>
@@ -2402,7 +2402,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           )}
       </div>
 
-      <LinkModal
+      <ReusableLinkModal
         isOpen={isLinkModalOpen}
         onClose={() => {
           // On cancel: unwrap the placeholder link, restoring the plain text

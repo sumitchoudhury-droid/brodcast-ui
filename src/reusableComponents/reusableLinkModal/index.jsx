@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ReusableRadioButton } from "../../../../../reusableComponents/reusableRadioButton/index";
-import { ReusableInput } from "../../../../../reusableComponents/reusableInput/index";
-import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
+
 import "./style.scss";
+import { ReusableRadioButton } from "../reusableRadioButton";
+import { ReusableInput } from "../reusableInput";
+import { ReusableModal } from "../reusableModal";
 
 const PLACEHOLDERS = [
   {
@@ -51,7 +52,7 @@ const PLACEHOLDERS = [
   { label: "LinkedIn", value: "$LINKEDIN", link: "https://www.linkedin.com" }
 ];
 
-export const LinkModal = ({
+function ReusableLinkModal({
   isOpen,
   onClose,
   onConfirm,
@@ -62,7 +63,7 @@ export const LinkModal = ({
   title = "Add Link",
   textLabel = "Link Text",
   confirmText = "Save"
-}) => {
+}) {
   const [linkType, setLinkType] = useState("url"); // 'url' or 'placeholder'
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -172,4 +173,6 @@ export const LinkModal = ({
       </div>
     </ReusableModal>
   );
-};
+}
+
+export default ReusableLinkModal;

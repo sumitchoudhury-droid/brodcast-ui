@@ -3,7 +3,7 @@ import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "./style.scss";
 
-const BroadcastTextMessageEditor = ({ onContentChange }) => {
+const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -27,11 +27,49 @@ const BroadcastTextMessageEditor = ({ onContentChange }) => {
       canvas: {
         styles: [
           "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-        ]
+        ],
+        css: `
+          .text-editor-content {
+            min-height: 40px !important;
+            position: relative !important;
+          }
+          .text-editor-content:empty:before,
+          .text-editor-content.is-empty:before {
+            content: attr(data-placeholder) !important;
+            color: #98A2B3 !important;
+            pointer-events: none !important;
+            display: block !important;
+            font-style: normal !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 10px !important;
+            width: 100% !important;
+            white-space: pre-wrap !important;
+            z-index: 1 !important;
+          }
+          .unsubscribe-footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #EAECF0;
+            color: #475467;
+            font-size: 14px;
+            font-family: Inter, sans-serif;
+          }
+        `
       }
     });
 
     const rte = editor.RichTextEditor;
+
+    // Hide the RTE toolbar specifically for this instance
+    editor.on("rte:enable", () => {
+      setTimeout(() => {
+        const rteToolbar = editor.RichTextEditor.getToolbarEl();
+        if (rteToolbar) {
+          rteToolbar.style.setProperty("display", "none", "important");
+        }
+      }, 0);
+    });
 
     // Custom Alignment Icons (SVG)
     const alignLeftIcon = `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 19h18v-2H3v2zM3 7V5h18v2H3zm0 6h10v-2H3v2zm0-4h18V7H3v2zm0 10h10v-2H3v2z"/></svg>`;
@@ -81,46 +119,208 @@ const BroadcastTextMessageEditor = ({ onContentChange }) => {
       }
     });
 
+    // Handle content change
+    const updateContent = () => {
+      const wrapper = editor.getWrapper();
+      const contentComp = wrapper.find(".text-editor-content")[0];
+      if (contentComp) {
+        const content = contentComp.getInnerHTML() || "";
+        // Check if content is actually empty or just whitespace/placeholders
+        const plainText = content
+          .replace(/<[^>]*>/g, "")
+          .replace(/&nbsp;/g, " ")
+          .trim();
+        const isEmpty = plainText.length === 0;
+
+        // Toggle a class for the placeholder
+        if (isEmpty) {
+          contentComp.addClass("is-empty");
+        } else {
+          contentComp.removeClass("is-empty");
+        }
+
+        if (onContentChange) {
+          // Output final HTML content and empty status
+          onContentChange(editor.getHtml(), isEmpty);
+        }
+      }
+    };
+
     editor.on("load", () => {
       // Load initial content
-      editor.setComponents(
-        `<div class="text-editor-content" style="padding: 20px; font-family: Inter, sans-serif; font-size: 16px; min-height: 200px; outline: none; color: #181D25;">Type your message here...</div>`
-      );
+      editor.setComponents([
+        {
+          tagName: "div",
+          classes: ["text-editor-container"],
+          attributes: {
+            style:
+              "display: flex; flex-direction: column; box-sizing: border-box;"
+          },
+          components: [
+            {
+              tagName: "div",
+              type: "text",
+              classes: ["text-editor-content"],
+              content: "",
+              attributes: {
+                "data-placeholder":
+                  "Start typing or drag and drop a placeholder from left panel.",
+                style:
+                  "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
+              },
+              editable: true,
+              draggable: false,
+              removable: false,
+              copyable: false,
+              selectable: true,
+              hoverable: false,
+              badgable: false
+            },
+            {
+              tagName: "div",
+              classes: ["unsubscribe-footer"],
+              content: "Click here to unsubscribe:",
+              attributes: {
+                style:
+                  "padding: 10px 0; color: #475467; font-size: 14px; border-top: 1px solid #EAECF0; font-family: Inter, sans-serif;"
+              },
+              editable: false,
+              draggable: false,
+              removable: false,
+              copyable: false,
+              selectable: false,
+              hoverable: false,
+              badgable: false
+            }
+          ]
+        }
+      ]);
 
       const wrapper = editor.getWrapper();
-      const comp = wrapper.find(".text-editor-content")[0];
-      if (comp) {
-        comp.set({
-          editable: true,
-          draggable: false,
-          removable: false,
-          copyable: false,
-          selectable: true,
-          hoverable: false,
-          badgable: false
-        });
-        // Select the component to show the toolbar immediately if possible,
-        // but GrapesJS RTE usually needs a double click or focus.
-        editor.select(comp);
+      const contentComp = wrapper.find(".text-editor-content")[0];
+
+      if (contentComp) {
+        editor.select(contentComp);
+      }
+      updateContent();
+
+      // Handle external drops (placeholders)
+      const doc = editor.Canvas.getDocument();
+      if (doc) {
+        doc.addEventListener("input", updateContent);
+        doc.addEventListener(
+          "dragover",
+          (e) => {
+            const isPlaceholder = e.dataTransfer.types.includes(
+              "application/x-placeholder"
+            );
+            if (isPlaceholder) {
+              e.preventDefault();
+              e.stopPropagation();
+              // Show the caret at the current mouse position
+              let range;
+              if (doc.caretRangeFromPoint) {
+                range = doc.caretRangeFromPoint(e.clientX, e.clientY);
+              } else if (doc.caretPositionFromPoint) {
+                const pos = doc.caretPositionFromPoint(e.clientX, e.clientY);
+                range = doc.createRange();
+                range.setStart(pos.offsetNode, pos.offset);
+                range.collapse(true);
+              }
+
+              if (range) {
+                const sel = doc.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+            }
+          },
+          true
+        );
+
+        doc.addEventListener(
+          "drop",
+          (e) => {
+            const isPlaceholder = e.dataTransfer.getData(
+              "application/x-placeholder"
+            );
+            if (isPlaceholder) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+
+              const text = e.dataTransfer.getData("text/plain");
+
+              // Ensure the editor is focused and the RTE is enabled on the content section
+              if (contentComp) {
+                editor.select(contentComp);
+                editor.runCommand("rte:enable", { target: contentComp });
+
+                // Small delay to ensure RTE is ready
+                setTimeout(() => {
+                  const el = contentComp.getEl();
+                  if (el) {
+                    // Move cursor to the end of the content
+                    const range = doc.createRange();
+                    range.selectNodeContents(el);
+                    range.collapse(false);
+                    const sel = doc.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+
+                    // Add a space if the content is not empty and doesn't end with a space
+                    const currentText = el.innerText || "";
+                    const prefix =
+                      currentText.length > 0 && !currentText.endsWith(" ")
+                        ? " "
+                        : "";
+
+                    // Insert the text at the end
+                    doc.execCommand("insertText", false, prefix + text);
+                    updateContent();
+                  }
+                }, 20);
+              }
+            }
+          },
+          true
+        );
       }
     });
 
-    // Handle content change
-    editor.on("component:update", () => {
-      if (onContentChange) {
-        // Output final HTML content
-        onContentChange(editor.getHtml());
-      }
-    });
+    editor.on("component:update", updateContent);
+    editor.on("rte:exec", updateContent);
 
     editorRef.current = editor;
 
+    if (onReady) {
+      onReady({
+        editor,
+        execCommand: (cmd, value) => {
+          const wrapper = editor.getWrapper();
+          const contentComp = wrapper.find(".text-editor-content")[0];
+          if (contentComp) {
+            editor.select(contentComp);
+            editor.runCommand("rte:enable", { target: contentComp });
+            setTimeout(() => {
+              editor.RichTextEditor.exec(cmd, value);
+              updateContent();
+            }, 10);
+          }
+        }
+      });
+    }
+
     return () => {
       if (editorRef.current) {
+        const doc = editorRef.current.Canvas.getDocument();
+        if (doc) {
+          doc.removeEventListener("input", updateContent);
+        }
         editorRef.current.destroy();
       }
     };
-  }, [onContentChange]);
+  }, [onContentChange, onReady]);
 
   return (
     <div className="BroadcastTextMessageEditor">

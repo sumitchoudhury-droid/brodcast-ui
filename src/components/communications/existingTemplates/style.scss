@@ -1,0 +1,382 @@
+@use "../../../style/variable.scss" as variable;
+
+.existingTemplatesDrawerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease-out;
+
+  .existingTemplatesDrawerContainer {
+    width: 90%;
+    max-width: 988px;
+    height: 100vh;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.08);
+    animation: slideIn 0.3s ease-out;
+
+    @media (max-width: 768px) {
+      width: 100%;
+    }
+
+    .drawerHeader {
+      @include variable.d-flex($al: center, $g: 12px, $jc: space-between);
+      padding: 18px 24px;
+      border-bottom: 1px solid variable.$shadow-3;
+
+      .headerTitle {
+        h3 {
+          @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
+          color: variable.$color-black-8;
+        }
+      }
+
+      .closeBtn {
+        cursor: pointer;
+        img {
+          width: 24px;
+          height: 24px;
+        }
+      }
+    }
+
+    .drawerBody {
+      flex: 1;
+      padding: 24px;
+      @include variable.d-flex($g: 20px, $al: stretch);
+      overflow: hidden;
+      border: 1px solid variable.$color-white-5;
+
+      .leftPanel {
+        width: 29.78%;
+        padding: 20px 16px;
+        @include variable.d-flex($fd: column, $g: 18px);
+
+        .searchContainer {
+          width: 100%;
+          border: none;
+          padding: 0;
+          .searchInputWrapper {
+            width: 100%;
+            @include variable.d-flex($al: center, $g: 8px);
+            padding: 8px 12px;
+            border: 1px solid variable.$color-white-10;
+            border-radius: 8px;
+            background: variable.$color-white-0;
+
+            .searchIcon {
+              width: 20px;
+              height: 20px;
+              flex-shrink: 0;
+            }
+
+            input {
+              border: none;
+              outline: none;
+              width: 100%;
+              @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+              color: variable.$color-black-6;
+              background: transparent;
+
+              &::placeholder {
+                color: variable.$placeholder-color;
+              }
+            }
+          }
+        }
+
+        .savedTemplatesTitle {
+          width: 100%;
+          p {
+            @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+            color: variable.$color-black-6;
+          }
+        }
+
+        .templatesList {
+          width: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+          @include variable.d-flex($fd: column, $g: 14px);
+
+          &::-webkit-scrollbar {
+            width: 4px;
+          }
+          &::-webkit-scrollbar-thumb {
+            background: #d0d5dd;
+            border-radius: 10px;
+          }
+
+          .templateItemCard {
+            width: 100%;
+            @include variable.d-flex($g: 12px, $al: center);
+            padding: 6px;
+            border: 1px solid variable.$color-white-10;
+            border-radius: 6px;
+            background: variable.$color-white-0;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &:hover {
+              border: 1px solid variable.$color-blue-0;
+            }
+
+            &.selected {
+              border: 1px solid variable.$color-blue-0;
+              background: variable.$color-blue-3;
+            }
+
+            .templateThumbnail {
+              width: 36px;
+              height: 36px;
+              border-radius: 4px;
+              @include variable.d-flex($al: center, $jc: center);
+              flex-shrink: 0;
+
+              img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+              }
+            }
+
+            .templateCardInfo {
+              @include variable.d-flex($fd: column, $g: 6px);
+              .templateCardTitle {
+                @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+                color: variable.$color-black-6;
+              }
+
+              .templateModeIcons {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 4px;
+
+                img {
+                  width: 14px;
+                  height: 14px;
+                  object-fit: contain;
+                  opacity: 0.7;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .rightPanel {
+        @include variable.d-flex(
+          $fd: column,
+          $al: center,
+          $g: 20px,
+          $jc: flex-start
+        );
+        width: 70.22%;
+        border: none;
+        padding-top: 20px;
+        overflow: hidden;
+
+        .rightPanelTop {
+          @include variable.d-flex($jc: space-between, $al: center, $g: 140px);
+          .modeTabsContainer {
+            padding: 3px;
+            background-color: variable.$color-white-11;
+            border-radius: 14px;
+            border: 1px solid variable.$color-white-10;
+
+            .modeTabs {
+              @include variable.d-flex($g: 4px);
+              .modeTab {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 10px;
+                @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+                color: variable.$color-black-6;
+                background: transparent;
+                cursor: pointer;
+
+                &.active {
+                  background: variable.$color-white-0;
+                  border: 1px solid variable.$color-white-10;
+                  box-shadow: variable.$shadow-2;
+                }
+
+                &:hover:not(.active) {
+                  background: variable.$color-white-5;
+                }
+              }
+            }
+          }
+
+          .viewMode {
+            @include variable.d-flex($al: center, $g: 10px);
+            .modeIcon {
+              cursor: pointer;
+              padding: 6px;
+              border-radius: 6px;
+              transition: all 0.2s;
+              @include variable.d-flex($al: center, $jc: center);
+
+              &.active {
+                background: variable.$color-blue-3;
+                border: 1px solid variable.$color-blue-0;
+              }
+
+              &:hover:not(.active) {
+                background: variable.$color-white-5;
+              }
+
+              img {
+                width: 20px;
+                height: 20px;
+              }
+            }
+          }
+        }
+
+        .previewArea {
+          width: 100%;
+          flex: 1;
+          @include variable.d-flex(
+            $fd: column,
+            $al: center,
+            $g: 10px,
+            $jc: center
+          );
+
+          background: variable.$color-white-0;
+          border: 1px solid variable.$color-white-10;
+          border-radius: 12px;
+          overflow-y: auto;
+          overflow-x: hidden;
+
+          .previewPlaceholder {
+            @include variable.d-flex(
+              $fd: column,
+              $al: center,
+              $g: 10px,
+              $jc: center
+            );
+
+            .placeholderIcon {
+              width: 307px;
+              height: 84px;
+
+              img {
+                width: 100%;
+                height: 100%;
+              }
+            }
+
+            p {
+              @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+              color: variable.$color-black-6;
+              span {
+                @include variable.font-style($fs: 16px, $fw: 600, $lh: 24px);
+              }
+            }
+          }
+
+          .templatePreviewContent {
+            @include variable.d-flex(
+              $fd: column,
+              $al: stretch,
+              $g: 10px,
+              $jc: flex-start
+            );
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            box-sizing: border-box;
+
+            .previewTag {
+              padding: 6px 0;
+              position: absolute;
+              left: -35px;
+              top: 15px;
+              width: 130px;
+              @include variable.d-flex($al: center, $jc: center);
+              background: variable.$linear-gradient-1;
+              box-shadow: variable.$shadow-6;
+              transform: rotate(-45deg);
+              z-index: 10;
+
+              p {
+                @include variable.font-style($fs: 12px, $fw: 600);
+                color: variable.$color-white-0;
+                margin: 0;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              }
+            }
+
+            .previewContent {
+              width: 100%;
+              height: 100%;
+              @include variable.d-flex($jc: center);
+              transition: all 0.3s ease;
+              overflow: hidden;
+
+              &.desktop {
+                width: 100%;
+              }
+
+              &.mobile {
+                width: 375px;
+                max-width: 100%;
+                box-sizing: border-box;
+                margin: 0 auto;
+                border: 8px solid variable.$color-black-8;
+                border-radius: 24px;
+                height: calc(100% - 40px);
+                margin-top: 20px;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+              }
+
+              .previewIframe {
+                width: 100%;
+                height: 100%;
+                border: none;
+                background: white;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .drawerFooter {
+      padding: 16px 24px;
+      @include variable.d-flex($jc: flex-end, $g: 12px);
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

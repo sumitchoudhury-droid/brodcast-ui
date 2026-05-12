@@ -1,7 +1,7 @@
+@use "../../style/variable.scss" as variable;
+
 .linkModalWrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  @include variable.d-flex($fd: column, $g: 16px);
   padding: 8px 0;
 
   .linkModalWrapperTextInput,
@@ -10,9 +10,7 @@
   }
 
   .linkModalWrapperRadioButtons {
-    display: flex;
-    gap: 24px;
-    margin-top: 8px;
+    @include variable.d-flex($fd: row, $g: 24px);
   }
 
   .placeholderInputContainer {
@@ -24,10 +22,10 @@
       top: calc(100% + 4px);
       left: 0;
       right: 0;
-      background: #ffffff;
-      border: 1px solid #d3dbe4;
+      background: variable.$color-white-0;
+      border: 1px solid variable.$color-white-10;
       border-radius: 8px;
-      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: variable.$shadow-4;
       max-height: 200px;
       overflow-y: auto;
       z-index: 1000;
@@ -36,15 +34,12 @@
       .placeholderItem {
         padding: 12px 24px;
         cursor: pointer;
-        font-family: "Inter", sans-serif;
-        font-size: 14px;
-        color: #181d25;
+        color: variable.$color-black-6;
         border-radius: 6px;
-        display: flex;
-        align-items: center;
+        @include variable.d-flex($fd: column, $g: 2px);
 
         &:hover {
-          background-color: #f6f7f9;
+          background-color: variable.$color-white-5;
         }
         .placeholderItemContent {
           display: flex;
@@ -52,20 +47,8 @@
           gap: 2px;
 
           .pValue {
-            font-family: "Inter";
-            font-weight: 500;
-            font-size: 12px;
-            line-height: 18px;
-            color: #404b5a;
-          }
-
-          .pLink {
-            font-family: "Inter";
-            font-weight: 400;
-            font-size: 10px;
-            line-height: 14px;
-            color: #7d8ea3;
-            word-break: break-all;
+            @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+            color: variable.$color-black-0;
           }
         }
       }
