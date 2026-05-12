@@ -22,7 +22,10 @@ export const BroadcastEmailMessage = ({
       />
 
       {showPlaceholders && (
-        <PlaceHolderSection setShowPlaceholders={setShowPlaceholders} />
+        <PlaceHolderSection
+          editorRef={editorRef}
+          setShowPlaceholders={setShowPlaceholders}
+        />
       )}
 
       <div className="editorArea">
