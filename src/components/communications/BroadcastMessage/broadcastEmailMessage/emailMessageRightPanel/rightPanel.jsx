@@ -1295,6 +1295,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         td.style.setProperty("flex-direction", "row", "important");
         td.style.setProperty("flex-wrap", "nowrap", "important");
         td.style.setProperty("align-items", value, "important");
+        td.style.setProperty("justify-content", justifyContent, "important");
       }
     }
   };
@@ -1313,6 +1314,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       td.style.setProperty("display", "flex", "important");
       td.style.setProperty("flex-direction", "row", "important");
       td.style.setProperty("flex-wrap", "nowrap", "important");
+      td.style.setProperty("align-items", alignItems, "important");
       td.style.setProperty("justify-content", value, "important");
     }
   };
