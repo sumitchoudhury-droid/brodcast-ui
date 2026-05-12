@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import selectIcon from "../../../../../../assets/commonIcons/selectIcon.svg";
 import editIcon from "../../../../../../assets/commonIcons/editIcon.svg";
+import deleteIcon from "../../../../../../assets/commonIcons/deleteIcon.svg";
 
 import "./style.scss";
 
@@ -21,7 +22,20 @@ export const ButtonSection = ({ buttonUrl, onUrlChange }) => {
 
   return (
     <div className="buttonSection">
-      <p className="buttonSectionHeader">Button</p>
+      <div className="buttonSectionHeaderContainer">
+        <p className="buttonSectionHeader">Button Link</p>
+        {buttonUrl && (
+          <img
+            src={deleteIcon}
+            alt="deleteIcon"
+            className="deleteIcon"
+            onClick={() => {
+              setInputValue("");
+              onUrlChange("");
+            }}
+          />
+        )}
+      </div>
       <div className="buttonSectionContent">
         <div className="buttonUrlInput">
           <input

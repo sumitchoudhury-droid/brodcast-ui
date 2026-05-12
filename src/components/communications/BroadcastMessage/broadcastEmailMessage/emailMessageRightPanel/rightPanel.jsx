@@ -594,6 +594,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [gap, setGap] = useState({ row: "0", col: "0" });
 
   const [buttonUrl, setButtonUrl] = useState("");
+  const [imageLink, setImageLink] = useState("");
 
   const colorInputRef = useRef(null);
   const bgImageInputRef = useRef(null);
@@ -677,11 +678,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       if (!selected) return;
 
       let dimTarget = selected;
-      if (
-        ["mj-text", "mj-button", "mj-image", "mj-divider", "mj-raw"].includes(
-          selected.get("type")
-        )
-      ) {
+      if (["mj-text", "mj-divider", "mj-raw"].includes(selected.get("type"))) {
         const parent = selected.parent();
         if (parent && parent.get("type") === "mj-column") {
           const isInsideRowFrame =
@@ -701,7 +698,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         dimStyle["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
       );
       setBgRepeat(dimStyle["background-repeat"] || "no-repeat");
-      const rawSize = dimStyle["background-size"] || "contain";
+      const rawSize =
+        dimStyle["object-fit"] || dimStyle["background-size"] || "contain";
       setBgSize(rawSize === "100% 100%" ? "fill" : rawSize);
 
       const border =
@@ -781,6 +779,9 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
         if (selected.is("mj-button")) {
           setButtonUrl(selected.getAttributes().href || "");
+        }
+        if (selected.is("mj-image")) {
+          setImageLink(selected.getAttributes().href || "");
         }
       } else {
         // Sync textAlign for other components (like mj-column or sections)
@@ -884,9 +885,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (!selectedComp) return null;
     let target = selectedComp;
     if (
-      ["mj-text", "mj-image", "mj-divider", "mj-raw"].includes(
-        selectedComp.get("type")
-      )
+      ["mj-text", "mj-divider", "mj-raw"].includes(selectedComp.get("type"))
     ) {
       const parent = selectedComp.parent();
       if (parent && parent.get("type") === "mj-column") {
@@ -945,7 +944,18 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     setBgSize(s);
     const target = getStyleTarget();
     if (target) {
-      target.addStyle({ "background-size": s === "fill" ? "100% 100%" : s });
+      if (target.get("type") === "mj-image") {
+        target.addStyle({ "object-fit": s });
+        // Use the unified helper to ensure model, attributes, and styles are in sync
+        updateDimensionOnTarget(target, "width", "100%");
+
+        // For mj-image, height: 100% often causes the image to collapse if parent height is auto.
+        // We set it to auto to ensure it stays visible and responsive.
+        target.addAttributes({ height: "auto" });
+        target.addStyle({ height: "auto" });
+      } else {
+        target.addStyle({ "background-size": s === "fill" ? "100% 100%" : s });
+      }
       editorRef.current?.getEditor()?.trigger("component:update", target);
     }
   };
@@ -1926,19 +1936,58 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
   };
 
+  const handleImageLinkChange = (val) => {
+    let finalUrl = val;
+    if (
+      finalUrl &&
+      !finalUrl.startsWith("http://") &&
+      !finalUrl.startsWith("https://") &&
+      !finalUrl.startsWith("mailto:") &&
+      !finalUrl.startsWith("tel:") &&
+      !finalUrl.startsWith("#")
+    ) {
+      finalUrl = "https://" + finalUrl;
+    }
+    const previousLink = imageLink;
+    setImageLink(finalUrl);
+    if (selectedComp && selectedComp.is("mj-image")) {
+      selectedComp.addAttributes({ href: finalUrl });
+      if (finalUrl && !previousLink) {
+        toast.success("Link Added", "Image link added successfully.");
+      } else if (finalUrl && previousLink && finalUrl !== previousLink) {
+        toast.success("Link Updated", "Image link updated successfully.");
+      } else if (!finalUrl && previousLink) {
+        toast.success("Link Removed", "Image link removed successfully.");
+      }
+      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
+    }
+  };
+
   const handleButtonUrlChange = (val) => {
+    let finalUrl = val;
+    if (
+      finalUrl &&
+      !finalUrl.startsWith("http://") &&
+      !finalUrl.startsWith("https://") &&
+      !finalUrl.startsWith("mailto:") &&
+      !finalUrl.startsWith("tel:") &&
+      !finalUrl.startsWith("#")
+    ) {
+      finalUrl = "https://" + finalUrl;
+    }
     const previousUrl = buttonUrl;
-    setButtonUrl(val);
+    setButtonUrl(finalUrl);
     const selected = selectedComp;
     if (selected && selected.is("mj-button")) {
-      selected.addAttributes({ href: val });
-      if (val && !previousUrl) {
+      selected.addAttributes({ href: finalUrl });
+      if (finalUrl && !previousUrl) {
         toast.success("Link Added", "Button link added successfully.");
-      } else if (val && previousUrl && val !== previousUrl) {
+      } else if (finalUrl && previousUrl && finalUrl !== previousUrl) {
         toast.success("Link Updated", "Button link updated successfully.");
-      } else if (!val && previousUrl) {
+      } else if (!finalUrl && previousUrl) {
         toast.success("Link Removed", "Button link removed successfully.");
       }
+      editorRef.current?.getEditor()?.trigger("component:update", selected);
     }
   };
 
@@ -1976,7 +2025,20 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
         {!isEditorEmpty && (
           <>
-            <ImageSection />
+            {selectedComp && selectedComp.is("mj-image") && (
+              <ImageSection
+                imageLink={imageLink}
+                onLinkChange={handleImageLinkChange}
+                imageSize={bgSize}
+                handleImageSizeChange={handleBgSizeChange}
+                width={width}
+                widthUnit={widthUnit}
+                handleWidthChange={handleWidthChange}
+                height={height}
+                heightUnit={heightUnit}
+                handleHeightChange={handleHeightChange}
+              />
+            )}
             <PaddingContainer
               selectedComp={selectedComp}
               padding={padding}
