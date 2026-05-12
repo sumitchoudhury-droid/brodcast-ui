@@ -20,6 +20,9 @@ const EMPTY_TEMPLATE = `
     <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
     <mj-attributes>
       <mj-all font-family="Inter, sans-serif" />
+      <mj-text padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
+      <mj-image padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
+      <mj-button padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
     </mj-attributes>
   </mj-head>
   <mj-body width="100%" background-color="transparent" padding="0px" margin="0px">
@@ -1025,10 +1028,17 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const typeObj = editor.Components.getType(typeName);
         if (!typeObj) return;
 
-        // mj-section gets 20px all-side padding; everything else gets 0px.
+        // All types get 0px padding; individual padding-* properties are zeroed
+        // explicitly so they override the plugin's built-in 10px/25px defaults
+        // (the shorthand `padding` alone is not enough — individual properties
+        // cascade over it in the rendered td style).
         const extraAttrs = ZERO_PADDING_TYPES.has(typeName)
           ? {
               padding: "0px",
+              "padding-top": "0px",
+              "padding-right": "0px",
+              "padding-bottom": "0px",
+              "padding-left": "0px",
               margin: "0px",
               width: "100%",
               "font-family": "Inter"
@@ -1093,7 +1103,25 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         });
 
         if (type === "mj-section") {
-          comp.addAttributes({ padding: "20px", margin: "0px" });
+          const isFrame =
+            comp.getAttributes?.()?.["data-type"] === "column-frame-section" ||
+            comp
+              .components()
+              .find(
+                (c) => c.getAttributes?.()?.["data-type"] === "row-frame-column"
+              );
+          if (isFrame) {
+            comp.addAttributes({ padding: "20px", margin: "0px" });
+          } else {
+            comp.addAttributes({
+              padding: "0px",
+              "padding-top": "0px",
+              "padding-right": "0px",
+              "padding-bottom": "0px",
+              "padding-left": "0px",
+              margin: "0px"
+            });
+          }
         }
 
         if (type === "mj-column") {
@@ -1108,6 +1136,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           } else {
             comp.addAttributes({ padding: "0px", margin: "0px" });
           }
+        }
+
+        if (COLUMN_VALID_CHILDREN.includes(type)) {
+          comp.addAttributes({
+            padding: "0px",
+            "padding-top": "0px",
+            "padding-right": "0px",
+            "padding-bottom": "0px",
+            "padding-left": "0px"
+          });
         }
 
         comp.components().each(patchInstance);
@@ -1542,7 +1580,30 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         comp.set({ droppable: resolveDroppable(comp), draggable: true });
 
         if (type === "mj-section") {
-          comp.addAttributes({ padding: "20px", margin: "0px" });
+          // Defer so children are in the tree before we check data-types
+          setTimeout(() => {
+            const isFrame =
+              comp.getAttributes?.()?.["data-type"] ===
+                "column-frame-section" ||
+              comp
+                .components()
+                .find(
+                  (c) =>
+                    c.getAttributes?.()?.["data-type"] === "row-frame-column"
+                );
+            if (isFrame) {
+              comp.addAttributes({ padding: "20px", margin: "0px" });
+            } else {
+              comp.addAttributes({
+                padding: "0px",
+                "padding-top": "0px",
+                "padding-right": "0px",
+                "padding-bottom": "0px",
+                "padding-left": "0px",
+                margin: "0px"
+              });
+            }
+          }, 0);
         }
 
         if (type === "mj-column") {
@@ -1556,6 +1617,16 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           } else {
             comp.addAttributes({ padding: "0px", margin: "0px" });
           }
+        }
+
+        if (COLUMN_VALID_CHILDREN.includes(type)) {
+          comp.addAttributes({
+            padding: "0px",
+            "padding-top": "0px",
+            "padding-right": "0px",
+            "padding-bottom": "0px",
+            "padding-left": "0px"
+          });
         }
       }
 
@@ -2570,7 +2641,7 @@ function registerBlocks(editor) {
   bm.add("heading", {
     label: "Heading",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
         <mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
           Title goes here
@@ -2582,7 +2653,7 @@ function registerBlocks(editor) {
   bm.add("paragraph", {
     label: "Paragraph",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
         <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
           Paragraph Text
@@ -2594,7 +2665,7 @@ function registerBlocks(editor) {
   bm.add("image", {
     label: "Image",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%" >
         <mj-text padding="0px" margin="0px">
           <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
@@ -2615,7 +2686,7 @@ function registerBlocks(editor) {
   bm.add("button", {
     label: "Button",
     category: "Content",
-    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
+    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%">
         <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
           Click Here
@@ -2638,7 +2709,7 @@ function registerBlocks(editor) {
     label: "Attachment",
     category: "Content",
     content: `
-      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="16px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
+      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="0px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
         <mj-column padding="0px" margin="0px" width="100%">
           <mj-text align="center" padding="10px" margin="0px">
             <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
