@@ -6,7 +6,10 @@ import TextSignatureSection from "./textSignatureSection/index";
 
 import "./style.scss";
 
-export default function BroadcastTextMessageRightPanel({ isEditorEmpty }) {
+export default function BroadcastTextMessageRightPanel({
+  isEditorEmpty,
+  editorInstance
+}) {
   const [showSendTextMessage, setShowSendTextMessage] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [textColor, setTextColor] = useState("#000000");
@@ -20,14 +23,66 @@ export default function BroadcastTextMessageRightPanel({ isEditorEmpty }) {
 
   const handleTypographyChange = (name, value) => {
     setTypography((prev) => ({ ...prev, [name]: value }));
+
+    if (editorInstance) {
+      if (name === "textAlign") {
+        const cmdMap = {
+          left: "justifyLeft",
+          center: "justifyCenter",
+          right: "justifyRight",
+          justify: "justifyFull"
+        };
+        editorInstance.execCommand(cmdMap[value]);
+      } else if (name === "fontSize") {
+        const sizeMap = {
+          10: "1",
+          13: "2",
+          16: "3",
+          18: "4",
+          24: "5",
+          32: "6",
+          48: "7"
+        };
+        const gjsSize = sizeMap[value] || "3";
+        editorInstance.execCommand("fontSize", gjsSize);
+      } else if (name === "fontFamily") {
+        editorInstance.execCommand("fontName", value);
+      } else if (name === "fontWeight") {
+        // Font weight is harder to toggle via execCommand bold if it's specific.
+        // But usually "Bold" button is what people expect.
+        if (value === "700") {
+          editorInstance.execCommand("bold");
+        }
+      }
+    }
   };
 
   const handleTextColorChange = (color) => {
     setTextColor(color);
+    if (editorInstance) {
+      editorInstance.execCommand("foreColor", color);
+    }
   };
 
   const handleFormatToggle = (format) => {
     setActiveFormats((prev) => ({ ...prev, [format]: !prev[format] }));
+
+    if (editorInstance) {
+      const cmdMap = {
+        bold: "bold",
+        italic: "italic",
+        underline: "underline",
+        strikethrough: "strikethrough",
+        unorderedList: "insertUnorderedList",
+        orderedList: "insertOrderedList",
+        superscript: "superscript",
+        subscript: "subscript",
+        uppercase: "uppercase" // Note: uppercase might need a custom command or just style application
+      };
+      if (cmdMap[format]) {
+        editorInstance.execCommand(cmdMap[format]);
+      }
+    }
   };
 
   const handleSendTestMessage = () => {
@@ -37,7 +92,10 @@ export default function BroadcastTextMessageRightPanel({ isEditorEmpty }) {
 
   return (
     <div className="rightPanel">
-      <TextDeviceSwitcher />
+      <TextDeviceSwitcher
+        isEditorEmpty={isEditorEmpty}
+        editorRef={{ current: editorInstance?.editor }}
+      />
 
       <div className="panelSections">
         <TextSignatureSection />

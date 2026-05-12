@@ -1,11 +1,16 @@
-import { useState } from "react";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 
 import "./style.scss";
 
-export const BroadcastDetails = ({ selectedModes, setSelectedModes }) => {
-  const [category, setCategory] = useState("");
+export const BroadcastDetails = ({
+  selectedModes,
+  setSelectedModes,
+  category,
+  setCategory,
+  priority,
+  setPriority
+}) => {
   const categoryOptions = [
     {
       value: "balance_payment_reminder",
@@ -18,6 +23,21 @@ export const BroadcastDetails = ({ selectedModes, setSelectedModes }) => {
     {
       value: "announcement",
       label: "Announcement"
+    }
+  ];
+
+  const priorityOptions = [
+    {
+      value: "high",
+      label: "High"
+    },
+    {
+      value: "medium",
+      label: "Medium"
+    },
+    {
+      value: "low",
+      label: "Low"
     }
   ];
 
@@ -75,6 +95,22 @@ export const BroadcastDetails = ({ selectedModes, setSelectedModes }) => {
               categoryOptions.find((o) => o.value === category)?.label || ""
             }
             onChange={(val) => setCategory(val)}
+            required={true}
+          />
+        </div>
+
+        {/* Priority Dropdown */}
+        <div className="broadcastDetailsContentRow">
+          <ReusableDropDown
+            label="Priority"
+            greenIcon={false}
+            placeholder="Select Priority"
+            options={priorityOptions}
+            value={
+              priorityOptions.find((o) => o.value === priority)?.label || ""
+            }
+            onChange={(val) => setPriority(val)}
+            required={true}
           />
         </div>
       </div>

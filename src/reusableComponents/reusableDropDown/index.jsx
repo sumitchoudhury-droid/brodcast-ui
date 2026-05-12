@@ -10,7 +10,8 @@ export const ReusableDropDown = ({
   placeholder = "Select option",
   onChange,
   valueImage,
-  greenIcon = true
+  greenIcon = true,
+  required = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -40,7 +41,11 @@ export const ReusableDropDown = ({
 
   return (
     <div className={`dropdown ${isOpen ? "open" : ""}`} ref={dropdownRef}>
-      {label && <label className="dropdownLabel">{label}</label>}
+      {label && (
+        <label className="dropdownLabel">
+          {label} {required && <span className="required">*</span>}
+        </label>
+      )}
       <div
         className="dropdownSelectContainer"
         style={!greenIcon ? { borderColor: "#E1E5EA" } : {}}
