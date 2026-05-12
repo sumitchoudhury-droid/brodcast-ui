@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import "./style.scss";
 import { getOpacityFromColor } from "../../../../../../utils/colorUtils";
-import { ColorPicker } from "../backgroundContainer/ColorPicker";
+import { ColorPicker } from "../../../../../../reusableComponents/reusableColorPicker/ColorPicker";
 
 const DEFAULT_COLORS = [
   "#D91515",

@@ -19,15 +19,30 @@ export const IS_CLOUDINARY_CONFIGURED =
   CLOUDINARY_UPLOAD_PRESET !== "YOUR_UPLOAD_PRESET";
 
 /**
- * Compress an image File/Blob to a JPEG Data URL.
- * Adaptively reduces resolution and quality until the result fits within
- * targetKB, so images of any original size can be embedded in an email.
+ * Compress an image File/Blob while preserving its original format.
+ * SVGs are returned as-is. PNGs keep their format (and transparency).
+ * JPEGs and other formats use JPEG compression.
+ * Adaptively reduces resolution (and quality for JPEG) until the result
+ * fits within targetKB.
  *
  * @param {File|Blob} file
- * @param {number} [targetKB=30]    Target max size of the resulting data URL in KB.
- * @returns {Promise<string>}       Compressed JPEG Data URL.
+ * @param {number} [targetKB=500]   Target max size of the resulting data URL in KB.
+ * @returns {Promise<string>}       Data URL preserving the original image format.
  */
-const compressImage = (file, targetKB = 20) => {
+const compressImage = (file, targetKB = 500) => {
+  const mimeType = file.type;
+
+  // SVGs are vector — no canvas compression needed, return as-is
+  if (mimeType === "image/svg+xml") {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const isPng = mimeType === "image/png";
+
   return new Promise((resolve) => {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
@@ -42,17 +57,22 @@ const compressImage = (file, targetKB = 20) => {
         canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext("2d");
 
-        // Fill canvas with white background to prevent transparent PNGs from turning black
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!isPng) {
+          // JPEG has no alpha channel — fill white to avoid black artifacts
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        return canvas.toDataURL("image/jpeg", quality);
+        return isPng
+          ? canvas.toDataURL("image/png")
+          : canvas.toDataURL("image/jpeg", quality);
       };
 
-      // Start at a reasonable size and step down until it fits
-      const widthSteps = [800, 600, 400, 300, 200, 150];
-      const qualitySteps = [0.75, 0.6, 0.45, 0.3, 0.15];
+      // PNG: only resize (lossless — no quality param)
+      // JPEG: resize + reduce quality
+      const widthSteps = [1600, 1200, 800, 600, 400, 300, 200];
+      const qualitySteps = isPng ? [1] : [0.92, 0.8, 0.65, 0.5, 0.35, 0.2];
       const targetBytes = targetKB * 1024;
 
       for (const maxWidth of widthSteps) {
@@ -66,7 +86,7 @@ const compressImage = (file, targetKB = 20) => {
       }
 
       // Last resort: minimum size
-      resolve(compress(150, 0.1));
+      resolve(compress(isPng ? 300 : 150, isPng ? 1 : 0.1));
     };
 
     img.onerror = () => {

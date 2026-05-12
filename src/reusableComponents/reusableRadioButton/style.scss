@@ -1,0 +1,42 @@
+@use "../../style/variable.scss" as variable;
+
+.reusableRadio {
+  @include variable.d-flex($g: 8px, $al: center);
+  cursor: pointer;
+  input {
+    display: none;
+  }
+
+  .radioCustom {
+    width: 20px;
+    height: 20px;
+    border: 1px solid variable.$color-white-10;
+    border-radius: 50%;
+    position: relative;
+  }
+
+  input:checked + .radioCustom {
+    border-color: variable.$color-green-0;
+    &::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: variable.$color-green-0;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .radioLabel {
+    @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+    color: variable.$color-black-6;
+  }
+
+  input:disabled + .radioCustom {
+    border-color: #ccc;
+    cursor: not-allowed;
+  }
+}

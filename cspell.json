@@ -28,12 +28,20 @@
         "draggability",
         "reconcile",
         "Draggability",
+        "checkin",
+        "asyst",
+        "boardcost",
         "serialised",
         "bgcolor",
         "serialise",
         "ajst",
         "optimisations",
-        "networkidle"
+        "networkidle",
+        "hoverable",
+        "badgable",
+        "gabriella",
+        "checkmark",
+        "nums"
     ],
     "ignorePaths": [
         "dist",

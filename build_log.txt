@@ -1,0 +1,15 @@
+
+> checkinasystboardcost@0.0.0 build
+> vite build
+
+vite v8.0.0 building client environment for production...
+[2Ktransforming...✓ 2091 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                0.73 kB │ gzip:     0.42 kB
+dist/assets/manipalIcon-C74ebgGS.svg          55.71 kB │ gzip:    31.74 kB
+dist/assets/existingTemplate-DL-u4mma.svg  1,887.29 kB │ gzip: 1,417.19 kB
+dist/assets/index-DZ6RXJkv.css                26.99 kB │ gzip:     4.51 kB
+dist/assets/index-CDPfXaM-.js                285.70 kB │ gzip:    89.26 kB
+
+✓ built in 289ms

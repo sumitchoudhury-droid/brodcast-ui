@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ColorPicker } from "../backgroundContainer/ColorPicker";
+import { ColorPicker } from "../../../../../../reusableComponents/reusableColorPicker/ColorPicker";
 import chevronDown from "../../../../../../assets/mainScreen/chevronRight.svg";
 import underlineIcon from "../../../../../../assets/textStyleIcons/underlineIcon.svg";
 import italicIcon from "../../../../../../assets/textStyleIcons/italicIcon.svg";
