@@ -5,6 +5,17 @@
   @include variable.d-flex($fd: column, $g: 10px, $al: stretch);
   padding: 0px 16px 16px 16px;
 
+  .buttonSectionHeaderContainer {
+    @include variable.d-flex($al: center, $jc: space-between);
+    width: 100%;
+
+    .deleteIcon {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+  }
+
   .buttonSectionHeader {
     @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
     color: variable.$color-black-6;

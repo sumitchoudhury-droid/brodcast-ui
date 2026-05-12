@@ -218,7 +218,12 @@ function resolveDroppable(comp) {
 
 // Scan every frame column and sync placeholder visibility via data-is-empty attribute
 function reconcileFramePlaceholders(editor, isReconciling) {
-  if (isReconciling.current) return;
+  if (
+    isReconciling.current ||
+    !editor ||
+    typeof editor.getWrapper !== "function"
+  )
+    return;
   isReconciling.current = true;
   try {
     const frameCols = [];
@@ -1920,6 +1925,13 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         // ── Hyperlink click ───────────────────────────────────────────────
         const link = e.target.closest("a");
         if (link) {
+          // If the link is part of an mj-button or mj-image, we skip the popup
+          // because these are managed via the Right Panel URL inputs.
+          const isStructuralLink = link.closest(
+            '[data-gjs-type="mj-button"], [data-gjs-type="mj-image"]'
+          );
+          if (isStructuralLink) return;
+
           console.log("Link clicked in canvas:", link.href);
           e.preventDefault();
           e.stopPropagation();

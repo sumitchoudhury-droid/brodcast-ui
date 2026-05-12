@@ -1,31 +1,83 @@
+import { useState } from "react";
+import selectIcon from "../../../../../../assets/commonIcons/selectIcon.svg";
+import editIcon from "../../../../../../assets/commonIcons/editIcon.svg";
+import deleteIcon from "../../../../../../assets/commonIcons/deleteIcon.svg";
+
 import "./style.scss";
+
 export const ImageSection = ({
-  imageRepeat,
-  handleImageRepeatChange,
+  imageLink,
+  onLinkChange,
   imageSize,
-  handleImageSizeChange
+  handleImageSizeChange,
+  width,
+  widthUnit,
+  handleWidthChange,
+  height,
+  heightUnit,
+  handleHeightChange
 }) => {
+  const [prevImageLink, setPrevImageLink] = useState(imageLink);
+  const [linkValue, setLinkValue] = useState(imageLink || "");
+
+  if (imageLink !== prevImageLink) {
+    setPrevImageLink(imageLink);
+    setLinkValue(imageLink || "");
+  }
+
+  const handleLinkUpdate = () => {
+    onLinkChange(linkValue);
+  };
+
   return (
     <div className="imageSectionContainer">
-      <p className="sectionTitle">ImageSection</p>
+      <p className="sectionTitle">Image Section</p>
       <div className="imageSection">
-        <div className="optionGroup">
-          <p className="optionLabel">Repeat</p>
-          <div className="segmentedControl">
-            <button
-              className={`segment ${imageRepeat === "repeat" ? "active" : ""}`}
-              onClick={() => handleImageRepeatChange("repeat")}
-            >
-              Repeat
-            </button>
-            <button
-              className={`segment ${imageRepeat === "no-repeat" ? "active" : ""}`}
-              onClick={() => handleImageRepeatChange("no-repeat")}
-            >
-              No-Repeat
-            </button>
+        <div className="imageUrlInput">
+          <div className="imageUrlInputHeader">
+            <p className="imageSectionHeader">Image Link</p>
+            {imageLink && (
+              <img
+                src={deleteIcon}
+                alt="deleteIcon"
+                className="deleteIcon"
+                onClick={() => {
+                  setLinkValue("");
+                  onLinkChange("");
+                }}
+              />
+            )}
+          </div>
+
+          <div className="imageSectionContent">
+            <div className="imageSectionUrlInput">
+              <input
+                type="text"
+                placeholder="Enter Link URL"
+                className="imageSectionUrlInputText"
+                value={linkValue}
+                onChange={(e) => setLinkValue(e.target.value)}
+              />
+              {imageLink && (
+                <img
+                  src={editIcon}
+                  alt="editIcon"
+                  className="editIcon"
+                  onClick={handleLinkUpdate}
+                />
+              )}
+            </div>
+            {!imageLink && (
+              <img
+                src={selectIcon}
+                alt="selectIcon"
+                className="selectIcon"
+                onClick={handleLinkUpdate}
+              />
+            )}
           </div>
         </div>
+
         <div className="optionGroup">
           <p className="optionLabel">Size</p>
           <div className="segmentedControl">
@@ -47,6 +99,60 @@ export const ImageSection = ({
             >
               Fill
             </button>
+          </div>
+        </div>
+
+        <div className="dimensionControls">
+          <div className="optionGroup">
+            <p className="optionLabel">Width</p>
+            <div className="dimensionInputWrapper">
+              <input
+                type="number"
+                className="dimensionInput"
+                value={width}
+                onChange={(e) => handleWidthChange(e.target.value)}
+              />
+              <div className="segmentedControl">
+                <button
+                  className={`segment ${widthUnit === "%" ? "active" : ""}`}
+                  onClick={() => handleWidthChange(width, "%")}
+                >
+                  %
+                </button>
+                <button
+                  className={`segment ${widthUnit === "px" ? "active" : ""}`}
+                  onClick={() => handleWidthChange(width, "px")}
+                >
+                  px
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="optionGroup">
+            <p className="optionLabel">Height</p>
+            <div className="dimensionInputWrapper">
+              <input
+                type="number"
+                className="dimensionInput"
+                value={height}
+                onChange={(e) => handleHeightChange(e.target.value)}
+              />
+              <div className="segmentedControl">
+                <button
+                  className={`segment ${heightUnit === "%" ? "active" : ""}`}
+                  onClick={() => handleHeightChange(height, "%")}
+                >
+                  %
+                </button>
+                <button
+                  className={`segment ${heightUnit === "px" ? "active" : ""}`}
+                  onClick={() => handleHeightChange(height, "px")}
+                >
+                  px
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
