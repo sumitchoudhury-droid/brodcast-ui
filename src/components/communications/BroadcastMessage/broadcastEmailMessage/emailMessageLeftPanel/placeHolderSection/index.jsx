@@ -54,12 +54,19 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
   const [search, setSearch] = useState("");
   const savedRangeRef = useRef(null);
   const savedActiveElRef = useRef(null);
+  // Tracks whether the canvas iframe currently has focus. We must stop
+  // updating savedRangeRef the moment the iframe blurs, because GrapesJS
+  // deactivating the RTE fires selectionchange inside the canvas and resets
+  // the selection to position 0, which would corrupt the saved cursor position.
+  const iframeHasFocusRef = useRef(false);
 
   const filteredPlaceholders = PLACEHOLDERS.filter((item) =>
     `${item.label} ${item.value}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Continuously track the cursor position inside the canvas iframe.
+  // Track the cursor position inside the canvas iframe, but only while the
+  // iframe has focus. Freeze the saved range the moment the iframe blurs so
+  // GrapesJS's post-blur DOM cleanup cannot overwrite the correct position.
   useEffect(() => {
     const editor = editorRef?.current?.getEditor?.();
     if (!editor) return;
@@ -67,6 +74,7 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
     if (!canvasWindow) return;
 
     const saveRange = () => {
+      if (!iframeHasFocusRef.current) return;
       const sel = canvasWindow.getSelection();
       if (sel && sel.rangeCount > 0) {
         savedRangeRef.current = sel.getRangeAt(0).cloneRange();
@@ -74,24 +82,23 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
       }
     };
 
-    canvasWindow.document.addEventListener("selectionchange", saveRange);
-    return () =>
-      canvasWindow.document.removeEventListener("selectionchange", saveRange);
-  }, [editorRef]);
+    const onFocus = () => {
+      iframeHasFocusRef.current = true;
+    };
+    const onBlur = () => {
+      iframeHasFocusRef.current = false;
+    };
 
-  // Called at mousedown — the earliest moment to snapshot the iframe selection
-  // before the browser shifts focus and GrapesJS deactivates the RTE.
-  const snapshotSelection = () => {
-    const editor = editorRef?.current?.getEditor?.();
-    if (!editor) return;
-    const canvasWindow = editor.Canvas.getWindow();
-    if (!canvasWindow) return;
-    const sel = canvasWindow.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-      savedActiveElRef.current = canvasWindow.document.activeElement;
-    }
-  };
+    canvasWindow.document.addEventListener("selectionchange", saveRange);
+    canvasWindow.addEventListener("focus", onFocus);
+    canvasWindow.addEventListener("blur", onBlur);
+
+    return () => {
+      canvasWindow.document.removeEventListener("selectionchange", saveRange);
+      canvasWindow.removeEventListener("focus", onFocus);
+      canvasWindow.removeEventListener("blur", onBlur);
+    };
+  }, [editorRef]);
 
   const insertPlaceholder = (value) => {
     const editor = editorRef?.current?.getEditor?.();
@@ -106,6 +113,8 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
     // GrapesJS removes contenteditable when it deactivates the RTE on blur.
     // Force it back so execCommand can write into the element.
     el.contentEditable = "true";
+    // Focus the iframe window first — execCommand operates on the focused document.
+    canvasWindow.focus();
     el.focus();
 
     // Restore the exact cursor position captured at mousedown.
@@ -143,7 +152,6 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
             draggable
             onMouseDown={(e) => {
               e.preventDefault();
-              snapshotSelection();
             }}
             onClick={() => insertPlaceholder(item.value)}
             onDragStart={(e) => {
