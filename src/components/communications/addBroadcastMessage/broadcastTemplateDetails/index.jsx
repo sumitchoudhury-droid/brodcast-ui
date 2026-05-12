@@ -1,10 +1,12 @@
 import { useState } from "react";
 import blackTemplateIcon from "../../../../assets/commonIcons/blackTemplate.svg";
 import existingTemplateIcon from "../../../../assets/commonIcons/existingTemplate.svg";
+import ExistingTemplates from "../../existingTemplates/index";
 import "./style.scss";
 
 function BroadcastTemplateDetails() {
   const [selectedTemplate, setSelectedTemplate] = useState("blank");
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   return (
     <div className="broadcastTemplateDetails">
@@ -31,7 +33,10 @@ function BroadcastTemplateDetails() {
           </div>
           <div
             className={`templateOption ${selectedTemplate === "existing" ? "active" : ""}`}
-            onClick={() => setSelectedTemplate("existing")}
+            onClick={() => {
+              setSelectedTemplate("existing");
+              setIsDrawerOpen(true);
+            }}
           >
             <div className="templateOptionIcon">
               <img
@@ -44,6 +49,11 @@ function BroadcastTemplateDetails() {
           </div>
         </div>
       </div>
+
+      <ExistingTemplates
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+      />
     </div>
   );
 }

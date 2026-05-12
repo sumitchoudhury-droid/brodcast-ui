@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
 
+import pausedIcon from "../../../../../assets/voiceTextIcons/pausedIcon.svg";
+import playIcon from "../../../../../assets/voiceTextIcons/playIcon.svg";
+import componentIcon from "../../../../../assets/voiceTextIcons/Component.svg";
+import waveformIcon from "../../../../../assets/voiceTextIcons/waveformIcon.svg";
+
 import "./style.scss";
 import TextVoicePreview from "./textVoicePreview";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
@@ -9,81 +14,221 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
   const [showSendTestCall, setShowSendTestCall] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [selectedVoice, setSelectedVoice] = useState("gabriella");
+  const [selectedVoice, setSelectedVoice] = useState(null);
   const [playingVoice, setPlayingVoice] = useState(null); // which voice is currently playing
 
   const synthRef = useRef(window.speechSynthesis);
   const utteranceRef = useRef(null);
 
-  const voices = [
-    { id: "gabriella", name: "Gabriella", type: "Female", lang: "en-US" },
-    { id: "dominic", name: "Dominic", type: "Male", lang: "en-GB" },
-    { id: "victoria", name: "Victoria", type: "Female", lang: "en-AU" },
-    { id: "christopher", name: "Christopher", type: "Male", lang: "en-US" }
-  ];
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [voices, setVoices] = useState([
+    {
+      id: "gabriella",
+      name: "Gabriella",
+      type: "Female",
+      lang: "en-US",
+      desc: ""
+    },
+    { id: "dominic", name: "Dominic", type: "Male", lang: "en-GB", desc: "" },
+    {
+      id: "victoria",
+      name: "Victoria",
+      type: "Female",
+      lang: "en-GB",
+      desc: ""
+    },
+    {
+      id: "christopher",
+      name: "Christopher",
+      type: "Male",
+      lang: "en-US",
+      desc: ""
+    },
+    {
+      id: "alexander",
+      name: "Alexander",
+      type: "Male",
+      lang: "en-US",
+      desc: ""
+    }
+  ]);
 
-  // Helper: pick the best matching system voice for our custom voice config
-  const pickSystemVoice = (voiceCfg) => {
-    const systemVoices = synthRef.current.getVoices();
-    if (!systemVoices.length) return null;
+  // Improved helper: pick the best matching system voice
+  const pickSystemVoice = (voiceCfg, systemVoices) => {
+    if (!systemVoices || !systemVoices.length) return null;
 
-    // Try exact lang + gender keyword match first
     const isFemale = voiceCfg.type === "Female";
-    const langVoices = systemVoices.filter((v) =>
-      v.lang.startsWith(voiceCfg.lang.split("-")[0])
-    );
+    const preferredLang = voiceCfg.lang;
+    const personaName = voiceCfg.name.toLowerCase();
 
-    const genderMatch = langVoices.find((v) => {
-      const n = v.name.toLowerCase();
-      return isFemale
-        ? n.includes("female") ||
-            n.includes("woman") ||
-            [
-              "samantha",
-              "karen",
-              "moira",
-              "tessa",
-              "fiona",
-              "victoria",
-              "allison",
-              "ava",
-              "susan",
-              "zoe"
-            ].some((k) => n.includes(k))
-        : n.includes("male") ||
-            n.includes("man") ||
-            [
-              "alex",
-              "daniel",
-              "fred",
-              "lee",
-              "rishi",
-              "tom",
-              "aaron",
-              "jorge",
-              "diego"
-            ].some((k) => n.includes(k));
+    // 1. Try to find a voice that matches the persona name exactly (e.g., "Samantha")
+    const exactNameMatch = systemVoices.find((v) =>
+      v.name.toLowerCase().includes(personaName)
+    );
+    if (exactNameMatch) return exactNameMatch;
+
+    // 2. Try to find "Natural", "Google", "Enhanced", "Siri", or "Alex" for the specific language
+    const highQualityMatch = systemVoices.find((v) => {
+      const name = v.name.toLowerCase();
+      const isCorrectLang = v.lang.includes(preferredLang.split("-")[0]);
+      const isNatural =
+        name.includes("natural") ||
+        name.includes("google") ||
+        name.includes("enhanced") ||
+        name.includes("premium") ||
+        name.includes("siri") ||
+        name.includes("alex") ||
+        name.includes("rishi"); // Rishi is high quality for Indian English
+      const genderKeywords = isFemale
+        ? [
+            "female",
+            "woman",
+            "samantha",
+            "victoria",
+            "moira",
+            "tessa",
+            "karen",
+            "siri"
+          ]
+        : ["male", "man", "alex", "daniel", "fred", "rishi", "siri"];
+      const isCorrectGender = genderKeywords.some((k) => name.includes(k));
+
+      return isCorrectLang && isNatural && isCorrectGender;
     });
 
-    // Fallback: any voice with matching lang, then any English voice
-    return (
-      genderMatch ||
-      langVoices[0] ||
-      systemVoices.find((v) => v.lang.startsWith("en")) ||
-      systemVoices[0]
+    if (highQualityMatch) return highQualityMatch;
+
+    // 3. Try any voice for the specific language + gender
+    const langGenderMatch = systemVoices.find((v) => {
+      const name = v.name.toLowerCase();
+      const isCorrectLang = v.lang.includes(preferredLang.split("-")[0]);
+      const genderKeywords = isFemale
+        ? ["female", "woman", "samantha", "victoria", "moira", "tessa", "karen"]
+        : ["male", "man", "alex", "daniel", "fred", "rishi"];
+      const isCorrectGender = genderKeywords.some((k) => name.includes(k));
+      return isCorrectLang && isCorrectGender;
+    });
+
+    if (langGenderMatch) return langGenderMatch;
+
+    // 4. Fallback to any voice for that language
+    const langMatch = systemVoices.find((v) =>
+      v.lang.includes(preferredLang.split("-")[0])
     );
+    if (langMatch) return langMatch;
+
+    // 5. Global fallback
+    return systemVoices[0];
   };
 
   useEffect(() => {
     const synth = synthRef.current;
-    const handleVoicesChanged = () => synth.getVoices();
+    const updateVoices = () => {
+      const sysVoices = synth.getVoices();
+      setAvailableVoices(sysVoices);
+
+      // Update our personas with specific system voices to ensure differentiation
+      setVoices((prev) => {
+        const assignedNames = new Set();
+        return prev.map((p) => {
+          const isFemale = p.type === "Female";
+          const preferredLang = p.lang.split("-")[0];
+
+          // 1. Try exact name match
+          let match = sysVoices.find(
+            (v) =>
+              v.name.toLowerCase().includes(p.name.toLowerCase()) &&
+              !assignedNames.has(v.name)
+          );
+
+          // 2. Try lang + gender + high quality + unassigned
+          if (!match) {
+            match = sysVoices.find((v) => {
+              const name = v.name.toLowerCase();
+              const isCorrectLang = v.lang.includes(preferredLang);
+              const isHighQuality =
+                name.includes("natural") ||
+                name.includes("google") ||
+                name.includes("enhanced") ||
+                name.includes("premium");
+              const genderKeywords = isFemale
+                ? [
+                    "female",
+                    "woman",
+                    "samantha",
+                    "victoria",
+                    "moira",
+                    "tessa",
+                    "karen",
+                    "siri",
+                    "zira"
+                  ]
+                : ["male", "man", "alex", "daniel", "fred", "rishi", "siri"];
+              const isCorrectGender = genderKeywords.some((k) =>
+                name.includes(k)
+              );
+              return (
+                isCorrectLang &&
+                isCorrectGender &&
+                isHighQuality &&
+                !assignedNames.has(v.name)
+              );
+            });
+          }
+
+          // 3. Try lang + gender + unassigned
+          if (!match) {
+            match = sysVoices.find((v) => {
+              const name = v.name.toLowerCase();
+              const isCorrectLang = v.lang.includes(preferredLang);
+              const genderKeywords = isFemale
+                ? [
+                    "female",
+                    "woman",
+                    "samantha",
+                    "victoria",
+                    "moira",
+                    "tessa",
+                    "karen",
+                    "zira"
+                  ]
+                : ["male", "man", "alex", "daniel", "fred", "rishi"];
+              const isCorrectGender = genderKeywords.some((k) =>
+                name.includes(k)
+              );
+              return (
+                isCorrectLang && isCorrectGender && !assignedNames.has(v.name)
+              );
+            });
+          }
+
+          // 4. Final fallback using pickSystemVoice but try to keep it unique if possible
+          if (!match) {
+            match = pickSystemVoice(p, sysVoices);
+          }
+
+          if (match) assignedNames.add(match.name);
+
+          const isReal =
+            match &&
+            (match.name.toLowerCase().includes("natural") ||
+              match.name.toLowerCase().includes("google") ||
+              match.name.toLowerCase().includes("enhanced") ||
+              match.name.toLowerCase().includes("premium"));
+          return { ...p, isNatural: isReal, systemVoiceName: match?.name };
+        });
+      });
+    };
+
     if (synth) {
-      synth.addEventListener("voiceschanged", handleVoicesChanged);
+      updateVoices();
+      if (synth.onvoiceschanged !== undefined) {
+        synth.onvoiceschanged = updateVoices;
+      }
     }
     return () => {
       if (synth) {
         synth.cancel();
-        synth.removeEventListener("voiceschanged", handleVoicesChanged);
       }
     };
   }, []);
@@ -121,19 +266,31 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
     const voiceCfg = voices.find((v) => v.id === voiceId);
     if (!voiceCfg) return;
 
-    const sampleText =
-      editorContent && editorContent.trim()
-        ? editorContent.trim().slice(0, 200)
-        : `Hello, this is ${voiceCfg.name}. Welcome to Manipal Hospitals.`;
+    const sampleText = `Hello, this is ${voiceCfg.name}. I am a voice for your broadcast. How do I sound?`;
 
     const utterance = new SpeechSynthesisUtterance(sampleText);
 
     // Attach the best matching system voice
-    const systemVoice = pickSystemVoice(voiceCfg);
-    if (systemVoice) utterance.voice = systemVoice;
-    utterance.lang = voiceCfg.lang;
+    let systemVoice = null;
+    if (voiceCfg.systemVoiceName) {
+      systemVoice = availableVoices.find(
+        (v) => v.name === voiceCfg.systemVoiceName
+      );
+    }
+
+    if (!systemVoice) {
+      systemVoice = pickSystemVoice(voiceCfg, availableVoices);
+    }
+
+    if (systemVoice) {
+      utterance.voice = systemVoice;
+      utterance.lang = systemVoice.lang;
+    } else {
+      utterance.lang = voiceCfg.lang;
+    }
+
     utterance.rate = 0.95;
-    utterance.pitch = voiceCfg.type === "Female" ? 1.1 : 0.9;
+    utterance.pitch = voiceCfg.type === "Female" ? 1.05 : 0.95;
 
     utterance.onstart = () => setPlayingVoice(voiceId);
     utterance.onend = () => setPlayingVoice(null);
@@ -143,111 +300,6 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
     synth.speak(utterance);
   };
 
-  const waveformIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-    >
-      <path
-        d="M3 10V14"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 7V17"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 11V13"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 4V20"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M15 8V16"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M18 10V14"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M21 12V12"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-
-  const checkmarkIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-    >
-      <rect width="16" height="16" rx="8" fill="#10B981" />
-      <path
-        d="M11.3334 5.3335L6.66675 10.0002L4.66675 8.00016"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
-  const playSmallIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-    </svg>
-  );
-
-  const pauseSmallIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="6" y="4" width="4" height="16"></rect>
-      <rect x="14" y="4" width="4" height="16"></rect>
-    </svg>
-  );
-
   return (
     <div className="broadcastTextVoiceMessageRightPanel">
       <div className="panelSections">
@@ -255,16 +307,16 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
           <div className="previewHeader">
             <ReusableButton
               label="Preview"
-              variant="primary"
-              onClick={() => handleOpenPreview()}
+              onClick={handleOpenPreview}
+              disabled={!selectedVoice}
               eyeImage={true}
+              variant="secondary"
+              className="previewBtn"
             />
-          </div>
-          <div className="panelHeader">
-            <p className="sectionLabel">Text</p>
           </div>
 
           <div className="voiceList">
+            <p className="Voice">Voices</p>
             {voices.map((voice) => {
               const isThisPlaying = playingVoice === voice.id;
               return (
@@ -276,21 +328,25 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
                     handlePreview(voice.id);
                   }}
                 >
-                  <div className="voiceInfo">
+                  <div className="voiceLeft">
                     <span className="voiceIcon">
-                      {isThisPlaying ? pauseSmallIcon : playSmallIcon}
+                      <img
+                        src={isThisPlaying ? playIcon : pausedIcon}
+                        alt="play/pause icon"
+                      />
                     </span>
                     <span className="voiceName">{voice.name}</span>
                   </div>
-                  <div className="voiceStatus">
+                  <div className="voiceRight">
                     {isThisPlaying && (
-                      <span className="waveform">{waveformIcon}</span>
+                      <span className="waveform">
+                        <img src={waveformIcon} alt="waveform" />
+                      </span>
                     )}
-                    {selectedVoice === voice.id && !isThisPlaying && (
-                      <span className="checkmark">{checkmarkIcon}</span>
-                    )}
-                    {selectedVoice !== voice.id && !isThisPlaying && (
-                      <span className="radioCircle"></span>
+                    {selectedVoice === voice.id && (
+                      <span className="checkmark">
+                        <img src={componentIcon} alt="selected" />
+                      </span>
                     )}
                   </div>
                 </div>
@@ -301,32 +357,14 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
       </div>
 
       <div className="actionFooter">
-        <button
-          className="sendTestBtn"
+        <ReusableButton
+          label="Send Test Voice Call"
           onClick={() => setShowSendTestCall(true)}
-          disabled={isEditorEmpty}
-          style={{
-            cursor: isEditorEmpty ? "not-allowed" : "pointer",
-            opacity: isEditorEmpty ? 0.5 : 1
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-          >
-            <path
-              d="M8.33315 11.6667L17.4998 2.5M8.33315 11.6667L11.2498 17.5C11.2864 17.5798 11.3451 17.6474 11.4189 17.6948C11.4928 17.7422 11.5787 17.7674 11.6665 17.7674C11.7542 17.7674 11.8402 17.7422 11.914 17.6948C11.9879 17.6474 12.0466 17.5798 12.0831 17.5L17.4998 2.5M8.33315 11.6667L2.49981 8.75C2.42003 8.71344 2.35242 8.65474 2.30502 8.58088C2.25762 8.50701 2.23242 8.4211 2.23242 8.33333C2.23242 8.24557 2.25762 8.15965 2.30502 8.08579C2.35242 8.01193 2.42003 7.95323 2.49981 7.91667L17.4998 2.5"
-              stroke="white"
-              strokeWidth="1.3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <p>Send Test Voice Call</p>
-        </button>
+          disabled={isEditorEmpty || !selectedVoice}
+          sendImage={true}
+          variant="primary"
+          className="sendTestBtn"
+        />
       </div>
 
       <ReusableModal

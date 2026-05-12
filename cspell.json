@@ -41,7 +41,9 @@
         "badgable",
         "gabriella",
         "checkmark",
-        "nums"
+        "nums",
+        "siri",
+        "zira"
     ],
     "ignorePaths": [
         "dist",

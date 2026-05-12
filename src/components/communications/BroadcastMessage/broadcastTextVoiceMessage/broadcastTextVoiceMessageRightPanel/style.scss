@@ -11,6 +11,7 @@
   box-sizing: border-box;
   background: variable.$color-white-0;
   font-family: variable.$font-inter;
+  position: relative;
 
   .panelSections {
     width: 100%;
@@ -18,17 +19,49 @@
     padding: 20px 16px;
     @include variable.d-flex($fd: column, $g: 24px);
     padding-bottom: 100px;
+    flex: 1;
 
     .panelSection {
+      width: 100%;
       @include variable.d-flex($fd: column, $g: 16px);
+
+      .previewHeader {
+        .previewBtn {
+          @include variable.d-flex($al: center, $g: 8px);
+          padding: 8px 16px;
+          border: 1px solid variable.$color-green-0;
+          border-radius: 8px;
+          background: white;
+          color: variable.$color-green-0;
+          font-size: 16px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &:hover {
+            background: variable.$color-green-4;
+          }
+
+          span {
+            font-size: 16px;
+            font-weight: 500;
+          }
+        }
+      }
+
       .voiceList {
         width: 100%;
         @include variable.d-flex($fd: column, $g: 10px);
 
+        .Voice {
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-black-6;
+        }
+
         .voiceItem {
           width: 100%;
           @include variable.d-flex($al: center, $jc: space-between);
-          padding: 10px 14px;
+          padding: 8px 12px;
           border: 1px solid #e2e8f0;
           border-radius: 8px;
           cursor: pointer;
@@ -39,21 +72,26 @@
           }
 
           &.selected {
-            border-color: #10b981;
-            background: #f0fdf4;
+            border-color: #3b82f6;
+            background: #f0f9ff;
           }
 
-          .voiceInfo {
-            @include variable.d-flex($al: center, $g: 12px);
-            color: #475569;
+          .voiceLeft {
+            @include variable.d-flex($al: center, $g: 8px);
+
+            .voiceIcon {
+              @include variable.d-flex($al: center);
+              color: #667085;
+            }
 
             .voiceName {
               font-size: 14px;
               font-weight: 500;
+              color: #101828;
             }
           }
 
-          .voiceStatus {
+          .voiceRight {
             @include variable.d-flex($al: center, $g: 8px);
 
             .waveform {
@@ -64,13 +102,6 @@
 
             .checkmark {
               @include variable.d-flex($al: center);
-            }
-
-            .radioCircle {
-              width: 16px;
-              height: 16px;
-              border-radius: 50%;
-              border: 1px solid #cbd5e1;
             }
           }
         }
@@ -83,7 +114,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 12px 16px;
+    padding: 16px;
     background: variable.$color-white-0;
     border-top: 1px solid variable.$color-white-6;
     z-index: 10;
@@ -91,21 +122,24 @@
     .sendTestBtn {
       @include variable.d-flex($al: center, $jc: center, $g: 10px);
       width: 100%;
-      padding: 10px 16px;
-      background: #15803d;
+      background: variable.$color-green-0;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
 
-      p {
-        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+      .btn-label {
         color: variable.$color-white-0;
         margin: 0;
       }
 
       &:hover {
-        background: #166534;
+        background: color.adjust(variable.$color-green-0, $lightness: -5%);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
     }
   }

@@ -5,7 +5,6 @@
   background: variable.$color-white-0;
   border-radius: 12px;
   border: 1px solid variable.$color-white-10;
-  box-shadow: variable.$shadow-1;
   width: 100%;
 
   .broadcastScheduleTitle {
@@ -108,8 +107,7 @@
         @include variable.d-flex($fd: column, $g: 8px);
 
         .daysSelector {
-          @include variable.d-flex($al: center, $g: 12px);
-          height: 48px; // Align with other fields
+          @include variable.d-flex($al: end, $g: 12px);
 
           .dayCircle {
             width: 32px;
@@ -147,8 +145,6 @@
     .broadcastScheduleInfoBox {
       @include variable.d-flex($al: center, $g: 8px);
       padding: 12px 0;
-      border-top: 1px solid variable.$color-white-10;
-      margin-top: 10px;
 
       .infoIcon {
         width: 18px;

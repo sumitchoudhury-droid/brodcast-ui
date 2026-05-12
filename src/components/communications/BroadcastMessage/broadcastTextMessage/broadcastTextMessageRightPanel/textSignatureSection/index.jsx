@@ -8,7 +8,7 @@ import { ReusableModal } from "../../../../../../reusableComponents/reusableModa
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
 import { htmlToMjml, isMjml } from "../../../../../../utils/htmlToMjml";
 import { useToast } from "../../../../../../hooks/useToast";
-import { LinkModal } from "../../../broadcastEmailMessage/linkModal/index";
+import ReusableLinkModal from "../../../../../../reusableComponents/reusableLinkModal/index";
 
 export default function TextSignatureSection({ editorRef }) {
   const [signature, setSignature] = useState("");
@@ -274,7 +274,7 @@ export default function TextSignatureSection({ editorRef }) {
         </div>
       </ReusableModal>
 
-      <LinkModal
+      <ReusableLinkModal
         isOpen={isLinkModalOpen}
         onClose={() => setIsLinkModalOpen(false)}
         onConfirm={handleLinkModalConfirm}

@@ -86,13 +86,26 @@
         }
       }
 
-      .placeholderText {
+      .placeholderTextContainer {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
         width: 90%;
-        @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
-        color: variable.$color-black-9;
-        margin: 0;
-        white-space: wrap;
-        overflow: hidden;
+
+        .placeholderText {
+          @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+          color: variable.$color-black-9;
+          margin: 0;
+          white-space: wrap;
+          overflow: hidden;
+        }
+
+        .placeholderLink {
+          @include variable.font-style($fs: 10px, $fw: 400, $lh: 14px);
+          color: variable.$color-black-10;
+          margin: 0;
+          word-break: break-all;
+        }
       }
     }
   }
