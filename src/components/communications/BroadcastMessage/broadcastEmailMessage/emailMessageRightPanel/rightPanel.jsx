@@ -569,9 +569,9 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     bl: ""
   });
 
-  const [width, setWidth] = useState("100");
+  const [width, setWidth] = useState("0");
   const [widthUnit, setWidthUnit] = useState("%");
-  const [height, setHeight] = useState("100");
+  const [height, setHeight] = useState("0");
   const [heightUnit, setHeightUnit] = useState("%");
 
   const [textColor, setTextColor] = useState("#000000");
@@ -591,7 +591,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     bottom: "",
     left: ""
   });
-  const [gap, setGap] = useState({ row: "", col: "" });
+  const [gap, setGap] = useState({ gap: "0" });
 
   const [buttonUrl, setButtonUrl] = useState("");
   const [imageLink, setImageLink] = useState("");
@@ -837,8 +837,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       });
 
       setGap({
-        row: dimStyle["row-gap"]?.replace("px", "") || "",
-        col: dimStyle["column-gap"]?.replace("px", "") || ""
+        gap:
+          dimStyle["gap"]?.replace("px", "") ||
+          dimStyle["row-gap"]?.replace("px", "") ||
+          "0"
       });
 
       const parseValueAndUnit = (val) => {
@@ -863,7 +865,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setWidth(wVal);
         setWidthUnit(wUnit);
       } else {
-        setWidth("100");
+        setWidth("0");
         setWidthUnit("%");
       }
       if (hVal || hUnit === "auto") {
@@ -873,7 +875,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setHeight("");
         setHeightUnit("auto");
       } else {
-        setHeight("100");
+        setHeight("0");
         setHeightUnit("%");
       }
     };
@@ -1265,12 +1267,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const target = getStyleTarget();
     if (!target) return;
 
-    const cssProp = axis === "row" ? "row-gap" : "column-gap";
-    if (value === "") {
-      target.addStyle({ [cssProp]: "" });
-    } else {
-      target.addStyle({ [cssProp]: `${value}px` });
-    }
+    target.addStyle({ gap: `${value}px` });
 
     const el = target.getView?.()?.el;
     const td = getColumnContainerTd(el);
@@ -1279,9 +1276,9 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       td.style.setProperty("flex-direction", "row", "important");
       td.style.setProperty("flex-wrap", "nowrap", "important");
       if (value === "") {
-        td.style.removeProperty(cssProp);
+        td.style.removeProperty(axis);
       } else {
-        td.style.setProperty(cssProp, `${value}px`, "important");
+        td.style.setProperty(axis, `${value}px`, "important");
       }
     }
 

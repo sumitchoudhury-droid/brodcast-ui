@@ -22,10 +22,7 @@ export const PaddingContainer = ({
     { key: "right", label: "Right" }
   ];
 
-  const gaps = [
-    { key: "row", label: "Row gap" },
-    { key: "col", label: "Column gap" }
-  ];
+  const gaps = [{ key: "gap", label: "Gap" }];
 
   const alignmentOptions = [
     { value: "flex-start", label: "Start" },
@@ -86,7 +83,7 @@ export const PaddingContainer = ({
             <div className="inputsGrid">
               {gaps.map((g) => (
                 <div key={`gap-${g.key}`} className="inputWrapper">
-                  <span className="sideLabel">{g.label}</span>
+                  {/* <span className="sideLabel">{g.label}</span> */}
                   <div className="numInputGroup">
                     <input
                       type="number"
