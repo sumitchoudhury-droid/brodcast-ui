@@ -90,7 +90,7 @@ export const PaddingContainer = ({
                   <div className="numInputGroup">
                     <input
                       type="number"
-                      value={gap?.[g.key] ?? 0}
+                      value={gap?.[g.key] ?? ""}
                       onChange={(e) => handleGapChange(g.key, e.target.value)}
                       className="numInput"
                     />
@@ -125,7 +125,7 @@ export const PaddingContainer = ({
                 <div className="numInputGroup">
                   <input
                     type="number"
-                    value={padding[side.key] || 0}
+                    value={padding[side.key] ?? ""}
                     onChange={(e) =>
                       handlePaddingChange(side.key, e.target.value)
                     }

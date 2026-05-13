@@ -559,14 +559,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [bgRepeat, setBgRepeat] = useState("no-repeat");
   const [bgSize, setBgSize] = useState("contain");
 
-  const [borderWidth, setBorderWidth] = useState("0");
+  const [borderWidth, setBorderWidth] = useState("");
   const [borderStyle, setBorderStyle] = useState("solid");
   const [borderColor, setBorderColor] = useState("#000000");
   const [borderRadius, setBorderRadius] = useState({
-    tl: "0",
-    tr: "0",
-    br: "0",
-    bl: "0"
+    tl: "",
+    tr: "",
+    br: "",
+    bl: ""
   });
 
   const [width, setWidth] = useState("100");
@@ -586,12 +586,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [alignItems, setAlignItems] = useState("flex-start");
   const [justifyContent, setJustifyContent] = useState("flex-start");
   const [padding, setPadding] = useState({
-    top: "0",
-    right: "0",
-    bottom: "0",
-    left: "0"
+    top: "",
+    right: "",
+    bottom: "",
+    left: ""
   });
-  const [gap, setGap] = useState({ row: "0", col: "0" });
+  const [gap, setGap] = useState({ row: "", col: "" });
 
   const [buttonUrl, setButtonUrl] = useState("");
   const [imageLink, setImageLink] = useState("");
@@ -709,6 +709,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setBorderWidth(bp[0].replace("px", ""));
         setBorderStyle(bp[1]);
         setBorderColor(bp[2]);
+      } else {
+        setBorderWidth("");
       }
       // Read border-radius from MJML attribute first, then fall back to CSS style
       const rawBrAttr =
@@ -724,25 +726,30 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           if (idx === 2) return brShorthand[2].replace("px", "");
         }
         if (brShorthand.length >= 4) return brShorthand[idx].replace("px", "");
-        return "0";
+        return "";
       };
 
       setBorderRadius({
         tl:
-          dimStyle["border-top-left-radius"]?.replace("px", "") || getBrPart(0),
+          dimStyle["border-top-left-radius"]?.replace("px", "") ||
+          getBrPart(0) ||
+          "",
         tr:
           dimStyle["border-top-right-radius"]?.replace("px", "") ||
-          getBrPart(1),
+          getBrPart(1) ||
+          "",
         br:
           dimStyle["border-bottom-right-radius"]?.replace("px", "") ||
-          getBrPart(2),
+          getBrPart(2) ||
+          "",
         bl:
           dimStyle["border-bottom-left-radius"]?.replace("px", "") ||
-          getBrPart(3)
+          getBrPart(3) ||
+          ""
       });
 
       if (selected.is("mj-text") || selected.is("mj-button")) {
-        const currentFontSize = style["font-size"]?.replace("px", "") || "14";
+        const currentFontSize = style["font-size"]?.replace("px", "") || "";
         setTextColor(style["color"] || "#000000");
         setTypography({
           fontFamily: style["font-family"]?.replace(/['"]/g, "") || "Inter",
@@ -814,29 +821,29 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         top:
           style["padding-top"]?.replace("px", "") ||
           style["padding"]?.split(" ")[0]?.replace("px", "") ||
-          "0",
+          "",
         right:
           style["padding-right"]?.replace("px", "") ||
           style["padding"]?.split(" ")[1]?.replace("px", "") ||
-          "0",
+          "",
         bottom:
           style["padding-bottom"]?.replace("px", "") ||
           style["padding"]?.split(" ")[2]?.replace("px", "") ||
-          "0",
+          "",
         left:
           style["padding-left"]?.replace("px", "") ||
           style["padding"]?.split(" ")[3]?.replace("px", "") ||
-          "0"
+          ""
       });
 
       setGap({
-        row: dimStyle["row-gap"]?.replace("px", "") || "0",
-        col: dimStyle["column-gap"]?.replace("px", "") || "0"
+        row: dimStyle["row-gap"]?.replace("px", "") || "",
+        col: dimStyle["column-gap"]?.replace("px", "") || ""
       });
 
       const parseValueAndUnit = (val) => {
         if (!val) return { value: "", unit: "%" };
-        if (val === "auto") return { value: "auto", unit: "px" };
+        if (val === "auto") return { value: "", unit: "auto" };
         const m = val.match(/^(\d+(?:\.\d+)?)(%|px)$/);
         if (m) return { value: m[1], unit: m[2] };
         return {
@@ -859,9 +866,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setWidth("100");
         setWidthUnit("%");
       }
-      if (hVal) {
+      if (hVal || hUnit === "auto") {
         setHeight(hVal);
         setHeightUnit(hUnit);
+      } else if (dimTarget.get("type") === "mj-image") {
+        setHeight("");
+        setHeightUnit("auto");
       } else {
         setHeight("100");
         setHeightUnit("%");
@@ -952,7 +962,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         // For mj-image, height: 100% often causes the image to collapse if parent height is auto.
         // We set it to auto to ensure it stays visible and responsive.
         target.addAttributes({ height: "auto" });
-        target.addStyle({ height: "auto" });
+        target.addStyle({ height: "auto", "min-height": "auto" });
       } else {
         target.addStyle({ "background-size": s === "fill" ? "100% 100%" : s });
       }
@@ -988,9 +998,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
   // ─── Dimensions ────────────────────────────────────────────────────────────
   const updateDimensionOnTarget = (target, dim, fullValue) => {
-    target.set(dim, fullValue);
-    target.addAttributes({ [dim]: fullValue });
-    target.addStyle({ [dim]: fullValue });
+    if (fullValue === "%" || fullValue === "px" || fullValue === "") {
+      target.removeAttributes(dim);
+      target.addStyle({ [dim]: "" }); // GrapesJS addStyle with empty string removes it
+    } else {
+      target.set(dim, fullValue);
+      target.addAttributes({ [dim]: fullValue });
+      target.addStyle({ [dim]: fullValue });
+    }
     editorRef.current?.getEditor()?.trigger("component:update", target);
 
     // In MJML, a column's width determines the sibling/parent table layout.
@@ -1063,8 +1078,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   const handleHeightChange = (val, unit = heightUnit) => {
-    const full = `${val}${unit}`;
-    setHeight(val);
+    let full;
+    if (unit === "auto") {
+      full = "auto";
+      setHeight("");
+    } else {
+      full = val ? `${val}${unit}` : unit;
+      setHeight(val);
+    }
     setHeightUnit(unit);
     if (selectedComp) {
       const target = getStyleTarget();
@@ -1091,7 +1112,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
     const target = getStyleTarget();
     if (target) {
-      const borderValue = `${nW}px ${nS} ${nC}`;
+      const borderValue = `${nW || 0}px ${nS} ${nC}`;
       target.addStyle({ border: borderValue });
       // Set as MJML attribute so it compiles into preview/inbox HTML
       target.addAttributes({ border: borderValue });
@@ -1232,7 +1253,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   // ─── Padding / Margin ──────────────────────────────────────────────────────
   const handlePaddingChange = (side, value) => {
     setPadding((prev) => ({ ...prev, [side]: value }));
-    selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
+    if (value === "") {
+      selectedComp?.addStyle({ [`padding-${side}`]: "" });
+    } else {
+      selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
+    }
   };
 
   const handleGapChange = (axis, value) => {
@@ -1241,7 +1266,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (!target) return;
 
     const cssProp = axis === "row" ? "row-gap" : "column-gap";
-    target.addStyle({ [cssProp]: `${value}px` });
+    if (value === "") {
+      target.addStyle({ [cssProp]: "" });
+    } else {
+      target.addStyle({ [cssProp]: `${value}px` });
+    }
 
     const el = target.getView?.()?.el;
     const td = getColumnContainerTd(el);
@@ -1249,7 +1278,11 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       td.style.setProperty("display", "flex", "important");
       td.style.setProperty("flex-direction", "row", "important");
       td.style.setProperty("flex-wrap", "nowrap", "important");
-      td.style.setProperty(cssProp, `${value}px`, "important");
+      if (value === "") {
+        td.style.removeProperty(cssProp);
+      } else {
+        td.style.setProperty(cssProp, `${value}px`, "important");
+      }
     }
 
     editorRef.current?.getEditor()?.trigger("component:update", target);
@@ -2031,8 +2064,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               <ImageSection
                 imageLink={imageLink}
                 onLinkChange={handleImageLinkChange}
-                imageSize={bgSize}
-                handleImageSizeChange={handleBgSizeChange}
                 width={width}
                 widthUnit={widthUnit}
                 handleWidthChange={handleWidthChange}
@@ -2061,7 +2092,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               (selectedComp.is("mj-column") ||
                 selectedComp.is("mj-section") ||
                 selectedComp.is("mj-hero") ||
-                ["mj-text", "mj-button", "mj-image", "mj-divider"].includes(
+                ["mj-text", "mj-button", "mj-divider"].includes(
                   selectedComp.get("type")
                 )) && (
                 <DimensionContainer

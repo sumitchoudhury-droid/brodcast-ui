@@ -168,7 +168,7 @@ const BorderContainer = ({
             <div className="inputWrapper">
               <input
                 type="number"
-                value={borderRadius[corner.key] || "0"}
+                value={borderRadius[corner.key] ?? ""}
                 onChange={(e) =>
                   handleBorderRadiusChange(corner.key, e.target.value)
                 }
