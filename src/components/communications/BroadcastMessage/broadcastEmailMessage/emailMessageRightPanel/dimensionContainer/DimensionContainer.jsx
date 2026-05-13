@@ -1,6 +1,7 @@
 import "./style.scss";
 
 export const DimensionContainer = ({
+  title = "Dimensions",
   width,
   widthUnit,
   handleWidthChange,
@@ -11,7 +12,7 @@ export const DimensionContainer = ({
   return (
     <div className="dimensionContainer">
       <div className="dimensionHeader">
-        <p>Dimensions</p>
+        <p>{title}</p>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -80,12 +81,14 @@ export const DimensionContainer = ({
         <div className="optionGroup">
           <p className="optionLabel">Height</p>
           <div className="dimensionInputWrapper">
-            <input
-              type="number"
-              className="dimensionInput"
-              value={height}
-              onChange={(e) => handleHeightChange(e.target.value)}
-            />
+            {heightUnit !== "auto" && (
+              <input
+                type="number"
+                className="dimensionInput"
+                value={height}
+                onChange={(e) => handleHeightChange(e.target.value)}
+              />
+            )}
             <div className="segmentedControl">
               <button
                 className={`segment ${heightUnit === "%" ? "active" : ""}`}
@@ -98,6 +101,12 @@ export const DimensionContainer = ({
                 onClick={() => handleHeightChange(height, "px")}
               >
                 px
+              </button>
+              <button
+                className={`segment ${heightUnit === "auto" ? "active" : ""}`}
+                onClick={() => handleHeightChange("", "auto")}
+              >
+                Auto
               </button>
             </div>
           </div>

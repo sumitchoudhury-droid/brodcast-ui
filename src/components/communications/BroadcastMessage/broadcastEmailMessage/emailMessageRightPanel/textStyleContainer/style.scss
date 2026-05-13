@@ -301,17 +301,15 @@
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
-            // &.active {
-
-            //   color: variable.$color-black-4;
-            //   box-shadow: variable.$shadow-2;
-            //   border: 1px solid variable.$color-white-6;
-            // }
-
-            // &:hover:not(.active) {
-            //   background: variable.$color-white-6;
-            // }
+            img {
+              width: 18px !important;
+              height: 18px !important;
+              display: block;
+            }
           }
         }
       }
@@ -330,6 +328,15 @@
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          img {
+            width: 18px !important;
+            height: 18px !important;
+            display: block;
+          }
         }
       }
     }

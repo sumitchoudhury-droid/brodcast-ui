@@ -9,6 +9,15 @@ import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
 import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
 
+import underlineIcon from "../../../../../assets/textStyleIcons/underlineIcon.svg";
+import italicIcon from "../../../../../assets/textStyleIcons/italicIcon.svg";
+import strikethroughIcon from "../../../../../assets/textStyleIcons/strikethroughIcon.svg";
+import highlightIcon from "../../../../../assets/textStyleIcons/highlightIcon.svg";
+import codeIcon from "../../../../../assets/textStyleIcons/codeIcon.svg";
+import subscriptIcon from "../../../../../assets/textStyleIcons/subscriptIcon.svg";
+import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIcon.svg";
+import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
+
 import "../style.scss";
 import "./style.scss";
 import { useToast } from "../../../../../hooks/useToast";
@@ -476,6 +485,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               height: heightAttr
             });
             editor.trigger("component:update", target);
+            editor.select(target);
             return;
           }
 
@@ -500,12 +510,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
               isUnwrapping.current = true;
               try {
                 placeholderTarget.remove();
-                column
+                const added = column
                   .components()
                   .add(
                     `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
                     { at: index }
                   );
+                const newComp = Array.isArray(added) ? added[0] : added;
+                if (newComp) editor.select(newComp);
               } finally {
                 isUnwrapping.current = false;
               }
@@ -546,21 +558,25 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 isUnwrapping.current = true;
                 try {
                   placeholderComp.remove();
-                  col
+                  const added = col
                     .components()
                     .add(
                       `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
                       { at: index }
                     );
+                  const newComp = Array.isArray(added) ? added[0] : added;
+                  if (newComp) editor.select(newComp);
                 } finally {
                   isUnwrapping.current = false;
                 }
               } else {
                 // Fallback: replace whole column only if individual component look-up fails
                 col.components().reset();
-                col.append(
+                const added = col.append(
                   `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
                 );
+                const newComp = Array.isArray(added) ? added[0] : added;
+                if (newComp) editor.select(newComp);
               }
               editor.trigger("component:update", col);
               break;
@@ -1799,36 +1815,69 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       // ── Custom RTE Configuration ───────────────────────────────────────────
       const rte = editor.RichTextEditor;
 
-      // Clear standard link action to avoid collision with built-in behavior
+      // Clear standard actions to replace them with custom icons
+      rte.remove("bold");
+      rte.remove("italic");
+      rte.remove("underline");
+      rte.remove("strikethrough");
       rte.remove("link");
 
-      const linkIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7c-2.8 0-5 2.2-5 5s2.2 5 5 5h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4c2.8 0 5-2.2 5-5s-2.2-5-5-5z"></path></svg>`;
-      const codeIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"></path></svg>`;
-      const superscriptIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
-  <path d="M3 14.25L9 8.25" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M9 14.25L3 8.25" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M15 9H12C12 7.875 12.3315 7.5 13.125 7.125C13.9185 6.75 15 6.2505 15 5.2515C15 4.8975 14.8725 4.554 14.637 4.284C14.397 4.01255 14.071 3.8319 13.7136 3.77236C13.3562 3.71282 12.9893 3.77801 12.6743 3.957C12.3593 4.13625 12.1207 4.4175 12 4.752" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
-      const subscriptIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
-  <path d="M3 3.75L9 9.75" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M9 3.75L3 9.75" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M15 14.25H12C12 13.125 12.33 12.75 13.125 12.375C13.92 12 15 11.4975 15 10.5C15 10.1475 14.8725 9.8025 14.64 9.5325C14.3999 9.26063 14.0737 9.07949 13.716 9.01942C13.3582 8.95934 12.9907 9.02398 12.675 9.2025C12.36 9.3825 12.12 9.6675 12 10.005" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
+      const customBoldIcon = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4.5 3H9C10.6569 3 12 4.34315 12 6C12 7.65685 10.6569 9 9 9H4.5V3Z" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4.5 9H10.5C12.1569 9 13.5 10.3431 13.5 12C13.5 13.6569 12.1569 15 10.5 15H4.5V9Z" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+
+      rte.add("bold", {
+        icon: customBoldIcon,
+        attributes: { title: "Bold" },
+        result: (rteInstance) => rteInstance.exec("bold")
+      });
+
+      rte.add("italic", {
+        icon: `<img src="${italicIcon}" width="18" height="18" />`,
+        attributes: { title: "Italic" },
+        result: (rteInstance) => rteInstance.exec("italic")
+      });
+
+      rte.add("underline", {
+        icon: `<img src="${underlineIcon}" width="18" height="18" />`,
+        attributes: { title: "Underline" },
+        result: (rteInstance) => rteInstance.exec("underline")
+      });
+
+      rte.add("strikethrough", {
+        icon: `<img src="${strikethroughIcon}" width="18" height="18" />`,
+        attributes: { title: "Strikethrough" },
+        result: (rteInstance) => rteInstance.exec("strikethrough")
+      });
 
       rte.add("superscript", {
-        icon: superscriptIcon,
+        icon: `<img src="${superscriptIcon}" width="18" height="18" />`,
         attributes: { title: "Superscript" },
         result: (rteInstance) => rteInstance.exec("superscript")
       });
 
       rte.add("subscript", {
-        icon: subscriptIcon,
+        icon: `<img src="${subscriptIcon}" width="18" height="18" />`,
         attributes: { title: "Subscript" },
         result: (rteInstance) => rteInstance.exec("subscript")
       });
 
+      rte.add("highlight", {
+        icon: `<img src="${highlightIcon}" width="18" height="18" />`,
+        attributes: { title: "Highlight" },
+        result: (rteInstance) => {
+          const selection = rteInstance.selection();
+          if (selection) {
+            rteInstance.insertHTML(
+              `<span style="background-color: yellow; color: black;">${selection}</span>`
+            );
+          }
+        }
+      });
+
       rte.add("code", {
-        icon: codeIcon,
+        icon: `<img src="${codeIcon}" width="18" height="18" />`,
         attributes: { title: "Code Block" },
         result: (rteInstance) => {
           const selection = rteInstance.selection();
@@ -1845,7 +1894,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       });
 
       rte.add("link", {
-        icon: linkIcon,
+        icon: `<img src="${linkIcon}" width="18" height="18" />`,
         attributes: { title: "Link" },
         result: (rteInstance) => {
           const selection = rteInstance.selection();

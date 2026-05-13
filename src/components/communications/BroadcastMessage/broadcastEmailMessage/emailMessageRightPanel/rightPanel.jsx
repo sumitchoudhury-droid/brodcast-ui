@@ -593,6 +593,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   });
   const [gap, setGap] = useState({ gap: "0" });
 
+  const [colWidth, setColWidth] = useState("0");
+  const [colWidthUnit, setColWidthUnit] = useState("%");
+  const [colHeight, setColHeight] = useState("0");
+  const [colHeightUnit, setColHeightUnit] = useState("auto");
+  const [colTarget, setColTarget] = useState(null);
+
   const [buttonUrl, setButtonUrl] = useState("");
   const [imageLink, setImageLink] = useState("");
 
@@ -602,6 +608,46 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   // Tracks the DOM node where the cursor last was inside the canvas iframe.
   // Read by toggleListAtCursor after the iframe loses focus on button click.
   const lastCursorNodeRef = useRef(null);
+
+  // Returns the <td> that directly parents all mj-column divs inside a section view.
+  // Works whether `el` is the section root or an mj-column inside it.
+  const getColumnContainerTd = (el) => {
+    if (!el) return null;
+    // If el is an mj-column div, its parentElement is the td.
+    if (el.dataset?.gjsType === "mj-column")
+      return el.parentElement?.tagName === "TD" ? el.parentElement : null;
+    // Otherwise (section root), find the first column child and climb up.
+    const firstCol = el.querySelector("[data-gjs-type='mj-column']");
+    return firstCol?.parentElement?.tagName === "TD"
+      ? firstCol.parentElement
+      : null;
+  };
+
+  const getParentSection = (comp) => {
+    let curr = comp;
+    while (curr) {
+      const type = curr.get("type");
+      if (type === "mj-section" || type === "mj-hero") return curr;
+      curr = curr.parent();
+    }
+    return null;
+  };
+
+  const syncFlexToTd = (td, ai, jc, g) => {
+    if (!td) return;
+    td.style.setProperty("display", "flex", "important");
+    td.style.setProperty("flex-direction", "row", "important");
+    td.style.setProperty("flex-wrap", "nowrap", "important");
+    td.style.setProperty("align-items", ai, "important");
+    td.style.setProperty("justify-content", jc, "important");
+
+    const gapVal = g?.gap;
+    if (gapVal === "" || gapVal === undefined || gapVal === "0") {
+      td.style.removeProperty("gap");
+    } else {
+      td.style.setProperty("gap", `${gapVal}px`, "important");
+    }
+  };
 
   // ─── Attach bullet-list key handler ────────────────────────────────────────
   useEffect(() => {
@@ -871,22 +917,74 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       if (hVal || hUnit === "auto") {
         setHeight(hVal);
         setHeightUnit(hUnit);
-      } else if (dimTarget.get("type") === "mj-image") {
-        setHeight("");
-        setHeightUnit("auto");
       } else {
         setHeight("0");
         setHeightUnit("%");
+      }
+
+      // ─── Sync Parent Column Dimensions (for layout rebalancing) ───
+      let parentCol = null;
+      if (
+        ["mj-text", "mj-divider", "mj-raw", "mj-image", "mj-button"].includes(
+          selected.get("type")
+        )
+      ) {
+        const p = selected.parent();
+        if (p && p.get("type") === "mj-column") {
+          const isInsideRowFrame =
+            p.getAttributes?.()?.["data-type"] === "row-frame-column";
+          if (!isInsideRowFrame) parentCol = p;
+        }
+      }
+      setColTarget(parentCol);
+      if (parentCol) {
+        const cAttrs = parentCol.getAttributes() || {};
+        const { value: cw, unit: cu } = parseValueAndUnit(
+          cAttrs["width"] || ""
+        );
+        const { value: ch, unit: chu } = parseValueAndUnit(
+          cAttrs["height"] || ""
+        );
+        setColWidth(cw || "0");
+        setColWidthUnit(cu || "%");
+        setColHeight(ch || "");
+        setColHeightUnit(chu || "auto");
+      }
+
+      // ─── Sync layout to canvas DOM ───
+      // MJML doesn't support gap/align-items on sections natively.
+      // We re-apply our flex hack every time the component updates.
+      // We always target the parent section's TD regardless of which child is selected.
+      const parentSection = getParentSection(selected);
+      if (parentSection) {
+        const psStyle = parentSection.getStyle() || {};
+
+        const psAi = psStyle["align-items"] || "flex-start";
+        const psJc = psStyle["justify-content"] || "flex-start";
+        const psGap = {
+          gap:
+            psStyle["gap"]?.replace("px", "") ||
+            psStyle["row-gap"]?.replace("px", "") ||
+            "0"
+        };
+
+        const psEl = parentSection.getView?.()?.el;
+        setTimeout(() => {
+          const td = getColumnContainerTd(psEl);
+          if (td) syncFlexToTd(td, psAi, psJc, psGap);
+        }, 0);
       }
     };
 
     editor.on("component:selected", updateState);
     editor.on("component:update:style", updateState);
     editor.on("component:update:attributes", updateState);
+    editor.on("component:update", updateState);
     return () => {
       editor.off("component:selected", updateState);
       editor.off("component:update:style", updateState);
       editor.off("component:update:attributes", updateState);
+      editor.off("component:update", updateState);
     };
   }, [editorRef]);
 
@@ -1095,6 +1193,69 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
   };
 
+  const handleColWidthChange = (val, unit = colWidthUnit) => {
+    const full = `${val}${unit}`;
+    setColWidth(val);
+    setColWidthUnit(unit);
+    if (colTarget) {
+      updateDimensionOnTarget(colTarget, "width", full);
+
+      // ─── Dynamic Column Rebalancing (Selective) ───
+      if (
+        unit === "%" &&
+        colTarget.parent()?.getAttributes()["data-type"] ===
+          "column-frame-section"
+      ) {
+        const parent = colTarget.parent();
+        colTarget.addAttributes({ "data-manual-width": "true" });
+
+        const allCols = parent
+          .components()
+          .filter((c) => c.get("type") === "mj-column");
+
+        const manualCols = allCols.filter(
+          (c) => c.getAttributes()["data-manual-width"] === "true"
+        );
+        const autoCols = allCols.filter(
+          (c) => c.getAttributes()["data-manual-width"] !== "true"
+        );
+
+        if (autoCols.length > 0) {
+          let manualSum = 0;
+          manualCols.forEach((mc) => {
+            const wAttr = mc.getAttributes()["width"] || "0%";
+            manualSum += parseFloat(wAttr);
+          });
+
+          const remaining = Math.max(0, 100 - manualSum);
+          const sharedWidth = `${(remaining / autoCols.length).toFixed(4)}%`;
+
+          autoCols.forEach((ac) => {
+            ac.addAttributes({ width: sharedWidth });
+            ac.addStyle({ width: sharedWidth });
+            ac.set("width", sharedWidth);
+          });
+        }
+        editorRef.current?.getEditor()?.trigger("component:update", parent);
+      }
+    }
+  };
+
+  const handleColHeightChange = (val, unit = colHeightUnit) => {
+    let full;
+    if (unit === "auto") {
+      full = "auto";
+      setColHeight("");
+    } else {
+      full = val ? `${val}${unit}` : unit;
+      setColHeight(val);
+    }
+    setColHeightUnit(unit);
+    if (colTarget) {
+      updateDimensionOnTarget(colTarget, "height", full);
+    }
+  };
+
   // ─── Border ────────────────────────────────────────────────────────────────
   const handleBorderChange = (key, value) => {
     let nW = borderWidth,
@@ -1263,7 +1424,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   const handleGapChange = (axis, value) => {
-    setGap((prev) => ({ ...prev, [axis]: value }));
+    const newGap = { ...gap, [axis]: value };
+    setGap(newGap);
     const target = getStyleTarget();
     if (!target) return;
 
@@ -1272,31 +1434,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const el = target.getView?.()?.el;
     const td = getColumnContainerTd(el);
     if (td) {
-      td.style.setProperty("display", "flex", "important");
-      td.style.setProperty("flex-direction", "row", "important");
-      td.style.setProperty("flex-wrap", "nowrap", "important");
-      if (value === "") {
-        td.style.removeProperty(axis);
-      } else {
-        td.style.setProperty(axis, `${value}px`, "important");
-      }
+      syncFlexToTd(td, alignItems, justifyContent, newGap);
     }
 
     editorRef.current?.getEditor()?.trigger("component:update", target);
-  };
-
-  // Returns the <td> that directly parents all mj-column divs inside a section view.
-  // Works whether `el` is the section root or an mj-column inside it.
-  const getColumnContainerTd = (el) => {
-    if (!el) return null;
-    // If el is an mj-column div, its parentElement is the td.
-    if (el.dataset?.gjsType === "mj-column")
-      return el.parentElement?.tagName === "TD" ? el.parentElement : null;
-    // Otherwise (section root), find the first column child and climb up.
-    const firstCol = el.querySelector("[data-gjs-type='mj-column']");
-    return firstCol?.parentElement?.tagName === "TD"
-      ? firstCol.parentElement
-      : null;
   };
 
   const handleAlignItemsChange = (value) => {
@@ -1319,13 +1460,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       target.addStyle({ "align-items": value });
       const td = getColumnContainerTd(el);
       if (td) {
-        // Ensure the td is a flex row (canvas CSS does this for column-frame-section,
-        // but we also need it for regular sections; !important beats canvas CSS rules).
-        td.style.setProperty("display", "flex", "important");
-        td.style.setProperty("flex-direction", "row", "important");
-        td.style.setProperty("flex-wrap", "nowrap", "important");
-        td.style.setProperty("align-items", value, "important");
-        td.style.setProperty("justify-content", justifyContent, "important");
+        syncFlexToTd(td, value, justifyContent, gap);
       }
     }
   };
@@ -1341,11 +1476,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const el = target.getView?.()?.el;
     const td = getColumnContainerTd(el);
     if (td) {
-      td.style.setProperty("display", "flex", "important");
-      td.style.setProperty("flex-direction", "row", "important");
-      td.style.setProperty("flex-wrap", "nowrap", "important");
-      td.style.setProperty("align-items", alignItems, "important");
-      td.style.setProperty("justify-content", value, "important");
+      syncFlexToTd(td, alignItems, value, gap);
     }
   };
 
@@ -2024,6 +2155,19 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
+  const dataType = selectedComp?.getAttributes?.()["data-type"];
+  let isFrame =
+    dataType === "column-frame-section" || dataType === "row-frame-column";
+
+  // Also check if it's a section that contains a row-frame-column (typical for Row block)
+  if (!isFrame && selectedComp?.get("type") === "mj-section") {
+    selectedComp.components().each((c) => {
+      if (c.getAttributes?.()["data-type"] === "row-frame-column") {
+        isFrame = true;
+      }
+    });
+  }
+
   return (
     <div className="rightPanel">
       <DeviceSwitcher
@@ -2083,22 +2227,29 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               handleTextAlignChange={(val) =>
                 handleTypographyChange("textAlign", val)
               }
+              isFrame={isFrame}
             />
 
             {selectedComp &&
               (selectedComp.is("mj-column") ||
                 selectedComp.is("mj-section") ||
                 selectedComp.is("mj-hero") ||
-                ["mj-text", "mj-button", "mj-divider"].includes(
+                colTarget ||
+                ["mj-text", "mj-button", "mj-divider", "mj-image"].includes(
                   selectedComp.get("type")
                 )) && (
                 <DimensionContainer
-                  width={width}
-                  widthUnit={widthUnit}
-                  handleWidthChange={handleWidthChange}
-                  height={height}
-                  heightUnit={heightUnit}
-                  handleHeightChange={handleHeightChange}
+                  title={colTarget ? "Layout (Column)" : "Dimensions"}
+                  width={colTarget ? colWidth : width}
+                  widthUnit={colTarget ? colWidthUnit : widthUnit}
+                  handleWidthChange={
+                    colTarget ? handleColWidthChange : handleWidthChange
+                  }
+                  height={colTarget ? colHeight : height}
+                  heightUnit={colTarget ? colHeightUnit : heightUnit}
+                  handleHeightChange={
+                    colTarget ? handleColHeightChange : handleHeightChange
+                  }
                 />
               )}
 
@@ -2117,14 +2268,16 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               onResetColor={() => handleBgColorChange("transparent")}
             />
 
-            <BorderContainer
-              borderWidth={borderWidth}
-              borderStyle={borderStyle}
-              borderColor={borderColor}
-              borderRadius={borderRadius}
-              handleBorderChange={handleBorderChange}
-              handleBorderRadiusChange={handleBorderRadiusChange}
-            />
+            {isFrame && (
+              <BorderContainer
+                borderWidth={borderWidth}
+                borderStyle={borderStyle}
+                borderColor={borderColor}
+                borderRadius={borderRadius}
+                handleBorderChange={handleBorderChange}
+                handleBorderRadiusChange={handleBorderRadiusChange}
+              />
+            )}
           </>
         )}
       </div>
