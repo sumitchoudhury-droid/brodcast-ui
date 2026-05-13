@@ -591,7 +591,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     bottom: "0",
     left: "0"
   });
-  const [gap, setGap] = useState({ row: "0", col: "0" });
+  const [gap, setGap] = useState({ gap: "0" });
 
   const [buttonUrl, setButtonUrl] = useState("");
   const [imageLink, setImageLink] = useState("");
@@ -830,8 +830,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       });
 
       setGap({
-        row: dimStyle["row-gap"]?.replace("px", "") || "0",
-        col: dimStyle["column-gap"]?.replace("px", "") || "0"
+        gap:
+          dimStyle["gap"]?.replace("px", "") ||
+          dimStyle["row-gap"]?.replace("px", "") ||
+          "0"
       });
 
       const parseValueAndUnit = (val) => {
@@ -1240,8 +1242,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const target = getStyleTarget();
     if (!target) return;
 
-    const cssProp = axis === "row" ? "row-gap" : "column-gap";
-    target.addStyle({ [cssProp]: `${value}px` });
+    target.addStyle({ gap: `${value}px` });
 
     const el = target.getView?.()?.el;
     const td = getColumnContainerTd(el);
@@ -1249,7 +1250,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       td.style.setProperty("display", "flex", "important");
       td.style.setProperty("flex-direction", "row", "important");
       td.style.setProperty("flex-wrap", "nowrap", "important");
-      td.style.setProperty(cssProp, `${value}px`, "important");
+      td.style.setProperty("gap", `${value}px`, "important");
     }
 
     editorRef.current?.getEditor()?.trigger("component:update", target);
