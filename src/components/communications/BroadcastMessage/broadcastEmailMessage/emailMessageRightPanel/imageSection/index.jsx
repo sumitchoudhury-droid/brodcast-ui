@@ -8,8 +8,6 @@ import "./style.scss";
 export const ImageSection = ({
   imageLink,
   onLinkChange,
-  imageSize,
-  handleImageSizeChange,
   width,
   widthUnit,
   handleWidthChange,
@@ -78,30 +76,6 @@ export const ImageSection = ({
           </div>
         </div>
 
-        <div className="optionGroup">
-          <p className="optionLabel">Size</p>
-          <div className="segmentedControl">
-            <button
-              className={`segment ${imageSize === "contain" ? "active" : ""}`}
-              onClick={() => handleImageSizeChange("contain")}
-            >
-              Contain
-            </button>
-            <button
-              className={`segment ${imageSize === "cover" ? "active" : ""}`}
-              onClick={() => handleImageSizeChange("cover")}
-            >
-              Cover
-            </button>
-            <button
-              className={`segment ${imageSize === "fill" ? "active" : ""}`}
-              onClick={() => handleImageSizeChange("fill")}
-            >
-              Fill
-            </button>
-          </div>
-        </div>
-
         <div className="dimensionControls">
           <div className="optionGroup">
             <p className="optionLabel">Width</p>
@@ -132,12 +106,14 @@ export const ImageSection = ({
           <div className="optionGroup">
             <p className="optionLabel">Height</p>
             <div className="dimensionInputWrapper">
-              <input
-                type="number"
-                className="dimensionInput"
-                value={height}
-                onChange={(e) => handleHeightChange(e.target.value)}
-              />
+              {heightUnit !== "auto" && (
+                <input
+                  type="number"
+                  className="dimensionInput"
+                  value={height}
+                  onChange={(e) => handleHeightChange(e.target.value)}
+                />
+              )}
               <div className="segmentedControl">
                 <button
                   className={`segment ${heightUnit === "%" ? "active" : ""}`}
@@ -150,6 +126,12 @@ export const ImageSection = ({
                   onClick={() => handleHeightChange(height, "px")}
                 >
                   px
+                </button>
+                <button
+                  className={`segment ${heightUnit === "auto" ? "active" : ""}`}
+                  onClick={() => handleHeightChange("", "auto")}
+                >
+                  Auto
                 </button>
               </div>
             </div>

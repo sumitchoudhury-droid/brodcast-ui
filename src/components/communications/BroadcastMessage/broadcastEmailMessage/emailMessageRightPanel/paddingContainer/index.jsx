@@ -11,7 +11,8 @@ export const PaddingContainer = ({
   justifyContent,
   handleJustifyContentChange,
   textAlign,
-  handleTextAlignChange
+  handleTextAlignChange,
+  isFrame
 }) => {
   if (!selectedComp) return null;
 
@@ -50,53 +51,59 @@ export const PaddingContainer = ({
     <div className="paddingContainer">
       <div className="sectionContent">
         <div className="flexControlGroup">
-          <div className="styleGroup">
-            <p className="groupLabel">Align items</p>
-            <div className="alignmentButtons">
-              {alignmentOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  className={`alignBtn ${alignItems === opt.value ? "active" : ""}`}
-                  onClick={() => handleAlignItemsChange(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="styleGroup">
-            <p className="groupLabel">Justify content</p>
-            <div className="alignmentButtons wrap">
-              {justifyOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  className={`alignBtn ${justifyContent === opt.value ? "active" : ""}`}
-                  onClick={() => handleJustifyContentChange(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="styleGroup">
-            <p className="groupLabel">Gap</p>
-            <div className="inputsGrid">
-              {gaps.map((g) => (
-                <div key={`gap-${g.key}`} className="inputWrapper">
-                  {/* <span className="sideLabel">{g.label}</span> */}
-                  <div className="numInputGroup">
-                    <input
-                      type="number"
-                      value={gap?.[g.key] ?? 0}
-                      onChange={(e) => handleGapChange(g.key, e.target.value)}
-                      className="numInput"
-                    />
-                    <span className="unit">px</span>
-                  </div>
+          {isFrame && (
+            <>
+              <div className="styleGroup">
+                <p className="groupLabel">Align items</p>
+                <div className="alignmentButtons">
+                  {alignmentOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={`alignBtn ${alignItems === opt.value ? "active" : ""}`}
+                      onClick={() => handleAlignItemsChange(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+              <div className="styleGroup">
+                <p className="groupLabel">Justify content</p>
+                <div className="alignmentButtons wrap">
+                  {justifyOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={`alignBtn ${justifyContent === opt.value ? "active" : ""}`}
+                      onClick={() => handleJustifyContentChange(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="styleGroup">
+                <p className="groupLabel">Gap</p>
+                <div className="inputsGrid">
+                  {gaps.map((g) => (
+                    <div key={`gap-${g.key}`} className="inputWrapper">
+                      {/* <span className="sideLabel">{g.label}</span> */}
+                      <div className="numInputGroup">
+                        <input
+                          type="number"
+                          value={gap?.[g.key] ?? ""}
+                          onChange={(e) =>
+                            handleGapChange(g.key, e.target.value)
+                          }
+                          className="numInput"
+                        />
+                        <span className="unit">px</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
           <div className="styleGroup">
             <p className="groupLabel">Text align</p>
             <div className="alignmentButtons">
@@ -122,7 +129,7 @@ export const PaddingContainer = ({
                 <div className="numInputGroup">
                   <input
                     type="number"
-                    value={padding[side.key] || 0}
+                    value={padding[side.key] ?? ""}
                     onChange={(e) =>
                       handlePaddingChange(side.key, e.target.value)
                     }

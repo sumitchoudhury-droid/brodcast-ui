@@ -37,9 +37,10 @@
 
   // Customize RTE toolbar
   .gjs-rte-toolbar {
-    background-color: #1e1e1e !important;
+    background-color: #f6f7f9 !important;
     border-radius: 4px !important;
     padding: 5px !important;
+    border: 1px solid #edf0f2 !important;
     display: flex !important;
     align-items: center !important;
     gap: 4px !important;
@@ -47,7 +48,7 @@
   }
 
   .gjs-rte-action {
-    color: #ffffff !important;
+    color: #404b5a !important;
     background: transparent !important;
     border: none !important;
     padding: 4px !important;
