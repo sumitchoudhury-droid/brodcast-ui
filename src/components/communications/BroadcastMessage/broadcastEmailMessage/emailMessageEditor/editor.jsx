@@ -375,7 +375,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="white" stroke="#D0D5DD"/><path d="M16 8L8 16M8 8L16 16" stroke="#667085" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     )}`;
 
-    const columnsHtml = files
+    const itemsHtml = files
       .map((file) => {
         const sizeInBytes = file.size;
         const sizeDisplay =
@@ -386,37 +386,44 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const icon = isDoc ? docIcon : pdfIcon;
         const downloadId = Math.floor(Math.random() * 90000) + 10000;
         const downloadUrl = URL.createObjectURL(file);
-        return `<mj-column width="100%" vertical-align="top" padding="0px">
-    <mj-text padding="0px 0px 10px 0px" width="100%">
-      <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:60%; box-sizing:border-box; margin-left: 0; margin-right: auto;">
-        <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
-          <img src="${icon}" width="40" height="40" style="display:block; flex-shrink:0;" />
-          <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
-            <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.name}</p>
-            <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeDisplay}</p>
+        const displayName =
+          file.name.length > 28
+            ? file.name.substring(0, 25) + "..."
+            : file.name;
+        return `<div class="attachment-item" style="flex:1; min-width:0; overflow:hidden;">
+          <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:100%; box-sizing:border-box; overflow:hidden;">
+            <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
+              <img src="${icon}" width="40" height="40" style="display:block; flex-shrink:0;" />
+              <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
+                <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; word-break:break-all; overflow:hidden;" title="${file.name}">${displayName}</p>
+                <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeDisplay}</p>
+              </div>
+              <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;" />
+            </div>
+            <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
+              <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; flex-shrink:0;">Download using Link:</p>
+              <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; cursor:pointer; display:block;">
+                https://manipal.care/dl${downloadId}
+              </a>
+            </div>
           </div>
-          <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;" />
-        </div>
-        <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
-          <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; white-space:nowrap; flex-shrink:0;">Download using Link:</p>
-          <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; cursor:pointer;">
-            https://manipal.care/dl${downloadId}
-          </a>
-        </div>
-      </div>
-    </mj-text>
-  </mj-column>`;
+        </div>`;
       })
       .join("");
 
-    const sectionHtml = `<mj-section full-width="full-width" padding="4px 20px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
-      ${columnsHtml}
+    const sectionHtml = `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
+      <mj-column width="100%" vertical-align="top" padding="0px">
+        <mj-text padding="0px" width="100%">
+          <div class="attachment-items-wrapper">
+            ${itemsHtml}
+          </div>
+        </mj-text>
+      </mj-column>
     </mj-section>`;
 
     const parent = targetComp.parent();
     const idx = parent.components().indexOf(targetComp);
 
-    // Clear selection before removing the component
     editor.select(null);
 
     isUnwrapping.current = true;
@@ -427,6 +434,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     } finally {
       isUnwrapping.current = false;
     }
+
     e.target.value = "";
   };
 
@@ -706,18 +714,27 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   word-break: break-word;
                   overflow-wrap: break-word;
                 }
-                .attachment-container {
-                  width: 60% !important;
-                  margin-left: 0;
-                  margin-right: auto;
-                }
                 @media only screen and (max-width: 480px) {
                   .attachment-container {
                     width: 100% !important;
                     max-width: 100% !important;
                   }
                 }
-                [data-gjs-type] { min-height: 20px; }
+                  .attachment-items-wrapper {
+                    padding:20px; 
+                    display:grid; 
+                    grid-template-columns: repeat(2, 1fr);
+                    gap:16px; 
+                    box-sizing:border-box; 
+                    width:100%; 
+                    overflow:hidden;
+                  }
+                @media only screen and (max-width: 480px) {
+                  .attachment-items-wrapper {
+                    grid-template-columns: repeat(1, 1fr) !important;
+                  }
+                }
+                // [data-gjs-type] { min-height: 20px; }
 
                 /* Remove focus border/outline on editable elements */
                 [data-gjs-type]:focus,
@@ -2005,30 +2022,53 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
         // ── Remove file icon click ────────────────────────────────────────
         if (e.target.classList.contains("remove-file-icon")) {
-          const allColumns = [];
-          const collectColumns = (comp) => {
-            if (comp.get("type") === "mj-column") allColumns.push(comp);
-            comp.components().each(collectColumns);
-          };
-          collectColumns(editor.getWrapper());
+          // Find the .attachment-item wrapper in the DOM
+          const attachmentItemEl = e.target.closest(".attachment-item");
+          if (!attachmentItemEl) return;
 
-          const targetColumn = allColumns.find((col) => {
+          // Find the matching GrapesJS component by DOM containment
+          const allComps = [];
+          const collectComps = (comp) => {
+            allComps.push(comp);
+            comp.components().each(collectComps);
+          };
+          collectComps(editor.getWrapper());
+
+          const itemComp = allComps.find((comp) => {
             try {
-              const view = col.getView?.();
-              return view?.el?.contains?.(e.target);
+              return comp.getView?.()?.el === attachmentItemEl;
             } catch {
               return false;
             }
           });
 
-          if (!targetColumn) return;
+          if (!itemComp) return;
 
-          const parentSection = targetColumn.parent();
-          targetColumn.remove();
+          // Walk up to find the attachment-filled mj-section
+          let mjSection = itemComp.parent();
+          while (
+            mjSection &&
+            mjSection.getAttributes?.()?.["data-type"] !== "attachment-filled"
+          ) {
+            mjSection = mjSection.parent();
+          }
 
-          if (parentSection && parentSection.components().length === 0) {
-            const grandParent = parentSection.parent();
-            parentSection.remove();
+          // Snapshot sibling count BEFORE removal — after removal the element is
+          // detached from the DOM so parentElement becomes null, causing the
+          // post-removal check to incorrectly report no items remaining.
+          const siblingCountBefore = attachmentItemEl.parentElement
+            ? attachmentItemEl.parentElement.querySelectorAll(
+                ".attachment-item"
+              ).length
+            : 0;
+
+          itemComp.remove();
+
+          const hasItems = siblingCountBefore > 1;
+
+          if (!hasItems && mjSection) {
+            const grandParent = mjSection.parent();
+            mjSection.remove();
 
             if (grandParent) {
               const hasAttachments = grandParent
@@ -2721,14 +2761,16 @@ function registerBlocks(editor) {
     label: "Attachment",
     category: "Content",
     content: `
-      <mj-section full-width="full-width" data-type="attachment-placeholder" border="2px dashed #1570EF" padding="0px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
+      <mj-section full-width="full-width" data-type="attachment-placeholder" border="1px dashed #1570EF" padding="0px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text align="center" padding="10px" margin="0px">
+          <mj-text align="center" padding="0px" margin="0px">
+            <div style="padding:20px;display:flex;justify-content:center;align-items:center;">
             <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
              <svg xmlns="http://www.w3.org/2000/svg" width="19" height="21" viewBox="0 0 19 21" fill="none">
   <path d="M12.112 4.9902L5.61201 11.4902C5.21418 11.888 4.99069 12.4276 4.99069 12.9902C4.99069 13.5528 5.21418 14.0924 5.61201 14.4902C6.00983 14.888 6.5494 15.1115 7.11201 15.1115C7.67462 15.1115 8.21418 14.888 8.61201 14.4902L15.112 7.9902C15.9077 7.19455 16.3546 6.11542 16.3546 4.9902C16.3546 3.86498 15.9077 2.78585 15.112 1.9902C14.3164 1.19455 13.2372 0.747559 12.112 0.747559C10.9868 0.747559 9.90766 1.19455 9.11201 1.9902L2.61201 8.4902C1.41853 9.68367 0.748047 11.3024 0.748047 12.9902C0.748047 14.678 1.41853 16.2967 2.61201 17.4902C3.80548 18.6837 5.42418 19.3542 7.11201 19.3542C8.79984 19.3542 10.4185 18.6837 11.612 17.4902L18.112 10.9902" stroke="#555F75" stroke-width="1.495" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
               <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter,sans-serif;">Upload Attachment</span>
+            </div>
             </div>
           </mj-text>
         </mj-column>

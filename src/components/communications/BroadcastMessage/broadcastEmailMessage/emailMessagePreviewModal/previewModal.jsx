@@ -63,8 +63,6 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
     }
     .attachment-container {
       width: 60% !important;
-      margin-left: 0;
-      margin-right: auto;
     }
     @media only screen and (max-width: 480px) {
       .attachment-container {
