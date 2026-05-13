@@ -281,6 +281,28 @@ function minifyHTML(html) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// normalizeHtmlForPreview
+// The canvas HTML produced by getCompiledHtmlFromCanvas already has any
+// div[data-type] elements moved out of their table wrappers (done at the source
+// in editor.jsx so the serialised HTML is valid). This function re-parses the
+// HTML through DOMParser as a sanity pass and removes any residual empty tables.
+// ─────────────────────────────────────────────────────────────────────────────
+function normalizeHtmlForPreview(rawHtml) {
+  if (!rawHtml) return rawHtml;
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, "text/html");
+    doc.querySelectorAll("table").forEach((table) => {
+      if (!table.querySelector("tr, tbody, thead, tfoot")) {
+        table.remove();
+      }
+    });
+    return doc.documentElement.outerHTML;
+  } catch {
+    return rawHtml;
+  }
+}
+
 // prepareHtmlForEmail
 // Strips GrapesJS canvas editor artifacts (style blocks, data-gjs-* attributes,
 // scripts) that are injected into the canvas iframe but are NOT part of the
@@ -313,8 +335,7 @@ function prepareHtmlForEmail(rawHtml) {
   // Remove GrapesJS component data attributes (data-gjs-*)
   html = html.replace(/\s+data-gjs-[a-zA-Z0-9-]+(?:="[^"]*"|='[^']*')?/g, "");
 
-  // Remove other editor-specific attributes
-  html = html.replace(/\s+data-type(?:="[^"]*"|='[^']*')?/g, "");
+  // Remove other editor-specific attributes (keep data-type — needed for column layout CSS)
   html = html.replace(/\s+data-is-empty(?:="[^"]*"|='[^']*')?/g, "");
   html = html.replace(/\s+data-column-count(?:="[^"]*"|='[^']*')?/g, "");
   html = html.replace(/\s+data-manual-width(?:="[^"]*"|='[^']*')?/g, "");
@@ -2092,7 +2113,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         alert("Could not compile MJML to HTML.");
         return;
       }
-      setPreviewHtml(prepareHtmlForEmail(html));
+      setPreviewHtml(prepareHtmlForEmail(normalizeHtmlForPreview(html)));
       setShowPreview(true);
     } catch (e) {
       console.error(e);
