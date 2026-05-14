@@ -11,7 +11,6 @@ export const ImageSection = ({
   width,
   widthUnit,
   handleWidthChange,
-  height,
   heightUnit,
   handleHeightChange
 }) => {
@@ -106,27 +105,7 @@ export const ImageSection = ({
           <div className="optionGroup">
             <p className="optionLabel">Height</p>
             <div className="dimensionInputWrapper">
-              {heightUnit !== "auto" && (
-                <input
-                  type="number"
-                  className="dimensionInput"
-                  value={height}
-                  onChange={(e) => handleHeightChange(e.target.value)}
-                />
-              )}
               <div className="segmentedControl">
-                <button
-                  className={`segment ${heightUnit === "%" ? "active" : ""}`}
-                  onClick={() => handleHeightChange(height, "%")}
-                >
-                  %
-                </button>
-                <button
-                  className={`segment ${heightUnit === "px" ? "active" : ""}`}
-                  onClick={() => handleHeightChange(height, "px")}
-                >
-                  px
-                </button>
                 <button
                   className={`segment ${heightUnit === "auto" ? "active" : ""}`}
                   onClick={() => handleHeightChange("", "auto")}
