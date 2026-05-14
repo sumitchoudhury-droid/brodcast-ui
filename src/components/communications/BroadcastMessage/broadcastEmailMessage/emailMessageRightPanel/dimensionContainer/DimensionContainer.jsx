@@ -91,18 +91,6 @@ export const DimensionContainer = ({
             )}
             <div className="segmentedControl">
               <button
-                className={`segment ${heightUnit === "%" ? "active" : ""}`}
-                onClick={() => handleHeightChange(height, "%")}
-              >
-                %
-              </button>
-              <button
-                className={`segment ${heightUnit === "px" ? "active" : ""}`}
-                onClick={() => handleHeightChange(height, "px")}
-              >
-                px
-              </button>
-              <button
                 className={`segment ${heightUnit === "auto" ? "active" : ""}`}
                 onClick={() => handleHeightChange("", "auto")}
               >
