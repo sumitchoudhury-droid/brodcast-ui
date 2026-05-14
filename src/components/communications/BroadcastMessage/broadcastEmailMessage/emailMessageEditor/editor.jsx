@@ -768,7 +768,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   border: 1px dashed #1570EF !important;
                   border-radius: 8px !important;
                   height: 116px !important;
-                  width: 100% !important;
+                  width: 100%;
                   display: flex !important;
                   flex-direction: column !important;
                   align-items: center !important;
@@ -911,7 +911,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 [data-type="column-frame-section"],
                 [data-type="column-frame-column"] {
                   position: relative;
-                  min-height: 80px;
                 }
 
                 [data-type="column-frame-section"][data-is-empty="true"],
@@ -979,6 +978,34 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   align-items: flex-start !important;
                 }
 
+                /* Hide drag indicator globally by default (e.g. for heading, paragraph, image, attachment) */
+                .gjs-placeholder,
+                .gjs-placeholder-int {
+                  display: none !important;
+                }
+
+                /* Show and style vertical drag indicator in column frames (between columns) */
+                [data-type="column-frame-section"] > table > tbody > tr > td > .gjs-placeholder,
+                [data-type="column-frame-section"] > table > tbody > tr > td > .gjs-placeholder-int {
+                  display: inline-block !important;
+                  width: 3px !important;
+                  height: 100px !important;
+                  min-height: 100% !important;
+                  margin: 0 5px !important;
+                  border-radius: 4px !important;
+                  position: relative !important;
+                  top: auto !important;
+                  left: auto !important;
+                  background-color: #f9a8d4 !important;
+                }
+
+                /* Show horizontal drag indicator in row frames */
+                [data-type="row-frame-column"] > .gjs-placeholder,
+                [data-type="row-frame-column"] > .gjs-placeholder-int {
+                  display: block !important;
+                  background-color: #f9a8d4 !important;
+                }
+
                 /* When a column-frame-section is nested inside another frame
                    (row or column), grapesjs-mjml renders an MJML outer wrapper
                    div/table with max-width:600px and margin:0 auto from the
@@ -989,15 +1016,15 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 [data-type="column-frame-section"] [data-type="column-frame-section"] > div,
                 [data-type="column-frame-section"] [data-type="column-frame-section"] > table {
                   max-width: 100% !important;
-                  width: 100% !important;
-                  margin-left: 0 !important;
-                  margin-right: 0 !important;
+                  margin-left: auto !important;
+                  margin-right: auto !important;
                 }
 
-                /* First section top border-radius */
-                [data-gjs-type="mj-section"]:first-child {
-                  border-top-left-radius: 10px !important;
-                  border-top-right-radius: 10px !important;
+
+                /* Ensure there is always space at the bottom of a frame to drop more items */
+                [data-type="row-frame-column"]:not([data-is-empty="true"]),
+                [data-type="column-frame-column"]:not([data-is-empty="true"]) {
+                  padding-bottom: 20px !important;
                 }
 
                 /* Enable pointer events for links in editor so we can detect clicks */
@@ -1105,26 +1132,57 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         });
       });
 
-      // ── Extend mj-text stylable to include 'width' ────────────────────────
+      // ── Extend MJML types stylable properties ────────────────────────────
       // grapesjs-mjml's renderStyle() only applies CSS to the component's DOM
-      // element for properties listed in the `stylable` array.  'width' is NOT
-      // in mj-text's default stylable list, so width changes had no visual
-      // effect.  Adding it here lets the canvas reflect per-item width when a
-      // mj-text sits inside a row-frame-column.
-      const mjTextType = editor.Components.getType("mj-text");
-      if (mjTextType) {
-        const existingStylable =
-          mjTextType.model.prototype.defaults.stylable || [];
-        if (!existingStylable.includes("width")) {
-          editor.Components.addType("mj-text", {
-            model: {
-              defaults: {
-                stylable: [...existingStylable, "width", "max-width"]
+      // element for properties listed in the `stylable` array. Adding width,
+      // height, and constraints here ensures the canvas reflects changes
+      // immediately when items are placed inside frames.
+      const extendStylable = (typeName, props) => {
+        const type = editor.Components.getType(typeName);
+        if (type) {
+          const existingStylable = type.model.prototype.defaults.stylable || [];
+          const toAdd = props.filter((p) => !existingStylable.includes(p));
+          if (toAdd.length > 0) {
+            editor.Components.addType(typeName, {
+              model: {
+                defaults: {
+                  stylable: [...existingStylable, ...toAdd]
+                }
               }
-            }
-          });
+            });
+          }
         }
-      }
+      };
+
+      extendStylable("mj-text", [
+        "width",
+        "max-width",
+        "height",
+        "min-height",
+        "max-height"
+      ]);
+      extendStylable("mj-button", [
+        "width",
+        "max-width",
+        "height",
+        "min-height",
+        "max-height"
+      ]);
+      extendStylable("mj-divider", [
+        "width",
+        "max-width",
+        "height",
+        "min-height",
+        "max-height"
+      ]);
+      extendStylable("mj-raw", [
+        "width",
+        "max-width",
+        "height",
+        "min-height",
+        "max-height"
+      ]);
+      extendStylable("mj-spacer", ["width", "max-width", "height"]);
 
       const patchInstance = (comp) => {
         const type = comp.get("type");
@@ -1149,7 +1207,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 (c) => c.getAttributes?.()?.["data-type"] === "row-frame-column"
               );
           if (isFrame) {
-            comp.addAttributes({ padding: "20px", margin: "0px" });
+            const isColumnFrame =
+              comp.getAttributes?.()?.["data-type"] === "column-frame-section";
+            comp.addAttributes({
+              padding: "20px",
+              margin: "0px",
+              "data-gjs-direction": isColumnFrame ? "v" : "h"
+            });
+            if (isColumnFrame) comp.set("direction", "v");
           } else {
             comp.addAttributes({
               padding: "0px",
@@ -2734,7 +2799,7 @@ function registerBlocks(editor) {
   bm.add("column", {
     label: "Frame - Column",
     category: "Blocks",
-    content: `<mj-section data-type="column-frame-section" data-is-empty="true" padding="0px" margin="0px" width="100%" background-color="transparent">
+    content: `<mj-section data-type="column-frame-section" data-gjs-direction="v" data-is-empty="true" padding="20px" margin="0px" width="100%" background-color="transparent">
     </mj-section>`
   });
 
@@ -2769,7 +2834,7 @@ function registerBlocks(editor) {
     content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
       <mj-column padding="0px" margin="0px" width="100%" >
         <mj-text padding="0px" margin="0px">
-          <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100% !important;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
+          <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100%;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M19 2V8" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

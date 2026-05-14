@@ -572,7 +572,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   const [width, setWidth] = useState("0");
   const [widthUnit, setWidthUnit] = useState("%");
   const [height, setHeight] = useState("0");
-  const [heightUnit, setHeightUnit] = useState("%");
+  const [heightUnit, setHeightUnit] = useState("auto");
 
   const [textColor, setTextColor] = useState("#000000");
   const [typography, setTypography] = useState({
@@ -889,14 +889,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           "0"
       });
 
-      const parseValueAndUnit = (val) => {
-        if (!val) return { value: "", unit: "%" };
+      const parseValueAndUnit = (val, defaultUnit = "%") => {
+        if (!val) return { value: "", unit: defaultUnit };
         if (val === "auto") return { value: "", unit: "auto" };
         const m = val.match(/^(\d+(?:\.\d+)?)(%|px)$/);
         if (m) return { value: m[1], unit: m[2] };
         return {
           value: val.replace(/[^\d.]/g, ""),
-          unit: val.replace(/[\d.]/g, "") || "%"
+          unit: val.replace(/[\d.]/g, "") || defaultUnit
         };
       };
 
@@ -904,7 +904,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         dimAttrs["width"] || dimStyle["width"] || ""
       );
       const { value: hVal, unit: hUnit } = parseValueAndUnit(
-        dimAttrs["height"] || dimStyle["height"] || ""
+        dimAttrs["height"] || dimStyle["height"] || "",
+        "auto"
       );
 
       if (wVal) {
@@ -918,17 +919,13 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setHeight(hVal);
         setHeightUnit(hUnit);
       } else {
-        setHeight("0");
-        setHeightUnit("%");
+        setHeight("");
+        setHeightUnit("auto");
       }
 
       // ─── Sync Parent Column Dimensions (for layout rebalancing) ───
       let parentCol = null;
-      if (
-        ["mj-text", "mj-divider", "mj-raw", "mj-image", "mj-button"].includes(
-          selected.get("type")
-        )
-      ) {
+      if (["mj-text", "mj-divider", "mj-raw"].includes(selected.get("type"))) {
         const p = selected.parent();
         if (p && p.get("type") === "mj-column") {
           const isInsideRowFrame =
@@ -1105,6 +1102,15 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       target.set(dim, fullValue);
       target.addAttributes({ [dim]: fullValue });
       target.addStyle({ [dim]: fullValue });
+
+      // For text-based components, sync max-width with width to ensure
+      // the canvas respects the constraint correctly.
+      if (
+        dim === "width" &&
+        ["mj-text", "mj-divider", "mj-raw"].includes(target.get("type"))
+      ) {
+        target.addStyle({ "max-width": fullValue });
+      }
     }
     editorRef.current?.getEditor()?.trigger("component:update", target);
 
@@ -2235,9 +2241,17 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
                 selectedComp.is("mj-section") ||
                 selectedComp.is("mj-hero") ||
                 colTarget ||
-                ["mj-text", "mj-button", "mj-divider", "mj-image"].includes(
-                  selectedComp.get("type")
-                )) && (
+                [
+                  "mj-text",
+                  "mj-button",
+                  "mj-divider",
+                  "mj-image",
+                  "mj-raw",
+                  "mj-spacer",
+                  "mj-social",
+                  "mj-table",
+                  "mj-accordion"
+                ].includes(selectedComp.get("type"))) && (
                 <DimensionContainer
                   title={colTarget ? "Layout (Column)" : "Dimensions"}
                   width={colTarget ? colWidth : width}
