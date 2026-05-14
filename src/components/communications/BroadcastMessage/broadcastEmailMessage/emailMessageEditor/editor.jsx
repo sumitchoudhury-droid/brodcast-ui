@@ -2366,6 +2366,64 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     });
 
     // ── Get compiled HTML from the live canvas iframe ─────────────────────────
+    // fixCanvasDomForExport – called on a CLONE of the canvas document.
+    // GrapesJS places column-frame-section <div>s as direct children of
+    // <table> elements via programmatic DOM insertion (bypassing the HTML5
+    // parser rules). Serialising with outerHTML produces invalid HTML: a
+    // <div> inside <table> triggers "foster parenting" when re-parsed,
+    // completely mangling the layout and order.
+    //
+    // Fix: for every table that has div[data-type] as direct children, split
+    // the table's children into ordered fragments at each such div boundary,
+    // preserving visual order (e.g. a heading row that precedes a column frame
+    // must still appear before it after the transform).
+    const fixCanvasDomForExport = (root) => {
+      // Snapshot all tables before we start mutating the DOM.
+      const tables = Array.from(root.querySelectorAll("table"));
+      tables.forEach((table) => {
+        const parent = table.parentNode;
+        if (!parent) return; // already detached by an earlier iteration
+
+        const children = Array.from(table.children);
+        const hasDataTypeDivs = children.some(
+          (child) => child.tagName === "DIV" && child.hasAttribute("data-type")
+        );
+        if (!hasDataTypeDivs) return;
+
+        // Walk children in order, grouping consecutive non-div elements into
+        // sub-tables and letting div[data-type] elements become plain siblings.
+        const fragments = [];
+        let pendingTableChildren = [];
+        children.forEach((child) => {
+          if (child.tagName === "DIV" && child.hasAttribute("data-type")) {
+            if (pendingTableChildren.length > 0) {
+              fragments.push({ type: "table", children: pendingTableChildren });
+              pendingTableChildren = [];
+            }
+            fragments.push({ type: "div", el: child });
+          } else {
+            pendingTableChildren.push(child);
+          }
+        });
+        if (pendingTableChildren.length > 0) {
+          fragments.push({ type: "table", children: pendingTableChildren });
+        }
+
+        // Insert fragments before the original table, in order.
+        fragments.forEach((fragment) => {
+          if (fragment.type === "div") {
+            parent.insertBefore(fragment.el, table);
+          } else {
+            const newTable = table.cloneNode(false); // copy attrs, no children
+            fragment.children.forEach((child) => newTable.appendChild(child));
+            parent.insertBefore(newTable, table);
+          }
+        });
+
+        table.remove(); // original is now empty
+      });
+    };
+
     const getCompiledHtmlFromCanvas = () => {
       try {
         const frames = editor.Canvas.getFrames();
@@ -2375,7 +2433,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
             const iframeDoc =
               frameView.el.contentDocument ||
               frameView.el.contentWindow?.document;
-            if (iframeDoc) return iframeDoc.documentElement.outerHTML;
+            if (iframeDoc) {
+              const clone = iframeDoc.documentElement.cloneNode(true);
+              fixCanvasDomForExport(clone);
+              return clone.outerHTML;
+            }
           }
         }
       } catch (e) {
@@ -2386,7 +2448,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         if (frameEl) {
           const iframeDoc =
             frameEl.contentDocument || frameEl.contentWindow?.document;
-          if (iframeDoc) return iframeDoc.documentElement.outerHTML;
+          if (iframeDoc) {
+            const clone = iframeDoc.documentElement.cloneNode(true);
+            fixCanvasDomForExport(clone);
+            return clone.outerHTML;
+          }
         }
       } catch (e) {
         console.warn("getFrameEl fallback error:", e);
