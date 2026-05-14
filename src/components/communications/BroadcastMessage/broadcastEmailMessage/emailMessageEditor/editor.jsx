@@ -2358,7 +2358,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     editor.on("component:selected", (cmp) => {
       if (cmp && cmp.is("mj-image")) {
         const src = cmp.getAttributes().src;
-        if (!src || src.includes("data:image/svg")) {
+        if (!src) {
           imageInputRef.current?.click();
         }
       }
