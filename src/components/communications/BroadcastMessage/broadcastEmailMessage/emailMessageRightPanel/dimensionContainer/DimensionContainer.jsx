@@ -5,7 +5,6 @@ export const DimensionContainer = ({
   width,
   widthUnit,
   handleWidthChange,
-  height,
   heightUnit,
   handleHeightChange
 }) => {
@@ -81,14 +80,6 @@ export const DimensionContainer = ({
         <div className="optionGroup">
           <p className="optionLabel">Height</p>
           <div className="dimensionInputWrapper">
-            {heightUnit !== "auto" && (
-              <input
-                type="number"
-                className="dimensionInput"
-                value={height}
-                onChange={(e) => handleHeightChange(e.target.value)}
-              />
-            )}
             <div className="segmentedControl">
               <button
                 className={`segment ${heightUnit === "auto" ? "active" : ""}`}

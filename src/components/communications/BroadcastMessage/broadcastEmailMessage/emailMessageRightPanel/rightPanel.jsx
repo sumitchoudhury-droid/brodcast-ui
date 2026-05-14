@@ -936,7 +936,27 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setWidth("0");
         setWidthUnit("%");
       }
-      if (hVal || hUnit === "auto") {
+
+      // Force height to auto for components that only support Auto height in the UI
+      // (mj-image, mj-column, mj-section, mj-hero, etc.)
+      const needsAutoHeight =
+        selected.is("mj-image") ||
+        selected.is("mj-column") ||
+        selected.is("mj-section") ||
+        selected.is("mj-hero");
+
+      if (needsAutoHeight && hUnit !== "auto") {
+        setHeight("");
+        setHeightUnit("auto");
+        // Update both the selected component and the dimTarget (which might be the parent column)
+        selected.addAttributes({ height: "auto" });
+        selected.addStyle({ height: "auto" });
+        if (dimTarget && dimTarget !== selected) {
+          dimTarget.addAttributes({ height: "auto" });
+          dimTarget.addStyle({ height: "auto" });
+        }
+        editor.trigger("component:update", selected);
+      } else if (hVal || hUnit === "auto") {
         setHeight(hVal);
         setHeightUnit(hUnit);
       } else {
@@ -946,12 +966,18 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
       // ─── Sync Parent Column Dimensions (for layout rebalancing) ───
       let parentCol = null;
-      if (["mj-text", "mj-divider", "mj-raw"].includes(selected.get("type"))) {
+      if (
+        ["mj-text", "mj-divider", "mj-raw", "mj-image"].includes(
+          selected.get("type")
+        )
+      ) {
         const p = selected.parent();
         if (p && p.get("type") === "mj-column") {
           const isInsideRowFrame =
             p.getAttributes?.()?.["data-type"] === "row-frame-column";
-          if (!isInsideRowFrame) parentCol = p;
+          if (!isInsideRowFrame || selected.get("type") === "mj-image") {
+            parentCol = p;
+          }
         }
       }
       setColTarget(parentCol);
@@ -1205,10 +1231,19 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   const handleHeightChange = (val, unit = heightUnit) => {
+    const selected = editorRef.current?.getEditor()?.getSelected();
+    const needsAuto =
+      selected &&
+      (selected.is("mj-image") ||
+        selected.is("mj-column") ||
+        selected.is("mj-section") ||
+        selected.is("mj-hero"));
+
     let full;
-    if (unit === "auto") {
+    if (unit === "auto" || needsAuto) {
       full = "auto";
       setHeight("");
+      setHeightUnit("auto");
     } else {
       full = val ? `${val}${unit}` : unit;
       setHeight(val);
