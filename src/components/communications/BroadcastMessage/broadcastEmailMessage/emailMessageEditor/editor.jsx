@@ -856,7 +856,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 /* Row Frame Placeholder Styles */
                 [data-type="row-frame-column"] {
                   position: relative;
-                  min-height: 80px;
                 }
 
                 [data-type="row-frame-column"][data-is-empty="true"] {
@@ -911,7 +910,6 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                 [data-type="column-frame-section"],
                 [data-type="column-frame-column"] {
                   position: relative;
-                  min-height: 80px;
                 }
 
                 [data-type="column-frame-section"][data-is-empty="true"],
