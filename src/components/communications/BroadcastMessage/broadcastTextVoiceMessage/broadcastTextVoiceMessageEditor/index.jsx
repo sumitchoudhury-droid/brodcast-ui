@@ -62,7 +62,7 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
                 "data-placeholder":
                   "Start typing or drag and drop a placeholder from left panel.",
                 style:
-                  "padding: 20px 20px 10px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; outline: none; color: #404B5A; flex-grow: 1; min-height: 150px;"
+                  "padding: 20px 20px 10px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; outline: none; color: #404B5A; height: fit-content;"
               },
               editable: true,
               draggable: false,
@@ -152,21 +152,33 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
           );
           if (isPlaceholder) {
             e.preventDefault();
-            // Show the caret at the current mouse position
-            let range;
-            if (doc.caretRangeFromPoint) {
-              range = doc.caretRangeFromPoint(e.clientX, e.clientY);
-            } else if (doc.caretPositionFromPoint) {
-              const pos = doc.caretPositionFromPoint(e.clientX, e.clientY);
-              range = doc.createRange();
-              range.setStart(pos.offsetNode, pos.offset);
-              range.collapse(true);
-            }
+            const targetEl = doc.elementFromPoint(e.clientX, e.clientY);
+            const isInsideContent =
+              el && (el === targetEl || el.contains(targetEl));
 
-            if (range) {
+            if (isInsideContent) {
+              e.dataTransfer.dropEffect = "copy";
+              // Show the caret at the current mouse position
+              let range;
+              if (doc.caretRangeFromPoint) {
+                range = doc.caretRangeFromPoint(e.clientX, e.clientY);
+              } else if (doc.caretPositionFromPoint) {
+                const pos = doc.caretPositionFromPoint(e.clientX, e.clientY);
+                range = doc.createRange();
+                range.setStart(pos.offsetNode, pos.offset);
+                range.collapse(true);
+              }
+
+              if (range) {
+                const sel = doc.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+            } else {
+              e.dataTransfer.dropEffect = "none";
+              // Hide the caret if outside
               const sel = doc.getSelection();
               sel.removeAllRanges();
-              sel.addRange(range);
             }
           }
         });
@@ -177,36 +189,45 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
           );
           if (isPlaceholder) {
             e.preventDefault();
-            const text = e.dataTransfer.getData("text/plain");
+            const targetEl = doc.elementFromPoint(e.clientX, e.clientY);
+            const isInsideContent =
+              el && (el === targetEl || el.contains(targetEl));
 
-            // Ensure the editor is focused and the RTE is enabled on the content section
-            if (wrapper) {
-              editor.select(wrapper);
-              editor.runCommand("rte:enable", { target: wrapper });
+            if (isInsideContent) {
+              const text = e.dataTransfer.getData("text/plain");
 
-              // Small delay to ensure RTE is ready and won't override our manual selection
-              setTimeout(() => {
-                // Find the drop position again inside the timeout to be safe
-                let range;
-                if (doc.caretRangeFromPoint) {
-                  range = doc.caretRangeFromPoint(e.clientX, e.clientY);
-                } else if (doc.caretPositionFromPoint) {
-                  const pos = doc.caretPositionFromPoint(e.clientX, e.clientY);
-                  range = doc.createRange();
-                  range.setStart(pos.offsetNode, pos.offset);
-                  range.collapse(true);
-                }
+              // Ensure the editor is focused and the RTE is enabled on the content section
+              if (wrapper) {
+                editor.select(wrapper);
+                editor.runCommand("rte:enable", { target: wrapper });
 
-                if (range) {
-                  const sel = doc.getSelection();
-                  sel.removeAllRanges();
-                  sel.addRange(range);
-                }
+                // Small delay to ensure RTE is ready and won't override our manual selection
+                setTimeout(() => {
+                  // Find the drop position again inside the timeout to be safe
+                  let range;
+                  if (doc.caretRangeFromPoint) {
+                    range = doc.caretRangeFromPoint(e.clientX, e.clientY);
+                  } else if (doc.caretPositionFromPoint) {
+                    const pos = doc.caretPositionFromPoint(
+                      e.clientX,
+                      e.clientY
+                    );
+                    range = doc.createRange();
+                    range.setStart(pos.offsetNode, pos.offset);
+                    range.collapse(true);
+                  }
 
-                // Now insert the text at the correctly placed cursor
-                doc.execCommand("insertText", false, text);
-                updateContent();
-              }, 20);
+                  if (range) {
+                    const sel = doc.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                  }
+
+                  // Now insert the text at the correctly placed cursor
+                  doc.execCommand("insertText", false, text);
+                  updateContent();
+                }, 20);
+              }
             }
           }
         });
