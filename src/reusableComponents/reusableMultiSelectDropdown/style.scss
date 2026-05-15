@@ -1,0 +1,194 @@
+@use "../../style/variable.scss" as variable;
+
+.multidropdown {
+  @include variable.d-flex($fd: column, $al: flex-start, $jc: center, $g: 8px);
+  width: 100%;
+  position: relative;
+
+  .multidropdownLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+
+    .required {
+      color: variable.$color-red-0;
+      margin-left: 2px;
+    }
+  }
+
+  .multidropdownSelectContainer {
+    position: relative;
+    width: 100%;
+    border: 1px solid variable.$color-green-0;
+    border-radius: 6px;
+    background-color: variable.$color-white-0;
+    transition: all 0.2s ease;
+
+    .multidropdownSelectContainerValue {
+      @include variable.d-flex(
+        $fd: row,
+        $al: center,
+        $jc: space-between,
+        $g: 8px
+      );
+      padding: 8px 16px;
+      cursor: pointer;
+      user-select: none;
+
+      .multidropdownSelectContainerValueImage {
+        @include variable.d-flex(
+          $fd: row,
+          $al: center,
+          $jc: flex-start,
+          $g: 6px
+        );
+        width: 90%;
+
+        .multidropdownSelectContainerValueImageWrapper {
+          width: 20px;
+          height: 20px;
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+          }
+        }
+
+        .multidropdownSelectContainerValueText {
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-green-0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          width: 90%;
+        }
+      }
+
+      .multidropdownSelectContainerValueArrow {
+        width: 20px;
+        height: 20px;
+        transition: transform 0.3s ease;
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    .multidropdownSelectContainerOptionsContainer {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      @include variable.d-flex($fd: column, $al: center);
+      gap: 12px;
+      background-color: variable.$color-white-0;
+      padding-top: 16px;
+      border: 1px solid variable.$color-white-5;
+      border-radius: 8px;
+      box-shadow: variable.$shadow-4;
+      z-index: 1000;
+      max-height: 320px;
+      overflow-y: auto;
+      animation: dropdownFadeIn 0.2s ease;
+
+      // Custom scrollbar
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+
+        &:hover {
+          background: #a8a8a8;
+        }
+      }
+
+      .checkboxMulti {
+        @include variable.d-flex($al: center, $jc: space-between);
+        padding: 0 16px 14px 16px;
+        width: 100%;
+      }
+
+      .btnWrapper {
+        border-top: 1px solid #eaedf2;
+        width: 100%;
+        padding: 16px 24px;
+        @include variable.d-flex($jc: flex-end, $g: 12px);
+      }
+    }
+
+    .multidropdownSelectionOptions {
+      @include variable.d-flex($fd: column);
+      width: 100%;
+      padding: 0 8px;
+
+      .multidropdownSelectContainerOptions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-radius: 8px;
+        width: 100%;
+
+        &:hover {
+          background-color: variable.$color-white-5;
+        }
+
+        .multidropdownSelectContainerOptionsImage {
+          width: 20px;
+          height: 20px;
+          object-fit: cover;
+          border-radius: 50%;
+        }
+
+        .multidropdownSelectContainerOptionsText {
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-black-8;
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+  }
+
+  // Disabled state
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+
+    .multidropdownSelectContainer {
+      background-color: #f5f5f5;
+
+      .multidropdownSelectContainerValue {
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Animation for dropdown
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

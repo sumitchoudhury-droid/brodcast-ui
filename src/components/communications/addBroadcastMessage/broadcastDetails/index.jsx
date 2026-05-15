@@ -28,16 +28,12 @@ export const BroadcastDetails = ({
 
   const priorityOptions = [
     {
+      value: "standard",
+      label: "Standard"
+    },
+    {
       value: "high",
-      label: "High"
-    },
-    {
-      value: "medium",
-      label: "Medium"
-    },
-    {
-      value: "low",
-      label: "Low"
+      label: "High Priority"
     }
   ];
 
@@ -95,7 +91,6 @@ export const BroadcastDetails = ({
               categoryOptions.find((o) => o.value === category)?.label || ""
             }
             onChange={(val) => setCategory(val)}
-            required={true}
           />
         </div>
 

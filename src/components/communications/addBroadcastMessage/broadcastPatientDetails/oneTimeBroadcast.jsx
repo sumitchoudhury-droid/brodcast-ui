@@ -5,11 +5,13 @@ function OneTimeBroadcast({
   startDateTime,
   setStartDateTime,
   endDateTime,
-  setEndDateTime
+  setEndDateTime,
+  onSearch
 }) {
   const handleSearch = () => {
-    // Add your search logic here
-    console.log("Searching with dates:", { startDateTime, endDateTime });
+    if (startDateTime && endDateTime) {
+      onSearch();
+    }
   };
 
   return (

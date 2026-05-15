@@ -21,6 +21,7 @@
   .broadcastTemplateDetailsContent {
     padding: 20px 24px;
     @include variable.d-flex($fd: column, $g: 16px);
+    width: 100%;
 
     .templateTypeLabel {
       p {
@@ -30,44 +31,73 @@
       }
     }
 
-    .templateOptions {
-      @include variable.d-flex($al: stretch, $g: 30px);
+    .row {
+      @include variable.d-flex($fd: column, $g: 24px);
+      .templateOptions {
+        @include variable.d-flex($al: stretch, $g: 30px);
 
-      .templateOption {
-        @include variable.d-flex(
-          $al: center,
-          $g: 12px,
-          $fd: column,
-          $jc: center
-        );
-        padding: 32px 52px;
-        border: 1px solid variable.$color-white-10;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
+        .templateOption {
+          @include variable.d-flex(
+            $al: center,
+            $g: 12px,
+            $fd: column,
+            $jc: center
+          );
+          padding: 32px 52px;
+          border: 1px solid variable.$color-white-10;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
 
-        .templateOptionIcon {
-          .blackTemplateIcon {
-            width: 40px;
-            height: 40px;
+          .templateOptionIcon {
+            .blackTemplateIcon {
+              width: 40px;
+              height: 40px;
+            }
+
+            .existingTemplateIcon {
+              width: 126px;
+              height: 76px;
+            }
           }
 
-          .existingTemplateIcon {
-            width: 126px;
-            height: 76px;
+          p {
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+            color: variable.$color-black-9;
+            margin: 0;
+          }
+
+          &.active {
+            border-color: variable.$primary-color;
+            background: variable.$color-white-11;
+            box-shadow: 0px 0px 0px 4px rgba(16, 122, 108, 0.1);
           }
         }
+      }
+    }
+
+    .radioRow {
+      @include variable.d-flex($al: stretch, $g: 30px);
+      width: 100%;
+      max-width: 850px;
+
+      .radioOptions {
+        @include variable.d-flex($fd: column, $g: 12px);
+        width: 100%;
+        max-width: 420px;
 
         p {
-          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
-          color: variable.$color-black-9;
-          margin: 0;
+          color: #181d25;
+          @include variable.font-style(14px, 500, 20px);
+
+          span {
+            color: #de2c41;
+            @include variable.font-style(12px, 500, 18px);
+          }
         }
 
-        &.active {
-          border-color: variable.$primary-color;
-          background: variable.$color-white-11;
-          box-shadow: 0px 0px 0px 4px rgba(16, 122, 108, 0.1);
+        .radioGrp {
+          @include variable.d-flex($g: 24px);
         }
       }
     }

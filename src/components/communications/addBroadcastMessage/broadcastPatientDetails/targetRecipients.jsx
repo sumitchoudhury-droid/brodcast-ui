@@ -33,8 +33,14 @@ function TargetRecipients({
   providerOptions,
   ageOptions,
   genderOptions,
-  modalityOptions
+  modalityOptions,
+  onSearch
 }) {
+  const handleSearch = () => {
+    if (startDateTime && endDateTime) {
+      onSearch();
+    }
+  };
   return (
     <>
       <div className="formRow">
@@ -151,7 +157,11 @@ function TargetRecipients({
       </div>
 
       <div className="searchButtonContainer">
-        <ReusableButton label="Search" variant="primary" />
+        <ReusableButton
+          label="Search"
+          variant="primary"
+          onClick={handleSearch}
+        />
       </div>
     </>
   );

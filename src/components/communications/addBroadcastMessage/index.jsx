@@ -13,6 +13,52 @@ export const AddBroadcastMessage = ({
 }) => {
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("");
+
+  // Schedule state (lifted from BroadCastSchedule)
+  const [sendType, setSendType] = useState("immediately");
+  const [scheduleStartDateTime, setScheduleStartDateTime] = useState(null);
+  const [scheduleEndDateTime, setScheduleEndDateTime] = useState(null);
+  const [frequency, setFrequency] = useState("Daily");
+  const [repeatType, setRepeatType] = useState("Week");
+  const [repeatOn, setRepeatOn] = useState([]);
+
+  // Patient state (lifted from BroadcastPatientDetails)
+  const [patientType, setPatientType] = useState("targetRecipients");
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [broadcastStartDate, setBroadcastStartDate] = useState(null);
+  const [broadcastEndDate, setBroadcastEndDate] = useState(null);
+  const [patientStartDateTime, setPatientStartDateTime] = useState(null);
+  const [patientEndDateTime, setPatientEndDateTime] = useState(null);
+
+  // Template state (lifted from BroadcastTemplateDetails)
+  const [selectedTemplateType, setSelectedTemplateType] =
+    useState("newTemplate");
+  const [existingTemplateValues, setExistingTemplateValues] = useState([]);
+
+  const showRadioRow =
+    !selectedModes.includes("Email") &&
+    (selectedModes.includes("Text") || selectedModes.includes("Voice"));
+
+  const isFormValid =
+    selectedModes.length > 0 &&
+    !!priority &&
+    (sendType === "immediately" || !!scheduleStartDateTime) &&
+    (sendType !== "recurring" || !!scheduleEndDateTime) &&
+    !(
+      sendType === "recurring" &&
+      frequency === "Custom" &&
+      repeatType === "Week" &&
+      repeatOn.length === 0
+    ) &&
+    (patientType !== "uploadFile" || !!uploadedFile) &&
+    (patientType !== "oneTimeBroadcast" ||
+      (!!broadcastStartDate && !!broadcastEndDate)) &&
+    (patientType !== "targetRecipients" ||
+      (!!patientStartDateTime && !!patientEndDateTime)) &&
+    (!showRadioRow ||
+      selectedTemplateType !== "existingTemplate" ||
+      existingTemplateValues.length > 0);
+
   return (
     <div className="addBroadcastMessage">
       <h1>Add Broadcast Message</h1>
@@ -25,13 +71,49 @@ export const AddBroadcastMessage = ({
           priority={priority}
           setPriority={setPriority}
         />
-        <BroadcastPatientDetails />
-        <BroadCastSchedule />
-        <BroadcastTemplateDetails />
+        <BroadcastPatientDetails
+          patientType={patientType}
+          setPatientType={setPatientType}
+          onFileChange={setUploadedFile}
+          broadcastStartDate={broadcastStartDate}
+          setBroadcastStartDate={setBroadcastStartDate}
+          broadcastEndDate={broadcastEndDate}
+          setBroadcastEndDate={setBroadcastEndDate}
+          startDateTime={patientStartDateTime}
+          setStartDateTime={setPatientStartDateTime}
+          endDateTime={patientEndDateTime}
+          setEndDateTime={setPatientEndDateTime}
+        />
+        <BroadCastSchedule
+          sendType={sendType}
+          setSendType={setSendType}
+          startDateTime={scheduleStartDateTime}
+          setStartDateTime={setScheduleStartDateTime}
+          endDateTime={scheduleEndDateTime}
+          setEndDateTime={setScheduleEndDateTime}
+          frequency={frequency}
+          setFrequency={setFrequency}
+          repeatType={repeatType}
+          setRepeatType={setRepeatType}
+          repeatOn={repeatOn}
+          setRepeatOn={setRepeatOn}
+        />
+        <BroadcastTemplateDetails
+          selectedModes={selectedModes}
+          selectedTemplateType={selectedTemplateType}
+          setSelectedTemplateType={setSelectedTemplateType}
+          existingTemplateValues={existingTemplateValues}
+          setExistingTemplateValues={setExistingTemplateValues}
+        />
       </div>
       <div className="addBroadcastMessageFooter">
         <ReusableButton label="Cancel" variant="primary" />
-        <ReusableButton label="Next" variant="secondary" onClick={onNext} />
+        <ReusableButton
+          label="Next"
+          variant="secondary"
+          onClick={onNext}
+          disabled={!isFormValid}
+        />
       </div>
     </div>
   );
