@@ -5,14 +5,21 @@ import ScheduleOptions from "./scheduleOptions";
 
 import "./style.scss";
 
-export const BroadCastSchedule = () => {
-  const [sendType, setSendType] = useState("immediately");
-  const [startDateTime, setStartDateTime] = useState(null);
-  const [endDateTime, setEndDateTime] = useState(null);
-  const [frequency, setFrequency] = useState("Daily");
+export const BroadCastSchedule = ({
+  sendType,
+  setSendType,
+  startDateTime,
+  setStartDateTime,
+  endDateTime,
+  setEndDateTime,
+  frequency,
+  setFrequency,
+  repeatType,
+  setRepeatType,
+  repeatOn,
+  setRepeatOn
+}) => {
   const [repeatEvery, setRepeatEvery] = useState("1");
-  const [repeatType, setRepeatType] = useState("Week");
-  const [repeatOn, setRepeatOn] = useState([]);
   const [repeatDay, setRepeatDay] = useState("1st day");
 
   const scheduleProps = {

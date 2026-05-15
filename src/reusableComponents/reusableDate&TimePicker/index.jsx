@@ -99,8 +99,11 @@ export const ReusableDateTime = ({
         if (listRef.current) {
           const selectedBtn = listRef.current.querySelector(".selectedTime");
           if (selectedBtn) {
+            const listRect = listRef.current.getBoundingClientRect();
+            const btnRect = selectedBtn.getBoundingClientRect();
             listRef.current.scrollTop =
-              selectedBtn.offsetTop -
+              listRef.current.scrollTop +
+              (btnRect.top - listRect.top) -
               listRef.current.clientHeight / 2 +
               selectedBtn.clientHeight / 2;
           }

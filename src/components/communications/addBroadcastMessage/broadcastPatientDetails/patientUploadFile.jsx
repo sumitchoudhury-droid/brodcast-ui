@@ -2,7 +2,7 @@ import "./style.scss";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import { ReusableUpload } from "../../../../reusableComponents/reusableUpload/index";
 
-function PatientUploadFile() {
+function PatientUploadFile({ onFileChange }) {
   const uploadFileData = [
     "Download the template provided and populate the patient list",
     "Only include the active patient that has been to the practice in past 12 months",
@@ -13,10 +13,8 @@ function PatientUploadFile() {
     "To upload the new file, please remove the current active file first and then upload the new one."
   ];
 
-  // Handle file upload
   const handleFileUpload = (file) => {
-    console.log("File uploaded:", file);
-    // Add your file processing logic here
+    onFileChange?.(file);
   };
 
   return (

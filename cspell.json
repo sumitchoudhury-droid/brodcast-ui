@@ -44,7 +44,8 @@
     "nums",
     "siri",
     "zira",
-    "Serialising"
+    "Serialising",
+    "multidropdown"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

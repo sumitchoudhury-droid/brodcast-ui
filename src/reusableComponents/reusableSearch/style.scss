@@ -1,0 +1,28 @@
+@use "/src/style/variable.scss" as variable;
+
+.searchContainers {
+  @include variable.d-flex($al: center);
+  padding: 8px 10px 8px 12px;
+  gap: 8px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1.5px solid #e1e5ea;
+  background: #fff;
+
+  .searchIcon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .searchInput {
+    color: #181d25;
+    @include variable.font-style(14px, 500, 20px);
+    border: none;
+    outline: none;
+    width: 100%;
+
+    &::placeholder {
+      color: #929fb1;
+    }
+  }
+}

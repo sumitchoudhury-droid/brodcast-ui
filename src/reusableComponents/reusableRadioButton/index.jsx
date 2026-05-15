@@ -10,7 +10,9 @@ export const ReusableRadioButton = ({
   className = ""
 }) => {
   return (
-    <label className={`reusableRadio ${className}`}>
+    <label
+      className={`reusableRadio ${checked ? "is-checked" : ""} ${className}`}
+    >
       <input
         type="radio"
         name={name}
