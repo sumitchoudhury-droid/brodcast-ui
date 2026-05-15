@@ -51,7 +51,7 @@ function rgbToHsv(r, g, b) {
   return { h: h * 360, s: s * 100, v: v * 100 };
 }
 
-export const ColorPicker = ({ color, onChange, defaultColors = [] }) => {
+export function ColorPicker({ color, onChange, defaultColors = [] }) {
   const initHsv = () => {
     const rgb = hexToRgb(color);
     return rgbToHsv(rgb.r, rgb.g, rgb.b);
@@ -215,4 +215,4 @@ export const ColorPicker = ({ color, onChange, defaultColors = [] }) => {
       )}
     </div>
   );
-};
+}

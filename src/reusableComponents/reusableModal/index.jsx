@@ -53,3 +53,5 @@ export const ReusableModal = ({
     document.body
   );
 };
+
+export default ReusableModal;

@@ -4,7 +4,7 @@ import greenCrossIcon from "../../assets/commonIcons/greenCrossIcon.svg";
 import fileIcon from "../../assets/commonIcons/fileIcon.svg";
 import "./style.scss";
 
-export const ReusableUpload = ({ onChange, accept }) => {
+export function ReusableUpload({ onChange, accept }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
 
@@ -103,4 +103,4 @@ export const ReusableUpload = ({ onChange, accept }) => {
       )}
     </div>
   );
-};
+}

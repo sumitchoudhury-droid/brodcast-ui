@@ -1,6 +1,6 @@
 import "./style.scss";
 
-export const ReusableRadioButton = ({
+export function ReusableRadioButton({
   label,
   value,
   name,
@@ -8,7 +8,7 @@ export const ReusableRadioButton = ({
   onChange,
   disabled = false,
   className = ""
-}) => {
+}) {
   return (
     <label
       className={`reusableRadio ${checked ? "is-checked" : ""} ${className}`}
@@ -25,4 +25,6 @@ export const ReusableRadioButton = ({
       <span className="radioLabel">{label}</span>
     </label>
   );
-};
+}
+
+export default ReusableRadioButton;

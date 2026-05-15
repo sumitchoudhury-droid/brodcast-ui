@@ -1,6 +1,6 @@
 import "./style.scss";
 
-export const ReusableInput = ({
+export function ReusableInput({
   label,
   type = "text",
   name,
@@ -15,7 +15,7 @@ export const ReusableInput = ({
   rightIcon,
   className = "",
   Containerstyle = ""
-}) => {
+}) {
   return (
     <div className={`inputWrapper ${className}`}>
       {label && (
@@ -46,4 +46,6 @@ export const ReusableInput = ({
       {error && <p className="errorText">{error}</p>}
     </div>
   );
-};
+}
+
+export default ReusableInput;

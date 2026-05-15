@@ -52,7 +52,7 @@ const PLACEHOLDERS = [
   { label: "LinkedIn", value: "$LINKEDIN", link: "https://www.linkedin.com" }
 ];
 
-function ReusableLinkModal({
+export function ReusableLinkModal({
   isOpen,
   onClose,
   onConfirm,

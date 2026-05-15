@@ -225,19 +225,28 @@ export const TextFontStyleContainer = ({
           <div className="alignmentToggle">
             <button
               className={typography.textAlign === "left" ? "active" : ""}
-              onClick={() => handleTypographyChange("textAlign", "left")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleTypographyChange("textAlign", "left");
+              }}
             >
               L
             </button>
             <button
               className={typography.textAlign === "center" ? "active" : ""}
-              onClick={() => handleTypographyChange("textAlign", "center")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleTypographyChange("textAlign", "center");
+              }}
             >
               C
             </button>
             <button
               className={typography.textAlign === "right" ? "active" : ""}
-              onClick={() => handleTypographyChange("textAlign", "right")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleTypographyChange("textAlign", "right");
+              }}
             >
               R
             </button>
@@ -257,7 +266,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${isActive("underline") ? "active" : ""}`}
                 title="Underline"
-                onClick={fmt("underline")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("underline")();
+                }}
               >
                 <img src={underlineIcon} alt="underline" />
               </button>
@@ -266,7 +278,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${isActive("italic") ? "active" : ""}`}
                 title="Italic"
-                onClick={fmt("italic")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("italic")();
+                }}
               >
                 <img src={italicIcon} alt="italic" />
               </button>
@@ -275,7 +290,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${isActive("strikethrough") ? "active" : ""}`}
                 title="Strikethrough"
-                onClick={fmt("strikethrough")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("strikethrough")();
+                }}
               >
                 <img src={strikethroughIcon} alt="strikethrough" />
               </button>
@@ -289,7 +307,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${isActive("uppercase") ? "active" : ""}`}
                 title="Uppercase"
-                onClick={fmt("uppercase")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("uppercase")();
+                }}
               >
                 <img src={uppercaseIcon} alt="uppercase" />
               </button>
@@ -298,7 +319,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${isActive("unorderedList") ? "active" : ""}`}
                 title="Bullet List"
-                onClick={fmt("unorderedList")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("unorderedList")();
+                }}
               >
                 <img src={unorderedListIcon} alt="unorderedList" />
               </button>
@@ -307,7 +331,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${isActive("orderedList") ? "active" : ""}`}
                 title="Numbered List"
-                onClick={fmt("orderedList")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("orderedList")();
+                }}
               >
                 <img src={orderedListIcon} alt="orderedList" />
               </button>
@@ -324,7 +351,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${typography.textAlign === "left" ? "active" : ""}`}
                 title="Align Left"
-                onClick={() => handleTypographyChange("textAlign", "left")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTypographyChange("textAlign", "left");
+                }}
               >
                 <img src={alignLeftIcon} alt="alignLeft" />
               </button>
@@ -333,7 +363,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${typography.textAlign === "center" ? "active" : ""}`}
                 title="Align Center"
-                onClick={() => handleTypographyChange("textAlign", "center")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTypographyChange("textAlign", "center");
+                }}
               >
                 <img src={alignCenterIcon} alt="alignCenter" />
               </button>
@@ -342,7 +375,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${typography.textAlign === "right" ? "active" : ""}`}
                 title="Align Right"
-                onClick={() => handleTypographyChange("textAlign", "right")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTypographyChange("textAlign", "right");
+                }}
               >
                 <img src={alignRightIcon} alt="alignRight" />
               </button>
@@ -351,7 +387,10 @@ export const TextFontStyleContainer = ({
               <button
                 className={`formatIconBtn ${typography.textAlign === "justify" ? "active" : ""}`}
                 title="Justify"
-                onClick={() => handleTypographyChange("textAlign", "justify")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTypographyChange("textAlign", "justify");
+                }}
               >
                 <img src={justifyIcon} alt="justify" />
               </button>
@@ -365,7 +404,10 @@ export const TextFontStyleContainer = ({
               <button
                 className="formatIconBtn"
                 title="Decrease Indent"
-                onClick={fmt("indentDecrease")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("indentDecrease")();
+                }}
               >
                 <img src={indentDecreaseIcon} alt="indentDecrease" />
               </button>
@@ -374,7 +416,10 @@ export const TextFontStyleContainer = ({
               <button
                 className="formatIconBtn"
                 title="Increase Indent"
-                onClick={fmt("indentIncrease")}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  fmt("indentIncrease")();
+                }}
               >
                 <img src={indentIncreaseIcon} alt="indentIncrease" />
               </button>
@@ -387,7 +432,10 @@ export const TextFontStyleContainer = ({
             <button
               className={`formatIconBtn ${isActive("superscript") ? "active" : ""}`}
               title="Superscript"
-              onClick={fmt("superscript")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                fmt("superscript")();
+              }}
             >
               <img src={superscriptIcon} alt="superscript" />
             </button>
@@ -396,7 +444,10 @@ export const TextFontStyleContainer = ({
             <button
               className={`formatIconBtn ${isActive("subscript") ? "active" : ""}`}
               title="Subscript"
-              onClick={fmt("subscript")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                fmt("subscript")();
+              }}
             >
               <img src={subscriptIcon} alt="subscript" />
             </button>
@@ -405,7 +456,10 @@ export const TextFontStyleContainer = ({
             <button
               className={`formatIconBtn ${isActive("code") ? "active" : ""}`}
               title="Inline Code"
-              onClick={fmt("code")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                fmt("code")();
+              }}
             >
               <img src={codeIcon} alt="code" />
             </button>
@@ -414,7 +468,10 @@ export const TextFontStyleContainer = ({
             <button
               className={`formatIconBtn ${isActive("lineThrough") ? "active" : ""}`}
               title="Line Through"
-              onClick={fmt("lineThrough")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                fmt("lineThrough")();
+              }}
             >
               <img src={lineThroughIcon} alt="lineThrough" />
             </button>
@@ -423,7 +480,10 @@ export const TextFontStyleContainer = ({
             <button
               className={`formatIconBtn ${isActive("highlight") ? "active" : ""}`}
               title="Highlight"
-              onClick={fmt("highlight")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                fmt("highlight")();
+              }}
             >
               <img src={highlightIcon} alt="highlight" />
             </button>
