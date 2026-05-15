@@ -4,7 +4,13 @@ import failToast from "../../assets/toastIcons/failToast.svg";
 import closeToast from "../../assets/commonIcons/CloseButton.svg";
 import "./style.scss";
 
-const ReusableToast = ({ type, title, message, onClose, duration = 5000 }) => {
+export function ReusableToast({
+  type,
+  title,
+  message,
+  onClose,
+  duration = 5000
+}) {
   const [isExiting, setIsExiting] = useState(false);
 
   const handleClose = useCallback(() => {
@@ -75,6 +81,6 @@ const ReusableToast = ({ type, title, message, onClose, duration = 5000 }) => {
       </button>
     </div>
   );
-};
+}
 
 export default ReusableToast;

@@ -1,11 +1,46 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "./style.scss";
 
+import underlineIcon from "../../../../../assets/textStyleIcons/underlineIcon.svg";
+import italicIcon from "../../../../../assets/textStyleIcons/italicIcon.svg";
+import strikethroughIcon from "../../../../../assets/textStyleIcons/strikethroughIcon.svg";
+import highlightIcon from "../../../../../assets/textStyleIcons/highlightIcon.svg";
+import codeIcon from "../../../../../assets/textStyleIcons/codeIcon.svg";
+import subscriptIcon from "../../../../../assets/textStyleIcons/subscriptIcon.svg";
+import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIcon.svg";
+import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
+import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkModal/index";
+
 const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
+
+  // Link Modal state for toolbar Link icon
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkModalText, setLinkModalText] = useState("");
+  const [linkModalUrl, setLinkModalUrl] = useState("");
+  const currentCompRef = useRef(null);
+  const currentRteContentRef = useRef(null);
+
+  // Popup state for interacting with existing links
+  const [linkPopupData, setLinkPopupData] = useState({
+    isOpen: false,
+    top: 0,
+    left: 0,
+    text: "",
+    url: "",
+    el: null,
+    isBelow: false
+  });
+
+  // Use a ref to access latest popup state inside event listeners without re-running useEffect
+  const linkPopupDataRef = useRef(linkPopupData);
+  useEffect(() => {
+    linkPopupDataRef.current = linkPopupData;
+  }, [linkPopupData]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -33,9 +68,11 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
             min-height: 40px !important;
             position: relative !important;
           }
-          .text-editor-content:empty:before,
-          .text-editor-content.is-empty:before {
-            content: attr(data-placeholder) !important;
+          .text-editor-content:empty::before,
+          .text-editor-content.is-empty::before,
+          [data-placeholder]:empty::before,
+          [data-placeholder].is-empty::before {
+            content: "Start typing or drag and drop a placeholder from left panel." !important;
             color: #98A2B3 !important;
             pointer-events: none !important;
             display: block !important;
@@ -45,98 +82,56 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
             top: 10px !important;
             width: 100% !important;
             white-space: pre-wrap !important;
-            z-index: 1 !important;
+            z-index: 10 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
           }
           .unsubscribe-footer {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px solid #EAECF0;
-            color: #475467;
-            font-size: 14px;
-            font-family: Inter, sans-serif;
+            margin-top: 20px !important;
+            padding-top: 10px !important;
+            border-top: 1px solid #EAECF0 !important;
+            color: #475467 !important;
+            font-size: 14px !important;
+            font-family: Inter, sans-serif !important;
+            display: block !important;
           }
         `
       }
     });
+    editorRef.current = editor;
 
-    const rte = editor.RichTextEditor;
-
-    // Hide the RTE toolbar specifically for this instance
-    editor.on("rte:enable", () => {
-      setTimeout(() => {
-        const rteToolbar = editor.RichTextEditor.getToolbarEl();
-        if (rteToolbar) {
-          rteToolbar.style.setProperty("display", "none", "important");
-        }
-      }, 0);
-    });
-
-    // Custom Alignment Icons (SVG)
-    const alignLeftIcon = `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 19h18v-2H3v2zM3 7V5h18v2H3zm0 6h10v-2H3v2zm0-4h18V7H3v2zm0 10h10v-2H3v2z"/></svg>`;
-    const alignCenterIcon = `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 19h18v-2H3v2zM7 7V5h10v2H7zm-4 6h18v-2H3v2zm4-4h10V7H7v2zm-4 10h18v-2H3v2z"/></svg>`;
-    const alignRightIcon = `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 19h18v-2H3v2zM3 7V5h18v2H3zm8 6h10v-2H11v2zm-8-4h18V7H3v2zm8 10h10v-2H11v2z"/></svg>`;
-    const alignJustifyIcon = `<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 19h18v-2H3v2zM3 7V5h18v2H3zm0 6h18v-2H3v2zm0-4h18V7H3v2zm0 10h18v-2H3v2z"/></svg>`;
-
-    // Add Alignment actions
-    rte.add("justifyLeft", {
-      icon: alignLeftIcon,
-      attributes: { title: "Align Left" },
-      result: (rte) => rte.exec("justifyLeft")
-    });
-    rte.add("justifyCenter", {
-      icon: alignCenterIcon,
-      attributes: { title: "Align Center" },
-      result: (rte) => rte.exec("justifyCenter")
-    });
-    rte.add("justifyRight", {
-      icon: alignRightIcon,
-      attributes: { title: "Align Right" },
-      result: (rte) => rte.exec("justifyRight")
-    });
-    rte.add("justifyFull", {
-      icon: alignJustifyIcon,
-      attributes: { title: "Justify" },
-      result: (rte) => rte.exec("justifyFull")
-    });
-
-    // Add Font Size
-    rte.add("fontSize", {
-      icon: `<select class="gjs-rte-action" style="background:transparent; border:none; color:white; cursor:pointer; font-size: 12px; outline: none;">
-              <option value="1">10px</option>
-              <option value="2">13px</option>
-              <option value="3" selected>16px</option>
-              <option value="4">18px</option>
-              <option value="5">24px</option>
-              <option value="6">32px</option>
-              <option value="7">48px</option>
-            </select>`,
-      event: "change",
-      result: (rte, action) =>
-        rte.exec("fontSize", action.btn.firstChild.value),
-      update: (rte, action) => {
-        const value = rte.doc.queryCommandValue("fontSize");
-        if (value) action.btn.firstChild.value = value;
-      }
-    });
+    // Track which bodies have listeners
+    const attachedBodies = new WeakSet();
 
     // Handle content change
     const updateContent = () => {
       const wrapper = editor.getWrapper();
-      const contentComp = wrapper.find(".text-editor-content")[0];
+      if (!wrapper) return;
+      // Search by class or data-placeholder attribute to be safe
+      const contentComp =
+        wrapper.find(".text-editor-content")[0] ||
+        wrapper.find("[data-placeholder]")[0];
+
       if (contentComp) {
-        const content = contentComp.getInnerHTML() || "";
-        // Check if content is actually empty or just whitespace/placeholders
+        const el = contentComp.getEl();
+        // Use DOM innerHTML for most up-to-date content during editing
+        const content = el ? el.innerHTML : contentComp.getInnerHTML() || "";
+
+        // Check if content is actually empty or just whitespace/placeholders/BRs
         const plainText = content
           .replace(/<[^>]*>/g, "")
           .replace(/&nbsp;/g, " ")
+          .replace(/\u200B/g, "") // Zero-width space
           .trim();
         const isEmpty = plainText.length === 0;
 
-        // Toggle a class for the placeholder
+        // Toggle a class for the placeholder on both model and DOM
         if (isEmpty) {
           contentComp.addClass("is-empty");
+          if (el) el.classList.add("is-empty");
         } else {
           contentComp.removeClass("is-empty");
+          if (el) el.classList.remove("is-empty");
         }
 
         if (onContentChange) {
@@ -147,12 +142,57 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
     };
 
     editor.on("load", () => {
+      const body = editor.Canvas.getBody();
+      if (!attachedBodies.has(body)) {
+        attachedBodies.add(body);
+        // Link click handler
+        body.addEventListener("mousedown", (e) => {
+          const link = e.target.closest("a");
+          if (link) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Close if already open on same element
+            if (
+              linkPopupDataRef.current.isOpen &&
+              linkPopupDataRef.current.el === link
+            ) {
+              setLinkPopupData((prev) => ({ ...prev, isOpen: false }));
+              return;
+            }
+
+            const rect = link.getBoundingClientRect();
+            const iframe = editor.Canvas.getFrameEl();
+            const iframeRect = iframe.getBoundingClientRect();
+
+            const showBelow = rect.top < 150;
+
+            setLinkPopupData({
+              isOpen: true,
+              top: showBelow
+                ? iframeRect.top + rect.bottom + 12
+                : iframeRect.top + rect.top - 12,
+              left: iframeRect.left + rect.left + rect.width / 2,
+              text: link.textContent,
+              url: link.getAttribute("href") || "",
+              el: link,
+              isBelow: showBelow
+            });
+          } else {
+            if (e.target.closest(".link-interaction-popup")) return;
+            setLinkPopupData((prev) =>
+              prev.isOpen ? { ...prev, isOpen: false, el: null } : prev
+            );
+          }
+        });
+      }
+
       // Load initial content
       editor.setComponents([
         {
           tagName: "div",
-          classes: ["text-editor-container"],
           attributes: {
+            class: "text-editor-container",
             style:
               "display: flex; flex-direction: column; box-sizing: border-box;"
           },
@@ -160,14 +200,14 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
             {
               tagName: "div",
               type: "text",
-              classes: ["text-editor-content"],
-              content: "",
               attributes: {
+                class: "text-editor-content",
                 "data-placeholder":
                   "Start typing or drag and drop a placeholder from left panel.",
                 style:
                   "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
               },
+              content: "",
               editable: true,
               draggable: false,
               removable: false,
@@ -178,12 +218,12 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
             },
             {
               tagName: "div",
-              classes: ["unsubscribe-footer"],
-              content: "Click here to unsubscribe:",
               attributes: {
+                class: "unsubscribe-footer",
                 style:
                   "padding: 10px 0; color: #475467; font-size: 14px; border-top: 1px solid #EAECF0; font-family: Inter, sans-serif;"
               },
+              content: "Click here to unsubscribe:",
               editable: false,
               draggable: false,
               removable: false,
@@ -202,6 +242,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
       if (contentComp) {
         editor.select(contentComp);
       }
+      setTimeout(updateContent, 100);
       updateContent();
 
       // Handle external drops (placeholders)
@@ -288,20 +329,167 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
       }
     });
 
+    const rte = editor.RichTextEditor;
+
+    // Remove default actions to replace with custom ones
+    rte.remove("bold");
+    rte.remove("italic");
+    rte.remove("underline");
+    rte.remove("strikethrough");
+    rte.remove("link");
+
+    const customBoldIcon = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4.5 3H9C10.6569 3 12 4.34315 12 6C12 7.65685 10.6569 9 9 9H4.5V3Z" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4.5 9H10.5C12.1569 9 13.5 10.3431 13.5 12C13.5 13.6569 12.1569 15 10.5 15H4.5V9Z" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+
+    rte.add("bold", {
+      icon: customBoldIcon,
+      attributes: { title: "Bold" },
+      result: (rteInstance) => rteInstance.exec("bold")
+    });
+
+    rte.add("italic", {
+      icon: `<img src="${italicIcon}" width="18" height="18" />`,
+      attributes: { title: "Italic" },
+      result: (rteInstance) => rteInstance.exec("italic")
+    });
+
+    rte.add("underline", {
+      icon: `<img src="${underlineIcon}" width="18" height="18" />`,
+      attributes: { title: "Underline" },
+      result: (rteInstance) => rteInstance.exec("underline")
+    });
+
+    rte.add("strikethrough", {
+      icon: `<img src="${strikethroughIcon}" width="18" height="18" />`,
+      attributes: { title: "Strikethrough" },
+      result: (rteInstance) => rteInstance.exec("strikethrough")
+    });
+
+    rte.add("superscript", {
+      icon: `<img src="${superscriptIcon}" width="18" height="18" />`,
+      attributes: { title: "Superscript" },
+      result: (rteInstance) => rteInstance.exec("superscript")
+    });
+
+    rte.add("subscript", {
+      icon: `<img src="${subscriptIcon}" width="18" height="18" />`,
+      attributes: { title: "Subscript" },
+      result: (rteInstance) => rteInstance.exec("subscript")
+    });
+
+    rte.add("highlight", {
+      icon: `<img src="${highlightIcon}" width="18" height="18" />`,
+      attributes: { title: "Highlight" },
+      result: (rteInstance) => {
+        const selection = rteInstance.selection();
+        if (selection) {
+          rteInstance.insertHTML(
+            `<span style="background-color: yellow; color: black;">${selection}</span>`
+          );
+        }
+      }
+    });
+
+    rte.add("code", {
+      icon: `<img src="${codeIcon}" width="18" height="18" />`,
+      attributes: { title: "Code Block" },
+      result: (rteInstance) => {
+        const selection = rteInstance.selection();
+        if (selection) {
+          rteInstance.insertHTML(
+            `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">${selection}</code>`
+          );
+        } else {
+          rteInstance.insertHTML(
+            `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">&nbsp;</code>`
+          );
+        }
+      }
+    });
+
+    rte.add("link", {
+      icon: `<img src="${linkIcon}" width="18" height="18" />`,
+      attributes: { title: "Link" },
+      result: (rteInstance) => {
+        const selection = rteInstance.selection();
+
+        const doc = rteInstance.el.ownerDocument;
+        const win = doc.defaultView;
+        const sel = win.getSelection();
+
+        let plainText = "";
+        if (selection) {
+          plainText =
+            typeof selection === "string"
+              ? selection.replace(/<[^>]*>/g, "")
+              : selection.toString
+                ? selection.toString()
+                : "";
+        }
+
+        const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
+        if (sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          if (range.collapsed) {
+            const placeholder = doc.createElement("a");
+            placeholder.href = PLACEHOLDER_URL;
+            placeholder.textContent = "\u200B"; // Zero-width space
+            placeholder.style.color = "#1570EF";
+            placeholder.style.textDecoration = "underline";
+            range.insertNode(placeholder);
+            range.selectNodeContents(placeholder);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } else {
+            doc.execCommand("createLink", false, PLACEHOLDER_URL);
+          }
+        }
+
+        const selectedComp = editor.getSelected();
+        currentCompRef.current = selectedComp;
+        currentRteContentRef.current = rteInstance.el.innerHTML;
+
+        setLinkModalText(plainText);
+        setLinkModalUrl("");
+        setIsLinkModalOpen(true);
+      }
+    });
+
+    // Ensure the RTE toolbar is visible when enabled
+    editor.on("rte:enable", () => {
+      const rteToolbar = editor.RichTextEditor.getToolbarEl();
+      if (rteToolbar) {
+        rteToolbar.style.setProperty("display", "flex", "important");
+      }
+    });
+
     editor.on("component:update", updateContent);
     editor.on("rte:exec", updateContent);
-
-    editorRef.current = editor;
+    editor.on("update", updateContent);
 
     if (onReady) {
       onReady({
         editor,
+        getHtml: () => editor.getHtml(),
+        setDevice: (device) => editor.setDevice(device),
         execCommand: (cmd, value) => {
           const wrapper = editor.getWrapper();
           const contentComp = wrapper.find(".text-editor-content")[0];
           if (contentComp) {
-            editor.select(contentComp);
+            // Focus the canvas window to help restore the internal selection
+            const win = editor.Canvas.getWindow();
+            if (win) win.focus();
+
+            // Only select if not already selected to avoid resetting text selection
+            if (editor.getSelected() !== contentComp) {
+              editor.select(contentComp);
+            }
+
             editor.runCommand("rte:enable", { target: contentComp });
+
+            // Small delay to ensure RTE is active before executing command
             setTimeout(() => {
               editor.RichTextEditor.exec(cmd, value);
               updateContent();
@@ -322,9 +510,199 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
     };
   }, [onContentChange, onReady]);
 
+  const handleToolbarLinkConfirm = () => {
+    let url = linkModalUrl;
+    if (
+      url &&
+      !url.includes("://") &&
+      !url.startsWith("#") &&
+      !url.startsWith("/") &&
+      !url.startsWith("mailto:") &&
+      !url.startsWith("tel:")
+    ) {
+      url = "https://" + url;
+    }
+
+    const editor = editorRef.current;
+    const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
+
+    if (editor) {
+      const comp = currentCompRef.current;
+      if (comp) {
+        const getCompHtml = (c) =>
+          c.components().length > 0 ? c.getInnerHTML() : c.get("content") || "";
+        const baseContent = currentRteContentRef.current || getCompHtml(comp);
+        const finalUrl = url || "#";
+        const linkText = linkModalText || "Link";
+
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = baseContent;
+
+        const placeholderLink =
+          tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+          tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+        if (placeholderLink) {
+          placeholderLink.href = finalUrl;
+          placeholderLink.target = "_blank";
+          placeholderLink.style.color = "#1570EF";
+          placeholderLink.style.textDecoration = "underline";
+          placeholderLink.textContent = linkText;
+        }
+
+        const newContent = tempDiv.innerHTML;
+        comp.components().reset();
+        comp.set("content", newContent);
+
+        const view = comp.getView?.();
+        if (view && typeof view.render === "function") {
+          view.render();
+        } else {
+          editor.trigger("component:update", comp);
+        }
+      }
+    }
+
+    currentCompRef.current = null;
+    currentRteContentRef.current = null;
+    setIsLinkModalOpen(false);
+    setLinkModalText("");
+    setLinkModalUrl("");
+  };
+
+  const handleRemoveLink = () => {
+    const link = linkPopupData.el;
+    const editor = editorRef.current;
+
+    if (link && editor) {
+      // Find the component containing the link
+      const comp = editor.Components.getWrapper()
+        .find("*")
+        .filter((c) => {
+          try {
+            return c.getView()?.el?.contains(link);
+          } catch {
+            return false;
+          }
+        })
+        .pop();
+
+      if (comp) {
+        const getCompHtml = (c) =>
+          c.components().length > 0 ? c.getInnerHTML() : c.get("content") || "";
+        const currentContent = getCompHtml(comp);
+
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = currentContent;
+
+        const href = link.getAttribute("href");
+        const text = link.textContent.trim();
+
+        const matchingLink = Array.from(tempDiv.querySelectorAll("a")).find(
+          (a) =>
+            a.getAttribute("href") === href && a.textContent.trim() === text
+        );
+
+        if (matchingLink) {
+          const textNode = document.createTextNode(matchingLink.textContent);
+          matchingLink.replaceWith(textNode);
+          const newContent = tempDiv.innerHTML;
+          comp.components().reset();
+          comp.set("content", newContent);
+
+          const view = comp.getView?.();
+          if (view && typeof view.render === "function") {
+            view.render();
+          } else {
+            editor.trigger("component:update", comp);
+          }
+        }
+      }
+    }
+    setLinkPopupData((prev) => ({ ...prev, isOpen: false, el: null }));
+  };
+
   return (
     <div className="BroadcastTextMessageEditor">
       <div className="editor-canvas" ref={containerRef}></div>
+      <ReusableLinkModal
+        isOpen={isLinkModalOpen}
+        onClose={() => setIsLinkModalOpen(false)}
+        onConfirm={handleToolbarLinkConfirm}
+        formName={linkModalText}
+        setFormName={setLinkModalText}
+        linkValue={linkModalUrl}
+        setLinkValue={setLinkModalUrl}
+      />
+
+      {linkPopupData.isOpen &&
+        ReactDOM.createPortal(
+          <div
+            className={`link-interaction-popup ${
+              linkPopupData.isBelow ? "is-below" : ""
+            }`}
+            style={{
+              top: linkPopupData.top,
+              left: linkPopupData.left,
+              position: "fixed",
+              transform: linkPopupData.isBelow
+                ? "translateX(-50%)"
+                : "translateX(-50%) translateY(-100%)",
+              zIndex: 999999,
+              pointerEvents: "auto"
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="popup-content">
+              <div className="popup-header">
+                <span className="link-text">{linkPopupData.text}</span>
+                <button
+                  className="close-popup"
+                  onClick={() =>
+                    setLinkPopupData({ ...linkPopupData, isOpen: false })
+                  }
+                >
+                  <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M9 3L3 9M3 3L9 9"
+                      stroke="#667085"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="popup-body">
+                <a
+                  href={linkPopupData.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link-url"
+                >
+                  {linkPopupData.url}
+                </a>
+              </div>
+              <div className="popup-footer">
+                <button
+                  className="edit-btn"
+                  onClick={() => {
+                    setLinkModalText(linkPopupData.text);
+                    setLinkModalUrl(linkPopupData.url);
+                    setIsLinkModalOpen(true);
+                    setLinkPopupData({ ...linkPopupData, isOpen: false });
+                  }}
+                >
+                  Edit
+                </button>
+                <button className="remove-btn" onClick={handleRemoveLink}>
+                  Remove
+                </button>
+              </div>
+            </div>
+            <div className="popup-arrow" />
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

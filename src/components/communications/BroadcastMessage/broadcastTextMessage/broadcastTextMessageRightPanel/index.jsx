@@ -3,6 +3,7 @@ import { ReusableModal } from "../../../../../reusableComponents/reusableModal/i
 import { TextFontStyleContainer } from "./textFontstyleContainer/index";
 import { TextDeviceSwitcher } from "./textDeviceSwitch/index";
 import TextSignatureSection from "./textSignatureSection/index";
+import TextPreviewModal from "./textPreviewModal/index";
 
 import "./style.scss";
 
@@ -11,6 +12,7 @@ export default function BroadcastTextMessageRightPanel({
   editorInstance
 }) {
   const [showSendTextMessage, setShowSendTextMessage] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [textColor, setTextColor] = useState("#000000");
   const [typography, setTypography] = useState({
@@ -90,11 +92,16 @@ export default function BroadcastTextMessageRightPanel({
     setShowSendTextMessage(false);
   };
 
+  const handlePreview = () => {
+    setShowPreview(true);
+  };
+
   return (
     <div className="rightPanel">
       <TextDeviceSwitcher
         isEditorEmpty={isEditorEmpty}
-        editorRef={{ current: editorInstance?.editor }}
+        editorRef={{ current: editorInstance }}
+        handlePreview={handlePreview}
       />
 
       <div className="panelSections">
@@ -168,6 +175,11 @@ export default function BroadcastTextMessageRightPanel({
           </div>
         </div>
       </ReusableModal>
+      <TextPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        html={editorInstance?.getHtml()}
+      />
     </div>
   );
 }

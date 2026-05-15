@@ -105,7 +105,7 @@ export const PaddingContainer = ({
             </>
           )}
           <div className="styleGroup">
-            <p className="groupLabel">Text align</p>
+            <p className="groupLabel">Content align</p>
             <div className="alignmentButtons">
               {textAlignOptions.map((opt) => (
                 <button

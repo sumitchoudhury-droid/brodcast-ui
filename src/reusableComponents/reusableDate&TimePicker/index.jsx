@@ -46,7 +46,7 @@ const CustomInput = forwardRef(
 );
 CustomInput.displayName = "CustomInput";
 
-export const ReusableDateTime = ({
+export function ReusableDateTime({
   label,
   selected,
   onChange,
@@ -59,7 +59,7 @@ export const ReusableDateTime = ({
   className = "",
   onCancel,
   onOk
-}) => {
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState(selected || new Date());
   const [tempDate, setTempDate] = useState(selected || new Date());
@@ -347,6 +347,6 @@ export const ReusableDateTime = ({
       {error && <p className="errorText">{error}</p>}
     </div>
   );
-};
+}
 
 export default ReusableDateTime;

@@ -1,6 +1,6 @@
 import "./style.scss";
 
-export const ReusableCheckbox = ({
+export function ReusableCheckbox({
   label,
   name,
   checked = false,
@@ -8,7 +8,7 @@ export const ReusableCheckbox = ({
   disabled = false,
   error = "",
   className = ""
-}) => {
+}) {
   return (
     <div className={`checkboxWrapper ${className}`}>
       <label className={`checkboxContainer ${disabled ? "disabled" : ""}`}>
@@ -30,4 +30,4 @@ export const ReusableCheckbox = ({
       {error && <p className="checkboxError">{error}</p>}
     </div>
   );
-};
+}

@@ -1,0 +1,214 @@
+.textPreviewDrawerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1000;
+  cursor: pointer;
+
+  .textPreviewDrawerContainer {
+    width: 60%;
+    height: 100%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.3s ease-out;
+    cursor: default;
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    .textPreviewDrawerHeader {
+      padding: 16px 24px;
+      border-bottom: 1px solid #eaedf2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .headerLeft {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+
+        h3 {
+          margin: 0;
+          color: #101828;
+          font-size: 18px;
+          font-weight: 600;
+        }
+
+        .deviceToggle {
+          display: flex;
+          background: #f2f4f7;
+          padding: 4px;
+          border-radius: 8px;
+          gap: 4px;
+
+          .toggleBtn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #667085;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &.active {
+              background: #fff;
+              color: #107a6c;
+              box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.05);
+            }
+
+            &:hover:not(.active) {
+              background: rgba(0, 0, 0, 0.05);
+            }
+          }
+        }
+      }
+
+      .closeBtn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #667085;
+        cursor: pointer;
+        padding: 4px;
+        line-height: 1;
+
+        &:hover {
+          color: #101828;
+        }
+      }
+    }
+
+    .textPreviewDrawerContent {
+      flex: 1;
+      background: #f9fafb;
+      padding: 40px;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+
+      .deviceFrame {
+        transition: all 0.3s ease;
+        background: #fff;
+        box-shadow:
+          0px 12px 32px -4px rgba(16, 24, 40, 0.1),
+          0px 4px 6px -2px rgba(16, 24, 40, 0.05);
+
+        &.desktop {
+          width: 100%;
+          max-width: 900px;
+          height: 600px;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid #eaedf2;
+        }
+
+        &.mobile {
+          width: 375px;
+          height: 700px;
+          border-radius: 40px;
+          border: 12px solid #101828;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+
+          .mobileDynamicIsland {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 25px;
+            background: #101828;
+            border-radius: 15px;
+            z-index: 10;
+          }
+
+          .mobileStatusBar {
+            height: 44px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #101828;
+          }
+
+          .mobileHeader {
+            height: 44px;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eaedf2;
+
+            .mobileHeaderIcons {
+              display: flex;
+              gap: 16px;
+            }
+          }
+
+          .homeIndicator {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 5px;
+            background: #101828;
+            border-radius: 10px;
+          }
+        }
+
+        .iframeWrapper {
+          flex: 1;
+          height: 100%;
+          width: 100%;
+
+          &.mobile-scroll {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          &.desktop-scroll {
+            overflow: hidden;
+          }
+
+          iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+          }
+        }
+      }
+    }
+
+    .textPreviewDrawerFooter {
+      padding: 16px 24px;
+      border-top: 1px solid #eaedf2;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+  }
+}

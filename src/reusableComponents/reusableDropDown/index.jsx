@@ -3,7 +3,7 @@ import greenDownArrow from "../../assets/mainScreen/greenChevronRight.svg";
 import downArrow from "../../assets/mainScreen/chevronRight.svg";
 import "./style.scss";
 
-export const ReusableDropDown = ({
+export function ReusableDropDown({
   label,
   options = [],
   value = "",
@@ -12,7 +12,7 @@ export const ReusableDropDown = ({
   valueImage,
   greenIcon = true,
   required = false
-}) => {
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -100,4 +100,5 @@ export const ReusableDropDown = ({
       </div>
     </div>
   );
-};
+}
+export default ReusableDropDown;

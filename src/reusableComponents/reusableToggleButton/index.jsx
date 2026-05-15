@@ -1,12 +1,12 @@
 import "./style.scss";
 
-const ReusableToggleButton = ({
+export function ReusableToggleButton({
   isChecked = false,
   onChange,
   label = "",
   disabled = false,
   className = ""
-}) => {
+}) {
   const handleToggle = () => {
     if (!disabled && onChange) {
       onChange(!isChecked);
@@ -37,6 +37,6 @@ const ReusableToggleButton = ({
       </div>
     </div>
   );
-};
+}
 
 export default ReusableToggleButton;

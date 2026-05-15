@@ -5,7 +5,7 @@ import eyeIcon from "../../assets/commonIcons/eyeIcon.svg";
 import sendIcon from "../../assets/voiceTextIcons/messageIcon.svg";
 import playIcon from "../../assets/voiceTextIcons/pausedIcon.svg";
 import pauseIcon from "../../assets/voiceTextIcons/playIcon.svg";
-export const ReusableButton = ({
+export function ReusableButton({
   label = "Button",
   onClick,
   type = "button",
@@ -19,7 +19,7 @@ export const ReusableButton = ({
   sendImage = false,
   playImage = false,
   pauseImage = false
-}) => {
+}) {
   const handleClick = (e) => {
     if (disabled || loading) return;
     onClick?.(e);
@@ -89,4 +89,4 @@ export const ReusableButton = ({
       )}
     </button>
   );
-};
+}
