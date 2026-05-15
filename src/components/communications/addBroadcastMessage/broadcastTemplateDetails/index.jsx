@@ -6,7 +6,7 @@ import "./style.scss";
 
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton";
-import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/ReusableMultiSelectDropdown";
+import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
 
 const templateOptions = [
   { label: "Main Clinic", value: "main" },
