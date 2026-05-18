@@ -497,6 +497,15 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
               return;
             }
 
+            if (cmd === "fontSize") {
+              const el = contentComp.getEl();
+              if (el && value) {
+                el.style.fontSize = `${value}px`;
+              }
+              updateContent();
+              return;
+            }
+
             // Focus the canvas window to help restore the internal selection
             const win = editor.Canvas.getWindow();
             if (win) win.focus();
