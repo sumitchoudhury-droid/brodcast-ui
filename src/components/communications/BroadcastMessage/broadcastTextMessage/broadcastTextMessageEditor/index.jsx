@@ -61,7 +61,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
       showDevices: false,
       canvas: {
         styles: [
-          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
         ],
         css: `
           .text-editor-content {
@@ -479,6 +479,15 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
           const wrapper = editor.getWrapper();
           const contentComp = wrapper.find(".text-editor-content")[0];
           if (contentComp) {
+            if (cmd === "fontName") {
+              const el = contentComp.getEl();
+              if (el) {
+                el.style.fontFamily = value;
+              }
+              updateContent();
+              return;
+            }
+
             // Focus the canvas window to help restore the internal selection
             const win = editor.Canvas.getWindow();
             if (win) win.focus();
