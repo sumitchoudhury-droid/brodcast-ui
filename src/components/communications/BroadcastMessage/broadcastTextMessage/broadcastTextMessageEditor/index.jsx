@@ -515,6 +515,28 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
               return;
             }
 
+            if (
+              [
+                "justifyLeft",
+                "justifyCenter",
+                "justifyRight",
+                "justifyFull"
+              ].includes(cmd)
+            ) {
+              const el = contentComp.getEl();
+              if (el) {
+                const alignMap = {
+                  justifyLeft: "left",
+                  justifyCenter: "center",
+                  justifyRight: "right",
+                  justifyFull: "justify"
+                };
+                el.style.textAlign = alignMap[cmd];
+              }
+              updateContent();
+              return;
+            }
+
             // Focus the canvas window to help restore the internal selection
             const win = editor.Canvas.getWindow();
             if (win) win.focus();
