@@ -537,6 +537,33 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
               return;
             }
 
+            if (cmd === "uppercase") {
+              const el = contentComp.getEl();
+              if (el) {
+                el.style.textTransform =
+                  el.style.textTransform === "uppercase" ? "none" : "uppercase";
+              }
+              updateContent();
+              return;
+            }
+
+            const inlineCmdMap = {
+              underline: "underline",
+              italic: "italic",
+              bold: "bold",
+              strikethrough: "strikeThrough",
+              superscript: "superscript",
+              subscript: "subscript"
+            };
+            if (inlineCmdMap[cmd]) {
+              const doc = editor.Canvas.getDocument();
+              if (doc) {
+                doc.execCommand(inlineCmdMap[cmd], false, null);
+                updateContent();
+              }
+              return;
+            }
+
             // Focus the canvas window to help restore the internal selection
             const win = editor.Canvas.getWindow();
             if (win) win.focus();
