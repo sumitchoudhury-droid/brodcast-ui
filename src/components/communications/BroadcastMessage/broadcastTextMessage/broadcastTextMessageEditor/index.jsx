@@ -152,13 +152,14 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
 
         // Toggle a class for the placeholder via DOM only — model-level addClass/removeClass
         // triggers a GrapesJS re-render that resets the cursor position mid-typing
-        if (el) {
-          if (isEmpty) {
-            el.classList.add("is-empty");
-          } else {
-            el.classList.remove("is-empty");
-          }
-        }
+        const applyEmptyClass = (target, empty) => {
+          if (!target) return;
+          if (empty) target.classList.add("is-empty");
+          else target.classList.remove("is-empty");
+        };
+        applyEmptyClass(el, isEmpty);
+        // Re-apply after GrapesJS may have re-rendered the component in this tick
+        setTimeout(() => applyEmptyClass(contentComp.getEl(), isEmpty), 0);
 
         if (onContentChange) {
           const containerEl = el?.closest(".text-editor-container");
@@ -171,6 +172,28 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
     };
 
     editor.on("load", () => {
+      // Inject placeholder CSS after GrapesJS's own canvas CSS so it wins
+      const canvasDoc = editor.Canvas.getDocument();
+      if (canvasDoc?.head) {
+        const style = canvasDoc.createElement("style");
+        style.textContent = `
+          .text-editor-content { position: relative !important; }
+          .text-editor-content.is-empty::before {
+            content: attr(data-placeholder);
+            color: #98A2B3;
+            pointer-events: none;
+            display: block;
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 100%;
+            white-space: pre-wrap;
+            z-index: 10;
+          }
+        `;
+        canvasDoc.head.appendChild(style);
+      }
+
       const body = editor.Canvas.getBody();
       if (!attachedBodies.has(body)) {
         attachedBodies.add(body);
@@ -252,7 +275,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
                 style:
                   "padding: 10px 0; color: #475467; font-size: 14px; border-top: 1px solid #EAECF0; font-family: Inter, sans-serif;"
               },
-              content: "Click here to unsubscribe:",
+              content: `Click here to unsubscribe: <a href="https://mh.care/stop" target="_blank" style="color: #1570EF; text-decoration: underline;">https://mh.care/stop</a>`,
               editable: false,
               draggable: false,
               removable: false,
