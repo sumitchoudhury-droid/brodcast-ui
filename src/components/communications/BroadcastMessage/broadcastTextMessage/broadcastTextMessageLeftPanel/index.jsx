@@ -50,7 +50,7 @@ const PLACEHOLDERS = [
   { label: "LinkedIn", value: "$LINKEDIN", link: "https://www.linkedin.com" }
 ];
 
-function BroadcastTextMessageLeftPanel() {
+function BroadcastTextMessageLeftPanel({ editorInstance }) {
   const [search, setSearch] = useState("");
 
   const filteredPlaceholders = PLACEHOLDERS.filter((item) =>
@@ -77,6 +77,10 @@ function BroadcastTextMessageLeftPanel() {
             key={index}
             className="broadcastTextMessageLeftPanelItem"
             draggable
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editorInstance?.insertAtCursor(item.value);
+            }}
             onDragStart={(e) => {
               e.dataTransfer.setData("text/plain", item.value);
               e.dataTransfer.setData(

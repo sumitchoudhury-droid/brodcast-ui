@@ -61,7 +61,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
       showDevices: false,
       canvas: {
         styles: [
-          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
         ],
         css: `
           .text-editor-content {
@@ -86,6 +86,17 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
             opacity: 1 !important;
             visibility: visible !important;
           }
+          .text-editor-content ul,
+          .text-editor-content ol {
+            padding-left: 0 !important;
+            margin: 4px 0 !important;
+            list-style-position: inside !important;
+          }
+          .text-editor-content li,
+          .text-editor-content li[data-gjs-type] {
+            display: list-item !important;
+            padding-left: 0 !important;
+          }
           .unsubscribe-footer {
             margin-top: 20px !important;
             padding-top: 10px !important;
@@ -102,6 +113,20 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
 
     // Track which bodies have listeners
     const attachedBodies = new WeakSet();
+
+    // Persist the last known cursor range so click-to-insert can restore it
+    const savedRange = { current: null };
+
+    // Clone the container and stamp list styles inline so they appear in HTML output
+    const serializeContainer = (containerEl) => {
+      if (!containerEl) return null;
+      const clone = containerEl.cloneNode(true);
+      clone.querySelectorAll("ul, ol").forEach((list) => {
+        list.style.listStylePosition = "inside";
+        list.style.paddingLeft = "0";
+      });
+      return clone.outerHTML;
+    };
 
     // Handle content change
     const updateContent = () => {
@@ -125,23 +150,50 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
           .trim();
         const isEmpty = plainText.length === 0;
 
-        // Toggle a class for the placeholder on both model and DOM
-        if (isEmpty) {
-          contentComp.addClass("is-empty");
-          if (el) el.classList.add("is-empty");
-        } else {
-          contentComp.removeClass("is-empty");
-          if (el) el.classList.remove("is-empty");
-        }
+        // Toggle a class for the placeholder via DOM only — model-level addClass/removeClass
+        // triggers a GrapesJS re-render that resets the cursor position mid-typing
+        const applyEmptyClass = (target, empty) => {
+          if (!target) return;
+          if (empty) target.classList.add("is-empty");
+          else target.classList.remove("is-empty");
+        };
+        applyEmptyClass(el, isEmpty);
+        // Re-apply after GrapesJS may have re-rendered the component in this tick
+        setTimeout(() => applyEmptyClass(contentComp.getEl(), isEmpty), 0);
 
         if (onContentChange) {
-          // Output final HTML content and empty status
-          onContentChange(editor.getHtml(), isEmpty);
+          const containerEl = el?.closest(".text-editor-container");
+          onContentChange(
+            serializeContainer(containerEl) ?? editor.getHtml(),
+            isEmpty
+          );
         }
       }
     };
 
     editor.on("load", () => {
+      // Inject placeholder CSS after GrapesJS's own canvas CSS so it wins
+      const canvasDoc = editor.Canvas.getDocument();
+      if (canvasDoc?.head) {
+        const style = canvasDoc.createElement("style");
+        style.textContent = `
+          .text-editor-content { position: relative !important; }
+          .text-editor-content.is-empty::before {
+            content: attr(data-placeholder);
+            color: #98A2B3;
+            pointer-events: none;
+            display: block;
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 100%;
+            white-space: pre-wrap;
+            z-index: 10;
+          }
+        `;
+        canvasDoc.head.appendChild(style);
+      }
+
       const body = editor.Canvas.getBody();
       if (!attachedBodies.has(body)) {
         attachedBodies.add(body);
@@ -223,7 +275,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
                 style:
                   "padding: 10px 0; color: #475467; font-size: 14px; border-top: 1px solid #EAECF0; font-family: Inter, sans-serif;"
               },
-              content: "Click here to unsubscribe:",
+              content: `Click here to unsubscribe: <a href="https://mh.care/stop" target="_blank" style="color: #1570EF; text-decoration: underline;">https://mh.care/stop</a>`,
               editable: false,
               draggable: false,
               removable: false,
@@ -247,8 +299,17 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
 
       // Handle external drops (placeholders)
       const doc = editor.Canvas.getDocument();
+      const win = editor.Canvas.getWindow();
       if (doc) {
         doc.addEventListener("input", updateContent);
+
+        // Save selection whenever it changes so click-to-insert can restore it
+        doc.addEventListener("selectionchange", () => {
+          const sel = win?.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            savedRange.current = sel.getRangeAt(0).cloneRange();
+          }
+        });
         doc.addEventListener(
           "dragover",
           (e) => {
@@ -472,12 +533,146 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
     if (onReady) {
       onReady({
         editor,
-        getHtml: () => editor.getHtml(),
+        getHtml: () => {
+          const wrapper = editor.getWrapper();
+          const contentComp = wrapper?.find(".text-editor-content")[0];
+          const el = contentComp?.getEl();
+          const containerEl = el?.closest(".text-editor-container");
+          return serializeContainer(containerEl) ?? editor.getHtml();
+        },
         setDevice: (device) => editor.setDevice(device),
+        insertAtCursor: (text) => {
+          const wrapper = editor.getWrapper();
+          const contentComp = wrapper.find(".text-editor-content")[0];
+          if (!contentComp) return;
+
+          const doc = editor.Canvas.getDocument();
+          const canvasWin = editor.Canvas.getWindow();
+          if (!doc || !canvasWin) return;
+
+          canvasWin.focus();
+
+          const range = savedRange.current;
+          if (range) {
+            const sel = canvasWin.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } else {
+            // No saved range — fall back to end of content
+            const el = contentComp.getEl();
+            if (el) {
+              const r = doc.createRange();
+              r.selectNodeContents(el);
+              r.collapse(false);
+              const sel = canvasWin.getSelection();
+              sel.removeAllRanges();
+              sel.addRange(r);
+            }
+          }
+
+          const currentText = canvasWin.getSelection()?.toString() ?? "";
+          const prefix =
+            currentText.length === 0 &&
+            contentComp.getEl()?.innerText?.trim().length > 0
+              ? " "
+              : "";
+          doc.execCommand("insertText", false, prefix + text);
+          updateContent();
+        },
         execCommand: (cmd, value) => {
           const wrapper = editor.getWrapper();
           const contentComp = wrapper.find(".text-editor-content")[0];
           if (contentComp) {
+            if (cmd === "fontName") {
+              const el = contentComp.getEl();
+              if (el) el.style.fontFamily = value;
+              contentComp.addStyle({ "font-family": value });
+              updateContent();
+              return;
+            }
+
+            if (cmd === "fontWeight") {
+              const el = contentComp.getEl();
+              if (el) el.style.fontWeight = value;
+              contentComp.addStyle({ "font-weight": value });
+              updateContent();
+              return;
+            }
+
+            if (cmd === "fontSize") {
+              const el = contentComp.getEl();
+              const px = `${value}px`;
+              if (el && value) el.style.fontSize = px;
+              contentComp.addStyle({ "font-size": px });
+              updateContent();
+              return;
+            }
+
+            if (cmd === "foreColor") {
+              const el = contentComp.getEl();
+              if (el && value) el.style.color = value;
+              contentComp.addStyle({ color: value });
+              updateContent();
+              return;
+            }
+
+            if (
+              [
+                "justifyLeft",
+                "justifyCenter",
+                "justifyRight",
+                "justifyFull"
+              ].includes(cmd)
+            ) {
+              const alignMap = {
+                justifyLeft: "left",
+                justifyCenter: "center",
+                justifyRight: "right",
+                justifyFull: "justify"
+              };
+              const alignValue = alignMap[cmd];
+              const el = contentComp.getEl();
+              if (el) {
+                el.style.textAlign = alignValue;
+                el.querySelectorAll("ul, ol").forEach((list) => {
+                  list.style.listStylePosition = "inside";
+                  list.style.paddingLeft = "0";
+                });
+              }
+              contentComp.addStyle({ "text-align": alignValue });
+              updateContent();
+              return;
+            }
+
+            if (cmd === "uppercase") {
+              const el = contentComp.getEl();
+              const newTransform =
+                el?.style.textTransform === "uppercase" ? "none" : "uppercase";
+              if (el) el.style.textTransform = newTransform;
+              contentComp.addStyle({ "text-transform": newTransform });
+              updateContent();
+              return;
+            }
+
+            const inlineCmdMap = {
+              underline: "underline",
+              italic: "italic",
+              bold: "bold",
+              strikethrough: "strikeThrough",
+              superscript: "superscript",
+              insertUnorderedList: "insertUnorderedList",
+              insertOrderedList: "insertOrderedList",
+              subscript: "subscript"
+            };
+            if (inlineCmdMap[cmd]) {
+              const doc = editor.Canvas.getDocument();
+              if (doc) {
+                doc.execCommand(inlineCmdMap[cmd], false, null);
+                updateContent();
+              }
+              return;
+            }
+
             // Focus the canvas window to help restore the internal selection
             const win = editor.Canvas.getWindow();
             if (win) win.focus();

@@ -36,25 +36,11 @@ export default function BroadcastTextMessageRightPanel({
         };
         editorInstance.execCommand(cmdMap[value]);
       } else if (name === "fontSize") {
-        const sizeMap = {
-          10: "1",
-          13: "2",
-          16: "3",
-          18: "4",
-          24: "5",
-          32: "6",
-          48: "7"
-        };
-        const gjsSize = sizeMap[value] || "3";
-        editorInstance.execCommand("fontSize", gjsSize);
+        editorInstance.execCommand("fontSize", value);
       } else if (name === "fontFamily") {
         editorInstance.execCommand("fontName", value);
       } else if (name === "fontWeight") {
-        // Font weight is harder to toggle via execCommand bold if it's specific.
-        // But usually "Bold" button is what people expect.
-        if (value === "700") {
-          editorInstance.execCommand("bold");
-        }
+        editorInstance.execCommand("fontWeight", value);
       }
     }
   };

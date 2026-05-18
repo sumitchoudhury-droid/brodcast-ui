@@ -4,20 +4,20 @@ import chevronDown from "../../../../../../assets/mainScreen/chevronRight.svg";
 import underlineIcon from "../../../../../../assets/textStyleIcons/underlineIcon.svg";
 import italicIcon from "../../../../../../assets/textStyleIcons/italicIcon.svg";
 import strikethroughIcon from "../../../../../../assets/textStyleIcons/strikethroughIcon.svg";
-import highlightIcon from "../../../../../../assets/textStyleIcons/highlightIcon.svg";
-import codeIcon from "../../../../../../assets/textStyleIcons/codeIcon.svg";
-import subscriptIcon from "../../../../../../assets/textStyleIcons/subscriptIcon.svg";
-import superscriptIcon from "../../../../../../assets/textStyleIcons/superscriptIcon.svg";
-import indentDecreaseIcon from "../../../../../../assets/textStyleIcons/indentDecreaseIcon.svg";
-import indentIncreaseIcon from "../../../../../../assets/textStyleIcons/indentIncreaseIcon.svg";
+// import highlightIcon from "../../../../../../assets/textStyleIcons/highlightIcon.svg";
+// import codeIcon from "../../../../../../assets/textStyleIcons/codeIcon.svg";
+// import subscriptIcon from "../../../../../../assets/textStyleIcons/subscriptIcon.svg";
+// import superscriptIcon from "../../../../../../assets/textStyleIcons/superscriptIcon.svg";
+// import indentDecreaseIcon from "../../../../../../assets/textStyleIcons/indentDecreaseIcon.svg";
+// import indentIncreaseIcon from "../../../../../../assets/textStyleIcons/indentIncreaseIcon.svg";
 import uppercaseIcon from "../../../../../../assets/textStyleIcons/uppercaseIcon.svg";
 import unorderedListIcon from "../../../../../../assets/textStyleIcons/unorderedListIcon.svg";
 import orderedListIcon from "../../../../../../assets/textStyleIcons/orderedListIcon.svg";
-import alignLeftIcon from "../../../../../../assets/textStyleIcons/alignLeftIcon.svg";
-import alignCenterIcon from "../../../../../../assets/textStyleIcons/alignCenterIcon.svg";
-import alignRightIcon from "../../../../../../assets/textStyleIcons/alignRightIcon.svg";
-import justifyIcon from "../../../../../../assets/textStyleIcons/JustifyIcon.svg";
-import lineThroughIcon from "../../../../../../assets/textStyleIcons/lineThroughIcon.svg";
+// import alignLeftIcon from "../../../../../../assets/textStyleIcons/alignLeftIcon.svg";
+// import alignCenterIcon from "../../../../../../assets/textStyleIcons/alignCenterIcon.svg";
+// import alignRightIcon from "../../../../../../assets/textStyleIcons/alignRightIcon.svg";
+// import justifyIcon from "../../../../../../assets/textStyleIcons/JustifyIcon.svg";
+// import lineThroughIcon from "../../../../../../assets/textStyleIcons/lineThroughIcon.svg";
 
 import "./style.scss";
 import { getOpacityFromColor } from "../../../../../../utils/colorUtils";
@@ -342,12 +342,11 @@ export const TextFontStyleContainer = ({
           </div>
 
           {/* ── Group 2: Alignment + Indent ─────────────────────────────────── */}
-          <div className="textStyleActionsRightItem">
+          {/* <div className="textStyleActionsRightItem">
             <div
               className="textStyleActionsRightItemContent"
               style={{ width: "69%" }}
             >
-              {/* Align Left */}
               <button
                 className={`formatIconBtn ${typography.textAlign === "left" ? "active" : ""}`}
                 title="Align Left"
@@ -359,7 +358,6 @@ export const TextFontStyleContainer = ({
                 <img src={alignLeftIcon} alt="alignLeft" />
               </button>
 
-              {/* Align Center */}
               <button
                 className={`formatIconBtn ${typography.textAlign === "center" ? "active" : ""}`}
                 title="Align Center"
@@ -371,7 +369,6 @@ export const TextFontStyleContainer = ({
                 <img src={alignCenterIcon} alt="alignCenter" />
               </button>
 
-              {/* Align Right */}
               <button
                 className={`formatIconBtn ${typography.textAlign === "right" ? "active" : ""}`}
                 title="Align Right"
@@ -383,7 +380,6 @@ export const TextFontStyleContainer = ({
                 <img src={alignRightIcon} alt="alignRight" />
               </button>
 
-              {/* Justify */}
               <button
                 className={`formatIconBtn ${typography.textAlign === "justify" ? "active" : ""}`}
                 title="Justify"
@@ -400,7 +396,6 @@ export const TextFontStyleContainer = ({
               className="textStyleActionsRightItemContent"
               style={{ width: "29%" }}
             >
-              {/* Indent Decrease */}
               <button
                 className="formatIconBtn"
                 title="Decrease Indent"
@@ -412,7 +407,6 @@ export const TextFontStyleContainer = ({
                 <img src={indentDecreaseIcon} alt="indentDecrease" />
               </button>
 
-              {/* Indent Increase */}
               <button
                 className="formatIconBtn"
                 title="Increase Indent"
@@ -424,11 +418,10 @@ export const TextFontStyleContainer = ({
                 <img src={indentIncreaseIcon} alt="indentIncrease" />
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* ── Group 3: Super | Sub | Code | Line-through | Highlight ─────── */}
-          <div className="textStyleActionsRightSize">
-            {/* Superscript */}
+          {/* <div className="textStyleActionsRightSize">
             <button
               className={`formatIconBtn ${isActive("superscript") ? "active" : ""}`}
               title="Superscript"
@@ -440,7 +433,6 @@ export const TextFontStyleContainer = ({
               <img src={superscriptIcon} alt="superscript" />
             </button>
 
-            {/* Subscript */}
             <button
               className={`formatIconBtn ${isActive("subscript") ? "active" : ""}`}
               title="Subscript"
@@ -452,7 +444,6 @@ export const TextFontStyleContainer = ({
               <img src={subscriptIcon} alt="subscript" />
             </button>
 
-            {/* Code */}
             <button
               className={`formatIconBtn ${isActive("code") ? "active" : ""}`}
               title="Inline Code"
@@ -464,7 +455,6 @@ export const TextFontStyleContainer = ({
               <img src={codeIcon} alt="code" />
             </button>
 
-            {/* Line Through */}
             <button
               className={`formatIconBtn ${isActive("lineThrough") ? "active" : ""}`}
               title="Line Through"
@@ -476,7 +466,6 @@ export const TextFontStyleContainer = ({
               <img src={lineThroughIcon} alt="lineThrough" />
             </button>
 
-            {/* Highlight */}
             <button
               className={`formatIconBtn ${isActive("highlight") ? "active" : ""}`}
               title="Highlight"
@@ -487,7 +476,7 @@ export const TextFontStyleContainer = ({
             >
               <img src={highlightIcon} alt="highlight" />
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
