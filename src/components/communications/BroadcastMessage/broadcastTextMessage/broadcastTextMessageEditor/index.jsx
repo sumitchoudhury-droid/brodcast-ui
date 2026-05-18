@@ -125,13 +125,14 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
           .trim();
         const isEmpty = plainText.length === 0;
 
-        // Toggle a class for the placeholder on both model and DOM
-        if (isEmpty) {
-          contentComp.addClass("is-empty");
-          if (el) el.classList.add("is-empty");
-        } else {
-          contentComp.removeClass("is-empty");
-          if (el) el.classList.remove("is-empty");
+        // Toggle a class for the placeholder via DOM only — model-level addClass/removeClass
+        // triggers a GrapesJS re-render that resets the cursor position mid-typing
+        if (el) {
+          if (isEmpty) {
+            el.classList.add("is-empty");
+          } else {
+            el.classList.remove("is-empty");
+          }
         }
 
         if (onContentChange) {
