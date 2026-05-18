@@ -3,7 +3,7 @@ import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "./style.scss";
 
-const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
+const BroadcastTextVoiceMessageEditor = ({ onContentChange, onReady }) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -131,8 +131,53 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
       }
     };
 
+    const savedRange = { current: null };
+
     editor.on("component:update", updateContent);
     editor.on("rte:exec", updateContent);
+
+    if (onReady) {
+      onReady({
+        insertAtCursor: (text) => {
+          const contentComp = editor
+            .getWrapper()
+            ?.find(".text-editor-content")[0];
+          if (!contentComp) return;
+          const doc = editor.Canvas.getDocument();
+          const canvasWin = editor.Canvas.getWindow();
+          if (!doc || !canvasWin) return;
+
+          const el = contentComp.getEl();
+          if (!el) return;
+
+          // Set editable directly so we don't wait on GrapesJS's async rte:enable
+          el.contentEditable = "true";
+          canvasWin.focus();
+          el.focus();
+
+          const sel = canvasWin.getSelection();
+          sel.removeAllRanges();
+          if (savedRange.current) {
+            try {
+              sel.addRange(savedRange.current);
+            } catch {
+              const r = doc.createRange();
+              r.selectNodeContents(el);
+              r.collapse(false);
+              sel.addRange(r);
+            }
+          } else {
+            const r = doc.createRange();
+            r.selectNodeContents(el);
+            r.collapse(false);
+            sel.addRange(r);
+          }
+
+          doc.execCommand("insertText", false, text);
+          updateContent();
+        }
+      });
+    }
 
     // Catch real-time typing inside the GrapesJS canvas
     editor.on("load", () => {
@@ -142,6 +187,15 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
       if (el) {
         el.addEventListener("input", updateContent);
       }
+
+      const doc2 = editor.Canvas.getDocument();
+      const win2 = editor.Canvas.getWindow();
+      doc2?.addEventListener("selectionchange", () => {
+        const sel = win2?.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          savedRange.current = sel.getRangeAt(0).cloneRange();
+        }
+      });
 
       // Handle external drops (placeholders)
       const doc = editor.Canvas.getDocument();
@@ -241,6 +295,7 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
         editorRef.current.destroy();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onContentChange]);
 
   return (
