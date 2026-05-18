@@ -103,6 +103,9 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
     // Track which bodies have listeners
     const attachedBodies = new WeakSet();
 
+    // Persist the last known cursor range so click-to-insert can restore it
+    const savedRange = { current: null };
+
     // Handle content change
     const updateContent = () => {
       const wrapper = editor.getWrapper();
@@ -248,8 +251,17 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
 
       // Handle external drops (placeholders)
       const doc = editor.Canvas.getDocument();
+      const win = editor.Canvas.getWindow();
       if (doc) {
         doc.addEventListener("input", updateContent);
+
+        // Save selection whenever it changes so click-to-insert can restore it
+        doc.addEventListener("selectionchange", () => {
+          const sel = win?.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            savedRange.current = sel.getRangeAt(0).cloneRange();
+          }
+        });
         doc.addEventListener(
           "dragover",
           (e) => {
@@ -475,6 +487,44 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
         editor,
         getHtml: () => editor.getHtml(),
         setDevice: (device) => editor.setDevice(device),
+        insertAtCursor: (text) => {
+          const wrapper = editor.getWrapper();
+          const contentComp = wrapper.find(".text-editor-content")[0];
+          if (!contentComp) return;
+
+          const doc = editor.Canvas.getDocument();
+          const canvasWin = editor.Canvas.getWindow();
+          if (!doc || !canvasWin) return;
+
+          canvasWin.focus();
+
+          const range = savedRange.current;
+          if (range) {
+            const sel = canvasWin.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } else {
+            // No saved range — fall back to end of content
+            const el = contentComp.getEl();
+            if (el) {
+              const r = doc.createRange();
+              r.selectNodeContents(el);
+              r.collapse(false);
+              const sel = canvasWin.getSelection();
+              sel.removeAllRanges();
+              sel.addRange(r);
+            }
+          }
+
+          const currentText = canvasWin.getSelection()?.toString() ?? "";
+          const prefix =
+            currentText.length === 0 &&
+            contentComp.getEl()?.innerText?.trim().length > 0
+              ? " "
+              : "";
+          doc.execCommand("insertText", false, prefix + text);
+          updateContent();
+        },
         execCommand: (cmd, value) => {
           const wrapper = editor.getWrapper();
           const contentComp = wrapper.find(".text-editor-content")[0];
@@ -553,6 +603,8 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
               bold: "bold",
               strikethrough: "strikeThrough",
               superscript: "superscript",
+              insertUnorderedList: "insertUnorderedList",
+              insertOrderedList: "insertOrderedList",
               subscript: "subscript"
             };
             if (inlineCmdMap[cmd]) {

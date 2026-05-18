@@ -19,7 +19,7 @@ function BroadcastTextMessage() {
 
   return (
     <div className="broadcastTextMessageContainer">
-      <BroadcastTextMessageLeftPanel />
+      <BroadcastTextMessageLeftPanel editorInstance={editorInstance} />
       <BroadcastTextMessageEditor
         onContentChange={handleContentChange}
         onReady={handleEditorReady}
