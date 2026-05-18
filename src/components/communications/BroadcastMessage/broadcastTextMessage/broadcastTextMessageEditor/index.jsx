@@ -86,6 +86,17 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
             opacity: 1 !important;
             visibility: visible !important;
           }
+          .text-editor-content ul,
+          .text-editor-content ol {
+            padding-left: 0 !important;
+            margin: 4px 0 !important;
+            list-style-position: inside !important;
+          }
+          .text-editor-content li,
+          .text-editor-content li[data-gjs-type] {
+            display: list-item !important;
+            padding-left: 0 !important;
+          }
           .unsubscribe-footer {
             margin-top: 20px !important;
             padding-top: 10px !important;
@@ -105,6 +116,17 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
 
     // Persist the last known cursor range so click-to-insert can restore it
     const savedRange = { current: null };
+
+    // Clone the container and stamp list styles inline so they appear in HTML output
+    const serializeContainer = (containerEl) => {
+      if (!containerEl) return null;
+      const clone = containerEl.cloneNode(true);
+      clone.querySelectorAll("ul, ol").forEach((list) => {
+        list.style.listStylePosition = "inside";
+        list.style.paddingLeft = "0";
+      });
+      return clone.outerHTML;
+    };
 
     // Handle content change
     const updateContent = () => {
@@ -139,8 +161,11 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
         }
 
         if (onContentChange) {
-          // Output final HTML content and empty status
-          onContentChange(editor.getHtml(), isEmpty);
+          const containerEl = el?.closest(".text-editor-container");
+          onContentChange(
+            serializeContainer(containerEl) ?? editor.getHtml(),
+            isEmpty
+          );
         }
       }
     };
@@ -485,7 +510,13 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
     if (onReady) {
       onReady({
         editor,
-        getHtml: () => editor.getHtml(),
+        getHtml: () => {
+          const wrapper = editor.getWrapper();
+          const contentComp = wrapper?.find(".text-editor-content")[0];
+          const el = contentComp?.getEl();
+          const containerEl = el?.closest(".text-editor-container");
+          return serializeContainer(containerEl) ?? editor.getHtml();
+        },
         setDevice: (device) => editor.setDevice(device),
         insertAtCursor: (text) => {
           const wrapper = editor.getWrapper();
@@ -531,36 +562,33 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
           if (contentComp) {
             if (cmd === "fontName") {
               const el = contentComp.getEl();
-              if (el) {
-                el.style.fontFamily = value;
-              }
+              if (el) el.style.fontFamily = value;
+              contentComp.addStyle({ "font-family": value });
               updateContent();
               return;
             }
 
             if (cmd === "fontWeight") {
               const el = contentComp.getEl();
-              if (el) {
-                el.style.fontWeight = value;
-              }
+              if (el) el.style.fontWeight = value;
+              contentComp.addStyle({ "font-weight": value });
               updateContent();
               return;
             }
 
             if (cmd === "fontSize") {
               const el = contentComp.getEl();
-              if (el && value) {
-                el.style.fontSize = `${value}px`;
-              }
+              const px = `${value}px`;
+              if (el && value) el.style.fontSize = px;
+              contentComp.addStyle({ "font-size": px });
               updateContent();
               return;
             }
 
             if (cmd === "foreColor") {
               const el = contentComp.getEl();
-              if (el && value) {
-                el.style.color = value;
-              }
+              if (el && value) el.style.color = value;
+              contentComp.addStyle({ color: value });
               updateContent();
               return;
             }
@@ -573,26 +601,32 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
                 "justifyFull"
               ].includes(cmd)
             ) {
+              const alignMap = {
+                justifyLeft: "left",
+                justifyCenter: "center",
+                justifyRight: "right",
+                justifyFull: "justify"
+              };
+              const alignValue = alignMap[cmd];
               const el = contentComp.getEl();
               if (el) {
-                const alignMap = {
-                  justifyLeft: "left",
-                  justifyCenter: "center",
-                  justifyRight: "right",
-                  justifyFull: "justify"
-                };
-                el.style.textAlign = alignMap[cmd];
+                el.style.textAlign = alignValue;
+                el.querySelectorAll("ul, ol").forEach((list) => {
+                  list.style.listStylePosition = "inside";
+                  list.style.paddingLeft = "0";
+                });
               }
+              contentComp.addStyle({ "text-align": alignValue });
               updateContent();
               return;
             }
 
             if (cmd === "uppercase") {
               const el = contentComp.getEl();
-              if (el) {
-                el.style.textTransform =
-                  el.style.textTransform === "uppercase" ? "none" : "uppercase";
-              }
+              const newTransform =
+                el?.style.textTransform === "uppercase" ? "none" : "uppercase";
+              if (el) el.style.textTransform = newTransform;
+              contentComp.addStyle({ "text-transform": newTransform });
               updateContent();
               return;
             }
