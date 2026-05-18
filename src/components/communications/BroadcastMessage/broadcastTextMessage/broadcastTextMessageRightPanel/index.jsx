@@ -50,11 +50,7 @@ export default function BroadcastTextMessageRightPanel({
       } else if (name === "fontFamily") {
         editorInstance.execCommand("fontName", value);
       } else if (name === "fontWeight") {
-        // Font weight is harder to toggle via execCommand bold if it's specific.
-        // But usually "Bold" button is what people expect.
-        if (value === "700") {
-          editorInstance.execCommand("bold");
-        }
+        editorInstance.execCommand("fontWeight", value);
       }
     }
   };
