@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Routes,
   Route,
@@ -8,9 +8,12 @@ import {
 } from "react-router-dom";
 import { PatientsMessages } from "../../components/communications/patientsMessages";
 import "./style.scss";
-import { BroadcastMessage } from "../../components/communications/BroadcastMessage";
+
+import BroadCastTable from "../../components/communications/BroadCastTable/index";
 
 function Communications() {
+  const [addScheduleModal, setAddScheduleModal] = useState(false);
+
   const CommunicationsData = useMemo(
     () => [
       { id: 1, title: "Patients Messages", path: "patients-messages" },
@@ -55,7 +58,9 @@ function Communications() {
       </div>
 
       {/* CONTENT CHANGES */}
-      <div className="communicationContent">
+      <div
+        className={`${activeId === 2 || addScheduleModal ? "broadcastTableWrapper" : "communicationContent"}`}
+      >
         <div
           style={{
             display: activeId === 1 ? "flex" : "none",
@@ -72,7 +77,10 @@ function Communications() {
             height: "100%"
           }}
         >
-          <BroadcastMessage />
+          <BroadCastTable
+            addScheduleModal={addScheduleModal}
+            setAddScheduleModal={setAddScheduleModal}
+          />
         </div>
 
         {/* Catch-all for default route redirection */}

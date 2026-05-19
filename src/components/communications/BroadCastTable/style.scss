@@ -1,0 +1,19 @@
+@use "../../../style/variable.scss" as variable;
+
+.broadcastTable {
+  @include variable.d-flex($fd: column);
+  .broadcastTableHeader {
+    padding: 12px 20px;
+    @include variable.d-flex($fd: row, $al: center, $g: 12px);
+  }
+  .broadcastTableContainer {
+    width: 100%;
+    padding: 0px 12px;
+  }
+  .broadcastTablePagination {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    z-index: 10;
+  }
+}

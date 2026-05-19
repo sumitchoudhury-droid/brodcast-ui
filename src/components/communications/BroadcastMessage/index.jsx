@@ -11,7 +11,7 @@ import languageIcon from "../../../assets/mainScreen/languageIcon.svg";
 import greenChevronRight from "../../../assets/mainScreen/greenChevronRight.svg";
 import Footer from "./broadcastMessageFooter/footer";
 
-export const BroadcastMessage = () => {
+export const BroadcastMessage = ({ handleCancel }) => {
   const [currentStep, setCurrentStep] = useState("setup");
   const [selectedModes, setSelectedModes] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
@@ -137,6 +137,7 @@ export const BroadcastMessage = () => {
             setCurrentStep("editor");
             setActiveTab(selectedModes[0]);
           }}
+          handleCancel={handleCancel}
         />
       )}
     </>
