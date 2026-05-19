@@ -4,7 +4,7 @@ import BroadcastTextMessageLeftPanel from "./broadcastTextMessageLeftPanel/index
 import BroadcastTextMessageRightPanel from "./broadcastTextMessageRightPanel/index";
 import BroadcastTextMessageEditor from "./broadcastTextMessageEditor/index";
 
-function BroadcastTextMessage() {
+function BroadcastTextMessage({ selectedTemplate }) {
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
   const [editorInstance, setEditorInstance] = useState(null);
 
@@ -23,6 +23,7 @@ function BroadcastTextMessage() {
       <BroadcastTextMessageEditor
         onContentChange={handleContentChange}
         onReady={handleEditorReady}
+        initialTemplate={selectedTemplate?.textTemplate}
       />
       <BroadcastTextMessageRightPanel
         isEditorEmpty={isEditorEmpty}

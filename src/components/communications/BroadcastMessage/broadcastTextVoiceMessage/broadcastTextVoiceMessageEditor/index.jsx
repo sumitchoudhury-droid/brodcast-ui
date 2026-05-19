@@ -3,7 +3,10 @@ import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "./style.scss";
 
-const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
+const BroadcastTextVoiceMessageEditor = ({
+  onContentChange,
+  initialTemplate
+}) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -45,54 +48,62 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
     });
 
     editor.on("load", () => {
+      const componentsList = [
+        {
+          tagName: "div",
+          type: "text", // Ensures manual typing is enabled
+          classes: ["text-editor-content"],
+          attributes: {
+            "data-placeholder":
+              "Start typing or drag and drop a placeholder from left panel.",
+            style: initialTemplate
+              ? "padding: 0; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; outline: none; color: #404B5A; height: fit-content;"
+              : "padding: 20px 20px 10px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; outline: none; color: #404B5A; height: fit-content;"
+          },
+          content: initialTemplate || "",
+          editable: true,
+          draggable: false,
+          droppable: true,
+          removable: false,
+          selectable: true,
+          hoverable: false,
+          badgable: false,
+          toolbar: []
+        }
+      ];
+
+      if (!initialTemplate) {
+        componentsList.push({
+          tagName: "div",
+          classes: ["opt-out-section"],
+          attributes: {
+            style:
+              "padding: 10px 20px 20px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; color: #D3DBE4; cursor: default; user-select: none;"
+          },
+          content:
+            "To opt out of future calls from Manipal Hospitals, please press 9.",
+          editable: false,
+          draggable: false,
+          droppable: false,
+          removable: false,
+          selectable: false,
+          hoverable: false,
+          badgable: false,
+          copyable: false,
+          toolbar: []
+        });
+      }
+
       editor.setComponents([
         {
           tagName: "div",
           classes: ["text-editor-container"],
           attributes: {
-            style:
-              "display: flex; flex-direction: column; height: 100%; box-sizing: border-box;"
+            style: initialTemplate
+              ? "display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; background-color: #f3f3f3; padding: 0px;"
+              : "display: flex; flex-direction: column; height: 100%; box-sizing: border-box;"
           },
-          components: [
-            {
-              tagName: "div",
-              type: "text", // Ensures manual typing is enabled
-              classes: ["text-editor-content"],
-              attributes: {
-                "data-placeholder":
-                  "Start typing or drag and drop a placeholder from left panel.",
-                style:
-                  "padding: 20px 20px 10px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; outline: none; color: #404B5A; height: fit-content;"
-              },
-              editable: true,
-              draggable: false,
-              droppable: true,
-              removable: false,
-              selectable: true,
-              hoverable: false,
-              badgable: false,
-              toolbar: []
-            },
-            {
-              tagName: "div",
-              classes: ["opt-out-section"],
-              attributes: {
-                style:
-                  "padding: 10px 20px 20px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; color: #D3DBE4; cursor: default; user-select: none;"
-              },
-              content:
-                "To opt out of future calls from Manipal Hospitals, please press 9.",
-              editable: false,
-              draggable: false,
-              droppable: false,
-              removable: false,
-              selectable: false,
-              hoverable: false,
-              badgable: false,
-              copyable: false,
-              toolbar: []
-            }
-          ]
+          components: componentsList
         }
       ]);
 
@@ -241,7 +252,7 @@ const BroadcastTextVoiceMessageEditor = ({ onContentChange }) => {
         editorRef.current.destroy();
       }
     };
-  }, [onContentChange]);
+  }, [onContentChange, initialTemplate]);
 
   return (
     <div className="BroadcastTextVoiceMessageEditor">

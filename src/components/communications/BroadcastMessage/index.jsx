@@ -15,6 +15,7 @@ export const BroadcastMessage = () => {
   const [currentStep, setCurrentStep] = useState("setup");
   const [selectedModes, setSelectedModes] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   const editorRef = useRef(null);
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
@@ -50,6 +51,7 @@ export const BroadcastMessage = () => {
           setShowPlaceholders={setShowPlaceholders}
           isEditorEmpty={isEditorEmpty}
           setIsEditorEmpty={setIsEditorEmpty}
+          selectedTemplate={selectedTemplate}
         />
       );
     }
@@ -63,16 +65,17 @@ export const BroadcastMessage = () => {
           setShowPlaceholders={setShowPlaceholders}
           isEditorEmpty={isEditorEmpty}
           setIsEditorEmpty={setIsEditorEmpty}
+          selectedTemplate={selectedTemplate}
         />
       );
     }
 
     if (selectedModes.includes("Text")) {
-      return <BroadcastTextMessage />;
+      return <BroadcastTextMessage selectedTemplate={selectedTemplate} />;
     }
 
     if (selectedModes.includes("Voice")) {
-      return <BroadcastTextVoiceMessage />;
+      return <BroadcastTextVoiceMessage selectedTemplate={selectedTemplate} />;
     }
 
     return null;
@@ -125,7 +128,12 @@ export const BroadcastMessage = () => {
         <AddBroadcastMessage
           selectedModes={selectedModes}
           setSelectedModes={setSelectedModes}
-          onNext={() => {
+          selectedTemplateData={selectedTemplate}
+          setSelectedTemplateData={setSelectedTemplate}
+          onNext={(templateData) => {
+            if (templateData) {
+              setSelectedTemplate(templateData);
+            }
             setCurrentStep("editor");
             setActiveTab(selectedModes[0]);
           }}

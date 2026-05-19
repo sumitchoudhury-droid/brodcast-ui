@@ -7,8 +7,6 @@ import voiceIcon from "../../../assets/existingTemplate/phone.svg";
 import searchIcon from "../../../assets/commonIcons/searchIcon.svg";
 import emptyTemplate from "../../../assets/existingTemplate/emptyTemplate.svg";
 import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
-import mobileIcon from "../../../assets/previewSection/mobileIcon.svg";
-import desktopIcon from "../../../assets/previewSection/desktopIcon.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import emailTemplate from "./htmlTemplates/email.html?raw";
 import textTemplate from "./htmlTemplates/textMessage.html?raw";
@@ -71,7 +69,7 @@ const MOCK_TEMPLATES = [
   }
 ];
 
-function ExistingTemplates({ isOpen, onClose }) {
+function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [activeModeTab, setActiveModeTab] = useState("Text");
@@ -83,6 +81,14 @@ function ExistingTemplates({ isOpen, onClose }) {
 
   const handleSelectTemplate = () => {
     console.log("Selected Template:", selectedTemplate);
+    if (onSelectTemplate) {
+      onSelectTemplate({
+        ...selectedTemplate,
+        emailTemplate,
+        textTemplate,
+        voiceTemplate
+      });
+    }
     onClose();
   };
 
@@ -207,13 +213,41 @@ function ExistingTemplates({ isOpen, onClose }) {
                     className={`modeIcon ${viewMode === "mobile" ? "active" : ""}`}
                     onClick={() => setViewMode("mobile")}
                   >
-                    <img src={mobileIcon} alt="mobile" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="22"
+                      height="22"
+                      viewBox="0 0 22 22"
+                      fill="none"
+                    >
+                      <path
+                        d="M10.0833 3.66667H11.9167M11 15.5833V15.5925M5.5 4.58333C5.5 4.0971 5.69315 3.63079 6.03697 3.28697C6.38079 2.94315 6.8471 2.75 7.33333 2.75H14.6667C15.1529 2.75 15.6192 2.94315 15.963 3.28697C16.3068 3.63079 16.5 4.0971 16.5 4.58333V17.4167C16.5 17.9029 16.3068 18.3692 15.963 18.713C15.6192 19.0568 15.1529 19.25 14.6667 19.25H7.33333C6.8471 19.25 6.38079 19.0568 6.03697 18.713C5.69315 18.3692 5.5 17.9029 5.5 17.4167V4.58333Z"
+                        stroke="#606E80"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </div>
                   <div
                     className={`modeIcon ${viewMode === "desktop" ? "active" : ""}`}
                     onClick={() => setViewMode("desktop")}
                   >
-                    <img src={desktopIcon} alt="desktop" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="22"
+                      height="22"
+                      viewBox="0 0 22 22"
+                      fill="none"
+                    >
+                      <path
+                        d="M6.41667 18.3327H15.5833M8.25 14.666V18.3327M13.75 14.666V18.3327M2.75 4.58268C2.75 4.33957 2.84658 4.10641 3.01849 3.9345C3.19039 3.76259 3.42355 3.66602 3.66667 3.66602H18.3333C18.5764 3.66602 18.8096 3.76259 18.9815 3.9345C19.1534 4.10641 19.25 4.33957 19.25 4.58268V13.7493C19.25 13.9925 19.1534 14.2256 18.9815 14.3975C18.8096 14.5694 18.5764 14.666 18.3333 14.666H3.66667C3.42355 14.666 3.19039 14.5694 3.01849 14.3975C2.84658 14.2256 2.75 13.9925 2.75 13.7493V4.58268Z"
+                        stroke="#606E80"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </div>
                 </div>
               </div>

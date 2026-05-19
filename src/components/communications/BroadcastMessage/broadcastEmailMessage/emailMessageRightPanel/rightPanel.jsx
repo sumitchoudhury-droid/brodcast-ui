@@ -563,6 +563,47 @@ function setupBulletListKeyHandler(editor) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// RightPanel Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+const isText = (comp) => {
+  if (!comp) return false;
+  const type = comp.get("type");
+  const tag = comp.get("tagName");
+  return (
+    comp.is("mj-text") ||
+    type === "text" ||
+    tag === "p" ||
+    tag === "span" ||
+    tag === "div" ||
+    ["h1", "h2", "h3", "h4", "h5", "h6"].includes(tag)
+  );
+};
+
+const isButton = (comp) => {
+  if (!comp) return false;
+  const type = comp.get("type");
+  const tag = comp.get("tagName");
+  return (
+    comp.is("mj-button") ||
+    comp.is("link") ||
+    comp.is("button") ||
+    type === "link" ||
+    type === "button" ||
+    tag === "a" ||
+    tag === "button"
+  );
+};
+
+const isImage = (comp) => {
+  if (!comp) return false;
+  const type = comp.get("type");
+  const tag = comp.get("tagName");
+  return (
+    comp.is("mj-image") || comp.is("image") || type === "image" || tag === "img"
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // RightPanel
 // ─────────────────────────────────────────────────────────────────────────────
 export default function RightPanel({ editorRef, isEditorEmpty }) {
@@ -740,9 +781,29 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (!editor) return;
 
     const updateState = () => {
-      const selected = editor.getSelected();
+      let selected = editor.getSelected();
+      if (!selected) {
+        setSelectedComp(null);
+        return;
+      }
+
+      // Walk up to find if selected component is inside an attachment block
+      let current = selected;
+      let attachmentAncestor = null;
+      while (current) {
+        const dt = current.getAttributes?.()?.["data-type"];
+        if (dt === "attachment-filled" || dt === "attachment-placeholder") {
+          attachmentAncestor = current;
+          break;
+        }
+        current = current.parent();
+      }
+
+      if (attachmentAncestor) {
+        selected = attachmentAncestor;
+      }
+
       setSelectedComp(selected);
-      if (!selected) return;
 
       let dimTarget = selected;
       if (["mj-text", "mj-divider", "mj-raw"].includes(selected.get("type"))) {
@@ -815,7 +876,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           ""
       });
 
-      if (selected.is("mj-text") || selected.is("mj-button")) {
+      if (isText(selected) || isButton(selected) || isImage(selected)) {
         const currentFontSize = style["font-size"]?.replace("px", "") || "";
         setTextColor(style["color"] || "#000000");
         setTypography({
@@ -851,11 +912,23 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           )
         });
 
-        if (selected.is("mj-button")) {
+        if (isButton(selected)) {
           setButtonUrl(selected.getAttributes().href || "");
         }
-        if (selected.is("mj-image")) {
-          setImageLink(selected.getAttributes().href || "");
+        if (isImage(selected)) {
+          let linkUrl = "";
+          if (selected.is("mj-image")) {
+            linkUrl = selected.getAttributes().href || "";
+          } else {
+            const parent = selected.parent();
+            if (
+              parent &&
+              (parent.get("tagName") === "a" || parent.get("type") === "link")
+            ) {
+              linkUrl = parent.getAttributes().href || "";
+            }
+          }
+          setImageLink(linkUrl);
         }
       } else {
         // Sync textAlign for other components (like mj-column or sections)
@@ -884,23 +957,43 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       }
       setJustifyContent(dimStyle["justify-content"] || "flex-start");
 
+      const rawPadding =
+        style["padding"] || selected.getAttributes?.()["padding"] || "";
+      const getPaddingValue = (side) => {
+        const specific =
+          style[`padding-${side}`] ||
+          selected.getAttributes?.()[`padding-${side}`];
+        if (specific) return specific.replace("px", "") || "0";
+
+        if (!rawPadding) return "0";
+        const parts = rawPadding.trim().replace(/\s+/g, " ").split(" ");
+        if (parts.length === 1) {
+          return parts[0].replace("px", "") || "0";
+        }
+        if (parts.length === 2) {
+          if (side === "top" || side === "bottom")
+            return parts[0].replace("px", "") || "0";
+          if (side === "left" || side === "right")
+            return parts[1].replace("px", "") || "0";
+        }
+        if (parts.length === 3) {
+          if (side === "top") return parts[0].replace("px", "") || "0";
+          if (side === "left" || side === "right")
+            return parts[1].replace("px", "") || "0";
+          if (side === "bottom") return parts[2].replace("px", "") || "0";
+        }
+        if (parts.length >= 4) {
+          const idxMap = { top: 0, right: 1, bottom: 2, left: 3 };
+          return parts[idxMap[side]].replace("px", "") || "0";
+        }
+        return "0";
+      };
+
       setPadding({
-        top:
-          style["padding-top"]?.replace("px", "") ||
-          style["padding"]?.split(" ")[0]?.replace("px", "") ||
-          "",
-        right:
-          style["padding-right"]?.replace("px", "") ||
-          style["padding"]?.split(" ")[1]?.replace("px", "") ||
-          "",
-        bottom:
-          style["padding-bottom"]?.replace("px", "") ||
-          style["padding"]?.split(" ")[2]?.replace("px", "") ||
-          "",
-        left:
-          style["padding-left"]?.replace("px", "") ||
-          style["padding"]?.split(" ")[3]?.replace("px", "") ||
-          ""
+        top: getPaddingValue("top"),
+        right: getPaddingValue("right"),
+        bottom: getPaddingValue("bottom"),
+        left: getPaddingValue("left")
       });
 
       setGap({
@@ -940,7 +1033,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       // Force height to auto for components that only support Auto height in the UI
       // (mj-image, mj-column, mj-section, mj-hero, etc.)
       const needsAutoHeight =
-        selected.is("mj-image") ||
+        isImage(selected) ||
         selected.is("mj-column") ||
         selected.is("mj-section") ||
         selected.is("mj-hero");
@@ -1234,7 +1327,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const selected = editorRef.current?.getEditor()?.getSelected();
     const needsAuto =
       selected &&
-      (selected.is("mj-image") ||
+      (isImage(selected) ||
         selected.is("mj-column") ||
         selected.is("mj-section") ||
         selected.is("mj-hero"));
@@ -1368,10 +1461,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   // ─── Typography ────────────────────────────────────────────────────────────
   const handleTextColorChange = (c) => {
     setTextColor(c);
-    if (
-      selectedComp &&
-      (selectedComp.is("mj-text") || selectedComp.is("mj-button"))
-    ) {
+    if (selectedComp && (isText(selectedComp) || isButton(selectedComp))) {
       const editor = editorRef.current?.getEditor();
       const sel = editor ? getCanvasSelection(editor) : null;
 
@@ -1416,13 +1506,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         const type = comp.get("type");
         // Update components that support alignment
         if (
-          comp.is("mj-text") ||
-          comp.is("mj-button") ||
-          comp.is("mj-image") ||
+          isText(comp) ||
+          isButton(comp) ||
+          isImage(comp) ||
           comp.is("mj-column") ||
-          type === "mj-text" ||
-          type === "mj-button" ||
-          type === "mj-image" ||
           type === "mj-column"
         ) {
           comp.addAttributes({ align: align });
@@ -1439,7 +1526,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       return;
     }
 
-    if (selectedComp.is("mj-text") || selectedComp.is("mj-button")) {
+    if (isText(selectedComp) || isButton(selectedComp)) {
       // For inline properties, apply to selected text only if there's an active selection
       const editor = editorRef.current?.getEditor();
       const sel = editor ? getCanvasSelection(editor) : null;
@@ -1475,13 +1562,15 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
   };
 
-  // ─── Padding / Margin ──────────────────────────────────────────────────────
   const handlePaddingChange = (side, value) => {
     setPadding((prev) => ({ ...prev, [side]: value }));
-    if (value === "") {
-      selectedComp?.addStyle({ [`padding-${side}`]: "" });
-    } else {
-      selectedComp?.addStyle({ [`padding-${side}`]: `${value}px` });
+    const valStr = value === "" ? "" : `${value}px`;
+    if (selectedComp) {
+      selectedComp.addStyle({ [`padding-${side}`]: valStr });
+      if (typeof selectedComp.addAttributes === "function") {
+        selectedComp.addAttributes({ [`padding-${side}`]: valStr });
+      }
+      editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
     }
   };
 
@@ -1491,7 +1580,20 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const target = getStyleTarget();
     if (!target) return;
 
-    target.addStyle({ gap: `${value}px` });
+    const type = target.get("type");
+    const isMjml = type && type.startsWith("mj-");
+    const styleUpdates = { gap: `${value}px` };
+
+    if (!isMjml) {
+      const tagName = target.get?.("tagName")?.toLowerCase?.();
+      const currentStyle = target.getStyle?.() || {};
+      styleUpdates.display = "flex";
+      if (!currentStyle["flex-direction"]) {
+        styleUpdates["flex-direction"] = tagName === "tr" ? "row" : "column";
+      }
+    }
+
+    target.addStyle(styleUpdates);
 
     const el = target.getView?.()?.el;
     const td = getColumnContainerTd(el);
@@ -1519,7 +1621,19 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     } else {
       // Section: flexbox lives on the inner <td> that holds all columns.
       // Store in model for state read-back on re-selection.
-      target.addStyle({ "align-items": value });
+      const isMjml = type && type.startsWith("mj-");
+      const styleUpdates = { "align-items": value };
+
+      if (!isMjml) {
+        const tagName = target.get?.("tagName")?.toLowerCase?.();
+        const currentStyle = target.getStyle?.() || {};
+        styleUpdates.display = "flex";
+        if (!currentStyle["flex-direction"]) {
+          styleUpdates["flex-direction"] = tagName === "tr" ? "row" : "column";
+        }
+      }
+
+      target.addStyle(styleUpdates);
       const td = getColumnContainerTd(el);
       if (td) {
         syncFlexToTd(td, value, justifyContent, gap);
@@ -1533,7 +1647,20 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (!target) return;
 
     // Store in model for state read-back on re-selection
-    target.addStyle({ "justify-content": value });
+    const type = target.get("type");
+    const isMjml = type && type.startsWith("mj-");
+    const styleUpdates = { "justify-content": value };
+
+    if (!isMjml) {
+      const tagName = target.get?.("tagName")?.toLowerCase?.();
+      const currentStyle = target.getStyle?.() || {};
+      styleUpdates.display = "flex";
+      if (!currentStyle["flex-direction"]) {
+        styleUpdates["flex-direction"] = tagName === "tr" ? "row" : "column";
+      }
+    }
+
+    target.addStyle(styleUpdates);
 
     const el = target.getView?.()?.el;
     const td = getColumnContainerTd(el);
@@ -1553,9 +1680,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       const selectedAll = editor.getSelectedAll();
       if (!selectedAll || selectedAll.length === 0) return;
 
-      const targetComps = selectedAll.filter(
-        (c) => c.is("mj-text") || c.is("mj-button")
-      );
+      const targetComps = selectedAll.filter((c) => isText(c) || isButton(c));
       if (targetComps.length === 0) return;
 
       const sel = getCanvasSelection(editor);
@@ -2175,8 +2300,62 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     }
     const previousLink = imageLink;
     setImageLink(finalUrl);
-    if (selectedComp && selectedComp.is("mj-image")) {
-      selectedComp.addAttributes({ href: finalUrl });
+    if (selectedComp && isImage(selectedComp)) {
+      if (selectedComp.is("mj-image")) {
+        selectedComp.addAttributes({ href: finalUrl, target: "_blank" });
+      } else {
+        const parent = selectedComp.parent();
+        const isParentLink =
+          parent &&
+          (parent.get("tagName") === "a" || parent.get("type") === "link");
+        if (finalUrl) {
+          if (isParentLink) {
+            parent.addAttributes({ href: finalUrl, target: "_blank" });
+          } else {
+            const imgJson = selectedComp.toJSON();
+            const imgStyle = selectedComp.getStyle() || {};
+            const wrapperStyle = {
+              display: imgStyle.display || "inline-block",
+              width: imgStyle.width || "100%"
+            };
+            if (imgStyle["max-width"])
+              wrapperStyle["max-width"] = imgStyle["max-width"];
+            if (imgStyle.margin) wrapperStyle.margin = imgStyle.margin;
+            if (imgStyle["margin-left"])
+              wrapperStyle["margin-left"] = imgStyle["margin-left"];
+            if (imgStyle["margin-right"])
+              wrapperStyle["margin-right"] = imgStyle["margin-right"];
+            if (imgStyle["margin-top"])
+              wrapperStyle["margin-top"] = imgStyle["margin-top"];
+            if (imgStyle["margin-bottom"])
+              wrapperStyle["margin-bottom"] = imgStyle["margin-bottom"];
+            if (imgStyle.float) wrapperStyle.float = imgStyle.float;
+
+            const wrapped = selectedComp.replaceWith({
+              type: "link",
+              tagName: "a",
+              attributes: { href: finalUrl, target: "_blank" },
+              style: wrapperStyle,
+              components: [imgJson]
+            });
+            if (wrapped && editorRef.current?.getEditor()) {
+              const newImg = wrapped.components().at(0);
+              if (newImg) {
+                editorRef.current.getEditor().select(newImg);
+              }
+            }
+          }
+        } else {
+          if (isParentLink) {
+            const imgJson = selectedComp.toJSON();
+            const unwrapped = parent.replaceWith(imgJson);
+            if (unwrapped && editorRef.current?.getEditor()) {
+              editorRef.current.getEditor().select(unwrapped);
+            }
+          }
+        }
+      }
+
       if (finalUrl && !previousLink) {
         toast.success("Link Added", "Image link added successfully.");
       } else if (finalUrl && previousLink && finalUrl !== previousLink) {
@@ -2203,8 +2382,8 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     const previousUrl = buttonUrl;
     setButtonUrl(finalUrl);
     const selected = selectedComp;
-    if (selected && selected.is("mj-button")) {
-      selected.addAttributes({ href: finalUrl });
+    if (selected && isButton(selected)) {
+      selected.addAttributes({ href: finalUrl, target: "_blank" });
       if (finalUrl && !previousUrl) {
         toast.success("Link Added", "Button link added successfully.");
       } else if (finalUrl && previousUrl && finalUrl !== previousUrl) {
@@ -2218,8 +2397,18 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const dataType = selectedComp?.getAttributes?.()["data-type"];
+  const tagName = selectedComp?.get?.("tagName")?.toLowerCase?.();
+  const compType = selectedComp?.get?.("type");
+  const compStyle = selectedComp?.getStyle?.() || {};
+
   let isFrame =
-    dataType === "column-frame-section" || dataType === "row-frame-column";
+    dataType === "column-frame-section" ||
+    dataType === "row-frame-column" ||
+    compStyle.display === "flex" ||
+    ["table", "tr", "td", "div", "section"].includes(tagName) ||
+    ["mj-section", "mj-column", "mj-hero", "section", "row", "column"].includes(
+      compType
+    );
 
   // Also check if it's a section that contains a row-frame-column (typical for Row block)
   if (!isFrame && selectedComp?.get("type") === "mj-section") {
@@ -2242,28 +2431,27 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         <SignatureSection editorRef={editorRef} />
         {/* <LayoutContainer handleAddLayout={handleAddLayout} /> */}
 
-        {selectedComp && selectedComp.is("mj-button") && (
+        {selectedComp && isButton(selectedComp) && (
           <ButtonSection
             buttonUrl={buttonUrl}
             onUrlChange={handleButtonUrlChange}
           />
         )}
 
-        {selectedComp &&
-          (selectedComp.is("mj-text") || selectedComp.is("mj-button")) && (
-            <TextStyleContainer
-              typography={typography}
-              handleTypographyChange={handleTypographyChange}
-              textColor={textColor}
-              handleTextColorChange={handleTextColorChange}
-              activeFormats={activeFormats}
-              onFormatToggle={handleFormatToggle}
-            />
-          )}
+        {selectedComp && (isText(selectedComp) || isButton(selectedComp)) && (
+          <TextStyleContainer
+            typography={typography}
+            handleTypographyChange={handleTypographyChange}
+            textColor={textColor}
+            handleTextColorChange={handleTextColorChange}
+            activeFormats={activeFormats}
+            onFormatToggle={handleFormatToggle}
+          />
+        )}
 
         {!isEditorEmpty && (
           <>
-            {selectedComp && selectedComp.is("mj-image") && (
+            {selectedComp && isImage(selectedComp) && (
               <ImageSection
                 imageLink={imageLink}
                 onLinkChange={handleImageLinkChange}
@@ -2297,6 +2485,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
                 selectedComp.is("mj-section") ||
                 selectedComp.is("mj-hero") ||
                 colTarget ||
+                isText(selectedComp) ||
+                isButton(selectedComp) ||
+                isImage(selectedComp) ||
+                isFrame ||
+                dataType === "attachment-filled" ||
+                dataType === "attachment-placeholder" ||
                 [
                   "mj-text",
                   "mj-button",
@@ -2306,7 +2500,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
                   "mj-spacer",
                   "mj-social",
                   "mj-table",
-                  "mj-accordion"
+                  "mj-accordion",
+                  "text",
+                  "link",
+                  "image"
                 ].includes(selectedComp.get("type"))) && (
                 <DimensionContainer
                   title={colTarget ? "Layout (Column)" : "Dimensions"}

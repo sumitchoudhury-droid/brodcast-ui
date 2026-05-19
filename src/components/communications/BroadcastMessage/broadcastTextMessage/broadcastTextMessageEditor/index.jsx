@@ -14,7 +14,11 @@ import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIco
 import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
 import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkModal/index";
 
-const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
+const BroadcastTextMessageEditor = ({
+  onContentChange,
+  onReady,
+  initialTemplate
+}) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -239,8 +243,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
         });
       }
 
-      // Load initial content
-      editor.setComponents([
+      const componentsList = [
         {
           tagName: "div",
           attributes: {
@@ -286,7 +289,9 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
             }
           ]
         }
-      ]);
+      ];
+
+      editor.setComponents(initialTemplate || componentsList);
 
       const wrapper = editor.getWrapper();
       const contentComp = wrapper.find(".text-editor-content")[0];
@@ -703,7 +708,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
         editorRef.current.destroy();
       }
     };
-  }, [onContentChange, onReady]);
+  }, [onContentChange, onReady, initialTemplate]);
 
   const handleToolbarLinkConfirm = () => {
     let url = linkModalUrl;

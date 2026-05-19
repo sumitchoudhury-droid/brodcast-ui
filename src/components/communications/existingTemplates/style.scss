@@ -186,7 +186,8 @@
         overflow: hidden;
 
         .rightPanelTop {
-          @include variable.d-flex($jc: space-between, $al: center, $g: 140px);
+          width: 100%;
+          @include variable.d-flex($jc: end, $al: center, $g: 140px);
           .modeTabsContainer {
             padding: 3px;
             background-color: variable.$color-white-11;
@@ -218,26 +219,20 @@
           }
 
           .viewMode {
+            padding: 3px;
+            border-radius: 14px;
+            background-color: variable.$color-white-11;
             @include variable.d-flex($al: center, $g: 10px);
             .modeIcon {
               cursor: pointer;
-              padding: 6px;
-              border-radius: 6px;
-              transition: all 0.2s;
+              padding: 8px 10px;
+              border-radius: 8px;
               @include variable.d-flex($al: center, $jc: center);
 
               &.active {
-                background: variable.$color-blue-3;
-                border: 1px solid variable.$color-blue-0;
-              }
-
-              &:hover:not(.active) {
-                background: variable.$color-white-5;
-              }
-
-              img {
-                width: 20px;
-                height: 20px;
+                background: variable.$color-white-0;
+                box-shadow: variable.$shadow-2;
+                border: 1px solid variable.$color-white-10;
               }
             }
           }
