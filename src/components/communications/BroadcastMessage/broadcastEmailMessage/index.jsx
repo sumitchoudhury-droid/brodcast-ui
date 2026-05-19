@@ -10,7 +10,8 @@ export const BroadcastEmailMessage = ({
   showPlaceholders,
   setShowPlaceholders,
   isEditorEmpty,
-  setIsEditorEmpty
+  setIsEditorEmpty,
+  selectedTemplate
 }) => {
   return (
     <div className="builder">
@@ -29,7 +30,11 @@ export const BroadcastEmailMessage = ({
       )}
 
       <div className="editorArea">
-        <Editor editorRef={editorRef} setIsEditorEmpty={setIsEditorEmpty} />
+        <Editor
+          editorRef={editorRef}
+          setIsEditorEmpty={setIsEditorEmpty}
+          initialTemplate={selectedTemplate?.emailTemplate}
+        />
       </div>
 
       <RightPanel editorRef={editorRef} isEditorEmpty={isEditorEmpty} />

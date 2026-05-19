@@ -10,12 +10,13 @@ function MultipleBroadMessages({
   showPlaceholders,
   setShowPlaceholders,
   isEditorEmpty,
-  setIsEditorEmpty
+  setIsEditorEmpty,
+  selectedTemplate
 }) {
   const renderContent = () => {
     switch (activeTab) {
       case "Text":
-        return <BroadcastTextMessage />;
+        return <BroadcastTextMessage selectedTemplate={selectedTemplate} />;
       case "Email":
         return (
           <BroadcastEmailMessage
@@ -25,10 +26,13 @@ function MultipleBroadMessages({
             setShowPlaceholders={setShowPlaceholders}
             isEditorEmpty={isEditorEmpty}
             setIsEditorEmpty={setIsEditorEmpty}
+            selectedTemplate={selectedTemplate}
           />
         );
       case "Voice":
-        return <BroadcastTextVoiceMessage />;
+        return (
+          <BroadcastTextVoiceMessage selectedTemplate={selectedTemplate} />
+        );
       default:
         return null;
     }

@@ -9,7 +9,9 @@ import BroadcastPatientDetails from "./broadcastPatientDetails/index";
 export const AddBroadcastMessage = ({
   onNext,
   selectedModes,
-  setSelectedModes
+  setSelectedModes,
+  selectedTemplateData,
+  setSelectedTemplateData
 }) => {
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("");
@@ -104,6 +106,8 @@ export const AddBroadcastMessage = ({
           setSelectedTemplateType={setSelectedTemplateType}
           existingTemplateValues={existingTemplateValues}
           setExistingTemplateValues={setExistingTemplateValues}
+          onSelectTemplate={setSelectedTemplateData}
+          selectedTemplateData={selectedTemplateData}
         />
       </div>
       <div className="addBroadcastMessageFooter">
@@ -111,7 +115,7 @@ export const AddBroadcastMessage = ({
         <ReusableButton
           label="Next"
           variant="secondary"
-          onClick={onNext}
+          onClick={() => onNext(selectedTemplateData)}
           disabled={!isFormValid}
         />
       </div>

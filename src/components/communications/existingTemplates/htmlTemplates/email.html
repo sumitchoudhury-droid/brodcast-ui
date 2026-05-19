@@ -4,6 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Appointment Rescheduled</title>
+    <style>
+      body {
+        overflow-x: hidden !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+      }
+      table {
+        max-width: 100% !important;
+      }
+      @media only screen and (max-width: 480px) {
+        .mobile-stack {
+          display: block !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+        }
+        .mobile-padding {
+          padding: 20px 15px !important;
+        }
+        .mobile-center {
+          text-align: center !important;
+        }
+        .mobile-mt {
+          margin-top: 15px !important;
+        }
+      }
+    </style>
   </head>
 
   <body
@@ -19,16 +45,16 @@
       cellpadding="0"
       cellspacing="0"
       border="0"
-      style="background-color: #f4f4f4; padding: 20px 0"
+      style="background-color: #f4f4f4;"
     >
       <tr>
         <td align="center">
           <table
-            width="680"
+            width="100%"
             cellpadding="0"
             cellspacing="0"
             border="0"
-            style="background-color: #ffffff"
+            style="background-color: #ffffff; max-width: 1000px;"
           >
             <!-- Header -->
             <tr>
@@ -36,7 +62,7 @@
                 align="center"
                 style="
                   background-color: #246b44;
-                  padding: 20px 20px 10px;
+                  padding: 20px;
                   border-top: 4px solid #00c853;
                 "
               >
@@ -66,42 +92,15 @@
                 <img
                   src="https://images.unsplash.com/photo-1584515933487-779824d29309?q=80&w=1200&auto=format&fit=crop"
                   alt="Doctor and Patient"
-                  width="680"
-                  style="display: block; width: 100%; height: auto"
+                  width="100%"
+                  style="display: block; width: 100%; height: auto; max-width: 1000px;"
                 />
-
-                <!-- Badge -->
-                <table
-                  cellpadding="0"
-                  cellspacing="0"
-                  border="0"
-                  style="
-                    position: absolute;
-                    top: 25px;
-                    right: 25px;
-                    background-color: #22c55e;
-                    border-radius: 6px;
-                  "
-                >
-                  <tr>
-                    <td
-                      style="
-                        padding: 10px 18px;
-                        color: #ffffff;
-                        font-size: 16px;
-                        font-weight: 600;
-                      "
-                    >
-                      Sketch Brahma Dev
-                    </td>
-                  </tr>
-                </table>
               </td>
             </tr>
 
             <!-- Content -->
             <tr>
-              <td style="padding: 35px 40px; color: #4b5563">
+              <td style="padding: 20px; color: #4b5563">
                 <p
                   style="
                     margin: 0 0 25px;
@@ -184,7 +183,7 @@
                 <p style="margin: 5px 0 0; text-align: center">
                   <a
                     href="https://forms.manipalhospitals.com/Administration"
-                    style="color: #2563eb; font-size: 16px"
+                    style="color: #2563eb; font-size: 16px; word-break: break-word;"
                   >
                     https://forms.manipalhospitals.com/Administration
                   </a>
@@ -197,7 +196,7 @@
               <td
                 style="
                   background-color: #246b44;
-                  padding: 30px 40px;
+                  padding: 20px;
                   color: #ffffff;
                 "
               >
@@ -214,7 +213,7 @@
 
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td width="50%" align="left">
+                    <td width="50%" align="left" class="mobile-stack mobile-center">
                       <table cellpadding="0" cellspacing="0">
                         <tr>
                           <td style="padding-right: 15px; font-size: 28px">
@@ -233,7 +232,7 @@
                       </table>
                     </td>
 
-                    <td width="50%" align="right">
+                    <td width="50%" align="right" class="mobile-stack mobile-center">
                       <table
                         cellpadding="0"
                         cellspacing="0"
@@ -262,7 +261,7 @@
 
             <!-- Thank You -->
             <tr>
-              <td style="padding: 35px 40px">
+              <td style="padding: 20px">
                 <p
                   style="
                     margin: 0 0 25px;
@@ -291,170 +290,48 @@
 
             <!-- Attachments -->
             <tr>
-              <td style="padding: 0 20px 30px">
-                <table width="100%" cellpadding="10" cellspacing="0">
-                  <tr>
-                    <!-- File 1 -->
-                    <td width="50%">
-                      <table
-                        width="100%"
-                        cellpadding="0"
-                        cellspacing="0"
-                        style="
-                          border: 1px solid #d1d5db;
-                          border-radius: 10px;
-                        "
-                      >
-                        <tr>
-                          <td style="padding: 15px">
-                            <table width="100%">
-                              <tr>
-                                <td width="50">
-                                  <div
-                                    style="
-                                      width: 45px;
-                                      height: 45px;
-                                      background: #e5e7eb;
-                                      border-radius: 6px;
-                                      text-align: center;
-                                      line-height: 45px;
-                                      font-size: 12px;
-                                    "
-                                  >
-                                    PDF
-                                  </div>
-                                </td>
-
-                                <td>
-                                  <p
-                                    style="
-                                      margin: 0;
-                                      font-size: 16px;
-                                      font-weight: 600;
-                                      color: #111827;
-                                    "
-                                  >
-                                    Boucher 1.pdf
-                                  </p>
-
-                                  <p
-                                    style="
-                                      margin: 5px 0 0;
-                                      color: #6b7280;
-                                      font-size: 14px;
-                                    "
-                                  >
-                                    2.5 MB
-                                  </p>
-                                </td>
-
-                                <td align="right" width="40">
-                                  ✕
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <p
-                        style="
-                          margin: 10px 0 0;
-                          font-size: 14px;
-                          color: #6b7280;
-                        "
-                      >
-                        Download using Link:
-                        <a
-                          href="https://manipal.care/dl42893"
-                          style="color: #2563eb"
-                        >
+              <td style="padding: 0px;" data-type="attachment-filled">
+                <div class="attachment-items-wrapper">
+                  <!-- File 1 -->
+                  <div class="attachment-item">
+                    <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:100%; box-sizing:border-box; overflow:hidden;">
+                      <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; flex-shrink:0;"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M12 12V28H28V18L22 12H12Z" fill="white" stroke="#D92D20" stroke-width="2"/><path d="M22 12V18H28" stroke="#D92D20" stroke-width="2"/><text x="14" y="24" fill="#D92D20" font-family="Arial" font-size="5" font-weight="bold">PDF</text></svg>
+                        <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0; text-align:left;">
+                          <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; word-break:break-all; overflow:hidden;" title="Boucher 1.pdf">Boucher 1.pdf</p>
+                          <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">2.5 MB</p>
+                        </div>
+                        <svg class="remove-file-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;"><rect width="24" height="24" rx="4" fill="white" stroke="#D0D5DD"/><path d="M16 8L8 16M8 8L16 16" stroke="#667085" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
+                        <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; flex-shrink:0;">Download using Link:</p>
+                        <a href="https://manipal.care/dl42893" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; cursor:pointer; display:block; text-align:left;">
                           https://manipal.care/dl42893
                         </a>
-                      </p>
-                    </td>
+                      </div>
+                    </div>
+                  </div>
 
-                    <!-- File 2 -->
-                    <td width="50%">
-                      <table
-                        width="100%"
-                        cellpadding="0"
-                        cellspacing="0"
-                        style="
-                          border: 1px solid #d1d5db;
-                          border-radius: 10px;
-                        "
-                      >
-                        <tr>
-                          <td style="padding: 15px">
-                            <table width="100%">
-                              <tr>
-                                <td width="50">
-                                  <div
-                                    style="
-                                      width: 45px;
-                                      height: 45px;
-                                      background: #e5e7eb;
-                                      border-radius: 6px;
-                                      text-align: center;
-                                      line-height: 45px;
-                                      font-size: 12px;
-                                    "
-                                  >
-                                    PDF
-                                  </div>
-                                </td>
-
-                                <td>
-                                  <p
-                                    style="
-                                      margin: 0;
-                                      font-size: 16px;
-                                      font-weight: 600;
-                                      color: #111827;
-                                    "
-                                  >
-                                    Boucher 2.pdf
-                                  </p>
-
-                                  <p
-                                    style="
-                                      margin: 5px 0 0;
-                                      color: #6b7280;
-                                      font-size: 14px;
-                                    "
-                                  >
-                                    2.84 MB
-                                  </p>
-                                </td>
-
-                                <td align="right" width="40">
-                                  ✕
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <p
-                        style="
-                          margin: 10px 0 0;
-                          font-size: 14px;
-                          color: #6b7280;
-                        "
-                      >
-                        Download using Link:
-                        <a
-                          href="https://manipal.care/dl42893"
-                          style="color: #2563eb"
-                        >
+                  <!-- File 2 -->
+                  <div class="attachment-item">
+                    <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:100%; box-sizing:border-box; overflow:hidden;">
+                      <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; flex-shrink:0;"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M12 12V28H28V18L22 12H12Z" fill="white" stroke="#D92D20" stroke-width="2"/><path d="M22 12V18H28" stroke="#D92D20" stroke-width="2"/><text x="14" y="24" fill="#D92D20" font-family="Arial" font-size="5" font-weight="bold">PDF</text></svg>
+                        <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0; text-align:left;">
+                          <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; word-break:break-all; overflow:hidden;" title="Boucher 2.pdf">Boucher 2.pdf</p>
+                          <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">2.84 MB</p>
+                        </div>
+                        <svg class="remove-file-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;"><rect width="24" height="24" rx="4" fill="white" stroke="#D0D5DD"/><path d="M16 8L8 16M8 8L16 16" stroke="#667085" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
+                        <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; flex-shrink:0;">Download using Link:</p>
+                        <a href="https://manipal.care/dl42893" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; cursor:pointer; display:block; text-align:left;">
                           https://manipal.care/dl42893
                         </a>
-                      </p>
-                    </td>
-                  </tr>
-                </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </td>
             </tr>
 
@@ -463,7 +340,7 @@
               <td
                 style="
                   background-color: #dcefe1;
-                  padding: 35px 40px;
+                  padding: 20px;
                   text-align: center;
                 "
               >
@@ -545,7 +422,7 @@
                 "
               >
                 Click here to unsubscribe:
-                <a href="https://mh.care/stop" style="color: #6b7280">
+                <a href="https://mh.care/stop" style="color: #6b7280; word-break: break-word;">
                   https://mh.care/stop
                 </a>
               </td>

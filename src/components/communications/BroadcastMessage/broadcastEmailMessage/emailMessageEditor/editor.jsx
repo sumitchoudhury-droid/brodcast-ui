@@ -187,12 +187,32 @@ function clearFramePlaceholder(container) {
 // falls back to placing blocks at the mj-body level, which fixes the scroll bug
 // where dropping near the bottom of a scrolled canvas incorrectly targeted the
 // last section's column.
-function resolveDroppable(comp) {
+function resolveDroppable(comp, isHtml) {
   const type = comp.get("type");
   const dt = comp.getAttributes?.()?.["data-type"];
+  const tagName = comp.get?.("tagName")?.toLowerCase?.();
   const depth = getFrameDepth(comp);
 
-  if (type === "mj-body") return true;
+  if (type === "mj-body" || type === "wrapper" || tagName === "body")
+    return true;
+
+  if (isHtml) {
+    if (type === "textnode" || type === "text") return false;
+
+    // Custom user frames are always droppable
+    if (dt === "column-frame-section" || dt === "row-frame-column") {
+      return true;
+    }
+
+    // Structural table-based containers are droppable layout layers.
+    // We only allow dropping inside layout tables or the tbody wrapper itself.
+    // Individual cells (td) and rows (tr) are NOT droppable to prevent accidental nesting inside columns!
+    const structuralContainers = ["table", "tbody", "thead", "tfoot"];
+    if (tagName && structuralContainers.includes(tagName)) {
+      return true;
+    }
+    return false;
+  }
 
   // Level restriction function
   const checkNesting = (droppedModel) => {
@@ -202,6 +222,11 @@ function resolveDroppable(comp) {
     }
     return true;
   };
+
+  // Allow droppable for custom frames
+  if (dt === "column-frame-section" || dt === "row-frame-column") {
+    return (droppedModel) => checkNesting(droppedModel);
+  }
 
   if (type === "mj-section") {
     if (dt === "column-frame-section") {
@@ -221,8 +246,13 @@ function resolveDroppable(comp) {
     }
   }
 
+  // Also support dropping into standard HTML container tags in selected templates
+  if (["table", "tr", "td", "div", "section"].includes(tagName)) {
+    return (droppedModel) => checkNesting(droppedModel);
+  }
+
   // leaf types remain non-droppable to prevent accidental block nesting
-  return type === "mj-body";
+  return type === "mj-body" || type === "wrapper";
 }
 
 // Scan every frame column and sync placeholder visibility via data-is-empty attribute
@@ -332,7 +362,12 @@ function reconcileFramePlaceholders(editor, isReconciling) {
   }
 }
 
-export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
+export default function Editor({
+  editorRef,
+  onReady,
+  setIsEditorEmpty,
+  initialTemplate
+}) {
   const toast = useToast();
   const containerRef = useRef(null);
   const gjsInstance = useRef(null);
@@ -340,6 +375,12 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   const imageInputRef = useRef(null);
   const isUnwrapping = useRef(false);
   const imageTargetCompRef = useRef(null);
+  const isHtmlTemplate = useRef(false);
+  isHtmlTemplate.current = !!(
+    initialTemplate &&
+    !initialTemplate.includes("<mjml>") &&
+    !initialTemplate.includes("<mj-body>")
+  );
 
   // Link Modal state for toolbar Link icon
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -420,15 +461,21 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       })
       .join("");
 
-    const sectionHtml = `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
-      <mj-column width="100%" vertical-align="top" padding="0px">
-        <mj-text padding="0px" width="100%">
+    const sectionHtml = isHtmlTemplate.current
+      ? `<div data-type="attachment-filled" style="padding:0px; margin:0px; width:100%; box-sizing:border-box;">
           <div class="attachment-items-wrapper">
             ${itemsHtml}
           </div>
-        </mj-text>
-      </mj-column>
-    </mj-section>`;
+        </div>`
+      : `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
+          <mj-column width="100%" vertical-align="top" padding="0px">
+            <mj-text padding="0px" width="100%">
+              <div class="attachment-items-wrapper">
+                ${itemsHtml}
+              </div>
+            </mj-text>
+          </mj-column>
+        </mj-section>`;
 
     const parent = targetComp.parent();
     const idx = parent.components().indexOf(targetComp);
@@ -472,17 +519,57 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         const selected = editor.getSelected();
 
         if (targetFromRef || selected) {
-          // Case 1: An mj-image is selected (or targeted) — update src and dimensions directly
+          // Case 1: An mj-image or standard HTML image is selected (or targeted) — update src and dimensions directly
           let target = targetFromRef || selected;
-          while (target && !target.is("mj-image")) {
+          while (
+            target &&
+            !target.is("mj-image") &&
+            !target.is("image") &&
+            target.get("type") !== "image" &&
+            target.get("tagName") !== "img"
+          ) {
             target = target.parent();
           }
           if (target) {
             target.set("src", dataUrl);
+
+            const currentAttrs = target.getAttributes() || {};
+            const currentStyle = target.getStyle() || {};
+
+            let finalWidth = widthAttr;
+            let finalHeight = heightAttr;
+
+            // If the original image had a 100% width (making it full-width/responsive),
+            // preserve it so it continues to span the entire column width perfectly!
+            if (
+              currentAttrs.width === "100%" ||
+              currentStyle.width === "100%" ||
+              currentAttrs.width === "100vw" ||
+              currentStyle.width === "100vw"
+            ) {
+              finalWidth = "100%";
+              finalHeight = "auto";
+              if (target.is("image") || target.get("tagName") === "img") {
+                target.setStyle({
+                  ...currentStyle,
+                  width: "100%",
+                  height: "auto"
+                });
+              }
+            } else {
+              if (target.is("image") || target.get("tagName") === "img") {
+                target.setStyle({
+                  ...currentStyle,
+                  width: widthAttr,
+                  height: heightAttr
+                });
+              }
+            }
+
             target.addAttributes({
               src: dataUrl,
-              width: widthAttr,
-              height: heightAttr
+              width: finalWidth,
+              height: finalHeight
             });
             editor.trigger("component:update", target);
             editor.select(target);
@@ -1060,9 +1147,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       }
     });
 
-    // ── Double-click on mj-image triggers open-assets ────────────────────────
+    // ── Double-click on mj-image or standard image triggers open-assets ──────
     editor.on("component:dblclick", (comp) => {
-      if (comp.is("mj-image")) {
+      if (
+        comp.is("mj-image") ||
+        comp.is("image") ||
+        comp.get("type") === "image" ||
+        comp.get("tagName") === "img"
+      ) {
         editor.runCommand("open-assets", { target: comp });
       }
     });
@@ -1193,7 +1285,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
 
         comp.set({
-          droppable: resolveDroppable(comp),
+          droppable: resolveDroppable(comp, isHtmlTemplate.current),
           draggable: !inFrame && !isSignature && !isUnsubscribe
         });
 
@@ -1361,6 +1453,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     const processPendingFixups = () => {
       fixupScheduled = false;
       const items = pendingFixups.splice(0, pendingFixups.length);
+      if (isHtmlTemplate.current) return; // Skip all MJML fixups in standard HTML templates
 
       const itemCids = new Set(items.map((c) => c.cid));
       const topLevel = items.filter((comp) => {
@@ -1609,7 +1702,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
               comp.set({
                 draggable: !inFrame && !isSignature && !isUnsubscribe,
-                droppable: resolveDroppable(comp)
+                droppable: resolveDroppable(comp, isHtmlTemplate.current)
               });
             }
             comp.components().each(reconcileDraggability);
@@ -1679,7 +1772,10 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         // Draggability for content blocks depends on whether they land inside a
         // frame. At this point the fixup hasn't run yet (it's async), so we
         // optimistically allow dragging and reconcile after fixups complete.
-        comp.set({ droppable: resolveDroppable(comp), draggable: true });
+        comp.set({
+          droppable: resolveDroppable(comp, isHtmlTemplate.current),
+          draggable: true
+        });
 
         if (type === "mj-section") {
           // Defer so children are in the tree before we check data-types
@@ -1779,8 +1875,8 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
       scheduleReconcile();
     });
 
-    registerBlocks(editor);
-    editor.setComponents(EMPTY_TEMPLATE);
+    registerBlocks(editor, initialTemplate);
+    editor.setComponents(initialTemplate || EMPTY_TEMPLATE);
 
     // ── Restrict nested block drops to column-frame / row-frame only ────────────
     // Any block may be dropped at the top level (direct child of mj-body), which
@@ -1790,6 +1886,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
     // other kind of section are immediately removed.
     editor.on("block:drag:stop", (component) => {
       if (!component) return;
+      if (isHtmlTemplate.current) return; // Allow nested drops in standard HTML templates
       const parentType = component.parent()?.get?.("type");
       // Top-level drop (direct child of mj-body) — always allowed.
       if (parentType === "mj-body") return;
@@ -1852,22 +1949,37 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
 
     // ── Helper: restore empty attachment placeholder on a section ─────────────
     const restoreAttachmentPlaceholder = (section) => {
-      section.addAttributes({
-        "data-type": "attachment-placeholder",
-        border: "2px dashed #00A3FF",
-        padding: "0px 0px"
-      });
-      section.components(`
-        <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text align="center" padding="0px" margin="0px">
-            <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:8px;width:fit-content;margin:0 auto;cursor:pointer;">
-              <img src="${uploadIconSvg}" width="40" height="40" style="display:block;" />
-              <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
-              <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
-            </div>
-          </mj-text>
-        </mj-column>
-      `);
+      if (isHtmlTemplate.current) {
+        section.addAttributes({
+          "data-type": "attachment-placeholder",
+          style:
+            "border: 1px dashed #1570EF; padding: 20px; text-align: center; width: 100%; box-sizing: border-box; background-color: transparent;"
+        });
+        section.components(`
+          <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
+            <img src="${uploadIconSvg}" width="40" height="40" style="display:block;" />
+            <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
+            <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
+          </div>
+        `);
+      } else {
+        section.addAttributes({
+          "data-type": "attachment-placeholder",
+          border: "2px dashed #00A3FF",
+          padding: "0px 0px"
+        });
+        section.components(`
+          <mj-column padding="0px" margin="0px" width="100%">
+            <mj-text align="center" padding="0px" margin="0px">
+              <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:8px;width:fit-content;margin:0 auto;cursor:pointer;">
+                <img src="${uploadIconSvg}" width="40" height="40" style="display:block;" />
+                <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
+                <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
+              </div>
+            </mj-text>
+          </mj-column>
+        `);
+      }
       editor.trigger("component:update", section);
     };
 
@@ -2055,10 +2167,11 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         // ── Hyperlink click ───────────────────────────────────────────────
         const link = e.target.closest("a");
         if (link) {
-          // If the link is part of an mj-button or mj-image, we skip the popup
-          // because these are managed via the Right Panel URL inputs.
+          // If the link is a standalone GrapesJS component (like a button or structural link)
+          // or part of an mj-button or mj-image, we skip the popup because these
+          // are managed via the Right Panel URL inputs.
           const isStructuralLink = link.closest(
-            '[data-gjs-type="mj-button"], [data-gjs-type="mj-image"]'
+            '[data-gjs-type="mj-button"], [data-gjs-type="mj-image"], [data-gjs-type="link"], [data-gjs-type="button"]'
           );
           if (isStructuralLink) return;
 
@@ -2134,7 +2247,7 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
         }
 
         // ── Remove file icon click ────────────────────────────────────────
-        if (e.target.classList.contains("remove-file-icon")) {
+        if (e.target.closest(".remove-file-icon")) {
           // Find the .attachment-item wrapper in the DOM
           const attachmentItemEl = e.target.closest(".attachment-item");
           if (!attachmentItemEl) return;
@@ -2194,7 +2307,9 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
                   grandParent
                     .components()
                     .add(
-                      `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent"></mj-section>`
+                      isHtmlTemplate.current
+                        ? `<div style="width:100%; box-sizing:border-box;"></div>`
+                        : `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent"></mj-section>`
                     )
                 );
               }
@@ -2256,7 +2371,14 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
           comp.components().forEach(findBody);
         };
         findBody(wrapper);
-        if (!mjBody) return false;
+        if (!mjBody) {
+          // If no mj-body exists (e.g. when loading a standard HTML template),
+          // check if there are any non-textnode components in the wrapper.
+          const realComponents = wrapper
+            .components()
+            .filter((c) => c.get("type") !== "textnode");
+          return realComponents.length > 0;
+        }
         const components = mjBody.components();
         if (components.length === 0) return false;
         const realComponents = components.filter(
@@ -2847,58 +2969,120 @@ export default function Editor({ editorRef, onReady, setIsEditorEmpty }) {
   );
 }
 
-function registerBlocks(editor) {
+function registerBlocks(editor, initialTemplate) {
   const bm = editor.BlockManager;
   if (bm.getAll) bm.getAll().reset();
 
-  // ── Frame blocks ──────────────────────────────────────────────────────────
-  bm.add("row", {
-    label: "Frame - Row",
-    category: "Blocks",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
-      <mj-column data-type="row-frame-column" data-is-empty="true" padding="0px" margin="0px" width="100%">
-      </mj-column>
-    </mj-section>`
-  });
+  const isHtml =
+    initialTemplate &&
+    !initialTemplate.includes("<mjml>") &&
+    !initialTemplate.includes("<mj-body>");
 
-  bm.add("column", {
-    label: "Frame - Column",
-    category: "Blocks",
-    content: `<mj-section data-type="column-frame-section" data-gjs-direction="v" data-is-empty="true" padding="20px" margin="0px" width="100%" background-color="transparent">
-    </mj-section>`
-  });
+  if (isHtml) {
+    // ── Frame blocks (Standard HTML equivalents) ─────────────────────────────
+    bm.add("row", {
+      label: "Frame - Row",
+      category: "Blocks",
+      content: `<div data-type="row-frame-column" data-is-empty="true" style="padding: 20px 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: column;"></div>`
+    });
 
-  // ── Content blocks ────────────────────────────────────────────────────────
-  bm.add("heading", {
-    label: "Heading",
-    category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
-      <mj-column padding="0px" margin="0px" width="100%">
-        <mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
-          Title goes here
-        </mj-text>
-      </mj-column>
-    </mj-section>`
-  });
+    bm.add("column", {
+      label: "Frame - Column",
+      category: "Blocks",
+      content: `<div data-type="column-frame-section" data-is-empty="true" style="padding: 20px; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; gap: 20px;"></div>`
+    });
 
-  bm.add("paragraph", {
-    label: "Paragraph",
-    category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
-      <mj-column padding="0px" margin="0px" width="100%">
-        <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
-          Paragraph Text
-        </mj-text>
-      </mj-column>
-    </mj-section>`
-  });
+    // ── Content blocks ────────────────────────────────────────────────────────
+    bm.add("heading", {
+      label: "Heading",
+      category: "Content",
+      content: `<div style="padding: 10px 20px; text-align: center; font-family: Inter, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;">Title goes here</div>`
+    });
 
-  bm.add("image", {
-    label: "Image",
-    category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
-      <mj-column padding="0px" margin="0px" width="100%" >
-        <mj-text padding="0px" margin="0px">
+    bm.add("paragraph", {
+      label: "Paragraph",
+      category: "Content",
+      content: `<div style="padding: 10px 20px; text-align: center; font-family: Inter, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;">Paragraph Text</div>`
+    });
+
+    bm.add("image", {
+      label: "Image",
+      category: "Content",
+      content: `<div style="padding: 10px 20px; width: 100%; box-sizing: border-box;">
+        <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100%;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M19 2V8" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 11.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H12.5" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 14.9999L17.914 11.9139C17.5389 11.539 17.0303 11.3284 16.5 11.3284C15.9697 11.3284 15.4611 11.539 15.086 11.9139L6 20.9999" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 11C10.1046 11 11 10.1046 11 9C11 7.89543 10.1046 7 9 7C7.89543 7 7 7.89543 7 9C7 10.1046 7.89543 11 9 11Z" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter;">Add Image</span>
+        </div>
+      </div>`
+    });
+
+    bm.add("button", {
+      label: "Button",
+      category: "Content",
+      content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
+        <a href="#" style="display: inline-block; background-color: #295E3F; color: #ffffff; border-radius: 8px; padding: 10px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 20px;">
+          Click Here
+        </a>
+      </div>`
+    });
+
+    bm.add("divider", {
+      label: "Divider",
+      category: "Content",
+      content: `<div style="padding: 16px 20px; width: 100%; box-sizing: border-box;">
+        <hr style="border: 0; border-top: 1px solid #dddddd; margin: 0; padding: 0;" />
+      </div>`
+    });
+
+    bm.add("Attachment", {
+      label: "Attachment",
+      category: "Content",
+      content: `<div data-type="attachment-placeholder" style="border: 1px dashed #1570EF; padding: 20px; text-align: center; width: 100%; box-sizing: border-box; background-color: transparent;">
+        <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="19" height="21" viewBox="0 0 19 21" fill="none">
+            <path d="M12.112 4.9902L5.61201 11.4902C5.21418 11.888 4.99069 12.4276 4.99069 12.9902C4.99069 13.5528 5.21418 14.0924 5.61201 14.4902C6.00983 14.888 6.5494 15.1115 7.11201 15.1115C7.67462 15.1115 8.21418 14.888 8.61201 14.4902L15.112 7.9902C15.9077 7.19455 16.3546 6.11542 16.3546 4.9902C16.3546 3.86498 15.9077 2.78585 15.112 1.9902C14.3164 1.19455 13.2372 0.747559 12.112 0.747559C10.9868 0.747559 9.90766 1.19455 9.11201 1.9902L2.61201 8.4902C1.41853 9.68367 0.748047 11.3024 0.748047 12.9902C0.748047 14.678 1.41853 16.2967 2.61201 17.4902C3.80548 18.6837 5.42418 19.3542 7.11201 19.3542C8.79984 19.3542 10.4185 18.6837 11.612 17.4902L18.112 10.9902" stroke="#555F75" stroke-width="1.495" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter,sans-serif;">Upload Attachment</span>
+        </div>
+      </div>`
+    });
+
+    // ── Component blocks ──────────────────────────────────────────────────────
+    bm.add("custom-header", {
+      label: "Header Banner",
+      category: "Components",
+      content: `<div style="padding: 20px; background-color: #2f6f4e; text-align: center; width: 100%; box-sizing: border-box;">
+        <div style="font-family: Inter, sans-serif; color: #ffffff; font-size: 24px; font-weight: bold;">Your Header Here</div>
+      </div>`
+    });
+
+    bm.add("custom-text-block", {
+      label: "Text Block",
+      category: "Components",
+      content: `<div style="padding: 20px; background-color: transparent; text-align: left; width: 100%; box-sizing: border-box;">
+        <div style="font-family: Inter, sans-serif; font-size: 14px; color: #555555; line-height: 1.6;">Add your content here. This is a paragraph of text.</div>
+      </div>`
+    });
+
+    bm.add("custom-button-block", {
+      label: "CTA Button",
+      category: "Components",
+      content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
+        <a href="#" style="display: block; background-color: #2f6f4e; color: #ffffff; border-radius: 6px; padding: 10px 20px; font-family: Inter, sans-serif; font-size: 14px; text-decoration: none;">Click Here</a>
+      </div>`
+    });
+
+    bm.add("custom-image-block", {
+      label: "Image Section",
+      category: "Components",
+      content: `<div style="padding: 20px; background-color: #000000; text-align: center; width: 100%; box-sizing: border-box;">
+        <div style="padding: 10px 20px; width: 100%; box-sizing: border-box;">
           <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100%;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2909,104 +3093,168 @@ function registerBlocks(editor) {
             </svg>
             <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter;">Add Image</span>
           </div>
-        </mj-text>
-      </mj-column>
-    </mj-section>`
-  });
+        </div>
+        <div style="font-family: Inter, sans-serif; font-size: 14px; color: #555555; line-height: 1.6; padding-top: 10px;">Add Image.</div>
+      </div>`
+    });
+  } else {
+    // ── Frame blocks (Original MJML Blocks) ──────────────────────────────────
+    bm.add("row", {
+      label: "Frame - Row",
+      category: "Blocks",
+      content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+        <mj-column data-type="row-frame-column" data-is-empty="true" padding="0px" margin="0px" width="100%">
+        </mj-column>
+      </mj-section>`
+    });
 
-  bm.add("button", {
-    label: "Button",
-    category: "Content",
-    content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
-      <mj-column padding="0px" margin="0px" width="100%">
-        <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
-          Click Here
-        </mj-button>
-      </mj-column>
-    </mj-section>`
-  });
+    bm.add("column", {
+      label: "Frame - Column",
+      category: "Blocks",
+      content: `<mj-section data-type="column-frame-section" data-gjs-direction="v" data-is-empty="true" padding="20px" margin="0px" width="100%" background-color="transparent">
+      </mj-section>`
+    });
 
-  bm.add("divider", {
-    label: "Divider",
-    category: "Content",
-    content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
-      <mj-column padding="0px" margin="0px" width="100%">
-        <mj-divider border-color="#dddddd" border-width="1px" padding="0px" margin="0px" />
-      </mj-column>
-    </mj-section>`
-  });
-
-  bm.add("Attachment", {
-    label: "Attachment",
-    category: "Content",
-    content: `
-      <mj-section full-width="full-width" data-type="attachment-placeholder" border="1px dashed #1570EF" padding="0px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
+    // ── Content blocks (Original MJML Blocks) ──────────────────────────────────
+    bm.add("heading", {
+      label: "Heading",
+      category: "Content",
+      content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text align="center" padding="0px" margin="0px">
-            <div style="padding:20px;display:flex;justify-content:center;align-items:center;">
-            <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
-             <svg xmlns="http://www.w3.org/2000/svg" width="19" height="21" viewBox="0 0 19 21" fill="none">
-  <path d="M12.112 4.9902L5.61201 11.4902C5.21418 11.888 4.99069 12.4276 4.99069 12.9902C4.99069 13.5528 5.21418 14.0924 5.61201 14.4902C6.00983 14.888 6.5494 15.1115 7.11201 15.1115C7.67462 15.1115 8.21418 14.888 8.61201 14.4902L15.112 7.9902C15.9077 7.19455 16.3546 6.11542 16.3546 4.9902C16.3546 3.86498 15.9077 2.78585 15.112 1.9902C14.3164 1.19455 13.2372 0.747559 12.112 0.747559C10.9868 0.747559 9.90766 1.19455 9.11201 1.9902L2.61201 8.4902C1.41853 9.68367 0.748047 11.3024 0.748047 12.9902C0.748047 14.678 1.41853 16.2967 2.61201 17.4902C3.80548 18.6837 5.42418 19.3542 7.11201 19.3542C8.79984 19.3542 10.4185 18.6837 11.612 17.4902L18.112 10.9902" stroke="#555F75" stroke-width="1.495" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-              <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter,sans-serif;">Upload Attachment</span>
+          <mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
+            Title goes here
+          </mj-text>
+        </mj-column>
+      </mj-section>`
+    });
+
+    bm.add("paragraph", {
+      label: "Paragraph",
+      category: "Content",
+      content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+        <mj-column padding="0px" margin="0px" width="100%">
+          <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
+            Paragraph Text
+          </mj-text>
+        </mj-column>
+      </mj-section>`
+    });
+
+    bm.add("image", {
+      label: "Image",
+      category: "Content",
+      content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+        <mj-column padding="0px" margin="0px" width="100%" >
+          <mj-text padding="0px" margin="0px">
+            <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100%;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 2V8" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 11.5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H12.5" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 14.9999L17.914 11.9139C17.5389 11.539 17.0303 11.3284 16.5 11.3284C15.9697 11.3284 15.4611 11.539 15.086 11.9139L6 20.9999" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 11C10.1046 11 11 10.1046 11 9C11 7.89543 10.1046 7 9 7C7.89543 7 7 7.89543 7 9C7 10.1046 7.89543 11 9 11Z" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter;">Add Image</span>
             </div>
-            </div>
           </mj-text>
         </mj-column>
       </mj-section>`
-  });
+    });
 
-  // ── Component blocks ──────────────────────────────────────────────────────
-  bm.add("custom-header", {
-    label: "Header Banner",
-    category: "Components",
-    content: `
-      <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
+    bm.add("button", {
+      label: "Button",
+      category: "Content",
+      content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Inter" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
-            Your Header Here
-          </mj-text>
-        </mj-column>
-      </mj-section>`
-  });
-
-  bm.add("custom-text-block", {
-    label: "Text Block",
-    category: "Components",
-    content: `
-      <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
-        <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
-            Add your content here. This is a paragraph of text.
-          </mj-text>
-        </mj-column>
-      </mj-section>`
-  });
-
-  bm.add("custom-button-block", {
-    label: "CTA Button",
-    category: "Components",
-    content: `
-      <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
-        <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button font-family="Inter" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
+          <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>
       </mj-section>`
-  });
+    });
 
-  bm.add("custom-image-block", {
-    label: "Image Section",
-    category: "Components",
-    content: `
-      <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
+    bm.add("divider", {
+      label: "Divider",
+      category: "Content",
+      content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center" />
-          <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
-            Add Image.
-          </mj-text>
+          <mj-divider border-color="#dddddd" border-width="1px" padding="0px" margin="0px" />
         </mj-column>
       </mj-section>`
-  });
+    });
+
+    bm.add("Attachment", {
+      label: "Attachment",
+      category: "Content",
+      content: `
+        <mj-section full-width="full-width" data-type="attachment-placeholder" border="1px dashed #1570EF" padding="0px" margin="0px" width="100%" background-color="transparent" align="center" justify="center">
+          <mj-column padding="0px" margin="0px" width="100%">
+            <mj-text align="center" padding="0px" margin="0px">
+              <div style="padding:20px;display:flex;justify-content:center;align-items:center;">
+              <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
+               <svg xmlns="http://www.w3.org/2000/svg" width="19" height="21" viewBox="0 0 19 21" fill="none">
+    <path d="M12.112 4.9902L5.61201 11.4902C5.21418 11.888 4.99069 12.4276 4.99069 12.9902C4.99069 13.5528 5.21418 14.0924 5.61201 14.4902C6.00983 14.888 6.5494 15.1115 7.11201 15.1115C7.67462 15.1115 8.21418 14.888 8.61201 14.4902L15.112 7.9902C15.9077 7.19455 16.3546 6.11542 16.3546 4.9902C16.3546 3.86498 15.9077 2.78585 15.112 1.9902C14.3164 1.19455 13.2372 0.747559 12.112 0.747559C10.9868 0.747559 9.90766 1.19455 9.11201 1.9902L2.61201 8.4902C1.41853 9.68367 0.748047 11.3024 0.748047 12.9902C0.748047 14.678 1.41853 16.2967 2.61201 17.4902C3.80548 18.6837 5.42418 19.3542 7.11201 19.3542C8.79984 19.3542 10.4185 18.6837 11.612 17.4902L18.112 10.9902" stroke="#555F75" stroke-width="1.495" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+                <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter,sans-serif;">Upload Attachment</span>
+              </div>
+              </div>
+            </mj-text>
+          </mj-column>
+        </mj-section>`
+    });
+
+    // ── Component blocks (Original MJML Blocks) ──────────────────────────────────
+    bm.add("custom-header", {
+      label: "Header Banner",
+      category: "Components",
+      content: `
+        <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
+          <mj-column padding="0px" margin="0px" width="100%">
+            <mj-text font-family="Inter" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
+              Your Header Here
+            </mj-text>
+          </mj-column>
+        </mj-section>`
+    });
+
+    bm.add("custom-text-block", {
+      label: "Text Block",
+      category: "Components",
+      content: `
+        <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
+          <mj-column padding="0px" margin="0px" width="100%">
+            <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+              Add your content here. This is a paragraph of text.
+            </mj-text>
+          </mj-column>
+        </mj-section>`
+    });
+
+    bm.add("custom-button-block", {
+      label: "CTA Button",
+      category: "Components",
+      content: `
+        <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
+          <mj-column padding="0px" margin="0px" width="100%">
+            <mj-button font-family="Inter" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
+              Click Here
+            </mj-button>
+          </mj-column>
+        </mj-section>`
+    });
+
+    bm.add("custom-image-block", {
+      label: "Image Section",
+      category: "Components",
+      content: `
+        <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
+          <mj-column padding="0px" margin="0px" width="100%">
+            <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center" />
+            <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+              Add Image.
+            </mj-text>
+          </mj-column>
+        </mj-section>`
+    });
+  }
 }

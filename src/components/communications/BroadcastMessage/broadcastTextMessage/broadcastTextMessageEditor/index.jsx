@@ -14,7 +14,11 @@ import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIco
 import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
 import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkModal/index";
 
-const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
+const BroadcastTextMessageEditor = ({
+  onContentChange,
+  onReady,
+  initialTemplate
+}) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -187,52 +191,59 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
         });
       }
 
+      const componentsList = [
+        {
+          tagName: "div",
+          type: "text",
+          attributes: {
+            class: "text-editor-content",
+            "data-placeholder":
+              "Start typing or drag and drop a placeholder from left panel.",
+            style: initialTemplate
+              ? "padding: 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
+              : "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
+          },
+          content: initialTemplate || "",
+          editable: true,
+          draggable: false,
+          removable: false,
+          copyable: false,
+          selectable: true,
+          hoverable: false,
+          badgable: false
+        }
+      ];
+
+      if (!initialTemplate) {
+        componentsList.push({
+          tagName: "div",
+          attributes: {
+            class: "unsubscribe-footer",
+            style:
+              "padding: 10px 0; color: #475467; font-size: 14px; border-top: 1px solid #EAECF0; font-family: Inter, sans-serif;"
+          },
+          content: "Click here to unsubscribe:",
+          editable: false,
+          draggable: false,
+          removable: false,
+          copyable: false,
+          selectable: false,
+          hoverable: false,
+          badgable: false
+        });
+      }
+
       // Load initial content
       editor.setComponents([
         {
           tagName: "div",
           attributes: {
             class: "text-editor-container",
-            style:
-              "display: flex; flex-direction: column; box-sizing: border-box;"
+            style: initialTemplate
+              ? "display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; background-color: #f2f2f2; padding: 0px;"
+              : "display: flex; flex-direction: column; box-sizing: border-box;"
           },
-          components: [
-            {
-              tagName: "div",
-              type: "text",
-              attributes: {
-                class: "text-editor-content",
-                "data-placeholder":
-                  "Start typing or drag and drop a placeholder from left panel.",
-                style:
-                  "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
-              },
-              content: "",
-              editable: true,
-              draggable: false,
-              removable: false,
-              copyable: false,
-              selectable: true,
-              hoverable: false,
-              badgable: false
-            },
-            {
-              tagName: "div",
-              attributes: {
-                class: "unsubscribe-footer",
-                style:
-                  "padding: 10px 0; color: #475467; font-size: 14px; border-top: 1px solid #EAECF0; font-family: Inter, sans-serif;"
-              },
-              content: "Click here to unsubscribe:",
-              editable: false,
-              draggable: false,
-              removable: false,
-              copyable: false,
-              selectable: false,
-              hoverable: false,
-              badgable: false
-            }
-          ]
+          components: componentsList
         }
       ]);
 
@@ -508,7 +519,7 @@ const BroadcastTextMessageEditor = ({ onContentChange, onReady }) => {
         editorRef.current.destroy();
       }
     };
-  }, [onContentChange, onReady]);
+  }, [onContentChange, onReady, initialTemplate]);
 
   const handleToolbarLinkConfirm = () => {
     let url = linkModalUrl;

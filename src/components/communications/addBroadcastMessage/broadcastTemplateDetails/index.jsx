@@ -1,6 +1,7 @@
 import { useState } from "react";
 import blackTemplateIcon from "../../../../assets/commonIcons/blackTemplate.svg";
 import existingTemplateIcon from "../../../../assets/commonIcons/existingTemplate.svg";
+import crossIcon from "../../../../assets/commonIcons/redCrossIcon.svg";
 import ExistingTemplates from "../../existingTemplates/index";
 import "./style.scss";
 
@@ -19,7 +20,9 @@ function BroadcastTemplateDetails({
   selectedTemplateType,
   setSelectedTemplateType,
   existingTemplateValues,
-  setExistingTemplateValues
+  setExistingTemplateValues,
+  onSelectTemplate,
+  selectedTemplateData
 }) {
   const [selectedTemplate, setSelectedTemplate] = useState("blank");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -65,9 +68,9 @@ function BroadcastTemplateDetails({
               />
             ) : (
               <ReusableMultiSelectDropdown
-                label="Template Name"
+                label="Select Template"
                 greenIcon={false}
-                placeholder="Enter Template Name"
+                placeholder="Select Template"
                 options={templateOptions}
                 value={existingTemplateValues}
                 onChange={setExistingTemplateValues}
@@ -102,6 +105,24 @@ function BroadcastTemplateDetails({
                     setIsDrawerOpen(true);
                   }}
                 >
+                  {selectedTemplate === "existing" && selectedTemplateData && (
+                    <div
+                      className="closeIcon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onSelectTemplate) {
+                          onSelectTemplate(null);
+                        }
+                        setSelectedTemplate("blank");
+                      }}
+                    >
+                      <img
+                        src={crossIcon}
+                        alt="crossIcon"
+                        className="redCrossIcon"
+                      />
+                    </div>
+                  )}
                   <div className="templateOptionIcon">
                     <img
                       src={existingTemplateIcon}
@@ -112,10 +133,12 @@ function BroadcastTemplateDetails({
                   <p>Existing Template</p>
                 </div>
               </div>
-              <ReusableInput
-                label="Template Name"
-                placeholder="Enter Template Name"
-              />
+              {selectedTemplate === "blank" && (
+                <ReusableInput
+                  label="Template Name"
+                  placeholder="Enter Template Name"
+                />
+              )}
             </div>
           </>
         )}
@@ -124,6 +147,7 @@ function BroadcastTemplateDetails({
       <ExistingTemplates
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        onSelectTemplate={onSelectTemplate}
       />
     </div>
   );
