@@ -120,6 +120,8 @@ const BroadcastTextMessageEditor = ({
 
     // Persist the last known cursor range so click-to-insert can restore it
     const savedRange = { current: null };
+    // Track the last component that had RTE active (needed for template structures)
+    let lastRteComp = null;
 
     // Clone the container and stamp list styles inline so they appear in HTML output
     const serializeContainer = (containerEl) => {
@@ -523,8 +525,9 @@ const BroadcastTextMessageEditor = ({
       }
     });
 
-    // Ensure the RTE toolbar is visible when enabled
+    // Ensure the RTE toolbar is visible when enabled; also track which component is active
     editor.on("rte:enable", () => {
+      lastRteComp = editor.getSelected() || lastRteComp;
       const rteToolbar = editor.RichTextEditor.getToolbarEl();
       if (rteToolbar) {
         rteToolbar.style.setProperty("display", "flex", "important");
@@ -548,40 +551,127 @@ const BroadcastTextMessageEditor = ({
         setDevice: (device) => editor.setDevice(device),
         insertAtCursor: (text) => {
           const wrapper = editor.getWrapper();
-          const contentComp = wrapper.find(".text-editor-content")[0];
-          if (!contentComp) return;
-
           const doc = editor.Canvas.getDocument();
           const canvasWin = editor.Canvas.getWindow();
           if (!doc || !canvasWin) return;
 
-          canvasWin.focus();
+          // Snapshot saved range BEFORE any focus change triggers selectionchange
+          const rangeSnapshot = savedRange.current;
 
-          const range = savedRange.current;
-          if (range) {
-            const sel = canvasWin.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-          } else {
-            // No saved range — fall back to end of content
-            const el = contentComp.getEl();
-            if (el) {
+          // Blank template uses .text-editor-content; saved templates use lastRteComp
+          const defaultComp = wrapper.find(".text-editor-content")[0];
+          const isTemplate = !defaultComp;
+
+          let targetEl = null;
+          let rangeToUse = null;
+
+          if (defaultComp) {
+            targetEl = defaultComp.getEl();
+            if (!targetEl) return;
+            if (
+              rangeSnapshot &&
+              targetEl.contains(rangeSnapshot.commonAncestorContainer)
+            ) {
+              rangeToUse = rangeSnapshot;
+            } else {
               const r = doc.createRange();
-              r.selectNodeContents(el);
+              r.selectNodeContents(targetEl);
               r.collapse(false);
-              const sel = canvasWin.getSelection();
-              sel.removeAllRanges();
-              sel.addRange(r);
+              rangeToUse = r;
+            }
+          } else {
+            const fallbackComp =
+              lastRteComp || wrapper.find("[data-gjs-type='text']")[0];
+            if (!fallbackComp) return;
+            targetEl = fallbackComp.getEl();
+            if (!targetEl) return;
+            if (
+              rangeSnapshot &&
+              targetEl.contains(rangeSnapshot.commonAncestorContainer)
+            ) {
+              rangeToUse = rangeSnapshot;
+            } else {
+              const r = doc.createRange();
+              r.selectNodeContents(targetEl);
+              r.collapse(false);
+              rangeToUse = r;
             }
           }
 
-          const currentText = canvasWin.getSelection()?.toString() ?? "";
+          if (!rangeToUse) return;
+
+          // Force the element editable so execCommand works regardless of GrapesJS state
+          const prevEditable = targetEl.contentEditable;
+          targetEl.contentEditable = "true";
+          targetEl.focus();
+
+          try {
+            const sel = canvasWin.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(rangeToUse);
+          } catch {
+            // stale range — cursor stays wherever browser placed it on focus
+          }
+
+          const charBeforeCursor = (() => {
+            try {
+              const sel = canvasWin.getSelection();
+              if (!sel?.rangeCount) return "";
+              const r = sel.getRangeAt(0).cloneRange();
+              r.collapse(true);
+              if (r.startOffset === 0) return "";
+              r.setStart(r.startContainer, r.startOffset - 1);
+              return r.toString();
+            } catch {
+              return "";
+            }
+          })();
+
           const prefix =
-            currentText.length === 0 &&
-            contentComp.getEl()?.innerText?.trim().length > 0
+            targetEl.innerText?.trim().length > 0 && charBeforeCursor !== " "
               ? " "
               : "";
+
           doc.execCommand("insertText", false, prefix + text);
+
+          if (!isTemplate) {
+            // Blank template: getHtml() reads from DOM — nothing more needed
+            targetEl.contentEditable = prevEditable;
+            updateContent();
+            return;
+          }
+
+          // Saved template: getHtml() reads from GrapesJS model, so sync DOM → model
+          const updatedHtml = targetEl.innerHTML;
+          targetEl.contentEditable = prevEditable;
+
+          // Find the GrapesJS component that owns targetEl by walking up via GJS IDs
+          const findOwnerComp = (el) => {
+            let cur = el;
+            while (cur && cur !== doc.body) {
+              const id = cur.getAttribute?.("id");
+              if (id) {
+                const found = wrapper.find("#" + id);
+                if (found.length) return found[0];
+              }
+              cur = cur.parentElement;
+            }
+            return lastRteComp || null;
+          };
+
+          const ownerComp = findOwnerComp(targetEl);
+          if (ownerComp) {
+            ownerComp.components().reset();
+            ownerComp.set("content", updatedHtml);
+            const view = ownerComp.getView?.();
+            if (view && typeof view.render === "function") {
+              view.render();
+            } else {
+              editor.trigger("component:update", ownerComp);
+            }
+            savedRange.current = null; // DOM re-render invalidates the saved range
+          }
+
           updateContent();
         },
         execCommand: (cmd, value) => {
