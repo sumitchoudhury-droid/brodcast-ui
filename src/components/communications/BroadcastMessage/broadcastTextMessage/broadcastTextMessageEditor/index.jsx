@@ -174,6 +174,16 @@ const BroadcastTextMessageEditor = ({
             isEmpty
           );
         }
+      } else {
+        // Saved template: no .text-editor-content — check canvas for any text content
+        if (onContentChange) {
+          const html = editor.getHtml();
+          const plainText = html
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .trim();
+          onContentChange(html, plainText.length === 0);
+        }
       }
     };
 
@@ -300,6 +310,9 @@ const BroadcastTextMessageEditor = ({
 
       if (contentComp) {
         editor.select(contentComp);
+      } else {
+        // Saved template: seed lastRteComp so execCommand has a default target
+        lastRteComp = wrapper.find("[data-gjs-type='text']")[0] || null;
       }
       setTimeout(updateContent, 100);
       updateContent();
@@ -546,7 +559,31 @@ const BroadcastTextMessageEditor = ({
           const contentComp = wrapper?.find(".text-editor-content")[0];
           const el = contentComp?.getEl();
           const containerEl = el?.closest(".text-editor-container");
-          return serializeContainer(containerEl) ?? editor.getHtml();
+          if (containerEl) return serializeContainer(containerEl);
+
+          // Saved template: read from the live canvas DOM so that all style
+          // changes applied via el.style.xxx are captured in the output
+          const canvasDoc = editor.Canvas.getDocument();
+          if (canvasDoc?.body) {
+            const clone = canvasDoc.body.cloneNode(true);
+            clone.querySelectorAll("*").forEach((node) => {
+              node.removeAttribute("data-gjs-highlightable");
+              node.removeAttribute("data-gjs-type");
+              node.removeAttribute("draggable");
+              node.removeAttribute("contenteditable");
+              [
+                "gjs-selected",
+                "gjs-hovered",
+                "gjs-editable",
+                "is-empty"
+              ].forEach((cls) => node.classList.remove(cls));
+              if (node.getAttribute("class") === "")
+                node.removeAttribute("class");
+            });
+            return clone.innerHTML;
+          }
+
+          return editor.getHtml();
         },
         setDevice: (device) => editor.setDevice(device),
         insertAtCursor: (text) => {
