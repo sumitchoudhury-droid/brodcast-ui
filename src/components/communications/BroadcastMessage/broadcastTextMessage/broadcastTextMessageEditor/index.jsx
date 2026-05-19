@@ -676,115 +676,109 @@ const BroadcastTextMessageEditor = ({
         },
         execCommand: (cmd, value) => {
           const wrapper = editor.getWrapper();
-          const contentComp = wrapper.find(".text-editor-content")[0];
-          if (contentComp) {
-            if (cmd === "fontName") {
-              const el = contentComp.getEl();
-              if (el) el.style.fontFamily = value;
-              contentComp.addStyle({ "font-family": value });
-              updateContent();
-              return;
-            }
+          // Resolve the active component: blank template uses .text-editor-content,
+          // saved templates use whichever component the user last edited
+          const activeComp =
+            wrapper.find(".text-editor-content")[0] || lastRteComp;
+          if (!activeComp) return;
 
-            if (cmd === "fontWeight") {
-              const el = contentComp.getEl();
-              if (el) el.style.fontWeight = value;
-              contentComp.addStyle({ "font-weight": value });
-              updateContent();
-              return;
-            }
+          const el = activeComp.getEl();
 
-            if (cmd === "fontSize") {
-              const el = contentComp.getEl();
-              const px = `${value}px`;
-              if (el && value) el.style.fontSize = px;
-              contentComp.addStyle({ "font-size": px });
-              updateContent();
-              return;
-            }
-
-            if (cmd === "foreColor") {
-              const el = contentComp.getEl();
-              if (el && value) el.style.color = value;
-              contentComp.addStyle({ color: value });
-              updateContent();
-              return;
-            }
-
-            if (
-              [
-                "justifyLeft",
-                "justifyCenter",
-                "justifyRight",
-                "justifyFull"
-              ].includes(cmd)
-            ) {
-              const alignMap = {
-                justifyLeft: "left",
-                justifyCenter: "center",
-                justifyRight: "right",
-                justifyFull: "justify"
-              };
-              const alignValue = alignMap[cmd];
-              const el = contentComp.getEl();
-              if (el) {
-                el.style.textAlign = alignValue;
-                el.querySelectorAll("ul, ol").forEach((list) => {
-                  list.style.listStylePosition = "inside";
-                  list.style.paddingLeft = "0";
-                });
-              }
-              contentComp.addStyle({ "text-align": alignValue });
-              updateContent();
-              return;
-            }
-
-            if (cmd === "uppercase") {
-              const el = contentComp.getEl();
-              const newTransform =
-                el?.style.textTransform === "uppercase" ? "none" : "uppercase";
-              if (el) el.style.textTransform = newTransform;
-              contentComp.addStyle({ "text-transform": newTransform });
-              updateContent();
-              return;
-            }
-
-            const inlineCmdMap = {
-              underline: "underline",
-              italic: "italic",
-              bold: "bold",
-              strikethrough: "strikeThrough",
-              superscript: "superscript",
-              insertUnorderedList: "insertUnorderedList",
-              insertOrderedList: "insertOrderedList",
-              subscript: "subscript"
-            };
-            if (inlineCmdMap[cmd]) {
-              const doc = editor.Canvas.getDocument();
-              if (doc) {
-                doc.execCommand(inlineCmdMap[cmd], false, null);
-                updateContent();
-              }
-              return;
-            }
-
-            // Focus the canvas window to help restore the internal selection
-            const win = editor.Canvas.getWindow();
-            if (win) win.focus();
-
-            // Only select if not already selected to avoid resetting text selection
-            if (editor.getSelected() !== contentComp) {
-              editor.select(contentComp);
-            }
-
-            editor.runCommand("rte:enable", { target: contentComp });
-
-            // Small delay to ensure RTE is active before executing command
-            setTimeout(() => {
-              editor.RichTextEditor.exec(cmd, value);
-              updateContent();
-            }, 10);
+          if (cmd === "fontName") {
+            if (el) el.style.fontFamily = value;
+            activeComp.addStyle({ "font-family": value });
+            updateContent();
+            return;
           }
+
+          if (cmd === "fontWeight") {
+            if (el) el.style.fontWeight = value;
+            activeComp.addStyle({ "font-weight": value });
+            updateContent();
+            return;
+          }
+
+          if (cmd === "fontSize") {
+            const px = `${value}px`;
+            if (el && value) el.style.fontSize = px;
+            activeComp.addStyle({ "font-size": px });
+            updateContent();
+            return;
+          }
+
+          if (cmd === "foreColor") {
+            if (el && value) el.style.color = value;
+            activeComp.addStyle({ color: value });
+            updateContent();
+            return;
+          }
+
+          if (
+            [
+              "justifyLeft",
+              "justifyCenter",
+              "justifyRight",
+              "justifyFull"
+            ].includes(cmd)
+          ) {
+            const alignMap = {
+              justifyLeft: "left",
+              justifyCenter: "center",
+              justifyRight: "right",
+              justifyFull: "justify"
+            };
+            const alignValue = alignMap[cmd];
+            if (el) {
+              el.style.textAlign = alignValue;
+              el.querySelectorAll("ul, ol").forEach((list) => {
+                list.style.listStylePosition = "inside";
+                list.style.paddingLeft = "0";
+              });
+            }
+            activeComp.addStyle({ "text-align": alignValue });
+            updateContent();
+            return;
+          }
+
+          if (cmd === "uppercase") {
+            const newTransform =
+              el?.style.textTransform === "uppercase" ? "none" : "uppercase";
+            if (el) el.style.textTransform = newTransform;
+            activeComp.addStyle({ "text-transform": newTransform });
+            updateContent();
+            return;
+          }
+
+          const inlineCmdMap = {
+            underline: "underline",
+            italic: "italic",
+            bold: "bold",
+            strikethrough: "strikeThrough",
+            superscript: "superscript",
+            insertUnorderedList: "insertUnorderedList",
+            insertOrderedList: "insertOrderedList",
+            subscript: "subscript"
+          };
+          if (inlineCmdMap[cmd]) {
+            const doc = editor.Canvas.getDocument();
+            if (doc) {
+              doc.execCommand(inlineCmdMap[cmd], false, null);
+              updateContent();
+            }
+            return;
+          }
+
+          // Fallback: focus canvas window and drive via RTE
+          const win = editor.Canvas.getWindow();
+          if (win) win.focus();
+          if (editor.getSelected() !== activeComp) {
+            editor.select(activeComp);
+          }
+          editor.runCommand("rte:enable", { target: activeComp });
+          setTimeout(() => {
+            editor.RichTextEditor.exec(cmd, value);
+            updateContent();
+          }, 10);
         }
       });
     }
