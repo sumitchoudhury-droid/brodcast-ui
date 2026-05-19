@@ -50,7 +50,7 @@ const PLACEHOLDERS = [
   { label: "LinkedIn", value: "$LINKEDIN", link: "https://www.linkedin.com" }
 ];
 
-function BroadcastTextVoiceMessageLeftPanel() {
+function BroadcastTextVoiceMessageLeftPanel({ editorInstance }) {
   const [search, setSearch] = useState("");
 
   const filteredPlaceholders = PLACEHOLDERS.filter((item) =>
@@ -76,14 +76,10 @@ function BroadcastTextVoiceMessageLeftPanel() {
           <div
             key={index}
             className="broadcastTextVoiceMessageLeftPanelItem"
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData("text/plain", item.value);
-              e.dataTransfer.setData("text/html", item.value);
-              e.dataTransfer.setData("application/x-placeholder", "true");
-            }}
-            onDragEnd={() => {
-              // If the drop effect is not none, it was dropped on a valid target
+            style={{ cursor: "pointer" }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editorInstance?.insertAtCursor(item.value);
             }}
           >
             <div className="broadcastTextVoiceMessageLeftPanelIconContainer">
