@@ -331,7 +331,7 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
                   <div className="voiceLeft">
                     <span className="voiceIcon">
                       <img
-                        src={isThisPlaying ? playIcon : pausedIcon}
+                        src={isThisPlaying ? pausedIcon : playIcon}
                         alt="play/pause icon"
                       />
                     </span>

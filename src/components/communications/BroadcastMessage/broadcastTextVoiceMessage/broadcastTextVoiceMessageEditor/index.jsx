@@ -120,14 +120,15 @@ const BroadcastTextVoiceMessageEditor = ({
       const contentComp = wrapper.find(".text-editor-content")[0];
       const optOutComp = wrapper.find(".opt-out-section")[0];
 
-      let fullText = "";
+      let mainText = "";
       if (contentComp) {
         const el = contentComp.getEl();
-        fullText += (
+        mainText = (
           el ? el.innerText : contentComp.get("content") || ""
         ).trim();
       }
 
+      let fullText = mainText;
       if (optOutComp) {
         const el = optOutComp.getEl();
         const optOutText = (
@@ -138,8 +139,10 @@ const BroadcastTextVoiceMessageEditor = ({
         }
       }
 
+      const isEmpty = mainText.length === 0;
+
       if (onContentChange) {
-        onContentChange(fullText.trim());
+        onContentChange(fullText.trim(), isEmpty);
       }
     };
 
