@@ -6,13 +6,7 @@ import "./style.scss";
 
 function BroadcastTextVoiceMessage({ selectedTemplate }) {
   const [content, setContent] = useState("");
-  const [isEditorEmpty, setIsEditorEmpty] = useState(true);
   const [editorInstance, setEditorInstance] = useState(null);
-
-  const handleContentChange = useCallback((text, isEmpty) => {
-    setContent(text);
-    setIsEditorEmpty(isEmpty);
-  }, []);
 
   const handleEditorReady = useCallback((instance) => {
     setEditorInstance(instance);
@@ -22,13 +16,13 @@ function BroadcastTextVoiceMessage({ selectedTemplate }) {
     <div className="broadcastTexVoiceMessageContainer">
       <BroadcastTextVoiceMessageLeftPanel editorInstance={editorInstance} />
       <BroadcastTextVoiceMessageEditor
-        onContentChange={handleContentChange}
+        onContentChange={setContent}
         onReady={handleEditorReady}
         initialTemplate={selectedTemplate?.voiceTemplate}
       />
       <BroadcastTextVoiceMessageRightPanel
         editorContent={content}
-        isEditorEmpty={isEditorEmpty}
+        isEditorEmpty={!content || content.trim() === ""}
       />
     </div>
   );

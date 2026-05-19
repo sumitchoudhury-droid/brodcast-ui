@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
 import closeIcon from "../../../../../assets/commonIcons/CloseButton.svg";
-import playIcon from "../../../../../assets/voiceTextIcons/playIcon.svg";
-import pauseIcon from "../../../../../assets/voiceTextIcons/pausedIcon.svg";
+import playIcon from "../../../../../assets/voiceTextIcons/pausedIcon.svg";
+import pauseIcon from "../../../../../assets/voiceTextIcons/playIcon.svg";
 
 const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -354,9 +354,7 @@ const TextVoicePreview = ({ isOpen, onClose, content, selectedVoiceCfg }) => {
                   className="messageText"
                   dangerouslySetInnerHTML={{
                     __html: highlightHTML(
-                      content && content.trim()
-                        ? content
-                        : "<p>Hello, this is a preview of your broadcast voice message. Welcome to Manipal Hospitals.</p>",
+                      content || "<p>Your message will appear here…</p>",
                       speakingCharIndex
                     )
                   }}
