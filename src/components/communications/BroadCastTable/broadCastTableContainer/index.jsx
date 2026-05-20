@@ -1,74 +1,328 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable
 } from "@tanstack/react-table";
-import {
-  ChevronsUpDown,
-  CircleAlert,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Clock,
-  PlayCircle,
-  Ban,
-  MoreVertical,
-  Search,
-  Settings
-} from "lucide-react";
+import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
+import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
+
+import scheduledDailyIcon from "../../../../assets/boardCastTableIcons/scheduledDailyIcon.svg";
+import completedIcon from "../../../../assets/boardCastTableIcons/completedIcon.svg";
+import runningWeeklyIcon from "../../../../assets/boardCastTableIcons/runningWeekly.svg";
+import broadcastIcon from "../../../../assets/boardCastTableIcons/broadcastIcon.svg";
+import failedIcon from "../../../../assets/boardCastTableIcons/failedIcon.svg";
+import cancelledIcon from "../../../../assets/boardCastTableIcons/cancelledIcon.svg";
+
+import completedGreenIcon from "../../../../assets/boardCastTableIcons/completedGreenIcon.svg";
+import failedRedIcon from "../../../../assets/boardCastTableIcons/failedRedIcon.svg";
+import pendingYellowIcon from "../../../../assets/boardCastTableIcons/pendingYellowIcon.svg";
+import circleAlert from "../../../../assets/boardCastTableIcons/circleAlert.svg";
+import sortIcon from "../../../../assets/boardCastTableIcons/sortIcon.svg";
+import tableMenuIcon from "../../../../assets/boardCastTableIcons/tableMenu.svg";
+
+import searchGreenIcon from "../../../../assets/boardCastTableIcons/searchGreen.svg";
+import settingsIcon from "../../../../assets/boardCastTableIcons/tableSettings.svg";
+
+import CancelScheduleIcon from "../../../../assets/boardCastTableIcons/CancelScheduleIcon.svg";
+import ReportIcon from "../../../../assets/boardCastTableIcons/ReportIcon.svg";
+import ReprocessIcon from "../../../../assets/boardCastTableIcons/ReprocessIcon.svg";
+
 import "./style.scss";
 import { mockData } from "./mockData";
+import TableSettings from "./tableSettings/index";
+import { useToast } from "../../../../hooks/useToast";
+import ReProcessBroadCast from "./reprocessBroadcast/index.jsx";
+import CancelSchedule from "./cancelSchedule/index.jsx";
+import TableBoardCastDetails from "./tableBoardCastDetails/index.jsx";
+
+const DEFAULT_ORDER = [
+  "mode",
+  "template",
+  "appointmentType",
+  "location",
+  "provider",
+  "scheduledDateTime",
+  "messageStatus",
+  "broadcastStatus"
+];
+
+const DEFAULT_VISIBILITY = {
+  mode: true,
+  template: true,
+  appointmentType: true,
+  location: true,
+  provider: true,
+  scheduledDateTime: true,
+  messageStatus: true,
+  broadcastStatus: true
+};
+
+const getMenuOptions = (status) => {
+  if (!status) return [];
+  const lowerStatus = status.toLowerCase();
+
+  if (
+    lowerStatus.includes("scheduled") ||
+    lowerStatus.includes("running") ||
+    lowerStatus.includes("reprocess")
+  ) {
+    return [
+      {
+        label: "Cancel Schedule",
+        action: "cancel",
+        icon: CancelScheduleIcon
+      },
+      { label: "Reprocess", action: "reprocess", icon: ReprocessIcon },
+      { label: "Report", action: "report", icon: ReportIcon }
+    ];
+  } else if (lowerStatus.includes("cancel")) {
+    return [{ label: "Report", action: "report", icon: ReportIcon }];
+  } else if (
+    lowerStatus.includes("completed") ||
+    lowerStatus.includes("failed")
+  ) {
+    return [
+      { label: "Reprocess", action: "reprocess", icon: ReprocessIcon },
+      { label: "Report", action: "report", icon: ReportIcon }
+    ];
+  }
+  return [];
+};
+
+const highlightText = (text, query) => {
+  if (!text) return "";
+  if (!query) return text;
+
+  const stringText = String(text);
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = stringText.split(new RegExp(`(${escapedQuery})`, "gi"));
+  return parts.map((part, index) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark key={index} className="search-highlight">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+};
+
+const getPlaceholder = (columnId) => {
+  switch (columnId) {
+    case "mode":
+      return "Sea...";
+    case "template":
+      return "Search Template...";
+    case "appointmentType":
+      return "Search Appointment...";
+    case "location":
+      return "Search Location";
+    case "provider":
+      return "Search Provider";
+    case "scheduledDateTime":
+      return "Search Date/Time";
+    case "messageStatus":
+      return "Search M...";
+    case "broadcastStatus":
+      return "Search Broadcast...";
+    default:
+      return "Search...";
+  }
+};
 
 function BroadCastTableContainer({
   currentPage = 1,
   itemsPerPage = 10,
-  setTotalItems
+  setTotalItems,
+  selectedDateRange
 }) {
-  const [data] = useState(mockData);
+  const toast = useToast();
+  const [data, setData] = useState(mockData);
   const [rowSelection, setRowSelection] = useState({});
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [showReprocessDrawer, setShowReprocessDrawer] = useState(false);
+  const [selectedCancelRow, setSelectedCancelRow] = useState(null);
+  const [selectedDetailsRow, setSelectedDetailsRow] = useState(null);
+  const menuRef = useRef(null);
+  const settingsRef = useRef(null);
+  const settingsButtonRef = useRef(null);
+
+  const [dataColumnOrder, setDataColumnOrder] = useState(DEFAULT_ORDER);
+  const [columnVisibility, setColumnVisibility] = useState(DEFAULT_VISIBILITY);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const columnOrder = useMemo(() => {
+    return ["select", ...dataColumnOrder, "actions"];
+  }, [dataColumnOrder]);
+
+  const [showSearch, setShowSearch] = useState(false);
+  const [filters, setFilters] = useState({
+    mode: "",
+    template: "",
+    appointmentType: "",
+    location: "",
+    provider: "",
+    scheduledDateTime: "",
+    messageStatus: "",
+    broadcastStatus: ""
+  });
+  const [activeEditColumn, setActiveEditColumn] = useState(null);
+
+  const handleFilterChange = (columnId, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [columnId]: value
+    }));
+  };
+
+  const handleKeyDown = (columnId, e) => {
+    if (e.key === "Enter") {
+      setActiveEditColumn(null);
+    }
+  };
+
+  const handleBlur = () => {
+    setActiveEditColumn(null);
+  };
+
+  const handleClearFilter = (columnId) => {
+    setFilters((prev) => ({
+      ...prev,
+      [columnId]: ""
+    }));
+    setActiveEditColumn(null);
+  };
+
+  const filteredData = useMemo(() => {
+    return data.filter((row) => {
+      // 1. Date Range Filter
+      const { startDate, endDate } = selectedDateRange || {};
+      const dateStr = row.scheduledDateTime;
+      if (dateStr) {
+        const [datePart] = dateStr.split(" ");
+        const [month, day, year] = datePart.split("/").map(Number);
+        const rowDate = new Date(year, month - 1, day);
+
+        if (startDate || endDate) {
+          if (startDate) {
+            const startMidnight = new Date(
+              startDate.getFullYear(),
+              startDate.getMonth(),
+              startDate.getDate()
+            );
+            if (rowDate < startMidnight) return false;
+          }
+
+          if (endDate) {
+            const endMidnight = new Date(
+              endDate.getFullYear(),
+              endDate.getMonth(),
+              endDate.getDate()
+            );
+            if (rowDate > endMidnight) return false;
+          }
+        } else {
+          // Default to today's date
+          const today = new Date();
+          const todayMidnight = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate()
+          );
+          if (rowDate.getTime() !== todayMidnight.getTime()) {
+            return false;
+          }
+        }
+      }
+
+      // 2. Column filters
+      return Object.entries(filters).every(([columnId, query]) => {
+        if (!query) return true;
+
+        if (columnId === "messageStatus") {
+          const { total, delivered, failed, pending } = row.messageStatus || {};
+          const combined =
+            `${total || ""} ${delivered || ""} ${failed || ""} ${pending || ""}`.toLowerCase();
+          return combined.includes(query.toLowerCase());
+        }
+
+        const value = row[columnId];
+        if (value !== undefined && value !== null) {
+          return String(value).toLowerCase().includes(query.toLowerCase());
+        }
+
+        return true;
+      });
+    });
+  }, [data, filters, selectedDateRange]);
 
   useEffect(() => {
     if (setTotalItems) {
-      setTotalItems(data.length);
+      setTotalItems(filteredData.length);
     }
-  }, [data, setTotalItems]);
+  }, [filteredData.length, setTotalItems]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMenuId(null);
+      }
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target) &&
+        settingsButtonRef.current &&
+        !settingsButtonRef.current.contains(event.target)
+      ) {
+        setShowSettings(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const columns = [
     {
       id: "select",
       header: ({ table }) => (
-        <div className="checkbox-wrapper">
-          <input
-            type="checkbox"
-            checked={table.getIsAllRowsSelected()}
-            onChange={table.getToggleAllRowsSelectedHandler()}
-          />
-        </div>
+        <ReusableCheckbox
+          checked={table.getIsAllRowsSelected()}
+          onChange={table.getToggleAllRowsSelectedHandler()}
+        />
       ),
       cell: ({ row }) => (
-        <div className="checkbox-wrapper">
-          <input
-            type="checkbox"
-            checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
-          />
-        </div>
+        <ReusableCheckbox
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+        />
       )
     },
     {
       accessorKey: "mode",
       header: () => (
         <div className="header-content">
-          Mode <ChevronsUpDown className="sort-icon" />
+          Mode <img src={sortIcon} alt="sort" className="sort-icon" />
         </div>
       ),
       cell: ({ row }) => (
         <div className="mode-cell">
-          {row.original.mode}
-          {row.original.hasError && <CircleAlert className="error-icon" />}
+          {highlightText(row.original.mode, filters.mode)}
+          {row.original.hasError && (
+            <ReusableToolTip
+              content={{ label: "Failed Reason", value: "Network Outage" }}
+              position="top"
+            >
+              <img
+                src={circleAlert}
+                alt="alert"
+                className="error-icon"
+                style={{ cursor: "pointer" }}
+              />
+            </ReusableToolTip>
+          )}
         </div>
       )
     },
@@ -76,21 +330,41 @@ function BroadCastTableContainer({
       accessorKey: "template",
       header: () => (
         <div className="header-content">
-          Template <ChevronsUpDown className="sort-icon" />
+          Template <img src={sortIcon} alt="sort" className="sort-icon" />
         </div>
-      )
+      ),
+      cell: ({ row }) => {
+        return highlightText(row.original.template, filters.template);
+      }
     },
     {
       accessorKey: "appointmentType",
       header: () => (
         <div className="header-content">
-          Appointment Type <ChevronsUpDown className="sort-icon" />
+          Appointment Type{" "}
+          <img src={sortIcon} alt="sort" className="sort-icon" />
         </div>
       ),
       cell: ({ row }) => (
         <div className="text-with-pill">
-          {row.original.appointmentType}
-          <span className="count-pill">+{row.original.appointmentCount}</span>
+          {highlightText(row.original.appointmentType, filters.appointmentType)}
+          <ReusableToolTip
+            content={[
+              "GHC-A General Health Check",
+              "VAC-A Vaccination Appointment",
+              "ECG-A ECG Screening",
+              "FUP-A Follow-Up Consultation",
+              "BPC-A Blood Pressure Check",
+              "DER-A Dermatology Consultation",
+              "DBC-A Diabetes Check",
+              "+ 100"
+            ]}
+            position="top"
+          >
+            <span className="count-pill" style={{ cursor: "pointer" }}>
+              +{row.original.appointmentCount}
+            </span>
+          </ReusableToolTip>
         </div>
       )
     },
@@ -98,13 +372,27 @@ function BroadCastTableContainer({
       accessorKey: "location",
       header: () => (
         <div className="header-content">
-          Location <ChevronsUpDown className="sort-icon" />
+          Location <img src={sortIcon} alt="sort" className="sort-icon" />
         </div>
       ),
       cell: ({ row }) => (
         <div className="text-with-pill">
-          {row.original.location}
-          <span className="count-pill">+{row.original.locationCount}</span>
+          {highlightText(row.original.location, filters.location)}
+          <ReusableToolTip
+            content={[
+              "Sunnyvale Medical Center,",
+              "Riverbend Urgent Care,",
+              "Eastside Urgent Care,",
+              "Riverbend Urgent Care,",
+              "Greenwood Health Clinic,",
+              "Maplewood Family Practice."
+            ]}
+            position="top"
+          >
+            <span className="count-pill" style={{ cursor: "pointer" }}>
+              +{row.original.locationCount}
+            </span>
+          </ReusableToolTip>
         </div>
       )
     },
@@ -112,13 +400,27 @@ function BroadCastTableContainer({
       accessorKey: "provider",
       header: () => (
         <div className="header-content">
-          Provider <ChevronsUpDown className="sort-icon" />
+          Provider <img src={sortIcon} alt="sort" className="sort-icon" />
         </div>
       ),
       cell: ({ row }) => (
         <div className="text-with-pill">
-          {row.original.provider}
-          <span className="count-pill">+{row.original.providerCount}</span>
+          {highlightText(row.original.provider, filters.provider)}
+          <ReusableToolTip
+            content={[
+              "Olivia Smith,",
+              "Ethan Brown,",
+              "Sophia Green,",
+              "Liam Carter,",
+              "Olivia White,",
+              "Noah Harris."
+            ]}
+            position="top"
+          >
+            <span className="count-pill" style={{ cursor: "pointer" }}>
+              +{row.original.providerCount}
+            </span>
+          </ReusableToolTip>
         </div>
       )
     },
@@ -126,9 +428,16 @@ function BroadCastTableContainer({
       accessorKey: "scheduledDateTime",
       header: () => (
         <div className="header-content">
-          Scheduled Date/Time <ChevronsUpDown className="sort-icon" />
+          Scheduled Date/Time{" "}
+          <img src={sortIcon} alt="sort" className="sort-icon" />
         </div>
-      )
+      ),
+      cell: ({ row }) => {
+        return highlightText(
+          row.original.scheduledDateTime,
+          filters.scheduledDateTime
+        );
+      }
     },
     {
       accessorKey: "messageStatus",
@@ -139,20 +448,36 @@ function BroadCastTableContainer({
         return (
           <div className="message-status-cell">
             <div className="status-row">
-              <div className="status-item blue">
-                <MessageSquare /> <span>{total}</span>
-              </div>
-              <div className="status-item green">
-                <CheckCircle2 /> <span>{delivered}</span>
-              </div>
+              <ReusableToolTip content="Total Messages" position="top">
+                <div className="status-item blue" style={{ cursor: "pointer" }}>
+                  <img src={broadcastIcon} alt="total" /> <span>{total}</span>
+                </div>
+              </ReusableToolTip>
+              <ReusableToolTip content="Success" position="top">
+                <div
+                  className="status-item green"
+                  style={{ cursor: "pointer" }}
+                >
+                  <img src={completedGreenIcon} alt="delivered" />{" "}
+                  <span>{delivered}</span>
+                </div>
+              </ReusableToolTip>
             </div>
             <div className="status-row">
-              <div className="status-item red">
-                <XCircle /> <span>{failed}</span>
-              </div>
-              <div className="status-item yellow">
-                <RefreshCw /> <span>{pending}</span>
-              </div>
+              <ReusableToolTip content="Failed" position="top">
+                <div className="status-item red" style={{ cursor: "pointer" }}>
+                  <img src={failedRedIcon} alt="failed" /> <span>{failed}</span>
+                </div>
+              </ReusableToolTip>
+              <ReusableToolTip content="Pending" position="top">
+                <div
+                  className="status-item yellow"
+                  style={{ cursor: "pointer" }}
+                >
+                  <img src={pendingYellowIcon} alt="pending" />{" "}
+                  <span>{pending}</span>
+                </div>
+              </ReusableToolTip>
             </div>
           </div>
         );
@@ -164,31 +489,50 @@ function BroadCastTableContainer({
       cell: ({ row }) => {
         const status = row.original.broadcastStatus;
         let colorClass = "";
-        let Icon = null;
+        let iconSrc = null;
 
         if (status.includes("Scheduled")) {
           colorClass = "purple";
-          Icon = Clock;
+          iconSrc = scheduledDailyIcon;
         } else if (status === "Completed") {
           colorClass = "green";
-          Icon = CheckCircle2;
+          iconSrc = completedIcon;
         } else if (status.includes("Running")) {
           colorClass = "blue";
-          Icon = PlayCircle; // Or another appropriate icon
+          iconSrc = runningWeeklyIcon;
         } else if (status === "Failed") {
           colorClass = "red";
-          Icon = XCircle;
+          iconSrc = failedIcon;
         } else if (status === "Cancelled") {
           colorClass = "grey";
-          Icon = Ban;
+          iconSrc = cancelledIcon;
         }
 
-        return (
-          <div className={`status-badge ${colorClass}`}>
-            {Icon && <Icon />}
-            {status}
+        const badgeContent = (
+          <div
+            className={`status-badge ${colorClass}`}
+            style={{ cursor: status === "Cancelled" ? "pointer" : "default" }}
+          >
+            {iconSrc && (
+              <img
+                src={iconSrc}
+                alt={status}
+                style={{ width: "12px", height: "12px" }}
+              />
+            )}
+            {highlightText(status, filters.broadcastStatus)}
           </div>
         );
+
+        if (status === "Cancelled") {
+          return (
+            <ReusableToolTip content="Cancelled" position="top">
+              {badgeContent}
+            </ReusableToolTip>
+          );
+        }
+
+        return badgeContent;
       }
     },
     {
@@ -200,34 +544,160 @@ function BroadCastTableContainer({
             gap: "12px",
             justifyContent: "flex-end",
             paddingRight: "8px",
-            color: "#10B981"
+            color: "#10B981",
+            alignItems: "center",
+            position: "relative"
           }}
         >
-          <Search size={18} />
-          <Settings size={18} />
+          <img
+            src={searchGreenIcon}
+            alt="search"
+            style={{
+              width: "20px",
+              height: "20px",
+              minWidth: "20px",
+              minHeight: "20px",
+              maxWidth: "20px",
+              maxHeight: "20px",
+              flexShrink: 0,
+              cursor: "pointer"
+            }}
+            onClick={() => setShowSearch(!showSearch)}
+          />
+          <div
+            ref={settingsButtonRef}
+            style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+          >
+            <img
+              src={settingsIcon}
+              alt="settings"
+              style={{
+                width: "20px",
+                height: "20px",
+                minWidth: "20px",
+                minHeight: "20px",
+                maxWidth: "20px",
+                maxHeight: "20px",
+                flexShrink: 0,
+                cursor: "pointer"
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSettings((prev) => !prev);
+              }}
+            />
+          </div>
+          {showSettings && (
+            <div ref={settingsRef} style={{ position: "absolute" }}>
+              <TableSettings
+                columnOrder={dataColumnOrder}
+                columnVisibility={columnVisibility}
+                onApply={(newOrder, newVisibility) => {
+                  try {
+                    setDataColumnOrder(newOrder);
+                    setColumnVisibility(newVisibility);
+                    toast.success(
+                      "Table Settings Applied",
+                      "Your table preferences have been updated successfully."
+                    );
+                  } catch {
+                    toast.error(
+                      "Failed to Apply Table Settings",
+                      "Your table settings could not be applied. Please try again."
+                    );
+                  }
+                }}
+                onReset={() => {
+                  try {
+                    setDataColumnOrder(DEFAULT_ORDER);
+                    setColumnVisibility(DEFAULT_VISIBILITY);
+                    toast.success(
+                      "Settings Reset Successfully",
+                      "The table has been restored to its default settings."
+                    );
+                  } catch {
+                    toast.error(
+                      "Reset Failed",
+                      "An error occurred while resetting the table settings. Please retry."
+                    );
+                  }
+                }}
+                onClose={() => setShowSettings(false)}
+              />
+            </div>
+          )}
         </div>
       ),
-      cell: () => (
-        <div className="actions-cell">
-          <button>
-            <MoreVertical size={18} />
-          </button>
-        </div>
-      )
+      cell: ({ row }) => {
+        const isMenuOpen = activeMenuId === row.original.id;
+        const options = getMenuOptions(row.original.broadcastStatus);
+
+        return (
+          <div className="actions-cell">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMenuId(isMenuOpen ? null : row.original.id);
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <img src={tableMenuIcon} alt="menu" />
+            </button>
+            {isMenuOpen && options.length > 0 && (
+              <div
+                className="menu-dropdown"
+                ref={menuRef}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {options.map((option) => (
+                  <button
+                    key={option.label}
+                    className="menu-item"
+                    onClick={() => {
+                      console.log(
+                        `Action clicked: ${option.action} for row ${row.original.id}`
+                      );
+                      if (option.action === "reprocess") {
+                        setShowReprocessDrawer(true);
+                      } else if (option.action === "cancel") {
+                        setSelectedCancelRow(row.original);
+                      } else if (option.action === "report") {
+                        setSelectedDetailsRow(row.original);
+                      }
+                      setActiveMenuId(null);
+                    }}
+                  >
+                    <span className="menu-item-icon">
+                      <img src={option.icon} alt={option.label} />
+                    </span>
+                    <span className="menu-item-label">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
     }
   ];
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     state: {
       rowSelection,
+      columnVisibility,
+      columnOrder,
       pagination: {
         pageIndex: currentPage - 1,
         pageSize: itemsPerPage
       }
     },
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setDataColumnOrder,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -252,6 +722,61 @@ function BroadCastTableContainer({
               ))}
             </tr>
           ))}
+          {showSearch &&
+            table.getHeaderGroups().map((headerGroup) => (
+              <tr
+                key={`search-${headerGroup.id}`}
+                className="search-filters-row"
+              >
+                {headerGroup.headers.map((header) => {
+                  const columnId = header.column.id;
+                  if (columnId === "select" || columnId === "actions") {
+                    return <th key={`search-cell-${header.id}`}></th>;
+                  }
+                  const placeholder = getPlaceholder(columnId);
+                  const isEditing =
+                    activeEditColumn === columnId || !filters[columnId];
+                  return (
+                    <th key={`search-cell-${header.id}`}>
+                      <div className="search-input-wrapper">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            placeholder={placeholder}
+                            value={filters[columnId] || ""}
+                            onChange={(e) =>
+                              handleFilterChange(columnId, e.target.value)
+                            }
+                            onKeyDown={(e) => handleKeyDown(columnId, e)}
+                            onBlur={handleBlur}
+                            autoFocus={activeEditColumn === columnId}
+                          />
+                        ) : (
+                          <div
+                            className="filter-chip-wrapper"
+                            onClick={() => setActiveEditColumn(columnId)}
+                          >
+                            <span className="filter-chip">
+                              {filters[columnId]}
+                              <button
+                                type="button"
+                                className="clear-chip-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleClearFilter(columnId);
+                                }}
+                              >
+                                ✖
+                              </button>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
@@ -259,7 +784,7 @@ function BroadCastTableContainer({
               key={row.id}
               className={`${row.original.hasError ? "row-error" : ""} ${
                 row.original.isDisabled ? "row-disabled" : ""
-              }`}
+              } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
             >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id}>
@@ -270,6 +795,95 @@ function BroadCastTableContainer({
           ))}
         </tbody>
       </table>
+
+      {showReprocessDrawer && (
+        <ReProcessBroadCast
+          isOpen={showReprocessDrawer}
+          onClose={() => setShowReprocessDrawer(false)}
+          onReprocess={(selectedPatients) => {
+            console.log("Reprocessing patients:", selectedPatients);
+          }}
+        />
+      )}
+
+      {selectedCancelRow && (
+        <CancelSchedule
+          isOpen={!!selectedCancelRow}
+          onClose={() => setSelectedCancelRow(null)}
+          broadcastData={selectedCancelRow}
+          onConfirm={() => {
+            const formattedDate = ((dateTimeStr) => {
+              if (!dateTimeStr) return "26 Feb 2026 at 10:30 AM";
+              try {
+                const dateObj = new Date(dateTimeStr);
+                if (isNaN(dateObj.getTime())) return dateTimeStr;
+                const months = [
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec"
+                ];
+                const day = dateObj.getDate();
+                const month = months[dateObj.getMonth()];
+                const year = dateObj.getFullYear();
+                let hours = dateObj.getHours();
+                const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+                const ampm = hours >= 12 ? "PM" : "AM";
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                return `${day} ${month} ${year} at ${hours}:${minutes} ${ampm}`;
+              } catch {
+                return dateTimeStr;
+              }
+            })(selectedCancelRow.scheduledDateTime);
+
+            const patientCount =
+              selectedCancelRow.messageStatus?.total || "428";
+
+            // If it's the specific Row ID 9, simulate cancellation failure
+            if (selectedCancelRow.id === "9") {
+              toast.error(
+                "Failed to Cancel Schedule",
+                `The broadcast scheduled for ${formattedDate} could not be cancelled. Please try again.`
+              );
+            } else {
+              // Simulate success and update local state to "Cancelled"
+              setData((prevData) =>
+                prevData.map((item) =>
+                  item.id === selectedCancelRow.id
+                    ? {
+                        ...item,
+                        broadcastStatus: "Cancelled",
+                        isDisabled: true
+                      }
+                    : item
+                )
+              );
+              toast.success(
+                "Schedule Cancelled Successfully",
+                `The broadcast scheduled for ${formattedDate} to ${patientCount} patients has been cancelled.`
+              );
+            }
+            setSelectedCancelRow(null);
+          }}
+        />
+      )}
+
+      {selectedDetailsRow && (
+        <TableBoardCastDetails
+          isOpen={!!selectedDetailsRow}
+          onClose={() => setSelectedDetailsRow(null)}
+          broadcastData={selectedDetailsRow}
+        />
+      )}
     </div>
   );
 }

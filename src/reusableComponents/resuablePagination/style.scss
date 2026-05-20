@@ -1,3 +1,5 @@
+@use "../../style/variable.scss" as variable;
+
 .reusable-pagination-container {
   display: flex;
   align-items: center;
@@ -15,73 +17,75 @@
     align-items: center;
     gap: 12px;
 
-    .items-per-page-select {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
+    .items-per-page-input {
+      width: 54px;
+      height: 32px;
+      padding: 0 8px;
       background-color: #ffffff;
       border: 1px solid #d1d5db;
       border-radius: 6px;
-      cursor: pointer;
-      position: relative;
-      user-select: none;
+      font-weight: 500;
+      color: #374151;
+      font-size: 14px;
+      text-align: center;
+      outline: none;
+      transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
 
-      span {
-        font-weight: 500;
-        color: #374151;
+      &:focus {
+        border-color: #118b7e;
+        box-shadow: 0 0 0 2px rgba(17, 139, 126, 0.1);
       }
 
-      svg {
-        width: 16px;
-        height: 16px;
-        fill: #6b7280;
+      /* Hide spin buttons for Chrome, Safari, Edge, Opera */
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
       }
 
-      select {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        cursor: pointer;
+      /* Hide spin buttons for Firefox */
+      &[type="number"] {
+        -moz-appearance: textfield;
       }
     }
 
     .pagination-info {
-      color: #6b7280;
+      color: variable.$color-black-12;
+      @include variable.font-style($fs: 12px, $fw: 400, $lh: 18px);
     }
   }
 
   .pagination-right {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
 
     .pagination-arrow {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 4px;
+      width: 40px;
+      height: 40px;
       cursor: pointer;
-      color: #6b7280;
-      transition: background-color 0.2s;
+      color: variable.$color-black-12;
+      transition:
+        color 0.2s,
+        opacity 0.2s;
 
       &:hover:not(.disabled) {
-        background-color: #e5e7eb;
+        color: variable.$primary-color;
       }
 
       &.disabled {
-        opacity: 0.5;
+        opacity: 0.35;
         cursor: not-allowed;
       }
 
       svg {
-        width: 16px;
-        height: 16px;
+        width: 12px;
+        height: 12px;
         fill: currentColor;
       }
     }
@@ -89,38 +93,36 @@
     .pagination-numbers {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 8px;
 
       .page-number {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-width: 32px;
-        height: 32px;
-        padding: 0 6px;
-        border-radius: 4px;
+        min-width: 40px;
+        height: 40px;
+        border-radius: 8px;
         cursor: pointer;
-        color: #374151;
+        color: variable.$color-black-12;
         background-color: #ffffff;
-        border: 1px solid #e5e7eb;
-        font-weight: 500;
+        border: 1px solid #eaecf0;
+        @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
         transition: all 0.2s;
 
         &:hover:not(.active):not(.dots) {
-          background-color: #f3f4f6;
+          background-color: #f9fafb;
+          border-color: #d0d5dd;
         }
 
         &.active {
-          background-color: #118b7e;
+          background-color: variable.$primary-color;
           color: #ffffff;
-          border-color: #118b7e;
+          border-color: variable.$primary-color;
         }
 
         &.dots {
-          border: none;
-          background: transparent;
           cursor: default;
-          color: #6b7280;
+          color: variable.$color-black-12;
         }
       }
     }

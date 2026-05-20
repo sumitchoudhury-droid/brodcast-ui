@@ -13,6 +13,10 @@ export default function BroadCastTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
+  const [selectedDateRange, setSelectedDateRange] = useState({
+    startDate: null,
+    endDate: null
+  });
 
   return (
     <>
@@ -23,6 +27,14 @@ export default function BroadCastTable({
           <div className="broadcastTableHeader">
             <BroadCastTableHeader
               handleAddSchedule={() => setAddScheduleModal(true)}
+              selectedDateRange={selectedDateRange}
+              onDateRangeChange={setSelectedDateRange}
+              onTodayClick={() =>
+                setSelectedDateRange({
+                  startDate: new Date(),
+                  endDate: new Date()
+                })
+              }
             />
           </div>
           <div className="broadcastTableContainer">
@@ -30,6 +42,7 @@ export default function BroadCastTable({
               currentPage={currentPage}
               itemsPerPage={itemsPerPage}
               setTotalItems={setTotalItems}
+              selectedDateRange={selectedDateRange}
             />
           </div>
           <div className="broadcastTablePagination">

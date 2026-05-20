@@ -46,6 +46,10 @@
     "siri",
     "zira",
     "Serialising",
+    "ampm",
+    "reusabele",
+    "PFNAME",
+    "MHCARE",
     "multidropdown"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]

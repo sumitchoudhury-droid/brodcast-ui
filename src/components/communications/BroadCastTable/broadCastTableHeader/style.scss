@@ -1,0 +1,6 @@
+@use "../../../../style/variable.scss" as variable;
+
+.broadCastTableHeader {
+  padding: 0px;
+  @include variable.d-flex($fd: row, $al: stretch, $g: 12px);
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   format,
   addMonths,
@@ -14,9 +14,12 @@ import {
   isAfter,
   subWeeks
 } from "date-fns";
-import { ReusableButton } from "../resuableButton";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import "./styel.scss";
+import dateRangeIcon from "../../assets/boardCastTableIcons/dateRange.svg";
+import arrowLeftIcon from "../../assets/boardCastTableIcons/arrowLeftIcon.svg";
+import arrowRightIcon from "../../assets/boardCastTableIcons/arrowRightIcon.svg";
+import "./style.scss";
+import { ReusableButton } from "../resuableButton/index";
+import { useToast } from "../../hooks/useToast";
 
 export default function ReusableDateRangePicker({
   initialStartDate = null,
@@ -25,12 +28,50 @@ export default function ReusableDateRangePicker({
   onCancel,
   onReset
 }) {
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
+  const toast = useToast();
+  const [leftMonth, setLeftMonth] = useState(startOfMonth(new Date()));
+  const [rightMonth, setRightMonth] = useState(
+    addMonths(startOfMonth(new Date()), 1)
+  );
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
   const [hoverDate, setHoverDate] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
 
-  const nextMonth = addMonths(currentMonth, 1);
+  const [prevStart, setPrevStart] = useState(initialStartDate);
+  const [prevEnd, setPrevEnd] = useState(initialEndDate);
+
+  if (initialStartDate !== prevStart) {
+    setStartDate(initialStartDate);
+    setPrevStart(initialStartDate);
+  }
+  if (initialEndDate !== prevEnd) {
+    setEndDate(initialEndDate);
+    setPrevEnd(initialEndDate);
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const getDisplayText = () => {
+    if (startDate && endDate) {
+      return `${format(startDate, "MM/dd/yyyy")} - ${format(endDate, "MM/dd/yyyy")}`;
+    }
+    return "Select Date Range";
+  };
 
   const predefinedRanges = [
     {
@@ -99,7 +140,9 @@ export default function ReusableDateRangePicker({
     const { start, end } = range.getDates();
     setStartDate(start);
     setEndDate(end);
-    setCurrentMonth(startOfMonth(start));
+    const startM = startOfMonth(start);
+    setLeftMonth(startM);
+    setRightMonth(addMonths(startM, 1));
   };
 
   const handleDateClick = (day) => {
@@ -120,24 +163,38 @@ export default function ReusableDateRangePicker({
   };
 
   const renderHeader = (month, isLeft) => {
+    const handlePrev = () => {
+      if (isLeft) {
+        setLeftMonth(subMonths(leftMonth, 1));
+      } else {
+        setRightMonth(subMonths(rightMonth, 1));
+      }
+    };
+
+    const handleNext = () => {
+      if (isLeft) {
+        setLeftMonth(addMonths(leftMonth, 1));
+      } else {
+        setRightMonth(addMonths(rightMonth, 1));
+      }
+    };
+
     return (
-      <div className="calendar-header">
-        <button
-          className="arrow-btn"
-          onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-          disabled={!isLeft}
-          style={{ visibility: isLeft ? "visible" : "hidden" }}
-        >
-          <ArrowLeft size={16} />
+      <div className="calendarHeader">
+        <button className="arrowBtn" onClick={handlePrev}>
+          <img
+            src={arrowLeftIcon}
+            alt="Previous"
+            style={{ width: "16px", height: "16px" }}
+          />
         </button>
-        <div className="current-month">{format(month, "MMMM yyyy")}</div>
-        <button
-          className="arrow-btn"
-          onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          disabled={isLeft}
-          style={{ visibility: !isLeft ? "visible" : "hidden" }}
-        >
-          <ArrowRight size={16} />
+        <div className="currentMonth">{format(month, "MMMM yyyy")}</div>
+        <button className="arrowBtn" onClick={handleNext}>
+          <img
+            src={arrowRightIcon}
+            alt="Next"
+            style={{ width: "16px", height: "16px" }}
+          />
         </button>
       </div>
     );
@@ -154,7 +211,7 @@ export default function ReusableDateRangePicker({
         </div>
       );
     }
-    return <div className="weekdays-row">{days}</div>;
+    return <div className="weekdaysRow">{days}</div>;
   };
 
   const renderCells = (month) => {
@@ -171,7 +228,7 @@ export default function ReusableDateRangePicker({
         const cloneDay = day;
 
         if (!isSameMonth(day, monthStart)) {
-          days.push(<div className="day-cell empty" key={day.toString()} />);
+          days.push(<div className="dayCell empty" key={day.toString()} />);
         } else {
           const formattedDate = format(day, "d");
           const isSelectedStart = startDate && isSameDay(day, startDate);
@@ -187,11 +244,11 @@ export default function ReusableDateRangePicker({
             isAfter(hoverDate, startDate) &&
             isWithinInterval(day, { start: startDate, end: hoverDate });
 
-          let cellClass = "day-cell";
-          if (isSelectedStart) cellClass += " start-date";
-          if (isSelectedEnd) cellClass += " end-date";
-          if (isWithin || isHovering) cellClass += " in-range";
-          if (isSelectedStart && isSelectedEnd) cellClass += " start-end-date";
+          let cellClass = "dayCell";
+          if (isSelectedStart) cellClass += " startDate";
+          if (isSelectedEnd) cellClass += " endDate";
+          if (isWithin || isHovering) cellClass += " inRange";
+          if (isSelectedStart && isSelectedEnd) cellClass += " startEndDate";
 
           days.push(
             <div
@@ -200,78 +257,121 @@ export default function ReusableDateRangePicker({
               onClick={() => handleDateClick(cloneDay)}
               onMouseEnter={() => handleMouseEnter(cloneDay)}
             >
-              <span className="day-text">{formattedDate}</span>
+              <span className="dayText">{formattedDate}</span>
             </div>
           );
         }
         day = addDays(day, 1);
       }
       rows.push(
-        <div className="days-row" key={day.toString()}>
+        <div className="daysRow" key={day.toString()}>
           {days}
         </div>
       );
       days = [];
     }
-    return <div className="calendar-body">{rows}</div>;
+    return <div className="calendarBody">{rows}</div>;
   };
 
   return (
-    <div className="reusable-date-range-picker">
-      <div className="picker-main">
-        <div className="sidebar">
-          {predefinedRanges.map((range, idx) => (
-            <button
-              key={idx}
-              className="range-btn"
-              onClick={() => handlePredefinedClick(range)}
-            >
-              {range.label}
-            </button>
-          ))}
-        </div>
-        <div className="calendars-container">
-          <div className="calendar">
-            {renderHeader(currentMonth, true)}
-            {renderDays()}
-            {renderCells(currentMonth)}
-          </div>
-          <div className="calendar">
-            {renderHeader(nextMonth, false)}
-            {renderDays()}
-            {renderCells(nextMonth)}
-          </div>
-        </div>
+    <div className="dateRangePickerContainer" ref={containerRef}>
+      <div
+        className={`dateRangePickerTrigger ${isOpen ? "active" : ""}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <img
+          src={dateRangeIcon}
+          alt="Calendar"
+          className="triggerIcon"
+          style={{ width: "18px", height: "18px" }}
+        />
+        <span className="triggerText">{getDisplayText()}</span>
       </div>
-      <div className="picker-footer">
-        <div className="footer-left">
-          <ReusableButton
-            label="Reset"
-            className="footer-btn-secondary"
-            onClick={() => {
-              setStartDate(null);
-              setEndDate(null);
-              if (onReset) onReset();
-            }}
-          />
+
+      {isOpen && (
+        <div className="reusableDateRangePicker">
+          <div className="pickerMain">
+            <div className="sidebar">
+              {predefinedRanges.map((range, idx) => (
+                <button
+                  key={idx}
+                  className="rangeBtn"
+                  onClick={() => handlePredefinedClick(range)}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+            <div className="calendarsContainer">
+              <div className="calendar">
+                {renderHeader(leftMonth, true)}
+                {renderDays()}
+                {renderCells(leftMonth)}
+              </div>
+              <div className="calendar">
+                {renderHeader(rightMonth, false)}
+                {renderDays()}
+                {renderCells(rightMonth)}
+              </div>
+            </div>
+          </div>
+          <div className="pickerFooter">
+            <div className="footerLeft">
+              <ReusableButton
+                label="Reset"
+                variant="primary"
+                onClick={() => {
+                  setStartDate(null);
+                  setEndDate(null);
+                  if (onReset) onReset();
+                }}
+              />
+            </div>
+            <div className="footerRight">
+              <ReusableButton
+                label="Cancel"
+                variant="primary"
+                onClick={() => {
+                  setStartDate(initialStartDate);
+                  setEndDate(initialEndDate);
+                  if (onCancel) onCancel();
+                  setIsOpen(false);
+                }}
+              />
+              <ReusableButton
+                label="Apply"
+                variant="secondary"
+                onClick={async () => {
+                  if (startDate && endDate) {
+                    const startStr = format(startDate, "MM/dd/yyyy");
+                    const endStr = format(endDate, "MM/dd/yyyy");
+                    try {
+                      if (onApply) {
+                        await onApply({ startDate, endDate });
+                      }
+                      toast.success(
+                        "Date Range Applied",
+                        `Showing results from ${startStr} – ${endStr}.`
+                      );
+                      setIsOpen(false);
+                    } catch {
+                      toast.error(
+                        "Failed to Apply Date Range",
+                        `The selected range ${startStr} – ${endStr} could not be applied. Please try again.`
+                      );
+                    }
+                  } else {
+                    toast.error(
+                      "Failed to Apply Date Range",
+                      "Please select both a start date and an end date."
+                    );
+                  }
+                }}
+              />
+            </div>
+          </div>
         </div>
-        <div className="footer-right">
-          <ReusableButton
-            label="Cancel"
-            className="footer-btn-secondary"
-            onClick={() => {
-              if (onCancel) onCancel();
-            }}
-          />
-          <ReusableButton
-            label="Apply"
-            className="footer-btn-primary"
-            onClick={() => {
-              if (onApply) onApply({ startDate, endDate });
-            }}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,241 @@
+@use "../../style/variable.scss" as variable;
+
+.dateRangePickerContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.dateRangePickerTrigger {
+  display: inline-flex;
+  height: 100%;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 16px;
+  background: variable.$color-white-0;
+  border: 1px solid variable.$color-white-6;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease-in-out;
+  box-shadow: variable.$shadow-2;
+
+  .triggerIcon {
+    color: variable.$primary-color;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .triggerText {
+    @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+    color: variable.$color-green-0;
+  }
+
+  &.active {
+    border-color: variable.$primary-color;
+    box-shadow: 0 0 0 4px rgba(16, 122, 108, 0.1);
+  }
+}
+
+.reusableDateRangePicker {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  height: 407px;
+  background: variable.$color-white-0;
+  border: 1px solid variable.$color-white-6;
+  border-radius: 8px;
+  box-shadow: variable.$shadow-6;
+  display: flex;
+  flex-direction: column;
+  font-family: variable.$font-inter, sans-serif;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.pickerMain {
+  padding: 16px 0px;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 45px;
+}
+
+.sidebar {
+  min-width: 157px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid variable.$color-white-5;
+
+  .rangeBtn {
+    padding: 8px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: variable.$color-black-6;
+    line-height: 20px;
+    transition: background 0.2s;
+
+    &:hover {
+      background: variable.$color-white-1;
+    }
+  }
+}
+
+.calendarsContainer {
+  @include variable.d-flex($fd: row, $al: stretch, $jc: flex-start, $g: 16px);
+  flex: 1;
+  padding: 16px 16px 0px 0px;
+}
+
+.calendar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+
+  .currentMonth {
+    @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+    color: variable.$color-black-6;
+  }
+
+  .arrowBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: variable.$color-black-5;
+    padding: 4px;
+
+    &:hover {
+      color: variable.$color-black-1;
+    }
+
+    &:disabled {
+      color: variable.$color-white-9;
+      cursor: default;
+    }
+  }
+}
+
+.weekdaysRow {
+  @include variable.d-flex($fd: row, $al: center, $jc: space-between);
+
+  .weekday {
+    width: 35px;
+    height: 35px;
+    @include variable.d-flex($fd: row, $al: center, $jc: center);
+    @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+    color: variable.$color-white-12;
+  }
+}
+
+.calendarBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.daysRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+
+.dayCell {
+  @include variable.d-flex($fd: row, $al: center, $jc: center);
+  @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+  color: variable.$color-black-6;
+  cursor: pointer;
+  position: relative;
+
+  &.empty {
+    cursor: default;
+  }
+
+  .dayText {
+    width: 35px;
+    height: 35px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    z-index: 1;
+  }
+
+  &:not(.empty):hover {
+    .dayText {
+      background: variable.$color-white-4;
+    }
+  }
+
+  &.inRange:not(.empty) {
+    background: variable.$color-green-4; /* #e6f4f2 */
+
+    .dayText {
+      background: transparent;
+      color: variable.$color-black-1;
+    }
+  }
+
+  &.startDate:not(.empty),
+  &.endDate:not(.empty) {
+    .dayText {
+      background: variable.$primary-color; /* #107a6c */
+      color: variable.$color-white-0;
+      border-radius: 8px 0 0 8px;
+    }
+
+    &:hover {
+      .dayText {
+        background: variable.$primary-color;
+      }
+    }
+  }
+  &.endDate:not(.empty) {
+    .dayText {
+      border-radius: 0 8px 8px 0px;
+    }
+  }
+
+  &.startDate:not(.empty) {
+  }
+
+  &.endDate:not(.empty) {
+  }
+
+  &.startEndDate:not(.empty) {
+    background: transparent;
+  }
+}
+
+.pickerFooter {
+  @include variable.d-flex(
+    $fd: row,
+    $al: stretch,
+    $jc: space-between,
+    $g: 12px
+  );
+  padding: 16px 24px;
+  border-top: 1px solid variable.$color-white-6;
+
+  .footerRight {
+    display: flex;
+    gap: 12px;
+  }
+}

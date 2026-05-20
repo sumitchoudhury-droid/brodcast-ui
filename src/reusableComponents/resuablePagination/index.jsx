@@ -1,40 +1,9 @@
+import { useState, useEffect } from "react";
+
+import ArrowRightIcon from "../../assets/pagination/rightArrowIcon.svg";
+import ArrowLeftIcon from "../../assets/pagination/leftArrowIcon.svg";
+
 import "./style.scss";
-
-const LeftArrowIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M15 18L9 12L15 6"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const RightArrowIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M9 18L15 12L9 6"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const DownArrowIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M6 9L12 15L18 9"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
 
 function ResuablePagination({
   currentPage = 1,
@@ -42,9 +11,31 @@ function ResuablePagination({
   itemsPerPage = 10,
   onPageChange = () => {},
   onItemsPerPageChange = () => {},
-  itemsPerPageOptions = [10, 20, 30, 40, 50],
   itemName = "Items"
 }) {
+  const [inputValue, setInputValue] = useState(itemsPerPage);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInputValue(itemsPerPage);
+  }, [itemsPerPage]);
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    const parsed = parseInt(value, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      onItemsPerPageChange(parsed);
+    }
+  };
+
+  const handleBlur = () => {
+    const parsed = parseInt(inputValue, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      setInputValue(itemsPerPage);
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   const getPageNumbers = () => {
@@ -53,14 +44,13 @@ function ResuablePagination({
     }
 
     if (currentPage <= 4) {
-      return [1, 2, 3, 4, 5, "...", totalPages];
+      return [1, 2, 3, 4, "...", totalPages];
     }
 
     if (currentPage >= totalPages - 3) {
       return [
         1,
         "...",
-        totalPages - 4,
         totalPages - 3,
         totalPages - 2,
         totalPages - 1,
@@ -96,20 +86,14 @@ function ResuablePagination({
   return (
     <div className="reusable-pagination-container">
       <div className="pagination-left">
-        <div className="items-per-page-select">
-          <span>{itemsPerPage}</span>
-          <DownArrowIcon />
-          <select
-            value={itemsPerPage}
-            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-          >
-            {itemsPerPageOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
+        <input
+          type="number"
+          className="items-per-page-input"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          min="1"
+        />
         <span className="pagination-info">
           of {totalItems} {itemName}
         </span>
@@ -120,7 +104,7 @@ function ResuablePagination({
           className={`pagination-arrow ${currentPage === 1 ? "disabled" : ""}`}
           onClick={handlePrevPage}
         >
-          <LeftArrowIcon />
+          <img src={ArrowLeftIcon} alt="Previous" />
         </div>
 
         <div className="pagination-numbers">
@@ -139,7 +123,7 @@ function ResuablePagination({
           className={`pagination-arrow ${currentPage === totalPages ? "disabled" : ""}`}
           onClick={handleNextPage}
         >
-          <RightArrowIcon />
+          <img src={ArrowRightIcon} alt="Next" />
         </div>
       </div>
     </div>

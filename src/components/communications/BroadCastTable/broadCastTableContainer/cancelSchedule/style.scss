@@ -1,0 +1,242 @@
+@use "../../../../../style/variable.scss" as variable;
+
+.cancelScheduleOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2.5px);
+  z-index: 1300;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.cancelScheduleModal {
+  width: 580px;
+  max-width: 90vw;
+  background: variable.$color-white-0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  animation: modalFade 0.25s ease;
+  font-family: variable.$font-inter, sans-serif;
+  overflow: hidden;
+
+  .modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background-color: variable.$color-white-0;
+
+    .modalTitle {
+      @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
+      color: variable.$color-black-8;
+      margin: 0;
+    }
+
+    .closeButton {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+
+      img {
+        width: 28px;
+        height: 28px;
+      }
+    }
+  }
+
+  .modalBody {
+    padding: 20px 24px;
+
+    .confirmText {
+      @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+      color: variable.$color-black-8;
+      margin: 0 0 16px 0;
+
+      .highlightText {
+        font-weight: 700;
+        color: variable.$color-black-11;
+      }
+    }
+
+    .warningText {
+      @include variable.font-style($fs: 16px, $fw: 600, $lh: 24px);
+      color: variable.$color-black-8;
+      margin: 0 0 16px 0;
+    }
+
+    .detailsCard {
+      background-color: variable.$color-white-0;
+      border: 1px solid variable.$color-white-6;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: variable.$shadow-3;
+
+      .detailsGrid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 16px 24px;
+      }
+
+      .detailsColumn {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .detailGroup {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .detailLabel {
+          @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+          color: variable.$color-white-12;
+        }
+
+        .detailValue {
+          @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
+          color: variable.$color-black-8;
+          word-break: break-word;
+        }
+      }
+
+      .messageStatusContainer {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+
+        .statusItem {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          img {
+            width: 14px;
+            height: 14px;
+          }
+
+          span {
+            @include variable.font-style($fs: 13px, $fw: 600, $lh: 18px);
+          }
+
+          &.blue {
+            color: variable.$color-blue-4;
+          }
+
+          &.green {
+            color: variable.$color-green-7;
+          }
+
+          &.red {
+            color: variable.$color-red-3;
+          }
+
+          &.yellow {
+            color: #f59e0b;
+          }
+        }
+      }
+
+      .statusBadge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        width: fit-content;
+
+        img {
+          width: 12px;
+          height: 12px;
+        }
+
+        span {
+          @include variable.font-style($fs: 12px, $fw: 600, $lh: 16px);
+        }
+
+        &.greenBadge {
+          background-color: variable.$color-green-7;
+          color: #ffffff;
+        }
+
+        &.purpleBadge {
+          background-color: variable.$color-purple-0;
+          color: #ffffff;
+        }
+
+        &.blueBadge {
+          background-color: variable.$color-blue-4;
+          color: #ffffff;
+        }
+
+        &.redBadge {
+          background-color: variable.$color-red-3;
+          color: #ffffff;
+        }
+
+        &.greyBadge {
+          background-color: variable.$color-gray-0;
+          color: #ffffff;
+        }
+      }
+    }
+  }
+
+  .modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background-color: variable.$color-white-0;
+    border-top: 1px solid variable.$color-white-6;
+
+    .cancelBtn {
+      padding: 8px 20px;
+      background-color: #ffffff;
+      border: 1px solid #107a6c;
+      border-radius: 6px;
+      color: #107a6c;
+      @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+      cursor: pointer;
+      transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+
+      &:hover {
+        background-color: #f0f7f6;
+      }
+    }
+
+    .confirmBtn {
+      padding: 8px 20px;
+      background-color: #107a6c;
+      border: 1px solid #107a6c;
+      border-radius: 6px;
+      color: #ffffff;
+      @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+}
+
+@keyframes modalFade {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

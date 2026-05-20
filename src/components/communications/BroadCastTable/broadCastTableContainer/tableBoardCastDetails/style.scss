@@ -1,0 +1,781 @@
+@use "../../../../../style/variable.scss" as variable;
+
+/* ---------- CUSTOM HEADER ---------- */
+.tableBoardCastDetailsDrawer {
+  .drawerHeader {
+    padding: 0px 24px;
+    align-items: stretch;
+    // Ensure the header title stretches full width so our tabs can align
+    .headerTitle {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: stretch;
+    }
+  }
+
+  .drawerHeaderCustom {
+    @include variable.d-flex($jc: space-between, $al: center);
+    width: 100%;
+    align-self: stretch;
+
+    .headerTabs {
+      @include variable.d-flex($al: stretch, $g: 24px);
+      align-self: stretch;
+
+      .tabItem {
+        padding: 20px 0px;
+        background: transparent;
+        border: none;
+        @include variable.font-style($fs: 16px, $fw: 500);
+        color: variable.$color-black-5;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+
+        &:hover {
+          color: variable.$color-black-4;
+        }
+
+        &.activeTab {
+          color: variable.$color-green-0;
+          font-weight: 600;
+
+          &::after {
+            content: "";
+            position: absolute;
+            bottom: 0; // Positioned exactly on the bottom border
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: variable.$color-green-0;
+            border-radius: 3px 3px 0 0;
+          }
+        }
+      }
+    }
+
+    .headerActions {
+      @include variable.d-flex($al: center, $g: 12px);
+
+      .refreshBtn {
+        @include variable.d-flex($jc: center, $al: center);
+        width: 32px;
+        height: 32px;
+        border: 1px solid variable.$color-green-0;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: variable.$color-green-4;
+        }
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      .closeBtn {
+        @include variable.d-flex($jc: center, $al: center);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        transition: background-color 0.2s ease;
+
+        img {
+          width: 24px;
+          height: 24px;
+        }
+      }
+    }
+  }
+
+  /* ---------- CONTENT BODY ---------- */
+  .drawerContentBody {
+    width: 100%;
+    height: 100%;
+    font-family: variable.$font-inter, sans-serif;
+    color: variable.$color-black-4;
+  }
+
+  /* ---------- DETAILS TAB ---------- */
+  .tabContentDetails {
+    width: 100%;
+    padding-top: 24px;
+    padding-bottom: 24px;
+    @include variable.d-flex($fd: column, $g: 20px);
+    .detailRow {
+      width: 100%;
+      @include variable.d-flex($al: flex-start);
+
+      .labelCol {
+        width: 40%;
+        flex-shrink: 0;
+        color: variable.$color-white-12;
+        @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+      }
+
+      .valueCol {
+        flex: 1;
+        color: variable.$color-black-6;
+        @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+
+        &.modeVal {
+          @include variable.d-flex($al: center, $g: 6px);
+
+          .alertIcon {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        &.fileStatusVal {
+          @include variable.d-flex($al: center, $g: 6px);
+          color: variable.$color-green-0;
+          font-weight: 600;
+
+          .statusIcon {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .uploadedFileCard {
+          @include variable.d-flex($al: center, $jc: space-between);
+          padding: 10px 16px;
+          border-radius: 8px;
+          border: 1.5px solid variable.$color-white-6;
+          background-color: variable.$color-white-13;
+          width: 100%;
+          max-width: 320px;
+          box-sizing: border-box;
+
+          .fileLeft {
+            @include variable.d-flex($al: center, $g: 12px);
+
+            .fileIcon {
+              width: 28px;
+              height: 28px;
+            }
+
+            .fileTextDetails {
+              @include variable.d-flex($fd: column, $g: 2px);
+
+              .fileName {
+                @include variable.font-style($fs: 13px, $fw: 600, $lh: 18px);
+                color: variable.$color-black-11;
+              }
+
+              .fileSize {
+                @include variable.font-style($fs: 11px, $fw: 400, $lh: 16px);
+                color: variable.$color-black-5;
+              }
+            }
+          }
+
+          .downloadBtn {
+            padding: 6px;
+            @include variable.d-flex($jc: center, $al: center);
+            background: variable.$color-white-0;
+            border: 1px solid variable.$color-white-5;
+            border-radius: 6px;
+            cursor: pointer;
+          }
+        }
+
+        .messageStatusList {
+          @include variable.d-flex($fd: column, $g: 12px);
+          width: 100%;
+          max-width: 250px;
+
+          .statusItem {
+            @include variable.d-flex($al: center, $jc: space-between);
+
+            .statusLabel {
+              @include variable.d-flex($al: center, $g: 8px);
+              color: variable.$color-black-5;
+              @include variable.font-style($fs: 14px, $fw: 500);
+
+              img {
+                width: 16px;
+                height: 16px;
+              }
+            }
+
+            .statusValue {
+              color: variable.$color-black-11;
+              @include variable.font-style($fs: 14px, $fw: 600);
+            }
+          }
+        }
+
+        .status-badge {
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: white;
+
+          svg,
+          img {
+            width: 12px;
+            height: 12px;
+          }
+
+          &.purple {
+            background-color: variable.$color-purple-0;
+          }
+          &.green {
+            background-color: variable.$color-green-7;
+          }
+          &.blue {
+            background-color: variable.$color-blue-4;
+          }
+          &.red {
+            background-color: variable.$color-red-3;
+          }
+          &.grey {
+            background-color: variable.$color-gray-0;
+          }
+        }
+      }
+
+      &.failedReasonRow {
+        margin-bottom: 28px;
+
+        .failedReasonText {
+          color: variable.$color-black-4;
+
+          p {
+            margin: 0 0 10px 0;
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          }
+
+          .failedReasonList {
+            margin: 0;
+            padding-left: 20px;
+
+            li {
+              margin-bottom: 6px;
+              @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+
+              &:last-child {
+                margin-bottom: 0;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .listScrollBox {
+      width: 100%;
+      background-color: variable.$color-white-13;
+      border-radius: 8px;
+      padding: 8px 6px;
+      max-height: 180px;
+      overflow-y: scroll;
+
+      /* Scrollbar styling */
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: variable.$color-white-12;
+        border-radius: 3px;
+      }
+      &::-webkit-scrollbar-thumb:hover {
+        background: variable.$color-black-5;
+      }
+
+      .gridList {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0px 16px;
+
+        .listItem {
+          @include variable.d-flex($al: center, $g: 8px);
+
+          .bulletDot {
+            width: 5px;
+            height: 5px;
+            background-color: variable.$color-black-5;
+            border-radius: 50%;
+            flex-shrink: 0;
+          }
+
+          .itemText {
+            @include variable.font-style($fs: 12px, $fw: 400, $lh: 30px);
+            color: variable.$color-black-6;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+
+    .countHeader {
+      font-weight: 600;
+    }
+  }
+
+  /* ---------- MESSAGE TAB ---------- */
+  .tabContentMessage {
+    @include variable.d-flex($fd: column, $g: 16px);
+    padding: 16px 0 0;
+    width: 100%;
+    height: 100%;
+
+    .messageSubHeaderRow {
+      @include variable.d-flex($jc: space-between, $al: center);
+      width: 100%;
+
+      .channelTabChips {
+        padding: 3px;
+        border-radius: 14px;
+        @include variable.d-flex($al: center, $g: 12px);
+        background-color: variable.$color-white-11;
+
+        .tabChip {
+          @include variable.d-flex($al: center, $g: 8px);
+          background-color: transparent;
+          border: none;
+          border-radius: 0px;
+          padding: 8px 16px;
+          @include variable.font-style($fs: 14px, $fw: 500);
+          color: variable.$color-black-5;
+          cursor: pointer;
+          &.active {
+            border: 1.5px solid variable.$color-white-10;
+            background-color: variable.$color-white-0;
+            border-radius: 8px;
+          }
+
+          .tabChipIcon {
+            width: 16px;
+            height: 16px;
+          }
+        }
+      }
+
+      .mailLayoutToggle {
+        @include variable.d-flex($al: center, $g: 4px);
+        background-color: variable.$color-white-11;
+        border-radius: 14px;
+        padding: 3px;
+
+        .toggleBtn {
+          @include variable.d-flex($jc: center, $al: center);
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          padding: 8px 10px;
+
+          img {
+            width: 22px;
+            height: 22px;
+            opacity: 0.6;
+          }
+
+          &:hover {
+            background-color: variable.$color-white-1;
+            img {
+              opacity: 0.8;
+            }
+          }
+
+          &.active {
+            background-color: variable.$color-white-0;
+            box-shadow: variable.$shadow-1;
+            img {
+              opacity: 1;
+            }
+          }
+        }
+      }
+    }
+
+    .channelPreviewArea {
+      width: 100%;
+      height: 100%;
+
+      /* Centered iPhone Mockup */
+      .centeredMockupWrapper {
+        @include variable.d-flex($jc: center, $al: center);
+        width: 100%;
+        padding: 0;
+      }
+
+      .phoneMockup {
+        width: 375px;
+        height: 620px;
+        border: 12px solid variable.$color-black-11;
+        border-radius: 36px;
+        background-color: variable.$color-black-0;
+        position: relative;
+        @include variable.d-flex($fd: column, $al: stretch);
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+
+        .phoneCameraNotch {
+          width: 100px;
+          height: 18px;
+          background-color: variable.$color-black-11;
+          border-bottom-left-radius: 12px;
+          border-bottom-right-radius: 12px;
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 20;
+        }
+
+        .phoneStatusBar {
+          height: 32px;
+          padding: 6px 20px 0 20px;
+          background-color: variable.$color-white-11;
+          @include variable.d-flex($jc: space-between, $al: center);
+          color: variable.$color-black-4;
+          font-size: 11px;
+          font-weight: 600;
+          z-index: 10;
+          flex-shrink: 0;
+          border-bottom: 1px solid variable.$color-white-6;
+
+          .phoneStatusIcons {
+            @include variable.d-flex($al: center, $g: 4px);
+            .statusIcon {
+              color: variable.$color-black-4;
+            }
+          }
+        }
+
+        .phoneInnerScreen {
+          flex: 1;
+          background-color: variable.$color-white-0;
+          @include variable.d-flex($fd: column, $al: stretch);
+          overflow: hidden;
+          position: relative;
+        }
+
+        .phoneHomeIndicator {
+          width: 110px;
+          height: 4px;
+          background-color: variable.$color-black-11;
+          border-radius: 2px;
+          position: absolute;
+          bottom: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 20;
+        }
+      }
+
+      /* SMS Inside Phone */
+      .smsPreviewHeader {
+        height: 60px;
+        padding: 4px 12px 6px;
+        background-color: variable.$color-white-11;
+        border-bottom: 1px solid variable.$color-white-6;
+        @include variable.d-flex($jc: center, $al: center);
+        flex-shrink: 0;
+        position: relative;
+
+        .backBtn {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          border: none;
+          background: transparent;
+          color: #007afc; // iOS blue for back arrow
+          padding: 0;
+          @include variable.d-flex($jc: center, $al: center);
+        }
+
+        .contactProfile {
+          @include variable.d-flex($fd: column, $al: center);
+
+          .avatarCircle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: #8e8e93; // iOS grey avatar background
+            color: #ffffff;
+            @include variable.d-flex($jc: center, $al: center);
+            margin-bottom: 2px;
+
+            svg {
+              width: 18px;
+              height: 18px;
+              fill: #ffffff;
+            }
+          }
+
+          .contactName {
+            @include variable.font-style($fs: 10px, $fw: 500);
+            color: variable.$color-black-3;
+            @include variable.d-flex($al: center);
+
+            .chevron {
+              color: #8e8e93;
+              font-size: 8px;
+              margin-left: 2px;
+              font-weight: bold;
+            }
+          }
+        }
+      }
+
+      .smsScreenContent {
+        flex: 1;
+        padding: 12px 12px 0px 12px;
+        margin-bottom: 14px;
+        background-color: variable.$color-white-13;
+        overflow-y: auto;
+        @include variable.d-flex($fd: column, $jc: flex-start);
+
+        /* Scrollbar styling */
+        &::-webkit-scrollbar {
+          width: 4px;
+        }
+        &::-webkit-scrollbar-thumb {
+          background: variable.$color-white-9;
+          border-radius: 2px;
+        }
+
+        .smsBubble {
+          background-color: #e9e9eb; // iOS bubble grey
+          border: none;
+          border-radius: 16px;
+          border-top-left-radius: 4px; // Incoming SMS bubble tail style
+          padding: 10px 14px;
+          @include variable.font-style($fs: 12px, $lh: 18px);
+          color: variable.$color-black-3;
+          max-width: 100%;
+          box-shadow: none;
+          text-align: left;
+          align-self: flex-start;
+
+          p {
+            margin: 0 0 10px 0;
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+
+          a {
+            color: #007afc; // iOS blue
+            text-decoration: underline;
+            word-break: break-all;
+          }
+        }
+      }
+
+      /* MAIL PREVIEW */
+      .mailPreviewContainer {
+        width: 100%;
+        height: 100%;
+
+        .desktopMailWrapper {
+          height: 100%;
+          border: 1.5px solid variable.$color-white-6;
+          border-radius: 12px;
+          overflow: hidden;
+          background-color: variable.$color-white-0;
+          box-shadow: variable.$shadow-2;
+
+          .senderHeaderDetails {
+            @include variable.d-flex($al: center, $g: 12px);
+            padding: 14px 16px;
+            background-color: variable.$color-white-11;
+            border-bottom: 1.5px solid variable.$color-white-6;
+
+            .senderAvatar {
+              width: 36px;
+              height: 36px;
+              border-radius: 50%;
+              background-color: variable.$color-blue-1;
+              color: variable.$color-blue-0;
+              @include variable.d-flex($jc: center, $al: center);
+              @include variable.font-style($fs: 13px, $fw: 600);
+            }
+
+            .senderInfo {
+              @include variable.d-flex($fd: column);
+              .mailSubject {
+                @include variable.font-style($fs: 14px, $fw: 600);
+                color: variable.$color-black-4;
+              }
+              .mailSender {
+                @include variable.font-style($fs: 12px);
+                color: variable.$color-black-5;
+              }
+            }
+          }
+
+          .emailDesktopBodyFrame {
+            width: 100%;
+            height: 100%;
+            background-color: variable.$color-white-1;
+          }
+        }
+
+        .emailMobileBodyFrame {
+          flex: 1;
+          width: 100%;
+          height: 100%;
+          background-color: variable.$color-white-1;
+        }
+
+        .emailPreviewIframe {
+          width: 100%;
+          height: 100%;
+          border: none;
+          display: block;
+        }
+      }
+
+      /* VOICE PREVIEW */
+      .voicePreviewContainer {
+        @include variable.d-flex($fd: column, $g: 24px);
+        width: 100%;
+        padding: 20px;
+        box-sizing: border-box;
+        border-radius: 8px;
+        border: 1px solid variable.$color-white-5;
+
+        .voiceScriptContent {
+          width: 100%;
+          @include variable.font-style($fs: 14px, $lh: 22px);
+          text-align: left;
+
+          .voiceScriptPara {
+            margin: 0 0 12px 0;
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+
+          .readText {
+            color: variable.$color-green-0; // Teal/green color for spoken/read text
+            font-weight: inherit;
+          }
+
+          .unreadText {
+            color: variable.$color-black-4; // Standard color for unread text
+            font-weight: inherit;
+          }
+        }
+
+        .voicePlayerSection {
+          @include variable.d-flex($fd: column, $g: 8px);
+          align-items: flex-start;
+          margin-top: 8px;
+
+          .playerHeading {
+            margin: 0;
+            @include variable.font-style($fs: 13px, $fw: 500);
+            color: variable.$color-black-5;
+          }
+
+          .voiceAudioPlayer {
+            @include variable.d-flex($al: center, $g: 12px);
+            width: 100%;
+            max-width: 380px;
+            background-color: variable.$color-white-8; // Light grey #F2F4F7
+            border-radius: 24px;
+            padding: 8px 16px;
+            box-sizing: border-box;
+
+            .playPauseBtn {
+              border: none;
+              background: transparent;
+              cursor: pointer;
+              @include variable.d-flex($jc: center, $al: center);
+              padding: 0;
+              flex-shrink: 0;
+
+              img {
+                width: 14px;
+                height: 14px;
+              }
+            }
+
+            .playerTimelineContainer {
+              flex: 1;
+              @include variable.d-flex($al: center);
+
+              .playerSlider {
+                width: 100%;
+                height: 4px;
+                border-radius: 2px;
+                outline: none;
+                appearance: none;
+                cursor: pointer;
+
+                &::-webkit-slider-thumb {
+                  appearance: none;
+                  width: 10px;
+                  height: 10px;
+                  border-radius: 50%;
+                  background-color: variable.$color-black-4; // Dark thumb
+                }
+
+                &::-moz-range-thumb {
+                  width: 10px;
+                  height: 10px;
+                  border: none;
+                  border-radius: 50%;
+                  background-color: variable.$color-black-4;
+                }
+              }
+            }
+
+            .playerTimer {
+              @include variable.font-style($fs: 12px, $fw: 500);
+              color: variable.$color-black-4;
+              white-space: nowrap;
+            }
+
+            .playerVolumeIcon {
+              color: variable.$color-black-4;
+              @include variable.d-flex($al: center);
+              flex-shrink: 0;
+
+              svg {
+                display: block;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* ---------- CUSTOM FOOTER ---------- */
+  .customDrawerFooter {
+    width: 100%;
+    @include variable.d-flex($jc: flex-end);
+    padding: 16px 24px;
+    border-top: 1px solid variable.$color-white-10;
+    background-color: variable.$color-white-0;
+    box-shadow: variable.$shadow-3;
+  }
+}

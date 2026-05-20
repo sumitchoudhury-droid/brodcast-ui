@@ -1,0 +1,124 @@
+@use "../../../../../style/variable.scss" as variable;
+
+.tableSettingsPopover {
+  @include variable.d-flex($fd: column, $jc: center, $al: center, $g: 16px);
+  position: absolute;
+  right: 8px;
+  height: 430px;
+  top: calc(100% + 8px);
+  background-color: variable.$color-white-0;
+  border-radius: 8px;
+  z-index: 1000;
+  padding: 16px;
+  border: 1px solid variable.$color-white-14;
+
+  .tableSettingsHeader {
+    h3 {
+      color: variable.$color-black-8;
+      @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+    }
+  }
+
+  .tableSettingsList {
+    @include variable.d-flex($fd: column, $jc: center, $al: center);
+    overflow-y: auto;
+  }
+
+  .settingsItem {
+    width: 100%;
+    @include variable.d-flex($fd: row, $g: 12px);
+    padding: 10px 6px;
+    border-radius: 8px;
+
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+    user-select: none;
+
+    &:not(.mandatory) {
+      cursor: grab;
+
+      &:hover {
+        background-color: variable.$color-white-13;
+      }
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+
+    .checkboxCol {
+      display: flex;
+      align-items: center;
+      .checkboxWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    .columnLabel {
+      color: variable.$color-black-6;
+      @include variable.font-style($fs: 15px, $fw: 500, $lh: 20px);
+      transition: color 0.2s ease;
+      text-wrap: nowrap;
+
+      &.disabled {
+        color: variable.$color-white-12;
+      }
+    }
+  }
+
+  .tableSettingsFooter {
+    @include variable.d-flex(
+      $fd: row,
+      $jc: space-between,
+      $al: center,
+      $g: 16px
+    );
+    width: 100%;
+    box-shadow: variable.$shadow-3;
+
+    .reusable-btn {
+      flex: 1;
+      height: 40px;
+      border-radius: 8px;
+      @include variable.font-style($fs: 16px, $fw: 600, $lh: 24px);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .btnReset {
+      background-color: variable.$color-white-0;
+      border: 1.5px solid variable.$color-green-0;
+      color: variable.$color-green-0;
+
+      &:hover {
+        background-color: rgba(25, 141, 133, 0.05);
+      }
+
+      &:active {
+        background-color: rgba(25, 141, 133, 0.1);
+      }
+    }
+
+    .btnApply {
+      background-color: variable.$color-green-0;
+      border: none;
+      color: variable.$color-white-0;
+
+      &:hover {
+        background-color: #157972;
+      }
+
+      &:active {
+        background-color: #0f5954;
+      }
+    }
+  }
+}

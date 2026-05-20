@@ -1,0 +1,152 @@
+@use "../../style/variable.scss" as variable;
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.tooltip-box {
+  position: absolute;
+  background-color: #111827; // Dark premium background
+  color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: "Inter", sans-serif;
+  padding: 8px 12px;
+  width: max-content;
+  max-width: 280px;
+
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  // Positioning and animation styles
+  &.tooltip-top {
+    transform: translate(-50%, -100%) translateY(0px);
+
+    &.is-visible {
+      transform: translate(-50%, -100%) translateY(-8px);
+    }
+
+    .tooltip-arrow {
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px 6px 0 6px;
+      border-color: #111827 transparent transparent transparent;
+    }
+  }
+
+  &.tooltip-bottom {
+    transform: translate(-50%, 0) translateY(0px);
+
+    &.is-visible {
+      transform: translate(-50%, 0) translateY(8px);
+    }
+
+    .tooltip-arrow {
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 0 6px 6px 6px;
+      border-color: transparent transparent #111827 transparent;
+    }
+  }
+
+  &.tooltip-left {
+    transform: translate(-100%, -50%) translateX(0px);
+
+    &.is-visible {
+      transform: translate(-100%, -50%) translateX(-8px);
+    }
+
+    .tooltip-arrow {
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 6px 0 6px 6px;
+      border-color: transparent transparent transparent #111827;
+    }
+  }
+
+  &.tooltip-right {
+    transform: translate(0, -50%) translateX(0px);
+
+    &.is-visible {
+      transform: translate(0, -50%) translateX(8px);
+    }
+
+    .tooltip-arrow {
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 6px 6px 6px 0;
+      border-color: transparent #111827 transparent transparent;
+    }
+  }
+
+  .tooltip-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+
+  // Content formatting
+  .tooltip-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tooltip-text {
+    @include variable.font-style($fs: 13px, $fw: 500, $lh: 18px);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .tooltip-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    min-width: 100px;
+
+    .tooltip-label {
+      color: #9ca3af;
+      @include variable.font-style($fs: 11px, $fw: 400, $lh: 14px);
+    }
+
+    .tooltip-value {
+      color: #ffffff;
+      @include variable.font-style($fs: 13px, $fw: 600, $lh: 18px);
+    }
+  }
+
+  .tooltip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    padding: 2px 4px;
+
+    .tooltip-list-item {
+      color: #ffffff;
+      @include variable.font-style($fs: 13px, $fw: 500, $lh: 18px);
+      white-space: nowrap;
+
+      &:last-child {
+        // Style "+ 100" or similar total items differently if desired, e.g. lighter or italicized
+      }
+    }
+  }
+}
