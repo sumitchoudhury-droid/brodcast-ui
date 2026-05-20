@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import "./style.scss";
 import templateOneIcon from "../../../assets/existingTemplate/template1.svg";
 import emailIcon from "../../../assets/existingTemplate/mail.svg";
@@ -7,6 +7,8 @@ import voiceIcon from "../../../assets/existingTemplate/phone.svg";
 import searchIcon from "../../../assets/commonIcons/searchIcon.svg";
 import emptyTemplate from "../../../assets/existingTemplate/emptyTemplate.svg";
 import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
+import playIcon from "../../../assets/voiceTextIcons/pausedIcon.svg";
+import pauseIcon from "../../../assets/voiceTextIcons/playIcon.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import emailTemplate from "./htmlTemplates/email.html?raw";
 import textTemplate from "./htmlTemplates/textMessage.html?raw";
@@ -75,12 +77,26 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
   const [activeModeTab, setActiveModeTab] = useState("Text");
   const [viewMode, setViewMode] = useState("desktop");
 
+  // Audio player state (mirrors textVoicePreview.jsx)
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [duration, setDuration] = useState(0);
+
+  const synthRef = useRef(window.speechSynthesis);
+  const utteranceRef = useRef(null);
+  const intervalRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const durationRef = useRef(null);
+  const offsetRef = useRef(0);
+  const trackRef = useRef(null);
+
   const filteredTemplates = MOCK_TEMPLATES.filter((template) =>
     template.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSelectTemplate = () => {
-    console.log("Selected Template:", selectedTemplate);
     if (onSelectTemplate) {
       onSelectTemplate({
         ...selectedTemplate,
@@ -92,7 +108,201 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
     onClose();
   };
 
-  // Prevent body scroll when drawer is open
+  // Extract plain text from voiceTemplate HTML
+  const getVoiceText = () => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(voiceTemplate, "text/html");
+    return doc.body.textContent?.trim() || "";
+  };
+
+  const startProgressTimer = useCallback((estimatedMs, startPct = 0) => {
+    clearInterval(intervalRef.current);
+    const startMs = Date.now() - estimatedMs * (startPct / 100);
+    startTimeRef.current = startMs;
+    durationRef.current = estimatedMs;
+    setDuration(estimatedMs);
+
+    intervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current;
+      const pct = Math.min((elapsed / estimatedMs) * 100, 99);
+      setProgress(pct);
+    }, 200);
+  }, []);
+
+  const handlePlay = useCallback(
+    (startCharIndex = 0) => {
+      const synth = synthRef.current;
+
+      if (isPaused && utteranceRef.current && startCharIndex === 0) {
+        synth.resume();
+        setIsPaused(false);
+        setIsPlaying(true);
+        startProgressTimer(durationRef.current, progress);
+        return;
+      }
+
+      const fullText = getVoiceText();
+      const textToSpeak =
+        startCharIndex > 0 ? fullText.slice(startCharIndex) : fullText;
+      offsetRef.current = startCharIndex;
+
+      synth.cancel();
+      clearInterval(intervalRef.current);
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.rate = 0.95;
+
+      const wordCount = fullText.split(/\s+/).length;
+      const estimatedMs = (wordCount / 126) * 60 * 1000;
+
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setIsPaused(false);
+        const initialPct = (startCharIndex / fullText.length) * 100;
+        setProgress(initialPct);
+        startProgressTimer(estimatedMs, initialPct);
+      };
+
+      utterance.onend = () => {
+        clearInterval(intervalRef.current);
+        setIsPlaying(false);
+        setIsPaused(false);
+        setProgress(100);
+        setTimeout(() => setProgress(0), 600);
+      };
+
+      utterance.onerror = () => {
+        clearInterval(intervalRef.current);
+        setIsPlaying(false);
+        setIsPaused(false);
+        setProgress(0);
+      };
+
+      utteranceRef.current = utterance;
+      synth.speak(utterance);
+    },
+    [isPaused, progress, startProgressTimer]
+  );
+
+  function stopAll() {
+    synthRef.current.cancel();
+    clearInterval(intervalRef.current);
+    utteranceRef.current = null;
+    setIsPlaying(false);
+    setIsPaused(false);
+    setProgress(0);
+    offsetRef.current = 0;
+  }
+
+  function handleSeek(e) {
+    if (!trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, x / rect.width));
+    const fullText = getVoiceText();
+    const newIndex = Math.floor(pct * fullText.length);
+    handlePlay(newIndex);
+  }
+
+  function handleMouseDown(e) {
+    setIsDragging(true);
+    handleSeek(e);
+  }
+
+  function handleReplay() {
+    stopAll();
+    setTimeout(() => handlePlay(0), 50);
+  }
+
+  function handlePause() {
+    synthRef.current.pause();
+    clearInterval(intervalRef.current);
+    setIsPlaying(false);
+    setIsPaused(true);
+  }
+
+  const formatTime = (ms) => {
+    if (!ms) return "0:00";
+    const totalSeconds = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const currentTimeMs = (progress / 100) * (duration || 0);
+
+  // Stop speech when tab changes away from Voice or template changes
+  useEffect(() => {
+    if (activeModeTab !== "Voice") {
+      synthRef.current.cancel();
+      clearInterval(intervalRef.current);
+      utteranceRef.current = null;
+      offsetRef.current = 0;
+      const timer = setTimeout(() => {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setProgress(0);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [activeModeTab, selectedTemplate]);
+
+  // Stop speech when drawer closes
+  useEffect(() => {
+    const synth = synthRef.current;
+    if (!isOpen) {
+      synth.cancel();
+      clearInterval(intervalRef.current);
+      utteranceRef.current = null;
+    }
+    return () => {
+      synth.cancel();
+      clearInterval(intervalRef.current);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      const timer = setTimeout(() => {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setProgress(0);
+        offsetRef.current = 0;
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Dragging effect
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e) => {
+      if (!trackRef.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, x / rect.width));
+      setProgress(pct * 100);
+    };
+
+    const handleMouseUp = (e) => {
+      if (!trackRef.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, x / rect.width));
+      const fullText = getVoiceText();
+      const newIndex = Math.floor(pct * fullText.length);
+      setIsDragging(false);
+      handlePlay(newIndex);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, handlePlay]);
 
   // Prevent body scroll when drawer is open
   useEffect(() => {
@@ -117,6 +327,8 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
       </div>
     );
   };
+
+  const showAudioPlayer = selectedTemplate && activeModeTab === "Voice";
 
   return (
     <div className="existingTemplatesDrawerOverlay" onClick={onClose}>
@@ -285,6 +497,87 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
                 </div>
               )}
             </div>
+
+            {showAudioPlayer && (
+              <div className="audioPreviewSection">
+                <p className="sectionTitle">Audio Preview</p>
+                <div className="audioPlayerPill">
+                  <button
+                    className="playPauseBtn"
+                    onClick={() => (isPlaying ? handlePause() : handlePlay(0))}
+                  >
+                    {isPlaying ? (
+                      <img
+                        src={pauseIcon}
+                        alt="pause"
+                        style={{ width: "16px", height: "16px" }}
+                      />
+                    ) : (
+                      <img
+                        src={playIcon}
+                        alt="play"
+                        style={{ width: "16px", height: "16px" }}
+                      />
+                    )}
+                  </button>
+
+                  <button
+                    className="replayBtn"
+                    onClick={handleReplay}
+                    title="Replay"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M23 4v6h-6"></path>
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                  </button>
+
+                  <div
+                    className={`progressTrack ${isDragging ? "dragging" : ""}`}
+                    ref={trackRef}
+                    onMouseDown={handleMouseDown}
+                  >
+                    <div
+                      className="progressFill"
+                      style={{ width: `${progress}%` }}
+                    >
+                      <div className="progressHandle" />
+                    </div>
+                  </div>
+
+                  <div className="timeDisplay">
+                    {formatTime(currentTimeMs)} / {formatTime(duration)}
+                  </div>
+
+                  <div className="volumeIcon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
