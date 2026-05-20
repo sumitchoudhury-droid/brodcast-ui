@@ -4,6 +4,7 @@ import { ReusableDateTime } from "../../../../reusableComponents/reusableDate&Ti
 import ReusableToggleButton from "../../../../reusableComponents/reusableToggleButton";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
+import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
 
 function TargetRecipients({
   // Dropdown props
@@ -50,10 +51,7 @@ function TargetRecipients({
             greenIcon={false}
             placeholder="Select Appointment Type"
             options={appointmentTypeOptions}
-            value={
-              appointmentTypeOptions.find((o) => o.value === appointmentType)
-                ?.label || ""
-            }
+            value={appointmentType}
             onChange={(val) => setAppointmentType(val)}
           />
         </div>
@@ -63,14 +61,12 @@ function TargetRecipients({
             greenIcon={false}
             placeholder="Select Location"
             options={locationOptions}
-            value={
-              locationOptions.find((o) => o.value === location)?.label || ""
-            }
+            value={location}
             onChange={(val) => setLocation(val)}
           />
         </div>
         <div className="formGroup">
-          <ReusableDropDown
+          <ReusableMultiSelectDropdown
             label="Provider"
             greenIcon={false}
             placeholder="Select Provider"
@@ -92,9 +88,7 @@ function TargetRecipients({
                 greenIcon={false}
                 placeholder="Select Filter"
                 options={ageOptions}
-                value={
-                  ageOptions.find((o) => o.value === ageFilter)?.label || ""
-                }
+                value={ageFilter}
                 onChange={(val) => setAgeFilter(val)}
               />
             </div>
@@ -112,7 +106,7 @@ function TargetRecipients({
             greenIcon={false}
             placeholder="Select Gender"
             options={genderOptions}
-            value={genderOptions.find((o) => o.value === gender)?.label || ""}
+            value={gender}
             onChange={(val) => setGender(val)}
           />
         </div>
@@ -122,9 +116,7 @@ function TargetRecipients({
             greenIcon={false}
             placeholder="Select Modality"
             options={modalityOptions}
-            value={
-              modalityOptions.find((o) => o.value === modality)?.label || ""
-            }
+            value={modality}
             onChange={(val) => setModality(val)}
           />
         </div>

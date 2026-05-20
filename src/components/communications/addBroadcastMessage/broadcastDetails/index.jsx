@@ -87,9 +87,7 @@ export const BroadcastDetails = ({
             greenIcon={false}
             placeholder="Select Category"
             options={categoryOptions}
-            value={
-              categoryOptions.find((o) => o.value === category)?.label || ""
-            }
+            value={category}
             onChange={(val) => setCategory(val)}
           />
         </div>
@@ -101,9 +99,7 @@ export const BroadcastDetails = ({
             greenIcon={false}
             placeholder="Select Priority"
             options={priorityOptions}
-            value={
-              priorityOptions.find((o) => o.value === priority)?.label || ""
-            }
+            value={priority}
             onChange={(val) => setPriority(val)}
             required={true}
           />
