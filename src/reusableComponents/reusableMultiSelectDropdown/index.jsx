@@ -18,7 +18,8 @@ export const ReusableMultiSelectDropdown = ({
   valueImage,
   greenIcon = true,
   required = false,
-  width = "420px"
+  width = "420px",
+  overWriteClassName = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showOnlySelected, setShowOnlySelected] = useState(false);
@@ -91,7 +92,7 @@ export const ReusableMultiSelectDropdown = ({
 
   return (
     <div
-      className={`multidropdown ${isOpen ? "open" : ""}`}
+      className={`multidropdown ${isOpen ? "open" : ""} ${overWriteClassName}`}
       ref={dropdownRef}
       style={{ maxWidth: width }}
     >

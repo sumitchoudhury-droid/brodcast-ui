@@ -35,7 +35,7 @@ export const AddBroadcastMessage = ({
   // Template state (lifted from BroadcastTemplateDetails)
   const [selectedTemplateType, setSelectedTemplateType] =
     useState("newTemplate");
-  const [existingTemplateValues, setExistingTemplateValues] = useState([]);
+  const [existingTemplateValues, setExistingTemplateValues] = useState("");
 
   const showRadioRow =
     !selectedModes.includes("Email") &&
@@ -59,7 +59,7 @@ export const AddBroadcastMessage = ({
       (!!patientStartDateTime && !!patientEndDateTime)) &&
     (!showRadioRow ||
       selectedTemplateType !== "existingTemplate" ||
-      existingTemplateValues.length > 0);
+      !!existingTemplateValues);
 
   return (
     <div className="addBroadcastMessage">

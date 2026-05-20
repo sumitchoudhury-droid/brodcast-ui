@@ -11,7 +11,8 @@ export function ReusableDropDown({
   onChange,
   valueImage,
   greenIcon = true,
-  required = false
+  required = false,
+  overWriteClassName = ""
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -34,13 +35,18 @@ export function ReusableDropDown({
     setIsOpen(!isOpen);
   };
 
-  const handleOptionClick = (optionValue) => {
-    onChange(optionValue);
+  const handleOptionClick = (option) => {
+    onChange(option.value);
     setIsOpen(false);
   };
 
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
   return (
-    <div className={`dropdown ${isOpen ? "open" : ""}`} ref={dropdownRef}>
+    <div
+      className={`dropdown ${isOpen ? "open" : ""} ${overWriteClassName}`}
+      ref={dropdownRef}
+    >
       {label && (
         <label className="dropdownLabel">
           {label} {required && <span className="required">*</span>}
@@ -63,9 +69,13 @@ export function ReusableDropDown({
             )}
             <p
               className="dropdownSelectContainerValueText"
-              style={!greenIcon ? { color: value ? "#181D25" : "#929FB1" } : {}}
+              style={
+                !greenIcon
+                  ? { color: selectedLabel ? "#181D25" : "#929FB1" }
+                  : {}
+              }
             >
-              {value || placeholder}
+              {selectedLabel || placeholder}
             </p>
           </div>
           <img
@@ -80,8 +90,8 @@ export function ReusableDropDown({
             {options.map((option) => (
               <div
                 key={option.value}
-                onClick={() => handleOptionClick(option.value)}
-                className="dropdownSelectContainerOptions"
+                onClick={() => handleOptionClick(option)}
+                className={`dropdownSelectContainerOptions ${option.value === value ? "selected" : ""}`}
               >
                 {option.image && (
                   <img
