@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect, forwardRef, useMemo } from "react";
-import {
-  Calendar as CalendarIcon,
-  Clock,
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react";
+import calendarIcon from "../../assets/boardCastTableIcons/calendar.svg";
+import clockIcon from "../../assets/boardCastTableIcons/clockIcon.svg";
+import chevronLeftIcon from "../../assets/boardCastTableIcons/chevronLeftIcon.svg";
+import chevronRightIcon from "../../assets/boardCastTableIcons/chevronRightIcon.svg";
 import {
   format,
   addMonths,
@@ -206,7 +204,19 @@ export function ReusableDateTime({
           onClick={handleToggle}
           placeholder={placeholder}
           icon={
-            showTimeSelect ? <Clock size={18} /> : <CalendarIcon size={18} />
+            showTimeSelect ? (
+              <img
+                src={clockIcon}
+                alt="Clock"
+                style={{ width: "18px", height: "18px" }}
+              />
+            ) : (
+              <img
+                src={calendarIcon}
+                alt="Calendar"
+                style={{ width: "18px", height: "18px" }}
+              />
+            )
           }
           error={error}
           disabled={disabled}
@@ -223,7 +233,11 @@ export function ReusableDateTime({
                     onClick={handlePrevMonth}
                     className="navBtn"
                   >
-                    <ChevronLeft size={16} />
+                    <img
+                      src={chevronLeftIcon}
+                      alt="Previous"
+                      style={{ width: "16px", height: "16px" }}
+                    />
                   </button>
                   <span className="monthDisplay">
                     {format(viewDate, "MMMM yyyy")}
@@ -233,7 +247,11 @@ export function ReusableDateTime({
                     onClick={handleNextMonth}
                     className="navBtn"
                   >
-                    <ChevronRight size={16} />
+                    <img
+                      src={chevronRightIcon}
+                      alt="Next"
+                      style={{ width: "16px", height: "16px" }}
+                    />
                   </button>
                 </div>
 

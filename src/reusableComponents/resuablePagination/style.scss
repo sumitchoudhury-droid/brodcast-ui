@@ -1,0 +1,128 @@
+@use "../../style/variable.scss" as variable;
+
+.reusable-pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #6b7280;
+  background-color: transparent;
+
+  .pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .items-per-page-input {
+      width: 54px;
+      height: 32px;
+      padding: 0 8px;
+      background-color: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-weight: 500;
+      color: #374151;
+      font-size: 14px;
+      text-align: center;
+      outline: none;
+      transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+
+      &:focus {
+        border-color: #118b7e;
+        box-shadow: 0 0 0 2px rgba(17, 139, 126, 0.1);
+      }
+
+      /* Hide spin buttons for Chrome, Safari, Edge, Opera */
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* Hide spin buttons for Firefox */
+      &[type="number"] {
+        -moz-appearance: textfield;
+      }
+    }
+
+    .pagination-info {
+      color: variable.$color-black-12;
+      @include variable.font-style($fs: 12px, $fw: 400, $lh: 18px);
+    }
+  }
+
+  .pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .pagination-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      color: variable.$color-black-12;
+      transition:
+        color 0.2s,
+        opacity 0.2s;
+
+      &:hover:not(.disabled) {
+        color: variable.$primary-color;
+      }
+
+      &.disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      svg {
+        width: 12px;
+        height: 12px;
+        fill: currentColor;
+      }
+    }
+
+    .pagination-numbers {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .page-number {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 2px;
+        cursor: pointer;
+        color: variable.$color-black-12;
+        background-color: #ffffff;
+        border: 1px solid #eaecf0;
+        @include variable.font-style($fs: 12px, $fw: 500, $lh: 216px);
+        transition: all 0.2s;
+
+        &:hover:not(.active):not(.dots) {
+          background-color: #f9fafb;
+          border-color: #d0d5dd;
+        }
+
+        &.active {
+          background-color: variable.$primary-color;
+          color: #ffffff;
+          border-color: variable.$primary-color;
+        }
+
+        &.dots {
+          cursor: default;
+          color: variable.$color-black-12;
+        }
+      }
+    }
+  }
+}

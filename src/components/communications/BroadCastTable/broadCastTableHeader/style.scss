@@ -1,0 +1,110 @@
+@use "../../../../style/variable.scss" as variable;
+
+.broadCastTableHeader {
+  padding: 0px;
+  width: 100%;
+  @include variable.d-flex($fd: row, $al: center, $jc: space-between);
+
+  .headerLeft {
+    @include variable.d-flex($fd: row, $al: stretch, $g: 12px);
+  }
+
+  .headerRight {
+    @include variable.d-flex($fd: row, $al: center, $g: 16px);
+    margin-left: auto;
+
+    .selectedCountText {
+      @include variable.font-style($fs: 13px, $fw: 500, $lh: 20px);
+      color: variable.$color-black-6;
+    }
+
+    .bulkActionsDropdownWrapper {
+      position: relative;
+
+      .bulkActionsBtn {
+        padding: 6px 16px;
+        background-color: variable.$color-white-0;
+        border: 1px solid variable.$color-green-0;
+        border-radius: 8px;
+        color: variable.$color-green-0;
+        @include variable.font-style($fs: 14px, $fw: 500);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+
+        .dropdownArrow {
+          width: 12px;
+          height: 12px;
+          transition: transform 0.2s ease;
+
+          &.open {
+            transform: rotate(180deg);
+          }
+        }
+      }
+
+      .bulkDropdownMenu {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        background-color: variable.$color-white-0;
+        border: 1px solid variable.$color-white-6;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        z-index: 100;
+        min-width: 160px;
+        padding: 4px 0;
+        display: flex;
+        flex-direction: column;
+        animation: slideDown 0.15s ease;
+
+        .bulkMenuItem {
+          background-color: red;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 8px;
+          background: transparent;
+          border: none;
+          width: 100%;
+          text-align: left;
+          color: variable.$color-black-8;
+          @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: variable.$color-white-3;
+          }
+
+          .menuIcon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            img {
+              width: 100%;
+              height: 100%;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

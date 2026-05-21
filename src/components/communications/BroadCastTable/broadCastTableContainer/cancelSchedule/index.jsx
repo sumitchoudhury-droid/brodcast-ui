@@ -1,0 +1,228 @@
+import { useMemo } from "react";
+import ReactDOM from "react-dom";
+import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
+
+// Message Status Icons
+import broadcastIcon from "../../../../../assets/boardCastTableIcons/broadcastIcon.svg";
+import completedGreenIcon from "../../../../../assets/boardCastTableIcons/completedGreenIcon.svg";
+import failedRedIcon from "../../../../../assets/boardCastTableIcons/failedRedIcon.svg";
+import pendingYellowIcon from "../../../../../assets/boardCastTableIcons/pendingYellowIcon.svg";
+
+// Broadcast Status Icons
+import completedIcon from "../../../../../assets/boardCastTableIcons/completedIcon.svg";
+import scheduledDailyIcon from "../../../../../assets/boardCastTableIcons/scheduledDailyIcon.svg";
+import runningWeeklyIcon from "../../../../../assets/boardCastTableIcons/runningWeekly.svg";
+import failedIcon from "../../../../../assets/boardCastTableIcons/failedIcon.svg";
+import cancelledIcon from "../../../../../assets/boardCastTableIcons/cancelledIcon.svg";
+
+import "./style.scss";
+import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
+
+// Helper to format date string to matching layout e.g. "26 Feb 2026 at 10:30 AM"
+const formatScheduleDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return "26 Feb 2026 at 10:30 AM";
+  try {
+    const dateObj = new Date(dateTimeStr);
+    if (isNaN(dateObj.getTime())) {
+      return dateTimeStr;
+    }
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ];
+    const day = dateObj.getDate();
+    const month = months[dateObj.getMonth()];
+    const year = dateObj.getFullYear();
+    let hours = dateObj.getHours();
+    const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${day} ${month} ${year} at ${hours}:${minutes} ${ampm}`;
+  } catch {
+    return dateTimeStr;
+  }
+};
+
+export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
+  const formattedDate = useMemo(() => {
+    return formatScheduleDateTime(broadcastData?.scheduledDateTime);
+  }, [broadcastData]);
+
+  const patientCount = useMemo(() => {
+    return broadcastData?.messageStatus?.total || "428";
+  }, [broadcastData]);
+
+  // Resolve Badge Icon and color class for Broadcast Status
+  const getStatusDetails = (status) => {
+    if (!status) return { className: "greenBadge", icon: completedIcon };
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus.includes("completed")) {
+      return { className: "greenBadge", icon: completedIcon };
+    } else if (lowerStatus.includes("scheduled")) {
+      return { className: "purpleBadge", icon: scheduledDailyIcon };
+    } else if (lowerStatus.includes("running")) {
+      return { className: "blueBadge", icon: runningWeeklyIcon };
+    } else if (lowerStatus.includes("failed")) {
+      return { className: "redBadge", icon: failedIcon };
+    } else if (lowerStatus.includes("cancel")) {
+      return { className: "greyBadge", icon: cancelledIcon };
+    }
+    return { className: "greenBadge", icon: completedIcon };
+  };
+
+  const statusDetails = getStatusDetails(broadcastData?.broadcastStatus);
+
+  const displayLocation = useMemo(() => {
+    const loc = broadcastData?.location || "Eastside Urgent Care";
+    return broadcastData?.locationCount && broadcastData.locationCount > 1
+      ? `${loc}, Riverbend...`
+      : loc;
+  }, [broadcastData]);
+
+  const displayProvider = useMemo(() => {
+    const prov = broadcastData?.provider || "Barbara Phillips";
+    return broadcastData?.providerCount && broadcastData.providerCount > 1
+      ? `${prov}, Olivia Smith, Et...`
+      : prov;
+  }, [broadcastData]);
+
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <div className="cancelScheduleOverlay" onClick={onClose}>
+      <div className="cancelScheduleModal" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="modalHeader">
+          <h2 className="modalTitle">Confirm Cancel Schedule</h2>
+          <button className="closeButton" onClick={onClose}>
+            <img src={CloseButton} alt="Close" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="modalBody">
+          <p className="confirmText">
+            Are you sure you want to stop this broadcast scheduled at{" "}
+            <span className="highlightText">{formattedDate}</span> to{" "}
+            <span className="highlightText">{patientCount} Patients?</span>
+          </p>
+
+          <p className="warningText">
+            Once confirmed, this action cannot be undone.
+          </p>
+
+          {/* Details Card */}
+          <div className="detailsCard">
+            <div className="detailsGrid">
+              {/* Left Column */}
+              <div className="detailsColumn">
+                <div className="detailGroup">
+                  <span className="detailLabel">Mode</span>
+                  <span className="detailValue">
+                    {broadcastData?.mode || "Mail"}
+                  </span>
+                </div>
+                <div className="detailGroup">
+                  <span className="detailLabel">Appointment Type</span>
+                  <span className="detailValue">
+                    {broadcastData?.appointmentType ||
+                      "BPC-A Blood Pressure Check"}
+                  </span>
+                </div>
+                <div className="detailGroup">
+                  <span className="detailLabel">Provider</span>
+                  <span className="detailValue">{displayProvider}</span>
+                </div>
+                <div className="detailGroup">
+                  <span className="detailLabel">Message Status</span>
+                  <div className="messageStatusContainer">
+                    <div className="statusItem blue">
+                      <img src={broadcastIcon} alt="total" />
+                      <span>
+                        {broadcastData?.messageStatus?.total || "428"}
+                      </span>
+                    </div>
+                    <div className="statusItem green">
+                      <img src={completedGreenIcon} alt="delivered" />
+                      <span>
+                        {broadcastData?.messageStatus?.delivered || "120"}
+                      </span>
+                    </div>
+                    <div className="statusItem red">
+                      <img src={failedRedIcon} alt="failed" />
+                      <span>{broadcastData?.messageStatus?.failed || "-"}</span>
+                    </div>
+                    <div className="statusItem yellow">
+                      <img src={pendingYellowIcon} alt="pending" />
+                      <span>
+                        {broadcastData?.messageStatus?.pending || "308"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="detailsColumn">
+                <div className="detailGroup">
+                  <span className="detailLabel">Template</span>
+                  <span className="detailValue">
+                    {broadcastData?.template || "Account Statement"}
+                  </span>
+                </div>
+                <div className="detailGroup">
+                  <span className="detailLabel">Location</span>
+                  <span className="detailValue">{displayLocation}</span>
+                </div>
+                <div className="detailGroup">
+                  <span className="detailLabel">Scheduled Date/Time</span>
+                  <span className="detailValue">
+                    {broadcastData?.scheduledDateTime || "2/15/2026 9:45:00 AM"}
+                  </span>
+                </div>
+                <div className="detailGroup">
+                  <span className="detailLabel">Broadcast Status</span>
+                  <div className={`statusBadge ${statusDetails.className}`}>
+                    <img
+                      src={statusDetails.icon}
+                      alt={broadcastData?.broadcastStatus || "Completed"}
+                    />
+                    <span>{broadcastData?.broadcastStatus || "Completed"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="modalFooter">
+          <ReusableButton
+            variant="secondary"
+            onClick={onClose}
+            label="Cancel"
+          />
+          <ReusableButton
+            variant="primary"
+            onClick={onConfirm}
+            label="Confirm"
+          />
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+export default CancelSchedule;

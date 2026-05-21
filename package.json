@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@tanstack/react-table": "^8.21.3",
     "date-fns": "^4.1.0",
     "grapesjs": "^0.22.14",
     "grapesjs-mjml": "^1.0.8",
@@ -41,4 +42,3 @@
     "vite": "^8.0.0"
   }
 }
-

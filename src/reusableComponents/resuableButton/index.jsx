@@ -18,7 +18,9 @@ export function ReusableButton({
   eyeImage = false,
   sendImage = false,
   playImage = false,
-  pauseImage = false
+  pauseImage = false,
+  addIcon = false,
+  addImage
 }) {
   const handleClick = (e) => {
     if (disabled || loading) return;
@@ -84,6 +86,16 @@ export function ReusableButton({
               style={{ width: "16px", height: "16px" }}
             />
           )}
+
+          {addIcon && (
+            <img
+              src={addImage}
+              alt="addIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+
           <span className="btn-label">{label}</span>
         </>
       )}

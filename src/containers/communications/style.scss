@@ -5,6 +5,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* top tabs */
@@ -59,4 +60,12 @@
     font-size: 18px;
     color: variable.$color-black-1;
   }
+}
+
+.broadcastTableWrapper {
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }

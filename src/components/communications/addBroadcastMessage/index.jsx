@@ -11,7 +11,8 @@ export const AddBroadcastMessage = ({
   selectedModes,
   setSelectedModes,
   selectedTemplateData,
-  setSelectedTemplateData
+  setSelectedTemplateData,
+  handleCancel
 }) => {
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("");
@@ -111,7 +112,11 @@ export const AddBroadcastMessage = ({
         />
       </div>
       <div className="addBroadcastMessageFooter">
-        <ReusableButton label="Cancel" variant="primary" />
+        <ReusableButton
+          label="Cancel"
+          variant="primary"
+          onClick={handleCancel}
+        />
         <ReusableButton
           label="Next"
           variant="secondary"

@@ -7,8 +7,6 @@ import voiceIcon from "../../../assets/existingTemplate/phone.svg";
 import searchIcon from "../../../assets/commonIcons/searchIcon.svg";
 import emptyTemplate from "../../../assets/existingTemplate/emptyTemplate.svg";
 import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
-import playIcon from "../../../assets/voiceTextIcons/pausedIcon.svg";
-import pauseIcon from "../../../assets/voiceTextIcons/playIcon.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import emailTemplate from "./htmlTemplates/email.html?raw";
 import textTemplate from "./htmlTemplates/textMessage.html?raw";
@@ -115,6 +113,14 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
     return doc.body.textContent?.trim() || "";
   };
 
+  // Extract inner HTML of content td from voiceTemplate
+  const getVoiceHtmlContent = () => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(voiceTemplate, "text/html");
+    const td = doc.querySelector('td[style*="padding"]');
+    return td ? td.innerHTML : voiceTemplate;
+  };
+
   const startProgressTimer = useCallback((estimatedMs, startPct = 0) => {
     clearInterval(intervalRef.current);
     const startMs = Date.now() - estimatedMs * (startPct / 100);
@@ -184,16 +190,6 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
     [isPaused, progress, startProgressTimer]
   );
 
-  function stopAll() {
-    synthRef.current.cancel();
-    clearInterval(intervalRef.current);
-    utteranceRef.current = null;
-    setIsPlaying(false);
-    setIsPaused(false);
-    setProgress(0);
-    offsetRef.current = 0;
-  }
-
   function handleSeek(e) {
     if (!trackRef.current) return;
     const rect = trackRef.current.getBoundingClientRect();
@@ -208,12 +204,6 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
     setIsDragging(true);
     handleSeek(e);
   }
-
-  function handleReplay() {
-    stopAll();
-    setTimeout(() => handlePlay(0), 50);
-  }
-
   function handlePause() {
     synthRef.current.pause();
     clearInterval(intervalRef.current);
@@ -328,7 +318,93 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
     );
   };
 
-  const showAudioPlayer = selectedTemplate && activeModeTab === "Voice";
+  const renderInnerPreview = () => {
+    return activeModeTab === "Voice" ? (
+      <div className="voicePreviewBody">
+        <div
+          className="voiceMessageText"
+          dangerouslySetInnerHTML={{
+            __html: getVoiceHtmlContent()
+          }}
+        />
+        <div className="audioPreviewSection">
+          <p className="sectionTitle">Audio Preview</p>
+          <div className="audioPlayerPill">
+            <button
+              className="playPauseBtn"
+              onClick={() => (isPlaying ? handlePause() : handlePlay(0))}
+            >
+              {isPlaying ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+
+            <div
+              className={`progressTrack ${isDragging ? "dragging" : ""}`}
+              ref={trackRef}
+              onMouseDown={handleMouseDown}
+            >
+              <div className="progressFill" style={{ width: `${progress}%` }}>
+                <div className="progressHandle" />
+              </div>
+            </div>
+
+            <div className="timeDisplay">
+              {formatTime(currentTimeMs)} / {formatTime(duration)}
+            </div>
+
+            <div className="volumeIcon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+              </svg>
+            </div>
+
+            <button className="menuBtn">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <iframe
+        srcDoc={activeModeTab === "Mail" ? emailTemplate : textTemplate}
+        title="Template Preview"
+        className="previewIframe"
+      />
+    );
+  };
 
   return (
     <div className="existingTemplatesDrawerOverlay" onClick={onClose}>
@@ -481,103 +557,120 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
                   <div className="previewTag">
                     <p>Preview</p>
                   </div>
-                  <div className={`previewContent ${viewMode}`}>
-                    <iframe
-                      srcDoc={
-                        activeModeTab === "Mail"
-                          ? emailTemplate
-                          : activeModeTab === "Text"
-                            ? textTemplate
-                            : voiceTemplate
-                      }
-                      title="Template Preview"
-                      className="previewIframe"
-                    />
-                  </div>
+                  {viewMode === "mobile" ? (
+                    <div className="mobilePhoneMockup">
+                      <div className="phoneNotch" />
+                      <div className="phoneStatusBar">
+                        <span className="statusBarTime">9:41</span>
+                        <div className="statusBarIcons">
+                          <svg
+                            width="17"
+                            height="11"
+                            viewBox="0 0 17 11"
+                            fill="currentColor"
+                          >
+                            <path d="M2 10h1v1H2zm3-2h1v3H5zm3-3h1v6H8zm3-3h1v9h-1zm3-2h1v11h-1z" />
+                          </svg>
+                          <svg
+                            width="15"
+                            height="11"
+                            viewBox="0 0 15 11"
+                            fill="currentColor"
+                          >
+                            <path d="M7.5 1.5C4.7 1.5 2.1 2.6.2 4.4l1.1 1.1c1.6-1.5 3.7-2.4 6.2-2.4s4.6.9 6.2 2.4l1.1-1.1C12.9 2.6 10.3 1.5 7.5 1.5zM7.5 5c-1.8 0-3.4.7-4.6 2l1.1 1.1c.9-.9 2.1-1.5 3.5-1.5s2.6.6 3.5 1.5l1.1-1.1c-1.2-1.3-2.8-2-4.6-2zm0 3.5c-.8 0-1.5.3-2.1.9l2.1 2.1 2.1-2.1c-.6-.6-1.3-.9-2.1-.9z" />
+                          </svg>
+                          <svg
+                            width="22"
+                            height="11"
+                            viewBox="0 0 22 11"
+                            fill="currentColor"
+                          >
+                            <rect
+                              x="0.5"
+                              y="0.5"
+                              width="18"
+                              height="10"
+                              rx="2.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1"
+                            />
+                            <rect x="2" y="2" width="13" height="7" rx="1.5" />
+                            <path d="M19.5 3.5v4c.8 0 1-.5 1-2s-.2-2-1-2z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="phoneHeaderBar">
+                        <svg
+                          className="headerBackBtn"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <polyline points="15 18 9 12 15 6" />
+                        </svg>
+                        <div className="headerActionsRight">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="21 8 21 21 3 21 3 8" />
+                            <rect x="1" y="3" width="22" height="5" />
+                            <line x1="10" y1="12" x2="14" y2="12" />
+                          </svg>
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
+                          </svg>
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <circle cx="12" cy="12" r="1" />
+                            <circle cx="19" cy="12" r="1" />
+                            <circle cx="5" cy="12" r="1" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="phoneContentArea">
+                        <div
+                          className={`previewContent mobile ${activeModeTab === "Voice" ? "voiceMode" : ""}`}
+                        >
+                          {renderInnerPreview()}
+                        </div>
+                      </div>
+                      <div className="phoneHomeIndicator" />
+                    </div>
+                  ) : (
+                    <div
+                      className={`previewContent desktop ${activeModeTab === "Voice" ? "voiceMode" : ""}`}
+                    >
+                      {renderInnerPreview()}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-
-            {showAudioPlayer && (
-              <div className="audioPreviewSection">
-                <p className="sectionTitle">Audio Preview</p>
-                <div className="audioPlayerPill">
-                  <button
-                    className="playPauseBtn"
-                    onClick={() => (isPlaying ? handlePause() : handlePlay(0))}
-                  >
-                    {isPlaying ? (
-                      <img
-                        src={pauseIcon}
-                        alt="pause"
-                        style={{ width: "16px", height: "16px" }}
-                      />
-                    ) : (
-                      <img
-                        src={playIcon}
-                        alt="play"
-                        style={{ width: "16px", height: "16px" }}
-                      />
-                    )}
-                  </button>
-
-                  <button
-                    className="replayBtn"
-                    onClick={handleReplay}
-                    title="Replay"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M23 4v6h-6"></path>
-                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                    </svg>
-                  </button>
-
-                  <div
-                    className={`progressTrack ${isDragging ? "dragging" : ""}`}
-                    ref={trackRef}
-                    onMouseDown={handleMouseDown}
-                  >
-                    <div
-                      className="progressFill"
-                      style={{ width: `${progress}%` }}
-                    >
-                      <div className="progressHandle" />
-                    </div>
-                  </div>
-
-                  <div className="timeDisplay">
-                    {formatTime(currentTimeMs)} / {formatTime(duration)}
-                  </div>
-
-                  <div className="volumeIcon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
