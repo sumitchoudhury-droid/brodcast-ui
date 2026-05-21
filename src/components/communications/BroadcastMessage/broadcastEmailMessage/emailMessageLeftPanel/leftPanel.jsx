@@ -15,7 +15,34 @@ import leftPanelFeatures from "../../../../../assets/leftPanel/leftPanelFeatures
 import leftPanelFooter from "../../../../../assets/leftPanel/leftPanelFooter.svg";
 import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg";
 import leftPanelPlaceholders from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
+import template1 from "../../../../../assets/templates/template1.svg";
+import template2 from "../../../../../assets/templates/template2.svg";
+import template3 from "../../../../../assets/templates/template3.svg";
+import template4 from "../../../../../assets/templates/template4.svg";
+import savedTemplate from "../../../../../assets/templates/savedTemplate.svg";
+
 import "./style.scss";
+
+import ReusableTab from "../../../../../reusableComponents/reusableTab";
+
+const tabOptions = [
+  { label: "Library", value: "library" },
+  { label: "Saved Template", value: "savedTemplate" }
+];
+
+const templateLibraryOptions = [
+  { img: template1, name: "Template 1" },
+  { img: template2, name: "Template 2" },
+  { img: template3, name: "Template 3" },
+  { img: template4, name: "Template 4" }
+];
+
+const savedTemplateOptions = [
+  { img: savedTemplate, name: "Payment Reminder" },
+  { img: savedTemplate, name: "Health Camp Invitation" },
+  { img: savedTemplate, name: "Treatment Plan Update" },
+  { img: savedTemplate, name: "Seasonal Health Advisory" }
+];
 
 export default function LeftPanel({
   editorRef,
@@ -23,6 +50,7 @@ export default function LeftPanel({
   setShowPlaceholders
 }) {
   const [tab, setTab] = useState("blocks");
+  const [selectedTab, setSelectedTab] = useState(tabOptions?.[0]?.value || "");
 
   const handleDragStart = (blockId) => (e) => {
     e.dataTransfer.setData("text/plain", blockId);
@@ -203,7 +231,7 @@ export default function LeftPanel({
       {/* ── Blocks tab ── */}
       <div
         className="panel-content"
-        style={{ display: tab === "blocks" ? "block" : "none" }}
+        style={{ display: tab === "blocks" ? "block" : "none", width: "100%" }}
       >
         <div className="gjs-block-category">
           <div className="gjs-title">Blocks</div>
@@ -266,9 +294,45 @@ export default function LeftPanel({
       {/* ── Templates tab ── */}
       <div
         className="panel-content"
-        style={{ display: tab === "templates" ? "block" : "none" }}
+        style={{
+          display: tab === "templates" ? "block" : "none",
+          maxWidth: "248px",
+          width: "100%"
+        }}
       >
-        <div className="templates-container">{/* Templates content */}</div>
+        <div className="templates-container">
+          <ReusableTab
+            tabOptions={tabOptions}
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+          />
+
+          {selectedTab === "library" && (
+            <div className="libraryGrid">
+              {templateLibraryOptions.map((option, index) => {
+                return (
+                  <div className="libraryWrapper" key={index}>
+                    <img src={option.img} alt={option.name} />
+                    <span>{option.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedTab === "savedTemplate" && (
+            <div className="savedTemplateFlex">
+              {savedTemplateOptions.map((option, index) => {
+                return (
+                  <div className="savedTemplateWrapper" key={index}>
+                    <img src={option.img} alt={option.name} />
+                    <span>{option.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
