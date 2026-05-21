@@ -1,0 +1,96 @@
+@use "../../../../style/variable.scss" as variable;
+
+.stopScheduleBulkDrawer {
+  .drawerContentBody {
+    padding-top: 24px;
+    padding-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-family: "Inter", sans-serif;
+    height: 100%;
+
+    .confirmText {
+      @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+      color: variable.$color-black-11;
+      margin: 0;
+
+      strong {
+        font-weight: 700;
+        color: variable.$color-black-10;
+      }
+    }
+
+    .tableWrapper {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      background-color: variable.$color-white-13;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 4px;
+        text-align: left;
+        margin-top: -4px;
+        margin-bottom: -4px;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #ebf7f5;
+        color: variable.$color-black-11;
+        @include variable.font-style($fs: 13px, $fw: 600, $lh: 20px);
+        padding: 10px 16px;
+        white-space: nowrap;
+
+        .headerContent {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          .sortIcon {
+            width: 18px;
+            height: 18px;
+          }
+        }
+      }
+
+      td {
+        padding: 5px 12px;
+        @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+        color: variable.$color-black-6;
+        vertical-align: middle;
+        white-space: nowrap;
+        background-color: variable.$color-white-0;
+      }
+
+      .cellWithPill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+
+        .cellText {
+          width: 132px;
+          display: inline-block;
+          white-space: wrap;
+        }
+
+        .countPill {
+          background-color: variable.$color-white-0;
+          border: 1px solid variable.$color-white-5;
+          border-radius: 4px;
+          padding: 5px;
+          color: variable.$color-black-6;
+          @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+        }
+      }
+    }
+  }
+}

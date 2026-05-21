@@ -1,0 +1,19 @@
+@use "../../../../../style/variable.scss" as variable;
+
+.confirmReprocessBody {
+  @include variable.d-flex($fd: column, $g: 16px);
+
+  .confirmText {
+    @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+    color: variable.$color-black-6;
+
+    strong {
+      font-weight: 600;
+    }
+  }
+
+  .subText {
+    @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
+    color: variable.$color-black-6;
+  }
+}

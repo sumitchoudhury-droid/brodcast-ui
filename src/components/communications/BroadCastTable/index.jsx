@@ -2,6 +2,7 @@ import { useState } from "react";
 import BroadCastTableContainer from "./broadCastTableContainer/index.jsx";
 import BroadCastTableHeader from "./broadCastTableHeader/index.jsx";
 import BroadCastTablePagination from "./broadCastTablePagination/index.jsx";
+import { useToast } from "../../../hooks/useToast";
 
 import "./style.scss";
 import { BroadcastMessage } from "../BroadcastMessage/index.jsx";
@@ -10,6 +11,7 @@ export default function BroadCastTable({
   addScheduleModal,
   setAddScheduleModal
 }) {
+  const toast = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -17,6 +19,8 @@ export default function BroadCastTable({
     startDate: null,
     endDate: null
   });
+  const [selectedBroadcasts, setSelectedBroadcasts] = useState([]);
+  const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
 
   return (
     <>
@@ -35,6 +39,14 @@ export default function BroadCastTable({
                   endDate: new Date()
                 })
               }
+              selectedBroadcasts={selectedBroadcasts}
+              onBulkCancel={() => setBulkCancelOpen(true)}
+              onBulkReport={() => {
+                toast.success(
+                  "Report Generated",
+                  `The summary report for ${selectedBroadcasts.length} selected broadcasts has been generated successfully.`
+                );
+              }}
             />
           </div>
           <div className="broadcastTableContainer">
@@ -43,6 +55,9 @@ export default function BroadCastTable({
               itemsPerPage={itemsPerPage}
               setTotalItems={setTotalItems}
               selectedDateRange={selectedDateRange}
+              bulkCancelOpen={bulkCancelOpen}
+              setBulkCancelOpen={setBulkCancelOpen}
+              onSelectionChange={setSelectedBroadcasts}
             />
           </div>
           <div className="broadcastTablePagination">

@@ -36,6 +36,7 @@ import { useToast } from "../../../../hooks/useToast";
 import ReProcessBroadCast from "./reprocessBroadcast/index.jsx";
 import CancelSchedule from "./cancelSchedule/index.jsx";
 import TableBoardCastDetails from "./tableBoardCastDetails/index.jsx";
+import StopScheduleBulk from "../stopScheduleBulk/index.jsx";
 
 const DEFAULT_ORDER = [
   "mode",
@@ -136,7 +137,10 @@ function BroadCastTableContainer({
   currentPage = 1,
   itemsPerPage = 10,
   setTotalItems,
-  selectedDateRange
+  selectedDateRange,
+  bulkCancelOpen,
+  setBulkCancelOpen,
+  onSelectionChange
 }) {
   const toast = useToast();
   const [data, setData] = useState(mockData);
@@ -145,9 +149,57 @@ function BroadCastTableContainer({
   const [showReprocessDrawer, setShowReprocessDrawer] = useState(false);
   const [selectedCancelRow, setSelectedCancelRow] = useState(null);
   const [selectedDetailsRow, setSelectedDetailsRow] = useState(null);
+  const [showStopScheduleBulk, setShowStopScheduleBulk] = useState(false);
   const menuRef = useRef(null);
   const settingsRef = useRef(null);
   const settingsButtonRef = useRef(null);
+
+  // selectedBroadcasts definition moved below after filteredData
+
+  // selectedRowsCount will be defined after selectedBroadcasts
+
+  const handleConfirmStopScheduleBulk = () => {
+    const hasIdNine = selectedBroadcasts.some((b) => b.id === "9");
+
+    if (hasIdNine) {
+      toast.error(
+        "Failed to Stop Broadcasts",
+        `The ${selectedRowsCount} selected broadcasts could not be stopped. Please try again.`
+      );
+    } else {
+      const selectedIds = new Set(selectedBroadcasts.map((b) => b.id));
+      setData((prevData) =>
+        prevData.map((item) =>
+          selectedIds.has(item.id)
+            ? {
+                ...item,
+                broadcastStatus: "Cancelled",
+                isDisabled: true
+              }
+            : item
+        )
+      );
+
+      toast.success(
+        "Broadcasts Stopped Successfully",
+        `All ${selectedRowsCount} scheduled broadcasts have been successfully stopped.`
+      );
+
+      setRowSelection({});
+    }
+
+    setShowStopScheduleBulk(false);
+    if (setBulkCancelOpen) {
+      setBulkCancelOpen(false);
+    }
+  };
+
+  const handleCloseStopScheduleBulk = () => {
+    setShowStopScheduleBulk(false);
+    if (setBulkCancelOpen) {
+      setBulkCancelOpen(false);
+    }
+  };
 
   const [dataColumnOrder, setDataColumnOrder] = useState(DEFAULT_ORDER);
   const [columnVisibility, setColumnVisibility] = useState(DEFAULT_VISIBILITY);
@@ -168,31 +220,11 @@ function BroadCastTableContainer({
     messageStatus: "",
     broadcastStatus: ""
   });
-  const [activeEditColumn, setActiveEditColumn] = useState(null);
-
   const handleFilterChange = (columnId, value) => {
     setFilters((prev) => ({
       ...prev,
       [columnId]: value
     }));
-  };
-
-  const handleKeyDown = (columnId, e) => {
-    if (e.key === "Enter") {
-      setActiveEditColumn(null);
-    }
-  };
-
-  const handleBlur = () => {
-    setActiveEditColumn(null);
-  };
-
-  const handleClearFilter = (columnId) => {
-    setFilters((prev) => ({
-      ...prev,
-      [columnId]: ""
-    }));
-    setActiveEditColumn(null);
   };
 
   const filteredData = useMemo(() => {
@@ -258,6 +290,30 @@ function BroadCastTableContainer({
     });
   }, [data, filters, selectedDateRange]);
 
+  // Compute selected broadcasts based on rowSelection and filteredData
+  const selectedBroadcasts = useMemo(() => {
+    const selectedIds = Object.keys(rowSelection).filter(
+      (key) => rowSelection[key]
+    );
+    return filteredData.filter((item) => selectedIds.includes(item.id));
+  }, [rowSelection, filteredData]);
+
+  const selectedRowsCount = selectedBroadcasts.length;
+
+  // Sync selectedBroadcasts back to parent component
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(selectedBroadcasts);
+    }
+  }, [selectedBroadcasts, onSelectionChange]);
+
+  // Sync bulk cancel modal trigger from parent
+  useEffect(() => {
+    if (bulkCancelOpen) {
+      setShowStopScheduleBulk(true);
+    }
+  }, [bulkCancelOpen]);
+
   useEffect(() => {
     if (setTotalItems) {
       setTotalItems(filteredData.length);
@@ -284,293 +340,291 @@ function BroadCastTableContainer({
     };
   }, []);
 
-  const columns = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <ReusableCheckbox
-          checked={table.getIsAllRowsSelected()}
-          onChange={table.getToggleAllRowsSelectedHandler()}
-        />
-      ),
-      cell: ({ row }) => (
-        <ReusableCheckbox
-          checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
-        />
-      )
-    },
-    {
-      accessorKey: "mode",
-      header: () => (
-        <div className="header-content">
-          Mode <img src={sortIcon} alt="sort" className="sort-icon" />
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div className="mode-cell">
-          {highlightText(row.original.mode, filters.mode)}
-          {row.original.hasError && (
+  const columns = useMemo(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <ReusableCheckbox
+            checked={table.getIsAllRowsSelected()}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <ReusableCheckbox
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        )
+      },
+      {
+        accessorKey: "mode",
+        header: () => (
+          <div className="header-content">
+            Mode <img src={sortIcon} alt="sort" className="sort-icon" />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="mode-cell">
+            {highlightText(row.original.mode, filters.mode)}
+            {row.original.hasError && (
+              <ReusableToolTip
+                content={{ label: "Failed Reason", value: "Network Outage" }}
+                position="top"
+              >
+                <img
+                  src={circleAlert}
+                  alt="alert"
+                  className="error-icon"
+                  style={{ cursor: "pointer" }}
+                />
+              </ReusableToolTip>
+            )}
+          </div>
+        )
+      },
+      {
+        accessorKey: "template",
+        header: () => (
+          <div className="header-content">
+            Template <img src={sortIcon} alt="sort" className="sort-icon" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          return highlightText(row.original.template, filters.template);
+        }
+      },
+      {
+        accessorKey: "appointmentType",
+        header: () => (
+          <div className="header-content">
+            Appointment Type{" "}
+            <img src={sortIcon} alt="sort" className="sort-icon" />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-with-pill">
+            <span className="cell-text" title={row.original.appointmentType}>
+              {highlightText(
+                row.original.appointmentType,
+                filters.appointmentType
+              )}
+            </span>
             <ReusableToolTip
-              content={{ label: "Failed Reason", value: "Network Outage" }}
+              content={[
+                "GHC-A General Health Check",
+                "VAC-A Vaccination Appointment",
+                "ECG-A ECG Screening",
+                "FUP-A Follow-Up Consultation",
+                "BPC-A Blood Pressure Check",
+                "DER-A Dermatology Consultation",
+                "DBC-A Diabetes Check",
+                "+ 100"
+              ]}
               position="top"
             >
-              <img
-                src={circleAlert}
-                alt="alert"
-                className="error-icon"
-                style={{ cursor: "pointer" }}
-              />
+              <span className="count-pill" style={{ cursor: "pointer" }}>
+                +{row.original.appointmentCount}
+              </span>
             </ReusableToolTip>
-          )}
-        </div>
-      )
-    },
-    {
-      accessorKey: "template",
-      header: () => (
-        <div className="header-content">
-          Template <img src={sortIcon} alt="sort" className="sort-icon" />
-        </div>
-      ),
-      cell: ({ row }) => {
-        return highlightText(row.original.template, filters.template);
-      }
-    },
-    {
-      accessorKey: "appointmentType",
-      header: () => (
-        <div className="header-content">
-          Appointment Type{" "}
-          <img src={sortIcon} alt="sort" className="sort-icon" />
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div className="text-with-pill">
-          {highlightText(row.original.appointmentType, filters.appointmentType)}
-          <ReusableToolTip
-            content={[
-              "GHC-A General Health Check",
-              "VAC-A Vaccination Appointment",
-              "ECG-A ECG Screening",
-              "FUP-A Follow-Up Consultation",
-              "BPC-A Blood Pressure Check",
-              "DER-A Dermatology Consultation",
-              "DBC-A Diabetes Check",
-              "+ 100"
-            ]}
-            position="top"
-          >
-            <span className="count-pill" style={{ cursor: "pointer" }}>
-              +{row.original.appointmentCount}
-            </span>
-          </ReusableToolTip>
-        </div>
-      )
-    },
-    {
-      accessorKey: "location",
-      header: () => (
-        <div className="header-content">
-          Location <img src={sortIcon} alt="sort" className="sort-icon" />
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div className="text-with-pill">
-          {highlightText(row.original.location, filters.location)}
-          <ReusableToolTip
-            content={[
-              "Sunnyvale Medical Center,",
-              "Riverbend Urgent Care,",
-              "Eastside Urgent Care,",
-              "Riverbend Urgent Care,",
-              "Greenwood Health Clinic,",
-              "Maplewood Family Practice."
-            ]}
-            position="top"
-          >
-            <span className="count-pill" style={{ cursor: "pointer" }}>
-              +{row.original.locationCount}
-            </span>
-          </ReusableToolTip>
-        </div>
-      )
-    },
-    {
-      accessorKey: "provider",
-      header: () => (
-        <div className="header-content">
-          Provider <img src={sortIcon} alt="sort" className="sort-icon" />
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div className="text-with-pill">
-          {highlightText(row.original.provider, filters.provider)}
-          <ReusableToolTip
-            content={[
-              "Olivia Smith,",
-              "Ethan Brown,",
-              "Sophia Green,",
-              "Liam Carter,",
-              "Olivia White,",
-              "Noah Harris."
-            ]}
-            position="top"
-          >
-            <span className="count-pill" style={{ cursor: "pointer" }}>
-              +{row.original.providerCount}
-            </span>
-          </ReusableToolTip>
-        </div>
-      )
-    },
-    {
-      accessorKey: "scheduledDateTime",
-      header: () => (
-        <div className="header-content">
-          Scheduled Date/Time{" "}
-          <img src={sortIcon} alt="sort" className="sort-icon" />
-        </div>
-      ),
-      cell: ({ row }) => {
-        return highlightText(
-          row.original.scheduledDateTime,
-          filters.scheduledDateTime
-        );
-      }
-    },
-    {
-      accessorKey: "messageStatus",
-      header: () => <div className="header-content">Message Status</div>,
-      cell: ({ row }) => {
-        const { total, delivered, failed, pending } =
-          row.original.messageStatus;
-        return (
-          <div className="message-status-cell">
-            <div className="status-row">
-              <ReusableToolTip content="Total Messages" position="top">
-                <div className="status-item blue" style={{ cursor: "pointer" }}>
-                  <img src={broadcastIcon} alt="total" /> <span>{total}</span>
-                </div>
-              </ReusableToolTip>
-              <ReusableToolTip content="Success" position="top">
-                <div
-                  className="status-item green"
-                  style={{ cursor: "pointer" }}
-                >
-                  <img src={completedGreenIcon} alt="delivered" />{" "}
-                  <span>{delivered}</span>
-                </div>
-              </ReusableToolTip>
-            </div>
-            <div className="status-row">
-              <ReusableToolTip content="Failed" position="top">
-                <div className="status-item red" style={{ cursor: "pointer" }}>
-                  <img src={failedRedIcon} alt="failed" /> <span>{failed}</span>
-                </div>
-              </ReusableToolTip>
-              <ReusableToolTip content="Pending" position="top">
-                <div
-                  className="status-item yellow"
-                  style={{ cursor: "pointer" }}
-                >
-                  <img src={pendingYellowIcon} alt="pending" />{" "}
-                  <span>{pending}</span>
-                </div>
-              </ReusableToolTip>
-            </div>
           </div>
-        );
-      }
-    },
-    {
-      accessorKey: "broadcastStatus",
-      header: () => <div className="header-content">Broadcast Status</div>,
-      cell: ({ row }) => {
-        const status = row.original.broadcastStatus;
-        let colorClass = "";
-        let iconSrc = null;
-
-        if (status.includes("Scheduled")) {
-          colorClass = "purple";
-          iconSrc = scheduledDailyIcon;
-        } else if (status === "Completed") {
-          colorClass = "green";
-          iconSrc = completedIcon;
-        } else if (status.includes("Running")) {
-          colorClass = "blue";
-          iconSrc = runningWeeklyIcon;
-        } else if (status === "Failed") {
-          colorClass = "red";
-          iconSrc = failedIcon;
-        } else if (status === "Cancelled") {
-          colorClass = "grey";
-          iconSrc = cancelledIcon;
-        }
-
-        const badgeContent = (
-          <div
-            className={`status-badge ${colorClass}`}
-            style={{ cursor: status === "Cancelled" ? "pointer" : "default" }}
-          >
-            {iconSrc && (
-              <img
-                src={iconSrc}
-                alt={status}
-                style={{ width: "12px", height: "12px" }}
-              />
-            )}
-            {highlightText(status, filters.broadcastStatus)}
+        )
+      },
+      {
+        accessorKey: "location",
+        header: () => (
+          <div className="header-content">
+            Location <img src={sortIcon} alt="sort" className="sort-icon" />
           </div>
-        );
-
-        if (status === "Cancelled") {
-          return (
-            <ReusableToolTip content="Cancelled" position="top">
-              {badgeContent}
+        ),
+        cell: ({ row }) => (
+          <div className="text-with-pill">
+            <span className="cell-text" title={row.original.location}>
+              {highlightText(row.original.location, filters.location)}
+            </span>
+            <ReusableToolTip
+              content={[
+                "Sunnyvale Medical Center,",
+                "Riverbend Urgent Care,",
+                "Eastside Urgent Care,",
+                "Riverbend Urgent Care,",
+                "Greenwood Health Clinic,",
+                "Maplewood Family Practice."
+              ]}
+              position="top"
+            >
+              <span className="count-pill" style={{ cursor: "pointer" }}>
+                +{row.original.locationCount}
+              </span>
             </ReusableToolTip>
+          </div>
+        )
+      },
+      {
+        accessorKey: "provider",
+        header: () => (
+          <div className="header-content">
+            Provider <img src={sortIcon} alt="sort" className="sort-icon" />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-with-pill">
+            <span className="cell-text" title={row.original.provider}>
+              {highlightText(row.original.provider, filters.provider)}
+            </span>
+            <ReusableToolTip
+              content={[
+                "Olivia Smith,",
+                "Ethan Brown,",
+                "Sophia Green,",
+                "Liam Carter,",
+                "Olivia White,",
+                "Noah Harris."
+              ]}
+              position="top"
+            >
+              <span className="count-pill" style={{ cursor: "pointer" }}>
+                +{row.original.providerCount}
+              </span>
+            </ReusableToolTip>
+          </div>
+        )
+      },
+      {
+        accessorKey: "scheduledDateTime",
+        header: () => (
+          <div className="header-content">
+            Scheduled Date/Time{" "}
+            <img src={sortIcon} alt="sort" className="sort-icon" />
+          </div>
+        ),
+        cell: ({ row }) => {
+          return highlightText(
+            row.original.scheduledDateTime,
+            filters.scheduledDateTime
           );
         }
+      },
+      {
+        accessorKey: "messageStatus",
+        header: () => <div className="header-content">Message Status</div>,
+        cell: ({ row }) => {
+          const { total, delivered, failed, pending } =
+            row.original.messageStatus;
+          return (
+            <div className="message-status-cell">
+              <div className="status-row">
+                <ReusableToolTip content="Total Messages" position="top">
+                  <div
+                    className="status-item blue"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <img src={broadcastIcon} alt="total" /> <span>{total}</span>
+                  </div>
+                </ReusableToolTip>
+                <ReusableToolTip content="Success" position="top">
+                  <div
+                    className="status-item green"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <img src={completedGreenIcon} alt="delivered" />{" "}
+                    <span>{delivered}</span>
+                  </div>
+                </ReusableToolTip>
+              </div>
+              <div className="status-row">
+                <ReusableToolTip content="Failed" position="top">
+                  <div
+                    className="status-item red"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <img src={failedRedIcon} alt="failed" />{" "}
+                    <span>{failed}</span>
+                  </div>
+                </ReusableToolTip>
+                <ReusableToolTip content="Pending" position="top">
+                  <div
+                    className="status-item yellow"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <img src={pendingYellowIcon} alt="pending" />{" "}
+                    <span>{pending}</span>
+                  </div>
+                </ReusableToolTip>
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        accessorKey: "broadcastStatus",
+        header: () => <div className="header-content">Broadcast Status</div>,
+        cell: ({ row }) => {
+          const status = row.original.broadcastStatus;
+          let colorClass = "";
+          let iconSrc = null;
 
-        return badgeContent;
-      }
-    },
-    {
-      id: "actions",
-      header: () => (
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            justifyContent: "flex-end",
-            paddingRight: "8px",
-            color: "#10B981",
-            alignItems: "center",
-            position: "relative"
-          }}
-        >
-          <img
-            src={searchGreenIcon}
-            alt="search"
-            style={{
-              width: "20px",
-              height: "20px",
-              minWidth: "20px",
-              minHeight: "20px",
-              maxWidth: "20px",
-              maxHeight: "20px",
-              flexShrink: 0,
-              cursor: "pointer"
-            }}
-            onClick={() => setShowSearch(!showSearch)}
-          />
+          if (status.includes("Scheduled")) {
+            colorClass = "purple";
+            iconSrc = scheduledDailyIcon;
+          } else if (status === "Completed") {
+            colorClass = "green";
+            iconSrc = completedIcon;
+          } else if (status.includes("Running")) {
+            colorClass = "blue";
+            iconSrc = runningWeeklyIcon;
+          } else if (status === "Failed") {
+            colorClass = "red";
+            iconSrc = failedIcon;
+          } else if (status === "Cancelled") {
+            colorClass = "grey";
+            iconSrc = cancelledIcon;
+          }
+
+          const badgeContent = (
+            <div
+              className={`status-badge ${colorClass}`}
+              style={{ cursor: status === "Cancelled" ? "pointer" : "default" }}
+            >
+              {iconSrc && (
+                <img
+                  src={iconSrc}
+                  alt={status}
+                  style={{ width: "12px", height: "12px" }}
+                />
+              )}
+              {highlightText(status, filters.broadcastStatus)}
+            </div>
+          );
+
+          if (status === "Cancelled") {
+            return (
+              <ReusableToolTip content="Cancelled" position="top">
+                {badgeContent}
+              </ReusableToolTip>
+            );
+          }
+
+          return badgeContent;
+        }
+      },
+      {
+        id: "actions",
+        header: () => (
           <div
-            ref={settingsButtonRef}
-            style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+            style={{
+              display: "flex",
+              gap: "12px",
+              justifyContent: "flex-end",
+              paddingRight: "8px",
+              color: "#10B981",
+              alignItems: "center",
+              position: "relative"
+            }}
           >
             <img
-              src={settingsIcon}
-              alt="settings"
+              src={searchGreenIcon}
+              alt="search"
               style={{
                 width: "20px",
                 height: "20px",
@@ -581,112 +635,145 @@ function BroadCastTableContainer({
                 flexShrink: 0,
                 cursor: "pointer"
               }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSettings((prev) => !prev);
-              }}
+              onClick={() => setShowSearch(!showSearch)}
             />
-          </div>
-          {showSettings && (
-            <div ref={settingsRef} style={{ position: "absolute" }}>
-              <TableSettings
-                columnOrder={dataColumnOrder}
-                columnVisibility={columnVisibility}
-                onApply={(newOrder, newVisibility) => {
-                  try {
-                    setDataColumnOrder(newOrder);
-                    setColumnVisibility(newVisibility);
-                    toast.success(
-                      "Table Settings Applied",
-                      "Your table preferences have been updated successfully."
-                    );
-                  } catch {
-                    toast.error(
-                      "Failed to Apply Table Settings",
-                      "Your table settings could not be applied. Please try again."
-                    );
-                  }
+            <div
+              ref={settingsButtonRef}
+              style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+            >
+              <img
+                src={settingsIcon}
+                alt="settings"
+                style={{
+                  minWidth: "28px",
+                  minHeight: "28px",
+                  flexShrink: 0,
+                  cursor: "pointer"
                 }}
-                onReset={() => {
-                  try {
-                    setDataColumnOrder(DEFAULT_ORDER);
-                    setColumnVisibility(DEFAULT_VISIBILITY);
-                    toast.success(
-                      "Settings Reset Successfully",
-                      "The table has been restored to its default settings."
-                    );
-                  } catch {
-                    toast.error(
-                      "Reset Failed",
-                      "An error occurred while resetting the table settings. Please retry."
-                    );
-                  }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSettings((prev) => !prev);
                 }}
-                onClose={() => setShowSettings(false)}
               />
             </div>
-          )}
-        </div>
-      ),
-      cell: ({ row }) => {
-        const isMenuOpen = activeMenuId === row.original.id;
-        const options = getMenuOptions(row.original.broadcastStatus);
-
-        return (
-          <div className="actions-cell">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveMenuId(isMenuOpen ? null : row.original.id);
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              <img src={tableMenuIcon} alt="menu" />
-            </button>
-            {isMenuOpen && options.length > 0 && (
-              <div
-                className="menu-dropdown"
-                ref={menuRef}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {options.map((option) => (
-                  <button
-                    key={option.label}
-                    className="menu-item"
-                    onClick={() => {
-                      console.log(
-                        `Action clicked: ${option.action} for row ${row.original.id}`
+            {showSettings && (
+              <div ref={settingsRef} style={{ position: "absolute" }}>
+                <TableSettings
+                  columnOrder={dataColumnOrder}
+                  columnVisibility={columnVisibility}
+                  onApply={(newOrder, newVisibility) => {
+                    try {
+                      setDataColumnOrder(newOrder);
+                      setColumnVisibility(newVisibility);
+                      toast.success(
+                        "Table Settings Applied",
+                        "Your table preferences have been updated successfully."
                       );
-                      if (option.action === "reprocess") {
-                        setShowReprocessDrawer(true);
-                      } else if (option.action === "cancel") {
-                        setSelectedCancelRow(row.original);
-                      } else if (option.action === "report") {
-                        setSelectedDetailsRow(row.original);
-                      }
-                      setActiveMenuId(null);
-                    }}
-                  >
-                    <span className="menu-item-icon">
-                      <img src={option.icon} alt={option.label} />
-                    </span>
-                    <span className="menu-item-label">{option.label}</span>
-                  </button>
-                ))}
+                    } catch {
+                      toast.error(
+                        "Failed to Apply Table Settings",
+                        "Your table settings could not be applied. Please try again."
+                      );
+                    }
+                  }}
+                  onReset={() => {
+                    try {
+                      setDataColumnOrder(DEFAULT_ORDER);
+                      setColumnVisibility(DEFAULT_VISIBILITY);
+                      toast.success(
+                        "Settings Reset Successfully",
+                        "The table has been restored to its default settings."
+                      );
+                    } catch {
+                      toast.error(
+                        "Reset Failed",
+                        "An error occurred while resetting the table settings. Please retry."
+                      );
+                    }
+                  }}
+                  onClose={() => setShowSettings(false)}
+                />
               </div>
             )}
           </div>
-        );
+        ),
+        cell: ({ row }) => {
+          const isMenuOpen = activeMenuId === row.original.id;
+          const options = getMenuOptions(row.original.broadcastStatus);
+
+          return (
+            <div className="actions-cell">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMenuId(isMenuOpen ? null : row.original.id);
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <img src={tableMenuIcon} alt="menu" />
+              </button>
+              {isMenuOpen && options.length > 0 && (
+                <div
+                  className="menu-dropdown"
+                  ref={menuRef}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {options.map((option) => (
+                    <button
+                      key={option.label}
+                      className="menu-item"
+                      onClick={() => {
+                        console.log(
+                          `Action clicked: ${option.action} for row ${row.original.id}`
+                        );
+                        if (option.action === "reprocess") {
+                          setShowReprocessDrawer(true);
+                        } else if (option.action === "cancel") {
+                          setSelectedCancelRow(row.original);
+                        } else if (option.action === "report") {
+                          setSelectedDetailsRow(row.original);
+                        }
+                        setActiveMenuId(null);
+                      }}
+                    >
+                      <span className="menu-item-icon">
+                        <img src={option.icon} alt={option.label} />
+                      </span>
+                      <span className="menu-item-label">{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }
       }
-    }
-  ];
+    ],
+    [
+      filters,
+      activeMenuId,
+      showSearch,
+      showSettings,
+      dataColumnOrder,
+      columnVisibility,
+      toast,
+      setDataColumnOrder,
+      setColumnVisibility,
+      setActiveMenuId,
+      setShowReprocessDrawer,
+      setSelectedCancelRow,
+      setSelectedDetailsRow,
+      setShowSettings
+    ]
+  );
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredData,
     columns,
+    getRowId: (row) => row.id,
     state: {
       rowSelection,
       columnVisibility,
@@ -734,43 +821,22 @@ function BroadCastTableContainer({
                     return <th key={`search-cell-${header.id}`}></th>;
                   }
                   const placeholder = getPlaceholder(columnId);
-                  const isEditing =
-                    activeEditColumn === columnId || !filters[columnId];
                   return (
                     <th key={`search-cell-${header.id}`}>
                       <div className="search-input-wrapper">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            placeholder={placeholder}
-                            value={filters[columnId] || ""}
-                            onChange={(e) =>
-                              handleFilterChange(columnId, e.target.value)
+                        <input
+                          type="text"
+                          placeholder={placeholder}
+                          value={filters[columnId] || ""}
+                          onChange={(e) =>
+                            handleFilterChange(columnId, e.target.value)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.target.blur();
                             }
-                            onKeyDown={(e) => handleKeyDown(columnId, e)}
-                            onBlur={handleBlur}
-                            autoFocus={activeEditColumn === columnId}
-                          />
-                        ) : (
-                          <div
-                            className="filter-chip-wrapper"
-                            onClick={() => setActiveEditColumn(columnId)}
-                          >
-                            <span className="filter-chip">
-                              {filters[columnId]}
-                              <button
-                                type="button"
-                                className="clear-chip-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleClearFilter(columnId);
-                                }}
-                              >
-                                ✖
-                              </button>
-                            </span>
-                          </div>
-                        )}
+                          }}
+                        />
                       </div>
                     </th>
                   );
@@ -882,6 +948,15 @@ function BroadCastTableContainer({
           isOpen={!!selectedDetailsRow}
           onClose={() => setSelectedDetailsRow(null)}
           broadcastData={selectedDetailsRow}
+        />
+      )}
+
+      {showStopScheduleBulk && (
+        <StopScheduleBulk
+          isOpen={showStopScheduleBulk}
+          onClose={handleCloseStopScheduleBulk}
+          onConfirm={handleConfirmStopScheduleBulk}
+          selectedBroadcasts={selectedBroadcasts}
         />
       )}
     </div>

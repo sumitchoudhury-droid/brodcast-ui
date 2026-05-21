@@ -93,20 +93,20 @@
     .pagination-numbers {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
 
       .page-number {
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        min-width: 40px;
-        height: 40px;
-        border-radius: 8px;
+        border-radius: 2px;
         cursor: pointer;
         color: variable.$color-black-12;
         background-color: #ffffff;
         border: 1px solid #eaecf0;
-        @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
+        @include variable.font-style($fs: 12px, $fw: 500, $lh: 216px);
         transition: all 0.2s;
 
         &:hover:not(.active):not(.dots) {

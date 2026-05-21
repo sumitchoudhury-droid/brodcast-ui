@@ -11,6 +11,7 @@ import searchGreenIcon from "../../../../../assets/boardCastTableIcons/searchGre
 import sortIcon from "../../../../../assets/boardCastTableIcons/sortIcon.svg";
 
 import { mockFailedPatients } from "./mockPatientData";
+import ConfirmReprocessModal from "./confirmReprocessModal";
 import "./style.scss";
 
 // Simple validation helpers
@@ -25,6 +26,24 @@ const isPhoneInvalid = (phone) => {
   return digits.length !== 10;
 };
 
+const highlightText = (text, query) => {
+  if (!text) return "";
+  if (!query) return text;
+
+  const stringText = String(text);
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = stringText.split(new RegExp(`(${escapedQuery})`, "gi"));
+  return parts.map((part, index) =>
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark key={index} className="search-highlight">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+};
+
 export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
   const toast = useToast();
   const [patients, setPatients] = useState(() =>
@@ -35,10 +54,26 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
     () => new Set(mockFailedPatients.map((p) => p.id))
   );
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Search and filter states
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    firstName: "",
+    lastName: "",
+    dob: "",
+    email: "",
+    phone: "",
+    reason: ""
+  });
   const [showSearch, setShowSearch] = useState(false);
+
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+    setCurrentPage(1); // Reset page to 1 on filter
+  };
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -138,19 +173,19 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
     setSortConfig({ key, direction });
   };
 
-  // Filter patients based on search query
+  // Filter patients based on column search filters
   const filteredPatients = useMemo(() => {
-    if (!searchQuery) return currentPatientsList;
-    const lowerQuery = searchQuery.toLowerCase();
-    return currentPatientsList.filter(
-      (patient) =>
-        patient.firstName.toLowerCase().includes(lowerQuery) ||
-        patient.lastName.toLowerCase().includes(lowerQuery) ||
-        patient.email.toLowerCase().includes(lowerQuery) ||
-        patient.phone.toLowerCase().includes(lowerQuery) ||
-        patient.reason.toLowerCase().includes(lowerQuery)
-    );
-  }, [currentPatientsList, searchQuery]);
+    return currentPatientsList.filter((patient) => {
+      return Object.entries(filters).every(([field, query]) => {
+        if (!query) return true;
+        const val = patient[field];
+        if (val !== undefined && val !== null) {
+          return String(val).toLowerCase().includes(query.toLowerCase());
+        }
+        return true;
+      });
+    });
+  }, [currentPatientsList, filters]);
 
   // Sort filtered patients
   const sortedPatients = useMemo(() => {
@@ -195,15 +230,33 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
       return;
     }
 
-    // Success flow
-    if (onReprocess) {
-      onReprocess(selectedPatients);
-    }
-    toast.success(
-      "Reprocess Initiated",
-      `Reprocessing broadcast for ${selectedIds.size} selected patients.`
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmReprocess = () => {
+    setShowConfirmModal(false);
+    const selectedPatients = patients.filter((p) => selectedIds.has(p.id));
+
+    // Simulate success/failure based on selected patients
+    const hasDiana = selectedPatients.some(
+      (p) => p.firstName.toLowerCase() === "diana"
     );
-    onClose();
+
+    if (hasDiana) {
+      toast.error(
+        "Patients Reprocess Failed",
+        `We couldn't start reprocessing for the ${selectedIds.size} patients.\nPlease try again.`
+      );
+    } else {
+      if (onReprocess) {
+        onReprocess(selectedPatients);
+      }
+      toast.success(
+        "Patients Reprocessed Successfully",
+        `Reprocessing has been started for the ${selectedIds.size} patients.`
+      );
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -234,16 +287,16 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
               <div className="editModeActions">
                 <button className="cancelEditBtn" onClick={handleCancelEdits}>
                   <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
                     xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
                   >
                     <path
-                      d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5"
-                      stroke="#107a6c"
-                      strokeWidth="1.66667"
+                      d="M15 5L5 15M5 5L15 15"
+                      stroke="#198D85"
+                      strokeWidth="1.3"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
@@ -252,18 +305,15 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                 </button>
                 <button className="saveEditBtn" onClick={handleSaveEdits}>
                   <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
                     xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
                   >
                     <path
-                      d="M11.6666 3.5L5.24992 9.91667L2.33325 7"
-                      stroke="white"
-                      strokeWidth="1.66667"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      d="M14.167 2.78259C15.4239 3.50831 16.4694 4.5497 17.2002 5.80368C17.9309 7.05766 18.3215 8.48074 18.3332 9.93204C18.3449 11.3833 17.9774 12.8126 17.267 14.0782C16.5566 15.3438 15.528 16.4019 14.283 17.1479C13.038 17.8938 11.6198 18.3016 10.1687 18.331C8.71768 18.3603 7.28412 18.0102 6.00995 17.3153C4.73579 16.6204 3.66522 15.6047 2.90421 14.3689C2.14321 13.133 1.71817 11.7199 1.67116 10.2693L1.66699 9.99926L1.67116 9.72926C1.71783 8.29008 2.13662 6.88756 2.88669 5.65842C3.63677 4.42928 4.69254 3.41547 5.95107 2.71583C7.2096 2.01619 8.62795 1.65459 10.0678 1.66629C11.5077 1.67799 12.92 2.06259 14.167 2.78259ZM13.0895 7.74343C12.946 7.59995 12.7551 7.51375 12.5526 7.50102C12.35 7.48829 12.1498 7.54988 11.9895 7.67426L11.9112 7.74343L9.16699 10.4868L8.08949 9.41009L8.01116 9.34093C7.85081 9.21664 7.65064 9.15511 7.44816 9.16789C7.24569 9.18066 7.05483 9.26686 6.91138 9.41031C6.76792 9.55377 6.68173 9.74462 6.66895 9.9471C6.65618 10.1496 6.71771 10.3497 6.84199 10.5101L6.91116 10.5884L8.57783 12.2551L8.65616 12.3243C8.8023 12.4376 8.98202 12.4992 9.16699 12.4992C9.35197 12.4992 9.53168 12.4376 9.67783 12.3243L9.75616 12.2551L13.0895 8.92176L13.1587 8.84343C13.283 8.68309 13.3446 8.48288 13.3319 8.28036C13.3192 8.07784 13.233 7.88692 13.0895 7.74343Z"
+                      fill="white"
                     />
                   </svg>
                   <span>Save</span>
@@ -276,30 +326,6 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
               </button>
             )}
           </div>
-
-          {/* Search bar inside drawer table if active */}
-          {showSearch && (
-            <div className="drawerSearchWrapper">
-              <input
-                type="text"
-                placeholder="Search patients..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1); // Reset page to 1 on search
-                }}
-                autoFocus
-              />
-              {searchQuery && (
-                <button
-                  className="clearSearchBtn"
-                  onClick={() => setSearchQuery("")}
-                >
-                  ✖
-                </button>
-              )}
-            </div>
-          )}
 
           {/* Table Container */}
           <div className="drawerTableWrapper">
@@ -348,15 +374,105 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                       <img src={sortIcon} alt="Sort" className="sortIcon" />
                     </div>
                   </th>
-                  <th style={{ width: "40px", textAlign: "right" }}>
+                  <th style={{ width: "50px" }}>
                     <img
                       src={searchGreenIcon}
                       alt="Search"
                       className="tableSearchIcon"
-                      onClick={() => setShowSearch(!showSearch)}
+                      onClick={() => {
+                        if (showSearch) {
+                          setFilters({
+                            firstName: "",
+                            lastName: "",
+                            dob: "",
+                            email: "",
+                            phone: "",
+                            reason: ""
+                          });
+                        }
+                        setShowSearch(!showSearch);
+                      }}
                     />
                   </th>
                 </tr>
+                {showSearch && (
+                  <tr className="search-filters-row">
+                    {!isEditMode && <th></th>}
+                    <th>
+                      <div className="search-input-wrapper">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={filters.firstName}
+                          onChange={(e) =>
+                            handleFilterChange("firstName", e.target.value)
+                          }
+                        />
+                      </div>
+                    </th>
+                    <th>
+                      <div className="search-input-wrapper">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={filters.lastName}
+                          onChange={(e) =>
+                            handleFilterChange("lastName", e.target.value)
+                          }
+                        />
+                      </div>
+                    </th>
+                    <th>
+                      <div className="search-input-wrapper">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={filters.dob}
+                          onChange={(e) =>
+                            handleFilterChange("dob", e.target.value)
+                          }
+                        />
+                      </div>
+                    </th>
+                    <th>
+                      <div className="search-input-wrapper">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={filters.email}
+                          onChange={(e) =>
+                            handleFilterChange("email", e.target.value)
+                          }
+                        />
+                      </div>
+                    </th>
+                    <th>
+                      <div className="search-input-wrapper">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={filters.phone}
+                          onChange={(e) =>
+                            handleFilterChange("phone", e.target.value)
+                          }
+                        />
+                      </div>
+                    </th>
+                    <th>
+                      <div className="search-input-wrapper">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={filters.reason}
+                          onChange={(e) =>
+                            handleFilterChange("reason", e.target.value)
+                          }
+                        />
+                      </div>
+                    </th>
+                    <th></th>
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {paginatedPatients.map((patient) => {
@@ -378,9 +494,13 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                           />
                         </td>
                       )}
-                      <td>{patient.firstName}</td>
-                      <td>{patient.lastName}</td>
-                      <td>{patient.dob}</td>
+                      <td>
+                        {highlightText(patient.firstName, filters.firstName)}
+                      </td>
+                      <td>
+                        {highlightText(patient.lastName, filters.lastName)}
+                      </td>
+                      <td>{highlightText(patient.dob, filters.dob)}</td>
                       <td
                         className={`${emailErr ? "invalidCell" : ""} ${isEditMode ? "editableCell" : ""}`}
                       >
@@ -398,7 +518,7 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                             className="editInput"
                           />
                         ) : (
-                          patient.email
+                          highlightText(patient.email, filters.email)
                         )}
                       </td>
                       <td
@@ -418,10 +538,12 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                             className="editInput"
                           />
                         ) : (
-                          patient.phone
+                          highlightText(patient.phone, filters.phone)
                         )}
                       </td>
-                      <td className="reasonCell">{patient.reason}</td>
+                      <td className="reasonCell">
+                        {highlightText(patient.reason, filters.reason)}
+                      </td>
                       <td></td>
                     </tr>
                   );
@@ -479,6 +601,14 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
           </div>
         </div>
       </div>
+      {showConfirmModal && (
+        <ConfirmReprocessModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleConfirmReprocess}
+          patientCount={selectedIds.size}
+        />
+      )}
     </div>,
     document.body
   );
