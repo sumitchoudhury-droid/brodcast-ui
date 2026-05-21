@@ -153,7 +153,10 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
             onMouseDown={(e) => {
               e.preventDefault();
             }}
-            onClick={() => insertPlaceholder(item.value)}
+            onClick={() => {
+              insertPlaceholder(item.value);
+              if (setShowPlaceholders) setShowPlaceholders(false);
+            }}
             onDragStart={(e) => {
               e.dataTransfer.setData("text/plain", item.value);
               e.dataTransfer.setData(

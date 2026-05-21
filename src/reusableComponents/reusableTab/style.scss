@@ -1,0 +1,29 @@
+@use "/src/style/variable.scss" as variable;
+
+.reusableTabContainer {
+  @include variable.d-flex($al: center, $g: 0px);
+  width: 100%;
+
+  .tabWrapper {
+    flex: 1;
+    height: 44px;
+    @include variable.d-flex($al: center, $jc: center);
+    border-bottom: 1px solid #e1e5ea;
+    cursor: pointer;
+
+    &.activeTab {
+      border-bottom: 2px solid #198d85;
+
+      span {
+        color: var(--UI-Text-Primary, #181d25);
+        font-weight: 500;
+      }
+    }
+
+    span {
+      color: #404b5a;
+      @include variable.font-style(14px, 400, 20px);
+      text-align: center;
+    }
+  }
+}
