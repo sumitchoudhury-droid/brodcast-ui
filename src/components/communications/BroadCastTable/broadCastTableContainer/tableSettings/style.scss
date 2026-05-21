@@ -13,6 +13,8 @@
   border: 1px solid variable.$color-white-14;
 
   .tableSettingsHeader {
+    width: 100%;
+    @include variable.d-flex($jc: flex-start);
     h3 {
       color: variable.$color-black-8;
       @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);

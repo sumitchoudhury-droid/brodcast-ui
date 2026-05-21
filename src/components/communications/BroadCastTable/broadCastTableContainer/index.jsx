@@ -3,6 +3,7 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
@@ -19,7 +20,6 @@ import completedGreenIcon from "../../../../assets/boardCastTableIcons/completed
 import failedRedIcon from "../../../../assets/boardCastTableIcons/failedRedIcon.svg";
 import pendingYellowIcon from "../../../../assets/boardCastTableIcons/pendingYellowIcon.svg";
 import circleAlert from "../../../../assets/boardCastTableIcons/circleAlert.svg";
-import sortIcon from "../../../../assets/boardCastTableIcons/sortIcon.svg";
 import tableMenuIcon from "../../../../assets/boardCastTableIcons/tableMenu.svg";
 
 import searchGreenIcon from "../../../../assets/boardCastTableIcons/searchGreen.svg";
@@ -133,6 +133,30 @@ const getPlaceholder = (columnId) => {
   }
 };
 
+const RenderSortIcon = ({ isSorted }) => {
+  const upColor = isSorted === "asc" ? "#107A6C" : "#77C1B6";
+  const downColor = isSorted === "desc" ? "#107A6C" : "#77C1B6";
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="sort-icon"
+    >
+      <path
+        d="M13.2352 7.94118H4.76465L8.99994 3L13.2352 7.94118Z"
+        fill={upColor}
+      />
+      <path
+        d="M13.2352 10.0586H4.76465L8.99994 14.9998L13.2352 10.0586Z"
+        fill={downColor}
+      />
+    </svg>
+  );
+};
+
 function BroadCastTableContainer({
   currentPage = 1,
   itemsPerPage = 10,
@@ -145,6 +169,7 @@ function BroadCastTableContainer({
   const toast = useToast();
   const [data, setData] = useState(mockData);
   const [rowSelection, setRowSelection] = useState({});
+  const [sorting, setSorting] = useState([]);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [showReprocessDrawer, setShowReprocessDrawer] = useState(false);
   const [selectedCancelRow, setSelectedCancelRow] = useState(null);
@@ -344,6 +369,7 @@ function BroadCastTableContainer({
     () => [
       {
         id: "select",
+        enableSorting: false,
         header: ({ table }) => (
           <ReusableCheckbox
             checked={table.getIsAllRowsSelected()}
@@ -359,9 +385,9 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "mode",
-        header: () => (
+        header: ({ column }) => (
           <div className="header-content">
-            Mode <img src={sortIcon} alt="sort" className="sort-icon" />
+            Mode <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
         cell: ({ row }) => (
@@ -385,9 +411,9 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "template",
-        header: () => (
+        header: ({ column }) => (
           <div className="header-content">
-            Template <img src={sortIcon} alt="sort" className="sort-icon" />
+            Template <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
         cell: ({ row }) => {
@@ -396,10 +422,9 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "appointmentType",
-        header: () => (
+        header: ({ column }) => (
           <div className="header-content">
-            Appointment Type{" "}
-            <img src={sortIcon} alt="sort" className="sort-icon" />
+            Appointment Type <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
         cell: ({ row }) => (
@@ -432,9 +457,9 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "location",
-        header: () => (
+        header: ({ column }) => (
           <div className="header-content">
-            Location <img src={sortIcon} alt="sort" className="sort-icon" />
+            Location <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
         cell: ({ row }) => (
@@ -462,9 +487,9 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "provider",
-        header: () => (
+        header: ({ column }) => (
           <div className="header-content">
-            Provider <img src={sortIcon} alt="sort" className="sort-icon" />
+            Provider <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
         cell: ({ row }) => (
@@ -492,10 +517,15 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "scheduledDateTime",
-        header: () => (
+        sortingFn: (rowA, rowB, columnId) => {
+          const dateA = new Date(rowA.getValue(columnId));
+          const dateB = new Date(rowB.getValue(columnId));
+          return dateA.getTime() - dateB.getTime();
+        },
+        header: ({ column }) => (
           <div className="header-content">
             Scheduled Date/Time{" "}
-            <img src={sortIcon} alt="sort" className="sort-icon" />
+            <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
         cell: ({ row }) => {
@@ -507,7 +537,20 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "messageStatus",
-        header: () => <div className="header-content">Message Status</div>,
+        sortingFn: (rowA, rowB, columnId) => {
+          const parseTotal = (val) => {
+            if (!val || val === "-") return 0;
+            return parseFloat(String(val).replace(/,/g, "")) || 0;
+          };
+          const totalA = parseTotal(rowA.getValue(columnId)?.total);
+          const totalB = parseTotal(rowB.getValue(columnId)?.total);
+          return totalA - totalB;
+        },
+        header: ({ column }) => (
+          <div className="header-content">
+            Message Status <RenderSortIcon isSorted={column.getIsSorted()} />
+          </div>
+        ),
         cell: ({ row }) => {
           const { total, delivered, failed, pending } =
             row.original.messageStatus;
@@ -558,7 +601,11 @@ function BroadCastTableContainer({
       },
       {
         accessorKey: "broadcastStatus",
-        header: () => <div className="header-content">Broadcast Status</div>,
+        header: ({ column }) => (
+          <div className="header-content">
+            Broadcast Status <RenderSortIcon isSorted={column.getIsSorted()} />
+          </div>
+        ),
         cell: ({ row }) => {
           const status = row.original.broadcastStatus;
           let colorClass = "";
@@ -610,6 +657,7 @@ function BroadCastTableContainer({
       },
       {
         id: "actions",
+        enableSorting: false,
         header: () => (
           <div
             style={{
@@ -697,9 +745,14 @@ function BroadCastTableContainer({
             )}
           </div>
         ),
-        cell: ({ row }) => {
+        cell: ({ row, table }) => {
           const isMenuOpen = activeMenuId === row.original.id;
           const options = getMenuOptions(row.original.broadcastStatus);
+          const rowIndex = table
+            .getRowModel()
+            .rows.findIndex((r) => r.id === row.id);
+          const dropdownPositionClass =
+            rowIndex >= 5 ? "position-top" : "position-bottom";
 
           return (
             <div className="actions-cell">
@@ -716,7 +769,7 @@ function BroadCastTableContainer({
               </button>
               {isMenuOpen && options.length > 0 && (
                 <div
-                  className="menu-dropdown"
+                  className={`menu-dropdown ${dropdownPositionClass}`}
                   ref={menuRef}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -733,7 +786,10 @@ function BroadCastTableContainer({
                         } else if (option.action === "cancel") {
                           setSelectedCancelRow(row.original);
                         } else if (option.action === "report") {
-                          setSelectedDetailsRow(row.original);
+                          toast.success(
+                            "Report",
+                            "Report option clicked successfully."
+                          );
                         }
                         setActiveMenuId(null);
                       }}
@@ -764,7 +820,6 @@ function BroadCastTableContainer({
       setActiveMenuId,
       setShowReprocessDrawer,
       setSelectedCancelRow,
-      setSelectedDetailsRow,
       setShowSettings
     ]
   );
@@ -778,11 +833,14 @@ function BroadCastTableContainer({
       rowSelection,
       columnVisibility,
       columnOrder,
+      sorting,
       pagination: {
         pageIndex: currentPage - 1,
         pageSize: itemsPerPage
       }
     },
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setDataColumnOrder,
     enableRowSelection: true,
@@ -797,16 +855,27 @@ function BroadCastTableContainer({
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </th>
-              ))}
+              {headerGroup.headers.map((header) => {
+                const isSortable = header.column.getCanSort();
+                return (
+                  <th
+                    key={header.id}
+                    onClick={
+                      isSortable
+                        ? header.column.getToggleSortingHandler()
+                        : undefined
+                    }
+                    style={{ cursor: isSortable ? "pointer" : "default" }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                );
+              })}
             </tr>
           ))}
           {showSearch &&
@@ -852,11 +921,25 @@ function BroadCastTableContainer({
                 row.original.isDisabled ? "row-disabled" : ""
               } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
             >
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+              {row.getVisibleCells().map((cell) => {
+                const isInteractiveColumn =
+                  cell.column.id === "select" || cell.column.id === "actions";
+                return (
+                  <td
+                    key={cell.id}
+                    onClick={
+                      !isInteractiveColumn
+                        ? () => setSelectedDetailsRow(row.original)
+                        : undefined
+                    }
+                    style={
+                      !isInteractiveColumn ? { cursor: "pointer" } : undefined
+                    }
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

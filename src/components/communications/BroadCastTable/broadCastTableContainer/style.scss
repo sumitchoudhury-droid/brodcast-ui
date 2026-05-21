@@ -2,10 +2,11 @@
 
 .broadcast-table-container {
   width: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
-  max-height: calc(100vh - 240px);
-  font-family: "Inter" f;
+  font-family: "Inter", sans-serif;
 
   table {
     background-color: variable.$color-white-13;
@@ -297,8 +298,17 @@
     .menu-dropdown {
       position: absolute;
       right: 0;
-      top: calc(100% + 4px);
       background-color: white;
+
+      &.position-bottom {
+        top: calc(100% + 4px);
+        bottom: auto;
+      }
+
+      &.position-top {
+        top: auto;
+        bottom: calc(100% + 4px);
+      }
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       box-shadow:
@@ -361,14 +371,14 @@
   .search-filters-row {
     th {
       position: sticky;
-      top: 30px;
+      top: 44px;
       z-index: 3;
       background-color: #ffffff;
 
       &:first-child {
         position: sticky;
         left: 0;
-        top: 30px;
+        top: 44px;
         z-index: 4;
         background-color: #ffffff !important;
       }
@@ -376,7 +386,7 @@
       &:last-child {
         position: sticky;
         right: 0;
-        top: 30px;
+        top: 44px;
         z-index: 4;
         background-color: #ffffff !important;
         width: 90px;
@@ -387,7 +397,7 @@
       &:nth-last-child(2) {
         position: sticky;
         right: 90px;
-        top: 30px;
+        top: 44px;
         z-index: 4;
         background-color: #ffffff !important;
         width: 170px;
