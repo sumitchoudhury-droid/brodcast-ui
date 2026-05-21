@@ -412,6 +412,8 @@
     @include variable.d-flex($fd: column, $g: 12px);
 
     .drawerPagination {
+      background-color: variable.$color-white-14;
+      padding: 8px 20px;
       width: 100%;
       position: sticky;
       bottom: 24px;

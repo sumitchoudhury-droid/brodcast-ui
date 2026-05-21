@@ -37,8 +37,9 @@
 
       .headerLeft {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 24px;
+        width: 96%;
 
         h3 {
           margin: 0;

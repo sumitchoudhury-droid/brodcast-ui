@@ -4,20 +4,9 @@ import chevronDown from "../../../../../../assets/mainScreen/chevronRight.svg";
 import underlineIcon from "../../../../../../assets/textStyleIcons/underlineIcon.svg";
 import italicIcon from "../../../../../../assets/textStyleIcons/italicIcon.svg";
 import strikethroughIcon from "../../../../../../assets/textStyleIcons/strikethroughIcon.svg";
-import highlightIcon from "../../../../../../assets/textStyleIcons/highlightIcon.svg";
-import codeIcon from "../../../../../../assets/textStyleIcons/codeIcon.svg";
-import subscriptIcon from "../../../../../../assets/textStyleIcons/subscriptIcon.svg";
-import superscriptIcon from "../../../../../../assets/textStyleIcons/superscriptIcon.svg";
-import indentDecreaseIcon from "../../../../../../assets/textStyleIcons/indentDecreaseIcon.svg";
-import indentIncreaseIcon from "../../../../../../assets/textStyleIcons/indentIncreaseIcon.svg";
 import uppercaseIcon from "../../../../../../assets/textStyleIcons/uppercaseIcon.svg";
 import unorderedListIcon from "../../../../../../assets/textStyleIcons/unorderedListIcon.svg";
 import orderedListIcon from "../../../../../../assets/textStyleIcons/orderedListIcon.svg";
-import alignLeftIcon from "../../../../../../assets/textStyleIcons/alignLeftIcon.svg";
-import alignCenterIcon from "../../../../../../assets/textStyleIcons/alignCenterIcon.svg";
-import alignRightIcon from "../../../../../../assets/textStyleIcons/alignRightIcon.svg";
-import justifyIcon from "../../../../../../assets/textStyleIcons/JustifyIcon.svg";
-import lineThroughIcon from "../../../../../../assets/textStyleIcons/lineThroughIcon.svg";
 
 import "./style.scss";
 import { getOpacityFromColor } from "../../../../../../utils/colorUtils";
@@ -312,121 +301,6 @@ export const TextStyleContainer = ({
                 <img src={orderedListIcon} alt="orderedList" />
               </button>
             </div>
-          </div>
-
-          {/* ── Group 2: Alignment + Indent ─────────────────────────────────── */}
-          <div className="textStyleActionsRightItem">
-            <div
-              className="textStyleActionsRightItemContent"
-              style={{ width: "69%" }}
-            >
-              {/* Align Left */}
-              <button
-                className={`formatIconBtn ${typography.textAlign === "left" ? "active" : ""}`}
-                title="Align Left"
-                onClick={() => handleTypographyChange("textAlign", "left")}
-              >
-                <img src={alignLeftIcon} alt="alignLeft" />
-              </button>
-
-              {/* Align Center */}
-              <button
-                className={`formatIconBtn ${typography.textAlign === "center" ? "active" : ""}`}
-                title="Align Center"
-                onClick={() => handleTypographyChange("textAlign", "center")}
-              >
-                <img src={alignCenterIcon} alt="alignCenter" />
-              </button>
-
-              {/* Align Right */}
-              <button
-                className={`formatIconBtn ${typography.textAlign === "right" ? "active" : ""}`}
-                title="Align Right"
-                onClick={() => handleTypographyChange("textAlign", "right")}
-              >
-                <img src={alignRightIcon} alt="alignRight" />
-              </button>
-
-              {/* Justify */}
-              <button
-                className={`formatIconBtn ${typography.textAlign === "justify" ? "active" : ""}`}
-                title="Justify"
-                onClick={() => handleTypographyChange("textAlign", "justify")}
-              >
-                <img src={justifyIcon} alt="justify" />
-              </button>
-            </div>
-
-            <div
-              className="textStyleActionsRightItemContent"
-              style={{ width: "29%" }}
-            >
-              {/* Indent Decrease */}
-              <button
-                className="formatIconBtn"
-                title="Decrease Indent"
-                onClick={fmt("indentDecrease")}
-              >
-                <img src={indentDecreaseIcon} alt="indentDecrease" />
-              </button>
-
-              {/* Indent Increase */}
-              <button
-                className="formatIconBtn"
-                title="Increase Indent"
-                onClick={fmt("indentIncrease")}
-              >
-                <img src={indentIncreaseIcon} alt="indentIncrease" />
-              </button>
-            </div>
-          </div>
-
-          {/* ── Group 3: Super | Sub | Code | Line-through | Highlight ─────── */}
-          <div className="textStyleActionsRightSize">
-            {/* Superscript */}
-            <button
-              className={`formatIconBtn ${isActive("superscript") ? "active" : ""}`}
-              title="Superscript"
-              onClick={fmt("superscript")}
-            >
-              <img src={superscriptIcon} alt="superscript" />
-            </button>
-
-            {/* Subscript */}
-            <button
-              className={`formatIconBtn ${isActive("subscript") ? "active" : ""}`}
-              title="Subscript"
-              onClick={fmt("subscript")}
-            >
-              <img src={subscriptIcon} alt="subscript" />
-            </button>
-
-            {/* Code */}
-            <button
-              className={`formatIconBtn ${isActive("code") ? "active" : ""}`}
-              title="Inline Code"
-              onClick={fmt("code")}
-            >
-              <img src={codeIcon} alt="code" />
-            </button>
-
-            {/* Line Through */}
-            <button
-              className={`formatIconBtn ${isActive("lineThrough") ? "active" : ""}`}
-              title="Line Through"
-              onClick={fmt("lineThrough")}
-            >
-              <img src={lineThroughIcon} alt="lineThrough" />
-            </button>
-
-            {/* Highlight */}
-            <button
-              className={`formatIconBtn ${isActive("highlight") ? "active" : ""}`}
-              title="Highlight"
-              onClick={fmt("highlight")}
-            >
-              <img src={highlightIcon} alt="highlight" />
-            </button>
           </div>
         </div>
       </div>
