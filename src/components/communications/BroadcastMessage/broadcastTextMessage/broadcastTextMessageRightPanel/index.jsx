@@ -91,7 +91,10 @@ export default function BroadcastTextMessageRightPanel({
       />
 
       <div className="panelSections">
-        <TextSignatureSection />
+        <TextSignatureSection
+          editorInstance={editorInstance}
+          isEditorEmpty={isEditorEmpty}
+        />
 
         <TextFontStyleContainer
           typography={typography}

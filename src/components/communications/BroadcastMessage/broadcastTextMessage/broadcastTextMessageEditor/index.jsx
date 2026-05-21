@@ -148,13 +148,18 @@ const BroadcastTextMessageEditor = ({
         // Use DOM innerHTML for most up-to-date content during editing
         const content = el ? el.innerHTML : contentComp.getInnerHTML() || "";
 
+        const sigComp = wrapper.find(".text-signature-section")[0];
+        const hasSignature = !!sigComp;
+        const formComp = wrapper.find(".text-form-section")[0];
+        const hasForm = !!formComp;
+
         // Check if content is actually empty or just whitespace/placeholders/BRs
         const plainText = content
           .replace(/<[^>]*>/g, "")
           .replace(/&nbsp;/g, " ")
           .replace(/\u200B/g, "") // Zero-width space
           .trim();
-        const isEmpty = plainText.length === 0;
+        const isEmpty = plainText.length === 0 && !hasSignature && !hasForm;
 
         // Toggle a class for the placeholder via DOM only — model-level addClass/removeClass
         // triggers a GrapesJS re-render that resets the cursor position mid-typing
@@ -325,9 +330,16 @@ const BroadcastTextMessageEditor = ({
 
         // Save selection whenever it changes so click-to-insert can restore it
         doc.addEventListener("selectionchange", () => {
-          const sel = win?.getSelection();
-          if (sel && sel.rangeCount > 0) {
-            savedRange.current = sel.getRangeAt(0).cloneRange();
+          const activeEl = doc?.activeElement;
+          if (
+            activeEl &&
+            (activeEl.classList.contains("text-editor-content") ||
+              activeEl.getAttribute("contenteditable") === "true")
+          ) {
+            const sel = win?.getSelection();
+            if (sel && sel.rangeCount > 0) {
+              savedRange.current = sel.getRangeAt(0).cloneRange();
+            }
           }
         });
         doc.addEventListener(
@@ -709,6 +721,255 @@ const BroadcastTextMessageEditor = ({
             savedRange.current = null; // DOM re-render invalidates the saved range
           }
 
+          updateContent();
+        },
+        insertHtmlAtCursor: (html) => {
+          const wrapper = editor.getWrapper();
+          const doc = editor.Canvas.getDocument();
+          const canvasWin = editor.Canvas.getWindow();
+          if (!doc || !canvasWin) return;
+
+          const rangeSnapshot = savedRange.current;
+          const defaultComp = wrapper.find(".text-editor-content")[0];
+
+          let targetEl = null;
+          let rangeToUse = null;
+
+          if (defaultComp) {
+            targetEl = defaultComp.getEl();
+            if (!targetEl) return;
+            if (
+              rangeSnapshot &&
+              targetEl.contains(rangeSnapshot.commonAncestorContainer)
+            ) {
+              rangeToUse = rangeSnapshot;
+            } else {
+              const r = doc.createRange();
+              r.selectNodeContents(targetEl);
+              r.collapse(false);
+              rangeToUse = r;
+            }
+          } else {
+            const fallbackComp =
+              lastRteComp || wrapper.find("[data-gjs-type='text']")[0];
+            if (!fallbackComp) return;
+            targetEl = fallbackComp.getEl();
+            if (!targetEl) return;
+            if (
+              rangeSnapshot &&
+              targetEl.contains(rangeSnapshot.commonAncestorContainer)
+            ) {
+              rangeToUse = rangeSnapshot;
+            } else {
+              const r = doc.createRange();
+              r.selectNodeContents(targetEl);
+              r.collapse(false);
+              rangeToUse = r;
+            }
+          }
+
+          if (!targetEl) return;
+
+          // Parse HTML to a DocumentFragment
+          const tempDiv = doc.createElement("div");
+          tempDiv.innerHTML = html;
+          const fragment = doc.createDocumentFragment();
+          while (tempDiv.firstChild) {
+            fragment.appendChild(tempDiv.firstChild);
+          }
+
+          const hasContent = targetEl.innerText?.trim().length > 0;
+          if (hasContent) {
+            const br = doc.createElement("br");
+            if (rangeToUse) {
+              // insertNode inserts at start of range, so insert fragment first, then br before it
+              rangeToUse.insertNode(fragment);
+              rangeToUse.insertNode(br);
+            } else {
+              targetEl.appendChild(br);
+              targetEl.appendChild(fragment);
+            }
+          } else {
+            if (rangeToUse) {
+              rangeToUse.insertNode(fragment);
+            } else {
+              targetEl.appendChild(fragment);
+            }
+          }
+
+          const updatedHtml = targetEl.innerHTML;
+          const findOwnerComp = (el) => {
+            let cur = el;
+            while (cur && cur !== doc.body) {
+              const id = cur.getAttribute?.("id");
+              if (id) {
+                const found = wrapper.find("#" + id);
+                if (found.length) return found[0];
+              }
+              cur = cur.parentElement;
+            }
+            return lastRteComp || defaultComp || null;
+          };
+
+          const ownerComp = findOwnerComp(targetEl);
+          if (ownerComp) {
+            ownerComp.components().reset();
+            ownerComp.set("content", updatedHtml);
+            const view = ownerComp.getView?.();
+            if (view && typeof view.render === "function") {
+              view.render();
+            } else {
+              editor.trigger("component:update", ownerComp);
+            }
+            savedRange.current = null;
+          }
+
+          updateContent();
+        },
+        insertSignature: (selectedValue) => {
+          const wrapper = editor.getWrapper();
+          const doc = editor.Canvas.getDocument();
+          const canvasWin = editor.Canvas.getWindow();
+          if (!doc || !canvasWin) return;
+
+          const defaultComp = wrapper.find(".text-editor-content")[0];
+          const containerComp = wrapper.find(".text-editor-container")[0];
+          const sigComp = wrapper.find(".text-signature-section")[0];
+
+          // Legacy inline signature cleanup
+          let targetEl = defaultComp ? defaultComp.getEl() : null;
+          if (!targetEl) {
+            const fallbackComp =
+              lastRteComp || wrapper.find("[data-gjs-type='text']")[0];
+            if (fallbackComp) targetEl = fallbackComp.getEl();
+          }
+          if (targetEl) {
+            const legacySig = targetEl.querySelector(".text-signature");
+            if (legacySig) {
+              const prevSib = legacySig.previousSibling;
+              if (prevSib && prevSib.nodeName === "BR") {
+                prevSib.remove();
+              }
+              legacySig.remove();
+            }
+          }
+
+          if (sigComp) {
+            if (!selectedValue) {
+              sigComp.remove();
+            } else {
+              sigComp.set("content", selectedValue);
+              const view = sigComp.getView?.();
+              if (view && typeof view.render === "function") {
+                view.render();
+              }
+            }
+          } else {
+            if (selectedValue) {
+              const newCompData = {
+                tagName: "div",
+                type: "text",
+                attributes: {
+                  class: "text-signature-section",
+                  style:
+                    "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+                },
+                content: selectedValue,
+                editable: true,
+                draggable: false,
+                removable: true,
+                copyable: false,
+                selectable: true,
+                hoverable: false,
+                badgable: false
+              };
+
+              if (containerComp) {
+                const children = containerComp.components();
+                let insertIdx = children.length;
+                for (let i = 0; i < children.length; i++) {
+                  const classes =
+                    children.models[i].getAttributes()?.class || "";
+                  if (classes.includes("unsubscribe-footer")) {
+                    insertIdx = i;
+                    break;
+                  }
+                }
+                containerComp.components().add(newCompData, { at: insertIdx });
+              } else {
+                wrapper.append(newCompData);
+              }
+            }
+          }
+
+          updateContent();
+        },
+        insertFormLink: (text, url) => {
+          const wrapper = editor.getWrapper();
+          const doc = editor.Canvas.getDocument();
+          const canvasWin = editor.Canvas.getWindow();
+          if (!doc || !canvasWin) return;
+
+          const containerComp = wrapper.find(".text-editor-container")[0];
+          const formComp = wrapper.find(".text-form-section")[0];
+
+          const linkHtml = `<a href="${url}" target="_blank" style="color: #1570EF; text-decoration: underline; font-family: Inter, sans-serif; font-size: 16px;">${text}</a>`;
+
+          if (formComp) {
+            if (!url) {
+              formComp.remove();
+            } else {
+              formComp.set("content", linkHtml);
+              const view = formComp.getView?.();
+              if (view && typeof view.render === "function") {
+                view.render();
+              }
+            }
+          } else {
+            if (url) {
+              const newCompData = {
+                tagName: "div",
+                type: "text",
+                attributes: {
+                  class: "text-form-section",
+                  style:
+                    "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+                },
+                content: linkHtml,
+                editable: true,
+                draggable: false,
+                removable: true,
+                copyable: false,
+                selectable: true,
+                hoverable: false,
+                badgable: false
+              };
+
+              if (containerComp) {
+                const children = containerComp.components();
+                let insertIdx = children.length;
+                for (let i = 0; i < children.length; i++) {
+                  const classes =
+                    children.models[i].getAttributes()?.class || "";
+                  if (
+                    classes.includes("text-signature-section") ||
+                    classes.includes("unsubscribe-footer")
+                  ) {
+                    insertIdx = i;
+                    break;
+                  }
+                }
+                containerComp.components().add(newCompData, { at: insertIdx });
+              } else {
+                wrapper.append(newCompData);
+              }
+            }
+          }
+
+          updateContent();
+        },
+        loadTemplate: (templateString) => {
+          editor.setComponents(templateString);
           updateContent();
         },
         execCommand: (cmd, value) => {

@@ -10,7 +10,10 @@ import { htmlToMjml, isMjml } from "../../../../../../utils/htmlToMjml";
 import { useToast } from "../../../../../../hooks/useToast";
 import ReusableLinkModal from "../../../../../../reusableComponents/reusableLinkModal/index";
 
-export default function TextSignatureSection({ editorRef }) {
+export default function TextSignatureSection({
+  editorInstance,
+  isEditorEmpty
+}) {
   const [signature, setSignature] = useState("");
   const [onDemandForm, setOnDemandForm] = useState("");
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -22,44 +25,8 @@ export default function TextSignatureSection({ editorRef }) {
   const toast = useToast();
 
   const applySignatureToEditor = (selectedValue) => {
-    const editor = editorRef?.current?.getEditor();
-    if (!editor) return;
-
-    // Find mj-body
-    const wrapper = editor.getWrapper();
-    let mjBody = null;
-    const findBody = (comp) => {
-      if (mjBody) return;
-      if (comp.get("type") === "mj-body") {
-        mjBody = comp;
-        return;
-      }
-      comp.components().each(findBody);
-    };
-    findBody(wrapper);
-    if (!mjBody) return;
-
-    // Find the existing signature section
-    let existingSig = null;
-    mjBody.components().each((c) => {
-      if (c.getAttributes?.()?.["data-type"] === "signature-section") {
-        existingSig = c;
-      }
-    });
-    if (existingSig) {
-      existingSig.remove();
-    }
-
-    // Build replacement MJML with the selected signature text.
-    const newSigHtml = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
-  <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="16px 0px" margin="0px" color="#181D25" font-size="20px" font-weight="500" font-family="Inter" line-height="20px">
-      ${selectedValue}
-    </mj-text>
-  </mj-column>
-</mj-section>`;
-
-    mjBody.append(newSigHtml);
+    if (!editorInstance) return;
+    editorInstance.insertSignature(selectedValue, isEditorEmpty);
   };
 
   const handleSignatureChange = (value) => {
@@ -85,6 +52,10 @@ export default function TextSignatureSection({ editorRef }) {
         "This is an automated communication from Manipal Hospitals. Please do not reply to this email.",
       value:
         "This is an automated communication from Manipal Hospitals. Please do not reply to this email."
+    },
+    {
+      label: "Add Signature",
+      value: "Add Signature"
     }
   ];
 
@@ -129,7 +100,7 @@ export default function TextSignatureSection({ editorRef }) {
         mjmlContent = htmlToMjml(text);
       }
 
-      const loadFn = editorRef?.current?.loadTemplate;
+      const loadFn = editorInstance?.loadTemplate;
       if (!loadFn)
         throw new Error("Editor not ready — loadTemplate unavailable.");
 
@@ -171,8 +142,7 @@ export default function TextSignatureSection({ editorRef }) {
   };
 
   const handleLinkModalConfirm = () => {
-    const editor = editorRef?.current?.getEditor();
-    if (!editor) {
+    if (!editorInstance) {
       toast.error("Editor Error", "Editor instance not found");
       return;
     }
@@ -182,30 +152,7 @@ export default function TextSignatureSection({ editorRef }) {
       return;
     }
 
-    // Find mj-body
-    const wrapper = editor.getWrapper();
-    let mjBody = null;
-    const findBody = (comp) => {
-      if (mjBody) return;
-      if (comp.get("type") === "mj-body") {
-        mjBody = comp;
-        return;
-      }
-      comp.components().each(findBody);
-    };
-    findBody(wrapper);
-    if (!mjBody) return;
-
-    // Build MJML for the on-demand form link (as a blue text link opening in new tab)
-    const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" padding="10px 0px" margin="0px" width="100%" background-color="transparent">
-  <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="10px 0px" font-family="Inter" font-size="16px" color="#007bff">
-      <a href="${linkValue}" target="_blank" style="color: #007bff; text-decoration: underline;">${onDemandForm}</a>
-    </mj-text>
-  </mj-column>
-</mj-section>`;
-
-    mjBody.append(newFormHtml);
+    editorInstance.insertFormLink(onDemandForm, linkValue);
     setIsLinkModalOpen(false);
     toast.success("Success", "On-demand form link added to editor");
   };
