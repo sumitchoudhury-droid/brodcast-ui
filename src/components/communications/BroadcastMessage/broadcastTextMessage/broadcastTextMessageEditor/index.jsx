@@ -786,22 +786,111 @@ const BroadcastTextMessageEditor = ({
             return;
           }
 
-          const inlineCmdMap = {
-            underline: "underline",
-            italic: "italic",
-            bold: "bold",
-            strikethrough: "strikeThrough",
-            superscript: "superscript",
-            insertUnorderedList: "insertUnorderedList",
-            insertOrderedList: "insertOrderedList",
-            subscript: "subscript"
-          };
-          if (inlineCmdMap[cmd]) {
+          if (["italic", "bold", "underline", "strikethrough"].includes(cmd)) {
             const doc = editor.Canvas.getDocument();
-            if (doc) {
-              doc.execCommand(inlineCmdMap[cmd], false, null);
-              updateContent();
+            const canvasWin = editor.Canvas.getWindow();
+
+            // If the user had a non-collapsed text selection saved, re-enable
+            // the RTE and apply inline formatting to that selection only.
+            const savedSel = savedRange.current;
+            const hasTextSelection = savedSel && !savedSel.collapsed;
+
+            if (hasTextSelection && doc) {
+              if (editor.getSelected() !== activeComp)
+                editor.select(activeComp);
+              editor.runCommand("rte:enable", { target: activeComp });
+
+              const nativeMap = {
+                italic: "italic",
+                bold: "bold",
+                underline: "underline",
+                strikethrough: "strikeThrough"
+              };
+
+              setTimeout(() => {
+                const freshEl = activeComp.getEl();
+                if (freshEl && canvasWin) {
+                  freshEl.focus();
+                  try {
+                    const sel = canvasWin.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSel);
+                  } catch {
+                    //
+                  }
+                }
+                doc.execCommand(nativeMap[cmd], false, null);
+                updateContent();
+              }, 10);
+              return;
             }
+
+            // No text selection – apply as an element-level style so it works
+            // even when the RTE / canvas is not focused.
+            if (!el) return;
+
+            if (cmd === "italic") {
+              const next =
+                el.style.fontStyle === "italic" ? "normal" : "italic";
+              el.style.fontStyle = next;
+              activeComp.addStyle({ "font-style": next });
+            } else if (cmd === "bold") {
+              const w = el.style.fontWeight;
+              const next = w === "bold" || w === "700" ? "400" : "bold";
+              el.style.fontWeight = next;
+              activeComp.addStyle({ "font-weight": next });
+            } else {
+              // underline / strikethrough share text-decoration
+              const token = cmd === "underline" ? "underline" : "line-through";
+              const cur = el.style.textDecoration || "";
+              const next = cur.includes(token)
+                ? cur.replace(token, "").trim().replace(/\s+/g, " ") || "none"
+                : cur && cur !== "none"
+                  ? `${cur} ${token}`
+                  : token;
+              el.style.textDecoration = next;
+              activeComp.addStyle({ "text-decoration": next });
+            }
+            updateContent();
+            return;
+          }
+
+          if (cmd === "insertUnorderedList" || cmd === "insertOrderedList") {
+            // Defer past GrapesJS's own deactivation/re-render cycle so we
+            // read and write the DOM after it finishes settling.
+            setTimeout(() => {
+              const freshEl = activeComp.getEl();
+              if (!freshEl) return;
+
+              const tag = cmd === "insertUnorderedList" ? "ul" : "ol";
+              const listStyle =
+                "list-style-position:inside;padding-left:20px;margin:4px 0;";
+              const currentHtml = freshEl.innerHTML;
+              const alreadyHasList = new RegExp(`<${tag}[\\s>]`, "i").test(
+                currentHtml
+              );
+
+              let newHtml;
+              if (alreadyHasList) {
+                const tmp = document.createElement("div");
+                tmp.innerHTML = currentHtml;
+                const items = Array.from(tmp.querySelectorAll(`${tag} > li`));
+                newHtml =
+                  items.map((li) => li.innerHTML).join("<br>") || "&nbsp;";
+              } else {
+                const lines = currentHtml
+                  .split(/<br\s*\/?>/i)
+                  .map((l) => l.trim())
+                  .filter((l) => l && l.replace(/&nbsp;/g, "").trim() !== "");
+                const items = (lines.length > 0 ? lines : ["&nbsp;"])
+                  .map((l) => `<li>${l}</li>`)
+                  .join("");
+                newHtml = `<${tag} style="${listStyle}">${items}</${tag}>`;
+              }
+
+              freshEl.innerHTML = newHtml;
+              updateContent();
+            }, 0);
             return;
           }
 
