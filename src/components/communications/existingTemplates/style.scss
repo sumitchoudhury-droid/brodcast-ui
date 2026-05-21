@@ -238,6 +238,126 @@
           }
         }
 
+        .audioPreviewSection {
+          margin-top: 10px;
+          width: 100%;
+
+          .sectionTitle {
+            font-size: 13px;
+            font-weight: 500;
+            color: #98a2b3;
+            margin-bottom: 12px;
+          }
+
+          .audioPlayerPill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f2f4f7;
+            border-radius: 50px;
+            padding: 8px 16px;
+            width: 100%;
+            max-width: 350px;
+
+            .playPauseBtn {
+              border: none;
+              background: transparent;
+              color: #344054;
+              cursor: pointer;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+
+              &:hover {
+                color: #101828;
+              }
+            }
+
+            .replayBtn {
+              border: none;
+              background: transparent;
+              color: #344054;
+              cursor: pointer;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition:
+                color 0.2s,
+                transform 0.2s;
+
+              &:hover {
+                color: #101828;
+                transform: rotate(-30deg);
+              }
+              &:active {
+                transform: rotate(-90deg);
+              }
+            }
+
+            .progressTrack {
+              flex: 1;
+              height: 6px;
+              background: #d0d5dd;
+              border-radius: 3px;
+              position: relative;
+              overflow: visible;
+              cursor: pointer;
+              transition: height 0.2s;
+
+              &:hover,
+              &.dragging {
+                height: 8px;
+                .progressHandle {
+                  opacity: 1;
+                  transform: translate(50%, -50%) scale(1);
+                }
+              }
+
+              .progressFill {
+                height: 100%;
+                background: #344054;
+                border-radius: 3px;
+                position: relative;
+                transition: width 0.1s linear;
+
+                .progressHandle {
+                  position: absolute;
+                  right: 0;
+                  top: 50%;
+                  width: 12px;
+                  height: 12px;
+                  background: #344054;
+                  border-radius: 50%;
+                  transform: translate(50%, -50%) scale(0);
+                  opacity: 0;
+                  transition:
+                    transform 0.2s,
+                    opacity 0.2s;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                  z-index: 5;
+                }
+              }
+            }
+
+            .timeDisplay {
+              font-size: 12px;
+              font-weight: 500;
+              color: #344054;
+              font-variant-numeric: tabular-nums;
+              min-width: 70px;
+              text-align: center;
+            }
+
+            .volumeIcon {
+              color: #344054;
+              display: flex;
+              align-items: center;
+            }
+          }
+        }
+
         .previewArea {
           width: 100%;
           flex: 1;

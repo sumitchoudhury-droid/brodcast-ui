@@ -1,10 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Voice Message Template</title>
     <style>
+      html,
+      body {
+        height: 100%;
+        min-height: 100%;
+      }
       body {
         overflow-x: hidden !important;
         word-wrap: break-word !important;
@@ -12,6 +17,10 @@
       }
       table {
         max-width: 100% !important;
+      }
+      table.wrapper {
+        min-height: 100%;
+        height: 100%;
       }
     </style>
   </head>
@@ -24,14 +33,9 @@
       font-family: Arial, Helvetica, sans-serif;
     "
   >
-    <table
-      width="100%"
-      cellpadding="0"
-      cellspacing="0"
-      border="0"
-    >
+    <table class="wrapper" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
-        <td align="center">
+        <td valign="top">
           <table
             width="100%"
             cellpadding="0"
@@ -41,6 +45,7 @@
               background-color: #ffffff;
               border: 1px solid #dcdcdc;
               max-width: 700px;
+              height: 100%;
             "
           >
             <!-- Content -->
@@ -52,6 +57,7 @@
                   font-size: 16px;
                   line-height: 30px;
                 "
+                valign="top"
               >
                 <p style="margin: 0 0 25px">
                   Dear $FNAME - We would like to inform you that $PFNAME will
@@ -65,7 +71,7 @@
                 </p>
 
                 <p style="margin: 0 0 25px">
-                  <strong>Rescheduled Date & Time:</strong>
+                  <strong>Rescheduled Date &amp; Time:</strong>
                   24, Feb 2026 | $APPTIME12
                 </p>
 
@@ -75,19 +81,15 @@
                 </p>
 
                 <!-- Opt Out -->
-                <p
+                <!-- <p
                   data-gjs-editable="false"
                   data-gjs-selectable="false"
                   data-gjs-hoverable="false"
-                  style="
-                    margin: 0;
-                    color: #cfcfcf;
-                    font-size: 15px;
-                  "
+                  style="margin: 0; color: #cfcfcf; font-size: 15px"
                 >
                   To opt out of future calls from Manipal Hospitals, please
                   press 9.
-                </p>
+                </p> -->
               </td>
             </tr>
           </table>

@@ -204,10 +204,25 @@ function resolveDroppable(comp, isHtml) {
       return true;
     }
 
-    // Structural table-based containers are droppable layout layers.
-    // We only allow dropping inside layout tables or the tbody wrapper itself.
-    // Individual cells (td) and rows (tr) are NOT droppable to prevent accidental nesting inside columns!
-    const structuralContainers = ["table", "tbody", "thead", "tfoot"];
+    // Allow dropping into any common HTML container so blocks can be placed
+    // anywhere inside a saved HTML template (cells, divs, sections, etc.).
+    const structuralContainers = [
+      "table",
+      "tbody",
+      "thead",
+      "tfoot",
+      "tr",
+      "td",
+      "th",
+      "div",
+      "section",
+      "main",
+      "article",
+      "header",
+      "footer",
+      "nav",
+      "aside"
+    ];
     if (tagName && structuralContainers.includes(tagName)) {
       return true;
     }

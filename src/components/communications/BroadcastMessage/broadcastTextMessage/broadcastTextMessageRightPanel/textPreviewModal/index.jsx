@@ -35,22 +35,41 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
         }
         return trimmed + scrollbarStyle;
       }
+      const isSavedTemplate = !trimmed.includes("text-editor-container");
       return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
   <style>
-    * { 
-      margin: 0; 
-      padding: 0; 
-      box-sizing: border-box; 
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    body { 
+    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: #fff;
       padding: 20px;
       margin: 0;
+    }
+    ${
+      isSavedTemplate
+        ? `
+    p, h1, h2, h3, h4, h5, h6 {
+      margin-top: 0;
+      margin-bottom: 1em;
+    }
+    table {
+      border: none !important;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    td, th {
+      padding: 0 !important;
+    }
+    `
+        : ""
     }
   </style>
   ${scrollbarStyle}

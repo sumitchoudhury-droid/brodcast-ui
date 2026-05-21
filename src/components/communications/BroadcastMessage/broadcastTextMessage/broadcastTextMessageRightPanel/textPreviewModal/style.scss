@@ -99,8 +99,7 @@
     .textPreviewDrawerContent {
       flex: 1;
       background: #f9fafb;
-      padding: 40px;
-      overflow: auto;
+      padding: 24px;
       display: flex;
       justify-content: center;
       align-items: flex-start;
@@ -123,7 +122,7 @@
 
         &.mobile {
           width: 375px;
-          height: 700px;
+          height: 640px;
           border-radius: 40px;
           border: 12px solid #101828;
           position: relative;

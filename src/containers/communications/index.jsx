@@ -59,7 +59,7 @@ function Communications() {
 
       {/* CONTENT CHANGES */}
       <div
-        className={`${activeId === 2 || addScheduleModal ? "broadcastTableWrapper" : "communicationContent"}`}
+        className={`${activeId === 2 && addScheduleModal ? "communicationContent" : "broadcastTableWrapper"}`}
       >
         <div
           style={{

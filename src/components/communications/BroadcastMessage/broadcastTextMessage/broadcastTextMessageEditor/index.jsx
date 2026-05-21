@@ -120,6 +120,8 @@ const BroadcastTextMessageEditor = ({
 
     // Persist the last known cursor range so click-to-insert can restore it
     const savedRange = { current: null };
+    // Track the last component that had RTE active (needed for template structures)
+    let lastRteComp = null;
 
     // Clone the container and stamp list styles inline so they appear in HTML output
     const serializeContainer = (containerEl) => {
@@ -171,6 +173,16 @@ const BroadcastTextMessageEditor = ({
             serializeContainer(containerEl) ?? editor.getHtml(),
             isEmpty
           );
+        }
+      } else {
+        // Saved template: no .text-editor-content — check canvas for any text content
+        if (onContentChange) {
+          const html = editor.getHtml();
+          const plainText = html
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .trim();
+          onContentChange(html, plainText.length === 0);
         }
       }
     };
@@ -298,6 +310,9 @@ const BroadcastTextMessageEditor = ({
 
       if (contentComp) {
         editor.select(contentComp);
+      } else {
+        // Saved template: seed lastRteComp so execCommand has a default target
+        lastRteComp = wrapper.find("[data-gjs-type='text']")[0] || null;
       }
       setTimeout(updateContent, 100);
       updateContent();
@@ -523,8 +538,9 @@ const BroadcastTextMessageEditor = ({
       }
     });
 
-    // Ensure the RTE toolbar is visible when enabled
+    // Ensure the RTE toolbar is visible when enabled; also track which component is active
     editor.on("rte:enable", () => {
+      lastRteComp = editor.getSelected() || lastRteComp;
       const rteToolbar = editor.RichTextEditor.getToolbarEl();
       if (rteToolbar) {
         rteToolbar.style.setProperty("display", "flex", "important");
@@ -543,158 +559,263 @@ const BroadcastTextMessageEditor = ({
           const contentComp = wrapper?.find(".text-editor-content")[0];
           const el = contentComp?.getEl();
           const containerEl = el?.closest(".text-editor-container");
-          return serializeContainer(containerEl) ?? editor.getHtml();
+          if (containerEl) return serializeContainer(containerEl);
+
+          // Saved template: read from the live canvas DOM so that all style
+          // changes applied via el.style.xxx are captured in the output
+          const canvasDoc = editor.Canvas.getDocument();
+          if (canvasDoc?.body) {
+            const clone = canvasDoc.body.cloneNode(true);
+            clone.querySelectorAll("*").forEach((node) => {
+              node.removeAttribute("data-gjs-highlightable");
+              node.removeAttribute("data-gjs-type");
+              node.removeAttribute("draggable");
+              node.removeAttribute("contenteditable");
+              [
+                "gjs-selected",
+                "gjs-hovered",
+                "gjs-editable",
+                "is-empty"
+              ].forEach((cls) => node.classList.remove(cls));
+              if (node.getAttribute("class") === "")
+                node.removeAttribute("class");
+            });
+            return clone.innerHTML;
+          }
+
+          return editor.getHtml();
         },
         setDevice: (device) => editor.setDevice(device),
         insertAtCursor: (text) => {
           const wrapper = editor.getWrapper();
-          const contentComp = wrapper.find(".text-editor-content")[0];
-          if (!contentComp) return;
-
           const doc = editor.Canvas.getDocument();
           const canvasWin = editor.Canvas.getWindow();
           if (!doc || !canvasWin) return;
 
-          canvasWin.focus();
+          // Snapshot saved range BEFORE any focus change triggers selectionchange
+          const rangeSnapshot = savedRange.current;
 
-          const range = savedRange.current;
-          if (range) {
-            const sel = canvasWin.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-          } else {
-            // No saved range — fall back to end of content
-            const el = contentComp.getEl();
-            if (el) {
+          // Blank template uses .text-editor-content; saved templates use lastRteComp
+          const defaultComp = wrapper.find(".text-editor-content")[0];
+          const isTemplate = !defaultComp;
+
+          let targetEl = null;
+          let rangeToUse = null;
+
+          if (defaultComp) {
+            targetEl = defaultComp.getEl();
+            if (!targetEl) return;
+            if (
+              rangeSnapshot &&
+              targetEl.contains(rangeSnapshot.commonAncestorContainer)
+            ) {
+              rangeToUse = rangeSnapshot;
+            } else {
               const r = doc.createRange();
-              r.selectNodeContents(el);
+              r.selectNodeContents(targetEl);
               r.collapse(false);
-              const sel = canvasWin.getSelection();
-              sel.removeAllRanges();
-              sel.addRange(r);
+              rangeToUse = r;
+            }
+          } else {
+            const fallbackComp =
+              lastRteComp || wrapper.find("[data-gjs-type='text']")[0];
+            if (!fallbackComp) return;
+            targetEl = fallbackComp.getEl();
+            if (!targetEl) return;
+            if (
+              rangeSnapshot &&
+              targetEl.contains(rangeSnapshot.commonAncestorContainer)
+            ) {
+              rangeToUse = rangeSnapshot;
+            } else {
+              const r = doc.createRange();
+              r.selectNodeContents(targetEl);
+              r.collapse(false);
+              rangeToUse = r;
             }
           }
 
-          const currentText = canvasWin.getSelection()?.toString() ?? "";
+          if (!rangeToUse) return;
+
+          // Force the element editable so execCommand works regardless of GrapesJS state
+          const prevEditable = targetEl.contentEditable;
+          targetEl.contentEditable = "true";
+          targetEl.focus();
+
+          try {
+            const sel = canvasWin.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(rangeToUse);
+          } catch {
+            // stale range — cursor stays wherever browser placed it on focus
+          }
+
+          const charBeforeCursor = (() => {
+            try {
+              const sel = canvasWin.getSelection();
+              if (!sel?.rangeCount) return "";
+              const r = sel.getRangeAt(0).cloneRange();
+              r.collapse(true);
+              if (r.startOffset === 0) return "";
+              r.setStart(r.startContainer, r.startOffset - 1);
+              return r.toString();
+            } catch {
+              return "";
+            }
+          })();
+
           const prefix =
-            currentText.length === 0 &&
-            contentComp.getEl()?.innerText?.trim().length > 0
+            targetEl.innerText?.trim().length > 0 && charBeforeCursor !== " "
               ? " "
               : "";
+
           doc.execCommand("insertText", false, prefix + text);
+
+          if (!isTemplate) {
+            // Blank template: getHtml() reads from DOM — nothing more needed
+            targetEl.contentEditable = prevEditable;
+            updateContent();
+            return;
+          }
+
+          // Saved template: getHtml() reads from GrapesJS model, so sync DOM → model
+          const updatedHtml = targetEl.innerHTML;
+          targetEl.contentEditable = prevEditable;
+
+          // Find the GrapesJS component that owns targetEl by walking up via GJS IDs
+          const findOwnerComp = (el) => {
+            let cur = el;
+            while (cur && cur !== doc.body) {
+              const id = cur.getAttribute?.("id");
+              if (id) {
+                const found = wrapper.find("#" + id);
+                if (found.length) return found[0];
+              }
+              cur = cur.parentElement;
+            }
+            return lastRteComp || null;
+          };
+
+          const ownerComp = findOwnerComp(targetEl);
+          if (ownerComp) {
+            ownerComp.components().reset();
+            ownerComp.set("content", updatedHtml);
+            const view = ownerComp.getView?.();
+            if (view && typeof view.render === "function") {
+              view.render();
+            } else {
+              editor.trigger("component:update", ownerComp);
+            }
+            savedRange.current = null; // DOM re-render invalidates the saved range
+          }
+
           updateContent();
         },
         execCommand: (cmd, value) => {
           const wrapper = editor.getWrapper();
-          const contentComp = wrapper.find(".text-editor-content")[0];
-          if (contentComp) {
-            if (cmd === "fontName") {
-              const el = contentComp.getEl();
-              if (el) el.style.fontFamily = value;
-              contentComp.addStyle({ "font-family": value });
-              updateContent();
-              return;
-            }
+          // Resolve the active component: blank template uses .text-editor-content,
+          // saved templates use whichever component the user last edited
+          const activeComp =
+            wrapper.find(".text-editor-content")[0] || lastRteComp;
+          if (!activeComp) return;
 
-            if (cmd === "fontWeight") {
-              const el = contentComp.getEl();
-              if (el) el.style.fontWeight = value;
-              contentComp.addStyle({ "font-weight": value });
-              updateContent();
-              return;
-            }
+          const el = activeComp.getEl();
 
-            if (cmd === "fontSize") {
-              const el = contentComp.getEl();
-              const px = `${value}px`;
-              if (el && value) el.style.fontSize = px;
-              contentComp.addStyle({ "font-size": px });
-              updateContent();
-              return;
-            }
-
-            if (cmd === "foreColor") {
-              const el = contentComp.getEl();
-              if (el && value) el.style.color = value;
-              contentComp.addStyle({ color: value });
-              updateContent();
-              return;
-            }
-
-            if (
-              [
-                "justifyLeft",
-                "justifyCenter",
-                "justifyRight",
-                "justifyFull"
-              ].includes(cmd)
-            ) {
-              const alignMap = {
-                justifyLeft: "left",
-                justifyCenter: "center",
-                justifyRight: "right",
-                justifyFull: "justify"
-              };
-              const alignValue = alignMap[cmd];
-              const el = contentComp.getEl();
-              if (el) {
-                el.style.textAlign = alignValue;
-                el.querySelectorAll("ul, ol").forEach((list) => {
-                  list.style.listStylePosition = "inside";
-                  list.style.paddingLeft = "0";
-                });
-              }
-              contentComp.addStyle({ "text-align": alignValue });
-              updateContent();
-              return;
-            }
-
-            if (cmd === "uppercase") {
-              const el = contentComp.getEl();
-              const newTransform =
-                el?.style.textTransform === "uppercase" ? "none" : "uppercase";
-              if (el) el.style.textTransform = newTransform;
-              contentComp.addStyle({ "text-transform": newTransform });
-              updateContent();
-              return;
-            }
-
-            const inlineCmdMap = {
-              underline: "underline",
-              italic: "italic",
-              bold: "bold",
-              strikethrough: "strikeThrough",
-              superscript: "superscript",
-              insertUnorderedList: "insertUnorderedList",
-              insertOrderedList: "insertOrderedList",
-              subscript: "subscript"
-            };
-            if (inlineCmdMap[cmd]) {
-              const doc = editor.Canvas.getDocument();
-              if (doc) {
-                doc.execCommand(inlineCmdMap[cmd], false, null);
-                updateContent();
-              }
-              return;
-            }
-
-            // Focus the canvas window to help restore the internal selection
-            const win = editor.Canvas.getWindow();
-            if (win) win.focus();
-
-            // Only select if not already selected to avoid resetting text selection
-            if (editor.getSelected() !== contentComp) {
-              editor.select(contentComp);
-            }
-
-            editor.runCommand("rte:enable", { target: contentComp });
-
-            // Small delay to ensure RTE is active before executing command
-            setTimeout(() => {
-              editor.RichTextEditor.exec(cmd, value);
-              updateContent();
-            }, 10);
+          if (cmd === "fontName") {
+            if (el) el.style.fontFamily = value;
+            activeComp.addStyle({ "font-family": value });
+            updateContent();
+            return;
           }
+
+          if (cmd === "fontWeight") {
+            if (el) el.style.fontWeight = value;
+            activeComp.addStyle({ "font-weight": value });
+            updateContent();
+            return;
+          }
+
+          if (cmd === "fontSize") {
+            const px = `${value}px`;
+            if (el && value) el.style.fontSize = px;
+            activeComp.addStyle({ "font-size": px });
+            updateContent();
+            return;
+          }
+
+          if (cmd === "foreColor") {
+            if (el && value) el.style.color = value;
+            activeComp.addStyle({ color: value });
+            updateContent();
+            return;
+          }
+
+          if (
+            [
+              "justifyLeft",
+              "justifyCenter",
+              "justifyRight",
+              "justifyFull"
+            ].includes(cmd)
+          ) {
+            const alignMap = {
+              justifyLeft: "left",
+              justifyCenter: "center",
+              justifyRight: "right",
+              justifyFull: "justify"
+            };
+            const alignValue = alignMap[cmd];
+            if (el) {
+              el.style.textAlign = alignValue;
+              el.querySelectorAll("ul, ol").forEach((list) => {
+                list.style.listStylePosition = "inside";
+                list.style.paddingLeft = "0";
+              });
+            }
+            activeComp.addStyle({ "text-align": alignValue });
+            updateContent();
+            return;
+          }
+
+          if (cmd === "uppercase") {
+            const newTransform =
+              el?.style.textTransform === "uppercase" ? "none" : "uppercase";
+            if (el) el.style.textTransform = newTransform;
+            activeComp.addStyle({ "text-transform": newTransform });
+            updateContent();
+            return;
+          }
+
+          const inlineCmdMap = {
+            underline: "underline",
+            italic: "italic",
+            bold: "bold",
+            strikethrough: "strikeThrough",
+            superscript: "superscript",
+            insertUnorderedList: "insertUnorderedList",
+            insertOrderedList: "insertOrderedList",
+            subscript: "subscript"
+          };
+          if (inlineCmdMap[cmd]) {
+            const doc = editor.Canvas.getDocument();
+            if (doc) {
+              doc.execCommand(inlineCmdMap[cmd], false, null);
+              updateContent();
+            }
+            return;
+          }
+
+          // Fallback: focus canvas window and drive via RTE
+          const win = editor.Canvas.getWindow();
+          if (win) win.focus();
+          if (editor.getSelected() !== activeComp) {
+            editor.select(activeComp);
+          }
+          editor.runCommand("rte:enable", { target: activeComp });
+          setTimeout(() => {
+            editor.RichTextEditor.exec(cmd, value);
+            updateContent();
+          }, 10);
         }
       });
     }

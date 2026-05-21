@@ -7,12 +7,17 @@ import "./style.scss";
 
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton";
-import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
+import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown";
+import textTemplate from "../../existingTemplates/htmlTemplates/textMessage.html?raw";
+import voiceTemplate from "../../existingTemplates/htmlTemplates/voiceMessage.html?raw";
 
 const templateOptions = [
-  { label: "Main Clinic", value: "main" },
-  { label: "North Branch", value: "north" },
-  { label: "South Branch", value: "south" }
+  { label: "Appointment Rescheduled", value: "appointmentRescheduled" },
+  { label: "Health Camp Invitation", value: "healthCampInvitation" },
+  { label: "Treatment Plan Update", value: "treatmentPlanUpdate" },
+  { label: "Seasonal Health Advisory", value: "seasonalHealthAdvisory" },
+  { label: "Diabetes Screening Alert", value: "diabetesScreeningAlert" },
+  { label: "Wellness Program Enrollment", value: "wellnessProgramEnrollment" }
 ];
 
 function BroadcastTemplateDetails({
@@ -26,6 +31,17 @@ function BroadcastTemplateDetails({
 }) {
   const [selectedTemplate, setSelectedTemplate] = useState("blank");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleDropdownSelect = (val) => {
+    setExistingTemplateValues(val);
+    const option = templateOptions.find((o) => o.value === val);
+    if (!option || !onSelectTemplate) return;
+    onSelectTemplate({
+      title: option.label,
+      ...(selectedModes.includes("Text") && { textTemplate }),
+      ...(selectedModes.includes("Voice") && { voiceTemplate })
+    });
+  };
 
   const showIconTemplate = selectedModes.includes("Email");
   const showRadioRow =
@@ -67,14 +83,15 @@ function BroadcastTemplateDetails({
                 placeholder="Enter Template Name"
               />
             ) : (
-              <ReusableMultiSelectDropdown
-                label="Select Template"
+              <ReusableDropDown
+                label="Template Name"
                 greenIcon={false}
-                placeholder="Select Template"
+                placeholder="Enter Template Name"
                 options={templateOptions}
                 value={existingTemplateValues}
-                onChange={setExistingTemplateValues}
+                onChange={handleDropdownSelect}
                 required={true}
+                overWriteClassName="topdown"
               />
             )}
           </div>
