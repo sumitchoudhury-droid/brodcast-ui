@@ -104,7 +104,6 @@ const BroadcastTextMessageEditor = ({
           .unsubscribe-footer {
             margin-top: 20px !important;
             padding-top: 10px !important;
-            border-top: 1px solid #EAECF0 !important;
             color: #475467 !important;
             font-size: 14px !important;
             font-family: Inter, sans-serif !important;
@@ -293,7 +292,7 @@ const BroadcastTextMessageEditor = ({
               attributes: {
                 class: "unsubscribe-footer",
                 style:
-                  "padding: 10px 0; color: #475467; font-size: 14px; border-top: 1px solid #EAECF0; font-family: Inter, sans-serif;"
+                  "padding: 10px 0; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
               },
               content: `Click here to unsubscribe: <a href="https://mh.care/stop" target="_blank" style="color: #1570EF; text-decoration: underline;">https://mh.care/stop</a>`,
               editable: false,

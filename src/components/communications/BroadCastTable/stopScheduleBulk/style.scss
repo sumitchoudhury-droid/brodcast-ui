@@ -47,6 +47,13 @@
         @include variable.font-style($fs: 13px, $fw: 600, $lh: 20px);
         padding: 10px 16px;
         white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: #dbede9;
+        }
 
         .headerContent {
           display: flex;
@@ -56,6 +63,7 @@
           .sortIcon {
             width: 18px;
             height: 18px;
+            flex-shrink: 0;
           }
         }
       }
