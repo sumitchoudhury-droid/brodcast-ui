@@ -1,8 +1,34 @@
-import { memo } from "react";
+import { memo, useState, useMemo } from "react";
 import ReusableRightDrawer from "../../../../reusableComponents/reusabeleRightDrawer/index";
-import sortIcon from "../../../../assets/boardCastTableIcons/sortIcon.svg";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import "./style.scss";
+
+const RenderSortIcon = ({ columnKey, sortConfig }) => {
+  const isCurrent = sortConfig.key === columnKey;
+  const upColor =
+    isCurrent && sortConfig.direction === "asc" ? "#107A6C" : "#77C1B6";
+  const downColor =
+    isCurrent && sortConfig.direction === "desc" ? "#107A6C" : "#77C1B6";
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="sortIcon"
+    >
+      <path
+        d="M13.2352 7.94118H4.76465L8.99994 3L13.2352 7.94118Z"
+        fill={upColor}
+      />
+      <path
+        d="M13.2352 10.0586H4.76465L8.99994 14.9998L13.2352 10.0586Z"
+        fill={downColor}
+      />
+    </svg>
+  );
+};
 
 export const StopScheduleBulk = memo(function StopScheduleBulk({
   isOpen,
@@ -11,6 +37,40 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
   selectedBroadcasts = []
 }) {
   const count = selectedBroadcasts.length;
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === "asc" ? "desc" : "asc"
+        };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  const sortedBroadcasts = useMemo(() => {
+    if (!sortConfig.key) return selectedBroadcasts;
+
+    return [...selectedBroadcasts].sort((a, b) => {
+      const valA = a[sortConfig.key];
+      const valB = b[sortConfig.key];
+
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+
+      const strA = String(valA);
+      const strB = String(valB);
+
+      const comparison = strA.localeCompare(strB, undefined, {
+        numeric: true,
+        sensitivity: "base"
+      });
+      return sortConfig.direction === "asc" ? comparison : -comparison;
+    });
+  }, [selectedBroadcasts, sortConfig]);
 
   return (
     <ReusableRightDrawer
@@ -21,13 +81,9 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
       className="stopScheduleBulkDrawer"
       footer={
         <div className="drawerFooterBtn">
+          <ReusableButton variant="primary" onClick={onClose} label="Cancel" />
           <ReusableButton
             variant="secondary"
-            onClick={onClose}
-            label="Cancel"
-          />
-          <ReusableButton
-            variant="primary"
             onClick={onConfirm}
             label="Confirm"
           />
@@ -44,33 +100,43 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
           <table>
             <thead>
               <tr>
-                <th>
+                <th onClick={() => handleSort("mode")}>
                   <div className="headerContent">
-                    Mode <img src={sortIcon} alt="sort" className="sortIcon" />
+                    Mode{" "}
+                    <RenderSortIcon columnKey="mode" sortConfig={sortConfig} />
                   </div>
                 </th>
-                <th>
+                <th onClick={() => handleSort("template")}>
                   <div className="headerContent">
                     Template{" "}
-                    <img src={sortIcon} alt="sort" className="sortIcon" />
+                    <RenderSortIcon
+                      columnKey="template"
+                      sortConfig={sortConfig}
+                    />
                   </div>
                 </th>
-                <th>
+                <th onClick={() => handleSort("appointmentType")}>
                   <div className="headerContent">
                     Appointment Type{" "}
-                    <img src={sortIcon} alt="sort" className="sortIcon" />
+                    <RenderSortIcon
+                      columnKey="appointmentType"
+                      sortConfig={sortConfig}
+                    />
                   </div>
                 </th>
-                <th>
+                <th onClick={() => handleSort("location")}>
                   <div className="headerContent">
                     Location{" "}
-                    <img src={sortIcon} alt="sort" className="sortIcon" />
+                    <RenderSortIcon
+                      columnKey="location"
+                      sortConfig={sortConfig}
+                    />
                   </div>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {selectedBroadcasts.map((broadcast) => (
+              {sortedBroadcasts.map((broadcast) => (
                 <tr key={broadcast.id}>
                   <td>{broadcast.mode || "-"}</td>
                   <td>{broadcast.template || "-"}</td>

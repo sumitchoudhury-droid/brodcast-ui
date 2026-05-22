@@ -91,7 +91,10 @@ export default function BroadcastTextMessageRightPanel({
       />
 
       <div className="panelSections">
-        <TextSignatureSection />
+        <TextSignatureSection
+          editorInstance={editorInstance}
+          isEditorEmpty={isEditorEmpty}
+        />
 
         <TextFontStyleContainer
           typography={typography}
@@ -150,11 +153,10 @@ export default function BroadcastTextMessageRightPanel({
             </label>
             <p className="required">*</p>
           </div>
-          <div className="emailInputWrapper">
+          <div className="phoneNumberInputWrapper">
             <input
-              type="number"
+              type="text"
               placeholder="Enter Phone Number"
-              className=" "
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
