@@ -287,6 +287,9 @@ export function ReusableDateTime({
                   <div className="timeColumns">
                     {/* Hours */}
                     <div className="timeColumn">
+                      <div className="timeColumnHeader">
+                        {get12Hour(tempDate).toString().padStart(2, "0")}
+                      </div>
                       <div className="timeList" ref={hourListRef}>
                         {hoursList.map((hour) => {
                           const isSelected = get12Hour(tempDate) === hour;
@@ -309,6 +312,9 @@ export function ReusableDateTime({
 
                     {/* Minutes */}
                     <div className="timeColumn">
+                      <div className="timeColumnHeader">
+                        {getMinutes(tempDate).toString().padStart(2, "0")}
+                      </div>
                       <div className="timeList" ref={minuteListRef}>
                         {minutesList.map((minute) => {
                           const isSelected = getMinutes(tempDate) === minute;
@@ -328,20 +334,23 @@ export function ReusableDateTime({
 
                     {/* AM / PM — 3rd column, right side */}
                     <div className="amPmColumn">
-                      <button
-                        type="button"
-                        className={`amPmBtn ${amPm === "AM" ? "active" : ""}`}
-                        onClick={() => handleAmPmToggle("AM")}
-                      >
-                        AM
-                      </button>
-                      <button
-                        type="button"
-                        className={`amPmBtn ${amPm === "PM" ? "active" : ""}`}
-                        onClick={() => handleAmPmToggle("PM")}
-                      >
-                        PM
-                      </button>
+                      <div className="timeColumnHeader">{amPm}</div>
+                      <div className="amPmButtons">
+                        <button
+                          type="button"
+                          className={`amPmBtn ${amPm === "AM" ? "active" : ""}`}
+                          onClick={() => handleAmPmToggle("AM")}
+                        >
+                          AM
+                        </button>
+                        <button
+                          type="button"
+                          className={`amPmBtn ${amPm === "PM" ? "active" : ""}`}
+                          onClick={() => handleAmPmToggle("PM")}
+                        >
+                          PM
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
