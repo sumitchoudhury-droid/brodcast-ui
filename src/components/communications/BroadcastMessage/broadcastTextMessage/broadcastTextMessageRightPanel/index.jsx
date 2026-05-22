@@ -153,11 +153,10 @@ export default function BroadcastTextMessageRightPanel({
             </label>
             <p className="required">*</p>
           </div>
-          <div className="emailInputWrapper">
+          <div className="phoneNumberInputWrapper">
             <input
-              type="number"
+              type="text"
               placeholder="Enter Phone Number"
-              className=" "
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
