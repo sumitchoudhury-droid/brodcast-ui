@@ -32,8 +32,7 @@ const BroadcastTextVoiceMessageEditor = ({
       showDevices: false,
       canvas: {
         styles: [
-          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-          "data:text/css,.text-editor-content:empty::before { content: attr(data-placeholder); color: #D3DBE4; pointer-events: none; display: block; font-style: normal; }"
+          "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
         ]
       }
     });
@@ -194,15 +193,21 @@ const BroadcastTextVoiceMessageEditor = ({
     // Catch real-time typing inside the GrapesJS canvas
     editor.on("load", () => {
       updateContent();
+      const doc = editor.Canvas.getDocument();
+      if (doc) {
+        const style = doc.createElement("style");
+        style.textContent =
+          ".text-editor-content:empty::before { content: attr(data-placeholder); color: #98A2B3; pointer-events: none; display: block; font-style: normal; }";
+        doc.head.appendChild(style);
+      }
       const wrapper = editor.getWrapper().find(".text-editor-content")[0];
       const el = wrapper?.getEl();
       if (el) {
         el.addEventListener("input", updateContent);
       }
 
-      const doc2 = editor.Canvas.getDocument();
       const win2 = editor.Canvas.getWindow();
-      doc2?.addEventListener("selectionchange", () => {
+      doc?.addEventListener("selectionchange", () => {
         const sel = win2?.getSelection();
         if (sel && sel.rangeCount > 0) {
           savedRange.current = sel.getRangeAt(0).cloneRange();
@@ -210,7 +215,6 @@ const BroadcastTextVoiceMessageEditor = ({
       });
 
       // Handle external drops (placeholders)
-      const doc = editor.Canvas.getDocument();
       if (doc) {
         doc.addEventListener("dragover", (e) => {
           const isPlaceholder = e.dataTransfer.types.includes(
