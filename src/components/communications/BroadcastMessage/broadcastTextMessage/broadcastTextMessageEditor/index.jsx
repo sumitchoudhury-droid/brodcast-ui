@@ -912,7 +912,7 @@ const BroadcastTextMessageEditor = ({
           const containerComp = wrapper.find(".text-editor-container")[0];
           const formComp = wrapper.find(".text-form-section")[0];
 
-          const linkHtml = `<a href="${url}" target="_blank" style="color: #1570EF; text-decoration: underline; font-family: Inter, sans-serif; font-size: 16px;">${text}</a>`;
+          const linkHtml = `Kindly review and submit the form at the link below.<br><a href="${url}" target="_blank" style="color: #1570EF; text-decoration: underline; font-family: Inter, sans-serif; font-size: 16px;">${url}</a>`;
 
           if (formComp) {
             if (!url) {

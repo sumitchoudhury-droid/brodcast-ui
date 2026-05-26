@@ -8,13 +8,10 @@ import { ReusableModal } from "../../../../../../reusableComponents/reusableModa
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
 import { htmlToMjml, isMjml } from "../../../../../../utils/htmlToMjml";
 import { useToast } from "../../../../../../hooks/useToast";
-import ReusableLinkModal from "../../../../../../reusableComponents/reusableLinkModal/index";
 
 export default function SignatureSection({ editorRef }) {
   const [signature, setSignature] = useState("");
   const [onDemandForm, setOnDemandForm] = useState("");
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-  const [linkValue, setLinkValue] = useState("");
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -166,23 +163,13 @@ export default function SignatureSection({ editorRef }) {
 
   const handleOnDemandFormClick = (value) => {
     setOnDemandForm(value);
-    setLinkValue(""); // Reset link value when a new form is selected
-    setIsLinkModalOpen(true);
-  };
 
-  const handleLinkModalConfirm = () => {
     const editor = editorRef?.current?.getEditor();
     if (!editor) {
       toast.error("Editor Error", "Editor instance not found");
       return;
     }
 
-    if (!linkValue) {
-      toast.error("Invalid Link", "Please enter a URL for the form");
-      return;
-    }
-
-    // Find mj-body
     const wrapper = editor.getWrapper();
     let mjBody = null;
     const findBody = (comp) => {
@@ -196,17 +183,17 @@ export default function SignatureSection({ editorRef }) {
     findBody(wrapper);
     if (!mjBody) return;
 
-    // Build MJML for the on-demand form link (as a blue text link opening in new tab)
+    const formUrl = `https://forms.manipalhospitals.com/${value}`;
     const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" padding="10px 0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="10px 0px" font-family="Inter" font-size="16px" color="#007bff">
-      <a href="${linkValue}" target="_blank" style="color: #007bff; text-decoration: underline;">${onDemandForm}</a>
+    <mj-text padding="10px 0px" font-family="Inter" font-size="16px" color="#181D25" line-height="24px">
+      Kindly review and submit the form at the link below.<br />
+      <a href="${formUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${formUrl}</a>
     </mj-text>
   </mj-column>
 </mj-section>`;
 
     mjBody.append(newFormHtml);
-    setIsLinkModalOpen(false);
     toast.success("Success", "On-demand form link added to editor");
   };
 
@@ -273,16 +260,6 @@ export default function SignatureSection({ editorRef }) {
           </p>
         </div>
       </ReusableModal>
-
-      <ReusableLinkModal
-        isOpen={isLinkModalOpen}
-        onClose={() => setIsLinkModalOpen(false)}
-        onConfirm={handleLinkModalConfirm}
-        formName={onDemandForm}
-        setFormName={setOnDemandForm}
-        linkValue={linkValue}
-        setLinkValue={setLinkValue}
-      />
     </>
   );
 }
