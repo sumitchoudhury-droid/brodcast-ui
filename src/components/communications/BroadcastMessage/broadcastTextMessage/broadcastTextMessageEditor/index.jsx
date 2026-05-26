@@ -204,7 +204,7 @@ const BroadcastTextMessageEditor = ({
             pointer-events: none;
             display: block;
             position: absolute;
-            left: 0;
+            left: 16px;
             top: 10px;
             width: 100%;
             white-space: pre-wrap;
@@ -276,7 +276,7 @@ const BroadcastTextMessageEditor = ({
                 "data-placeholder":
                   "Start typing or drag and drop a placeholder from left panel.",
                 style:
-                  "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
+                  "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
               },
               content: "",
               editable: true,
@@ -292,7 +292,7 @@ const BroadcastTextMessageEditor = ({
               attributes: {
                 class: "unsubscribe-footer",
                 style:
-                  "padding: 10px 0; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
+                  "padding: 10px 16px; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
               },
               content: `Click here to unsubscribe: <a href="https://mh.care/stop" target="_blank" style="color: #1570EF; text-decoration: underline;">https://mh.care/stop</a>`,
               editable: false,
