@@ -423,9 +423,10 @@
       }
 
       .phoneMockup {
-        width: 375px;
-        height: 620px;
-        border: 12px solid variable.$color-black-11;
+        width: auto;
+        height: calc(100vh - 222px);
+        aspect-ratio: 375 / 670;
+        border: 10px solid variable.$color-black-11;
         border-radius: 36px;
         background-color: variable.$color-black-0;
         position: relative;
