@@ -7,7 +7,7 @@ import backIcon from "../../../../../../assets/commonIcons/backIcon.svg";
 import "./style.scss";
 
 const TextPreviewModal = ({ isOpen, onClose, html }) => {
-  const [selectedDevice, setSelectedDevice] = useState("Desktop");
+  const [selectedDevice, setSelectedDevice] = useState("Mobile");
   const iframeRef = useRef(null);
 
   const getSrcDoc = () => {
@@ -50,7 +50,7 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: #fff;
-      padding: ${selectedDevice === "Mobile" ? "0" : "20px"};
+      padding: ${selectedDevice === "Mobile" ? "16px" : "20px"};
       margin: 0;
     }
     ${
@@ -115,7 +115,7 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
           <div className="headerLeft">
             <h3>Text Preview</h3>
             <div className="deviceToggle">
-              <button
+              {/* <button
                 className={`toggleBtn ${selectedDevice === "Desktop" ? "active" : ""}`}
                 onClick={() => setSelectedDevice("Desktop")}
               >
@@ -140,7 +140,7 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
                   />
                 </svg>
                 <span>Desktop</span>
-              </button>
+              </button> */}
               <button
                 className={`toggleBtn ${selectedDevice === "Mobile" ? "active" : ""}`}
                 onClick={() => setSelectedDevice("Mobile")}

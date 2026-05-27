@@ -33,7 +33,7 @@ export const BroadcastDetails = ({
     },
     {
       value: "high",
-      label: "High Priority"
+      label: "High"
     }
   ];
 

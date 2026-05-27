@@ -1,24 +1,24 @@
-import { useState } from "react";
+// import { useState } from "react";
 import "./style.scss";
 
 export const TextDeviceSwitcher = ({
   handlePreview,
-  isEditorEmpty,
-  editorRef
+  isEditorEmpty
+  // editorRef
 }) => {
-  const [activeDevice, setActiveDevice] = useState("desktop");
+  // const [activeDevice, setActiveDevice] = useState("desktop");
 
-  const setDevice = (device) => {
-    setActiveDevice(device);
-    editorRef.current?.setDevice(device === "desktop" ? "Desktop" : "Mobile");
-  };
+  // const setDevice = (device) => {
+  //   setActiveDevice(device);
+  //   editorRef.current?.setDevice(device === "desktop" ? "Desktop" : "Mobile");
+  // };
 
   return (
     <div
       className="deviceSwitcherContainer"
       style={{ justifyContent: isEditorEmpty ? "flex-end" : "space-between" }}
     >
-      {!isEditorEmpty && (
+      {/* {!isEditorEmpty && (
         <div className="deviceToggle">
           <button
             className={`deviceBtn ${activeDevice === "desktop" ? "active" : ""}`}
@@ -56,7 +56,7 @@ export const TextDeviceSwitcher = ({
             </svg>
           </button>
         </div>
-      )}
+      )} */}
       <button
         className="previewBtn"
         onClick={handlePreview}
