@@ -4,7 +4,6 @@ import signatureIcon from "../../../../../../assets/commonIcons/signatureIcon.sv
 import fileTextIcon from "../../../../../../assets/commonIcons/fileTextIcon.svg";
 import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
 import { useToast } from "../../../../../../hooks/useToast";
-import ReusableLinkModal from "../../../../../../reusableComponents/reusableLinkModal/index";
 
 export default function TextSignatureSection({
   editorInstance,
@@ -12,8 +11,6 @@ export default function TextSignatureSection({
 }) {
   const [signature, setSignature] = useState("");
   const [onDemandForm, setOnDemandForm] = useState("");
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-  const [linkValue, setLinkValue] = useState("");
   const toast = useToast();
 
   const applySignatureToEditor = (selectedValue) => {
@@ -61,23 +58,14 @@ export default function TextSignatureSection({
 
   const handleOnDemandFormClick = (value) => {
     setOnDemandForm(value);
-    setLinkValue(""); // Reset link value when a new form is selected
-    setIsLinkModalOpen(true);
-  };
 
-  const handleLinkModalConfirm = () => {
     if (!editorInstance) {
       toast.error("Editor Error", "Editor instance not found");
       return;
     }
 
-    if (!linkValue) {
-      toast.error("Invalid Link", "Please enter a URL for the form");
-      return;
-    }
-
-    editorInstance.insertFormLink(onDemandForm, linkValue);
-    setIsLinkModalOpen(false);
+    const formUrl = `https://forms.manipalhospitals.com/${value}`;
+    editorInstance.insertFormLink(value, formUrl);
     toast.success("Success", "On-demand form link added to editor");
   };
 
@@ -99,15 +87,6 @@ export default function TextSignatureSection({
           valueImage={fileTextIcon}
         />
       </div>
-      <ReusableLinkModal
-        isOpen={isLinkModalOpen}
-        onClose={() => setIsLinkModalOpen(false)}
-        onConfirm={handleLinkModalConfirm}
-        formName={onDemandForm}
-        setFormName={setOnDemandForm}
-        linkValue={linkValue}
-        setLinkValue={setLinkValue}
-      />
     </>
   );
 }
