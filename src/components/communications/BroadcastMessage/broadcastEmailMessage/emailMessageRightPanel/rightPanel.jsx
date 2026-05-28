@@ -100,7 +100,7 @@ function execInCanvas(editor, command, value = null) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// syncContentToModel
+// syncContentToModel — used when RTE is still active (selection-based changes)
 // ─────────────────────────────────────────────────────────────────────────────
 function syncContentToModel(editor) {
   const selected = editor?.getSelected();
@@ -111,11 +111,58 @@ function syncContentToModel(editor) {
     const view = selected.getView?.();
     const el = view?.el;
     if (!el) return;
-    const editable = el.querySelector("[contenteditable]") || el;
+    const editable = el.querySelector("[contenteditable]");
+    if (!editable) return;
     const html = editable.innerHTML;
     if (html !== undefined) {
       selected.set("content", html, { silent: true });
     }
+  } catch {
+    /* ignore */
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// syncLiveContentToModel — call BEFORE addStyle() to prevent placeholder loss
+//
+// When a placeholder is inserted via execCommand, the canvas DOM has the new
+// text but the GrapesJS model is stale.  addStyle() triggers a rerender which
+// reads from the model, erasing the placeholder.
+//
+// This function reads the live DOM via view.getChildrenContainer() — which
+// works even after the RTE has been deactivated (contenteditable removed) —
+// and resets child component models so updateContent() will use model.content
+// instead of re-rendering the (stale) child collection.
+// ─────────────────────────────────────────────────────────────────────────────
+function syncLiveContentToModel(selectedComp) {
+  if (!selectedComp) return;
+  const type = selectedComp.get("type");
+  if (type !== "mj-text" && type !== "mj-button") return;
+  try {
+    const view = selectedComp.getView?.();
+    const el = view?.el;
+    if (!el) return;
+
+    // Prefer contenteditable when RTE is active; fall back to the canonical
+    // GrapesJS children container which points to the same inner element.
+    let contentEl = el.querySelector("[contenteditable]");
+    if (!contentEl) {
+      contentEl = view.getChildrenContainer?.() ?? null;
+    }
+    if (!contentEl) return;
+
+    const html = contentEl.innerHTML;
+    if (!html) return;
+
+    // Reset child component models so updateContent() uses model.content
+    // (when children exist, updateContent sets innerHTML to '' instead).
+    try {
+      selectedComp.components().reset([], { silent: true });
+    } catch {
+      /* ignore */
+    }
+
+    selectedComp.set("content", html, { silent: true });
   } catch {
     /* ignore */
   }
@@ -1636,7 +1683,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         return;
       }
 
-      // No selection — apply color to the whole component
+      // No selection — apply color to the whole component.
+      // Sync live canvas content first so the rerender that addStyle() triggers
+      // doesn't erase any placeholders inserted via execCommand.
+      syncLiveContentToModel(selectedComp);
       selectedComp.addStyle({ color: c });
       const content = selectedComp.get("content") || "";
       const canvasDoc = getCanvasDoc(editor);
@@ -1710,6 +1760,9 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         }
       }
 
+      // Sync live canvas content before addStyle() triggers a rerender,
+      // otherwise any placeholders inserted via execCommand are erased.
+      syncLiveContentToModel(selectedComp);
       selectedComp.addStyle({ [cssKey]: cssValue });
 
       // Clean up internal overrides if no selection

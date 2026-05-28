@@ -1290,6 +1290,45 @@ export default function Editor({
       ]);
       extendStylable("mj-spacer", ["width", "max-width", "height"]);
 
+      // ── Preserve live-canvas content across re-renders ──────────────────────
+      // grapesjs-mjml's rerender() re-generates HTML from the model, so any
+      // text inserted via execCommand (e.g. placeholders) is lost because it
+      // only lives in the canvas DOM and not yet in the model.
+      // Patching rerender() to first flush the live contenteditable into the
+      // model (silent, no cascade) ensures the subsequent render() reads the
+      // correct content including any inserted placeholders.
+      for (const typeName of ["mj-text", "mj-button"]) {
+        const typeObj = editor.Components.getType(typeName);
+        if (!typeObj) continue;
+        const originalRerender = typeObj.view.prototype.rerender;
+        editor.Components.addType(typeName, {
+          view: {
+            rerender(...args) {
+              // Use contenteditable when RTE is active; fall back to
+              // getChildrenContainer() which works after RTE deactivation.
+              const editable = this.el?.querySelector("[contenteditable]");
+              const contentEl = editable || this.getChildrenContainer?.();
+              if (contentEl) {
+                const liveHtml = contentEl.innerHTML;
+                if (liveHtml) {
+                  // Clear stale child models so updateContent() uses
+                  // model.content rather than re-rendering them as ''.
+                  try {
+                    this.model.components().reset([], { silent: true });
+                  } catch {
+                    /* ignore */
+                  }
+                  this.model.set("content", liveHtml, { silent: true });
+                }
+              }
+              return originalRerender
+                ? originalRerender.apply(this, args)
+                : this.render(...args);
+            }
+          }
+        });
+      }
+
       const patchInstance = (comp) => {
         const type = comp.get("type");
         const inFrame =
