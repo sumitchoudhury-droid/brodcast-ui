@@ -60,9 +60,16 @@ export const ReusableMultiSelectDropdown = ({
     setTempSelectedValues(updated);
   };
 
-  const handleDeselectAll = () => {
-    setTempSelectedValues([]);
-    setShowOnlySelected(false);
+  const allSelected =
+    options.length > 0 && tempSelectedValues.length === options.length;
+
+  const handleSelectDeselectAll = () => {
+    if (allSelected) {
+      setTempSelectedValues([]);
+      setShowOnlySelected(false);
+    } else {
+      setTempSelectedValues(options.map((o) => o.value));
+    }
   };
 
   const handleDone = () => {
@@ -141,9 +148,9 @@ export const ReusableMultiSelectDropdown = ({
           <div className="multidropdownSelectContainerOptionsContainer">
             <div className="checkboxMulti">
               <ReusableCheckbox
-                label="Deselect all"
-                checked={tempSelectedValues.length === 0}
-                onChange={handleDeselectAll}
+                label={allSelected ? "Deselect all" : "Select all"}
+                checked={allSelected}
+                onChange={handleSelectDeselectAll}
               />
               <ReusableCheckbox
                 label="Show only selected"
