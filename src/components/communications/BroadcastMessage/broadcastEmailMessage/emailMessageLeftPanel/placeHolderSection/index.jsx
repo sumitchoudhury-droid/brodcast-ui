@@ -128,6 +128,19 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
     // for all cursor positions — avoids Range.insertNode's spec quirks around
     // post-insertion range repositioning.
     canvasWindow.document.execCommand("insertText", false, value);
+
+    // Sync the updated DOM back into the GrapesJS model immediately while
+    // contenteditable is still active. Without this, style changes applied
+    // from the right panel read the stale pre-insertion model content and
+    // write it back, erasing the placeholder.
+    const selected = editor.getSelected?.();
+    if (selected) {
+      try {
+        selected.set("content", el.innerHTML, { silent: true });
+      } catch {
+        /* ignore */
+      }
+    }
   };
 
   return (
