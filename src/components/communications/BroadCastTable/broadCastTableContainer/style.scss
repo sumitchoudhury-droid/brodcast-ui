@@ -49,6 +49,9 @@
     left: 0;
     top: 0;
     z-index: 4;
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
   }
 
   th:last-child {
@@ -59,6 +62,10 @@
     width: 90px;
     min-width: 90px;
     max-width: 90px;
+
+    &.settings-open {
+      z-index: 10;
+    }
   }
 
   th:nth-last-child(2) {
@@ -66,9 +73,9 @@
     right: 90px;
     top: 0;
     z-index: 4;
-    width: 170px;
-    min-width: 170px;
-    max-width: 170px;
+    width: 152px;
+    min-width: 152px;
+    max-width: 152px;
   }
 
   td {
@@ -76,7 +83,8 @@
     @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
     color: variable.$color-black-6;
     vertical-align: middle;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
   }
 
   td:first-child {
@@ -85,6 +93,9 @@
     background-color: inherit;
     z-index: 1;
     box-shadow: 4px 0 8px -4px rgba(0, 0, 0, 0.1);
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
   }
 
   td:last-child {
@@ -103,9 +114,63 @@
     background-color: inherit;
     z-index: 1;
     box-shadow: -4px 0 8px -4px rgba(0, 0, 0, 0.1);
+    width: 175px;
+    min-width: 175px;
+    max-width: 175px;
+  }
+
+  .col-select {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+  }
+
+  .col-mode {
+    width: 85px;
+    min-width: 85px;
+    max-width: 85px;
+  }
+
+  .col-template {
     width: 170px;
     min-width: 170px;
     max-width: 170px;
+  }
+
+  .col-appointmentType {
+    width: 205px;
+    min-width: 205px;
+    max-width: 205px;
+  }
+
+  .col-location {
+    width: 216px;
+    min-width: 216px;
+    max-width: 216px;
+  }
+
+  .col-provider {
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+  }
+
+  .col-scheduledDateTime {
+    width: 179px;
+    min-width: 179px;
+    max-width: 179px;
+  }
+
+  .col-messageStatus {
+    width: 124px;
+    min-width: 124px;
+    max-width: 124px;
+  }
+
+  .col-broadcastStatus {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
   }
 
   tbody tr {
@@ -158,7 +223,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    white-space: nowrap;
+    width: 100%;
+    min-width: 0;
+
+    .mode-text {
+      flex: 1;
+      min-width: 0;
+      white-space: normal;
+      word-break: break-word;
+    }
 
     .error-icon {
       color: #ef4444;
@@ -172,7 +245,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    white-space: nowrap;
+    white-space: normal;
     width: 100%;
     min-width: 0;
 
@@ -180,9 +253,8 @@
       flex: 1;
       min-width: 0;
       display: inline-block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      word-break: break-word;
     }
 
     .tooltip-wrapper {
@@ -369,11 +441,16 @@
   }
 
   .search-filters-row {
+    transition:
+      visibility 0.25s ease-in-out,
+      opacity 0.25s ease-in-out;
+
     th {
       position: sticky;
       top: 44px;
       z-index: 3;
       background-color: #ffffff;
+      transition: padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:first-child {
         position: sticky;
@@ -381,6 +458,9 @@
         top: 44px;
         z-index: 4;
         background-color: #ffffff !important;
+        width: 60px;
+        min-width: 60px;
+        max-width: 60px;
       }
 
       &:last-child {
@@ -400,9 +480,41 @@
         top: 44px;
         z-index: 4;
         background-color: #ffffff !important;
-        width: 170px;
-        min-width: 170px;
-        max-width: 170px;
+        width: 152px;
+        min-width: 152px;
+        max-width: 152px;
+      }
+    }
+
+    &.hidden {
+      visibility: collapse;
+      opacity: 0;
+
+      th {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
+      .search-input-wrapper {
+        height: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+    }
+
+    &.visible {
+      visibility: visible;
+      opacity: 1;
+
+      th {
+        padding-top: 12px;
+        padding-bottom: 12px;
+      }
+
+      .search-input-wrapper {
+        height: 32px;
+        opacity: 1;
+        pointer-events: auto;
       }
     }
 
@@ -410,6 +522,10 @@
       width: 100%;
       display: flex;
       align-items: center;
+      transition:
+        height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.25s ease-in-out;
+      overflow: hidden;
 
       input {
         width: 100%;

@@ -38,7 +38,10 @@ function TargetRecipients({
   onSearch
 }) {
   const handleSearch = () => {
-    if (startDateTime && endDateTime) {
+    const hasStartDateTime = Array.isArray(startDateTime)
+      ? startDateTime.length > 0
+      : !!startDateTime;
+    if (hasStartDateTime && endDateTime) {
       onSearch();
     }
   };
@@ -46,12 +49,18 @@ function TargetRecipients({
     <>
       <div className="formRow">
         <div className="formGroup">
-          <ReusableDropDown
+          <ReusableMultiSelectDropdown
             label="Appointment Type"
             greenIcon={false}
             placeholder="Select Appointment Type"
             options={appointmentTypeOptions}
-            value={appointmentType}
+            value={
+              Array.isArray(appointmentType)
+                ? appointmentType
+                : appointmentType
+                  ? [appointmentType]
+                  : []
+            }
             onChange={(val) => setAppointmentType(val)}
           />
         </div>
@@ -125,7 +134,7 @@ function TargetRecipients({
       <div className="dateAndTimeContainer">
         <div className="dateContainer">
           <ReusableDateTime
-            label={"Appointment Start Date / Time"}
+            label="Appointment Start Date / Time"
             required={true}
             selected={startDateTime}
             onChange={(date) => setStartDateTime(date)}

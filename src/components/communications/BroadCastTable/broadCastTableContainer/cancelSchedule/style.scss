@@ -31,8 +31,8 @@
     background-color: variable.$color-white-0;
 
     .modalTitle {
-      @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
-      color: variable.$color-black-8;
+      @include variable.font-style($fs: 16px, $fw: 600, $lh: 20px);
+      color: variable.$color-black-6;
       margin: 0;
     }
 
@@ -64,7 +64,7 @@
 
     .warningText {
       @include variable.font-style($fs: 16px, $fw: 600, $lh: 24px);
-      color: variable.$color-black-8;
+      color: variable.$color-red-3;
       margin: 0 0 16px 0;
     }
 

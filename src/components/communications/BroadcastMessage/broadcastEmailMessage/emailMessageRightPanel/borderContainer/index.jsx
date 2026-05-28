@@ -149,9 +149,17 @@ const BorderContainer = ({
           <div className="inputWrapper">
             <input
               type="number"
-              value={borderWidth}
+              value={
+                borderWidth === "0" ||
+                borderWidth === "" ||
+                borderWidth === undefined ||
+                borderWidth === null
+                  ? ""
+                  : borderWidth
+              }
               onChange={(e) => handleBorderChange("width", e.target.value)}
               min="0"
+              placeholder="0"
             />
             <span className="unit">px</span>
           </div>
@@ -168,11 +176,19 @@ const BorderContainer = ({
             <div className="inputWrapper">
               <input
                 type="number"
-                value={borderRadius[corner.key] ?? ""}
+                value={
+                  borderRadius[corner.key] === "0" ||
+                  borderRadius[corner.key] === "" ||
+                  borderRadius[corner.key] === undefined ||
+                  borderRadius[corner.key] === null
+                    ? ""
+                    : borderRadius[corner.key]
+                }
                 onChange={(e) =>
                   handleBorderRadiusChange(corner.key, e.target.value)
                 }
                 min="0"
+                placeholder="0"
               />
               <span className="unit">px</span>
             </div>

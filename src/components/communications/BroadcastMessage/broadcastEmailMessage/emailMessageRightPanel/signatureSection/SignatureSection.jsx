@@ -6,11 +6,10 @@ import fileHtmlIcon from "../../../../../../assets/commonIcons/fileHtmlIcon.svg"
 import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal";
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
-import { htmlToMjml, isMjml } from "../../../../../../utils/htmlToMjml";
 import { useToast } from "../../../../../../hooks/useToast";
 import ReusableLinkModal from "../../../../../../reusableComponents/reusableLinkModal/index";
 
-export default function SignatureSection({ editorRef }) {
+export default function SignatureSection({ editorRef, isEditorEmpty }) {
   const [signature, setSignature] = useState("");
   const [onDemandForm, setOnDemandForm] = useState("");
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -25,7 +24,6 @@ export default function SignatureSection({ editorRef }) {
     const editor = editorRef?.current?.getEditor();
     if (!editor) return;
 
-    // Find mj-body
     const wrapper = editor.getWrapper();
     let mjBody = null;
     const findBody = (comp) => {
@@ -37,21 +35,22 @@ export default function SignatureSection({ editorRef }) {
       comp.components().each(findBody);
     };
     findBody(wrapper);
-    if (!mjBody) return;
 
-    // Find the existing signature section
+    // Recursively find if there is an existing signature section
     let existingSig = null;
-    mjBody.components().each((c) => {
-      if (c.getAttributes?.()?.["data-type"] === "signature-section") {
-        existingSig = c;
+    const findSigComp = (comp) => {
+      if (existingSig) return;
+      if (comp.getAttributes?.()?.["data-type"] === "signature-section") {
+        existingSig = comp;
+        return;
       }
-    });
-    if (existingSig) {
-      existingSig.remove();
-    }
+      comp.components().each(findSigComp);
+    };
+    findSigComp(wrapper);
 
-    // Build replacement MJML with the selected signature text.
-    const newSigHtml = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
+    if (mjBody) {
+      // MJML mode
+      const newSigHtml = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text padding="16px 0px" margin="0px" color="#181D25" font-size="20px" font-weight="500" font-family="Inter" line-height="20px">
       ${selectedValue}
@@ -59,7 +58,29 @@ export default function SignatureSection({ editorRef }) {
   </mj-column>
 </mj-section>`;
 
-    mjBody.append(newSigHtml);
+      if (existingSig) {
+        const parent = existingSig.parent();
+        const idx = parent.components().indexOf(existingSig);
+        existingSig.remove();
+        parent.components().add(newSigHtml, { at: idx });
+      } else {
+        mjBody.append(newSigHtml);
+      }
+    } else {
+      // HTML mode
+      const newSigHtml = `<div data-type="signature-section" style="padding: 16px 0px; margin: 0px; color: #181D25; font-size: 20px; font-weight: 500; font-family: Inter, sans-serif; line-height: 20px;">
+        ${selectedValue}
+      </div>`;
+
+      if (existingSig) {
+        const parent = existingSig.parent();
+        const idx = parent.components().indexOf(existingSig);
+        existingSig.remove();
+        parent.components().add(newSigHtml, { at: idx });
+      } else {
+        wrapper.append(newSigHtml);
+      }
+    }
   };
 
   const handleSignatureChange = (value) => {
@@ -116,24 +137,15 @@ export default function SignatureSection({ editorRef }) {
     try {
       const text = await selectedFile.text();
 
-      let mjmlContent;
-      if (isMjml(text) || selectedFile.name.toLowerCase().endsWith(".mjml")) {
-        // File is already MJML — use it directly
-        mjmlContent = text;
-        console.log(
-          "[ImportTemplate] File detected as MJML, loading directly."
-        );
-      } else {
-        // Convert HTML → MJML
-        console.log("[ImportTemplate] Converting HTML → MJML…");
-        mjmlContent = htmlToMjml(text);
-      }
+      // Bypass htmlToMjml conversion completely to preserve 100% of the original template styles and structure.
+      // Load standard HTML or MJML directly.
+      const templateContent = text;
 
       const loadFn = editorRef?.current?.loadTemplate;
       if (!loadFn)
         throw new Error("Editor not ready — loadTemplate unavailable.");
 
-      loadFn(mjmlContent);
+      loadFn(templateContent);
 
       setOpenConfirmModal(false);
       setOpenUploadModal(false);
@@ -182,7 +194,6 @@ export default function SignatureSection({ editorRef }) {
       return;
     }
 
-    // Find mj-body
     const wrapper = editor.getWrapper();
     let mjBody = null;
     const findBody = (comp) => {
@@ -194,10 +205,22 @@ export default function SignatureSection({ editorRef }) {
       comp.components().each(findBody);
     };
     findBody(wrapper);
-    if (!mjBody) return;
 
-    // Build MJML for the on-demand form link (as a blue text link opening in new tab)
-    const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" padding="10px 0px" margin="0px" width="100%" background-color="transparent">
+    // Recursively find if there is an existing on-demand form section
+    let existingForm = null;
+    const findFormComp = (comp) => {
+      if (existingForm) return;
+      if (comp.getAttributes?.()?.["data-type"] === "on-demand-form-section") {
+        existingForm = comp;
+        return;
+      }
+      comp.components().each(findFormComp);
+    };
+    findFormComp(wrapper);
+
+    if (mjBody) {
+      // MJML mode
+      const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" padding="10px 0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text padding="10px 0px" font-family="Inter" font-size="16px" color="#007bff">
       <a href="${linkValue}" target="_blank" style="color: #007bff; text-decoration: underline;">${onDemandForm}</a>
@@ -205,7 +228,60 @@ export default function SignatureSection({ editorRef }) {
   </mj-column>
 </mj-section>`;
 
-    mjBody.append(newFormHtml);
+      if (existingForm) {
+        const parent = existingForm.parent();
+        const idx = parent.components().indexOf(existingForm);
+        existingForm.remove();
+        parent.components().add(newFormHtml, { at: idx });
+      } else {
+        // If signature section exists, place the form section just above it
+        let existingSig = null;
+        mjBody.components().each((c) => {
+          if (c.getAttributes?.()?.["data-type"] === "signature-section") {
+            existingSig = c;
+          }
+        });
+        if (existingSig) {
+          const idx = mjBody.components().indexOf(existingSig);
+          mjBody.components().add(newFormHtml, { at: idx });
+        } else {
+          mjBody.append(newFormHtml);
+        }
+      }
+    } else {
+      // HTML mode
+      const newFormHtml = `<div data-type="on-demand-form-section" style="padding: 10px 0px; margin: 0px; font-family: Inter, sans-serif; font-size: 16px; color: #007bff;">
+        <a href="${linkValue}" target="_blank" style="color: #007bff; text-decoration: underline;">${onDemandForm}</a>
+      </div>`;
+
+      if (existingForm) {
+        const parent = existingForm.parent();
+        const idx = parent.components().indexOf(existingForm);
+        existingForm.remove();
+        parent.components().add(newFormHtml, { at: idx });
+      } else {
+        // If signature section exists, place the form section just above it
+        let existingSig = null;
+        const findSigComp = (comp) => {
+          if (existingSig) return;
+          if (comp.getAttributes?.()?.["data-type"] === "signature-section") {
+            existingSig = comp;
+            return;
+          }
+          comp.components().each(findSigComp);
+        };
+        findSigComp(wrapper);
+
+        if (existingSig) {
+          const parent = existingSig.parent();
+          const idx = parent.components().indexOf(existingSig);
+          parent.components().add(newFormHtml, { at: idx });
+        } else {
+          wrapper.append(newFormHtml);
+        }
+      }
+    }
+
     setIsLinkModalOpen(false);
     toast.success("Success", "On-demand form link added to editor");
   };
@@ -228,14 +304,16 @@ export default function SignatureSection({ editorRef }) {
           valueImage={fileTextIcon}
         />
 
-        <div className="importTemplateContainer" onClick={handleImportClick}>
-          <img
-            src={fileHtmlIcon}
-            alt="fileHtmlIcon"
-            className="importTemplateContainerImage"
-          />
-          <p>Import Template</p>
-        </div>
+        {isEditorEmpty && (
+          <div className="importTemplateContainer" onClick={handleImportClick}>
+            <img
+              src={fileHtmlIcon}
+              alt="fileHtmlIcon"
+              className="importTemplateContainerImage"
+            />
+            <p>Import Template</p>
+          </div>
+        )}
       </div>
 
       {/* ── Upload modal ──────────────────────────────────────────────────── */}
