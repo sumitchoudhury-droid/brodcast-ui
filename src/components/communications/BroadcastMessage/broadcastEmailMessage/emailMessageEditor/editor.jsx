@@ -476,13 +476,31 @@ export default function Editor({
       })
       .join("");
 
-    const sectionHtml = isHtmlTemplate.current
-      ? `<div data-type="attachment-filled" style="padding:0px; margin:0px; width:100%; box-sizing:border-box;">
-          <div class="attachment-items-wrapper">
-            ${itemsHtml}
-          </div>
-        </div>`
-      : `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
+    if (isHtmlTemplate.current) {
+      editor.select(null);
+      isUnwrapping.current = true;
+      try {
+        targetComp.components().reset();
+        targetComp.set("content", "");
+        targetComp.addAttributes({
+          "data-type": "attachment-filled",
+          style: "padding:0px; margin:0px; width:100%; box-sizing:border-box;"
+        });
+        targetComp.components(
+          `<div class="attachment-items-wrapper">${itemsHtml}</div>`
+        );
+
+        const view = targetComp.getView?.();
+        if (view && typeof view.render === "function") {
+          view.render();
+        } else {
+          editor.trigger("component:update", targetComp);
+        }
+      } finally {
+        isUnwrapping.current = false;
+      }
+    } else {
+      const sectionHtml = `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
           <mj-column width="100%" vertical-align="top" padding="0px">
             <mj-text padding="0px" width="100%">
               <div class="attachment-items-wrapper">
@@ -492,18 +510,19 @@ export default function Editor({
           </mj-column>
         </mj-section>`;
 
-    const parent = targetComp.parent();
-    const idx = parent.components().indexOf(targetComp);
+      const parent = targetComp.parent();
+      const idx = parent.components().indexOf(targetComp);
 
-    editor.select(null);
+      editor.select(null);
 
-    isUnwrapping.current = true;
-    try {
-      targetComp.remove();
-      parent.components().add(sectionHtml, { at: idx });
-      editor.trigger("component:update", parent);
-    } finally {
-      isUnwrapping.current = false;
+      isUnwrapping.current = true;
+      try {
+        targetComp.remove();
+        parent.components().add(sectionHtml, { at: idx });
+        editor.trigger("component:update", parent);
+      } finally {
+        isUnwrapping.current = false;
+      }
     }
 
     e.target.value = "";
@@ -2314,18 +2333,24 @@ export default function Editor({
           };
           collectComps(editor.getWrapper());
 
-          const itemComp = allComps.find((comp) => {
-            try {
-              return comp.getView?.()?.el === attachmentItemEl;
-            } catch {
-              return false;
-            }
-          });
+          let currentEl = attachmentItemEl;
+          let itemComp = null;
+          while (currentEl) {
+            itemComp = allComps.find((comp) => {
+              try {
+                return comp.getView?.()?.el === currentEl;
+              } catch {
+                return false;
+              }
+            });
+            if (itemComp) break;
+            currentEl = currentEl.parentElement;
+          }
 
           if (!itemComp) return;
 
-          // Walk up to find the attachment-filled mj-section
-          let mjSection = itemComp.parent();
+          // Walk up GrapesJS components starting from itemComp to find the attachment-filled container
+          let mjSection = itemComp;
           while (
             mjSection &&
             mjSection.getAttributes?.()?.["data-type"] !== "attachment-filled"
@@ -2342,30 +2367,70 @@ export default function Editor({
               ).length
             : 0;
 
-          itemComp.remove();
+          if (currentEl === attachmentItemEl) {
+            itemComp.remove();
+          } else {
+            // Remove from DOM and update parent component's innerHTML
+            const parentEl = attachmentItemEl.parentElement;
+            attachmentItemEl.remove();
+            if (parentEl) {
+              itemComp.set("content", currentEl.innerHTML);
+              const view = itemComp.getView?.();
+              if (view && typeof view.render === "function") {
+                view.render();
+              } else {
+                editor.trigger("component:update", itemComp);
+              }
+            }
+          }
 
           const hasItems = siblingCountBefore > 1;
 
           if (!hasItems && mjSection) {
-            const grandParent = mjSection.parent();
-            mjSection.remove();
+            if (isHtmlTemplate.current) {
+              // Convert the existing td/div to an empty placeholder in-place
+              mjSection.components().reset();
+              mjSection.set("content", "");
+              mjSection.addAttributes({
+                "data-type": "attachment-placeholder",
+                style:
+                  "border: 1px dashed #1570EF; padding: 20px; text-align: center; width: 100%; box-sizing: border-box; background-color: transparent;"
+              });
+              mjSection.components(`
+                <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
+                  <img src="${uploadIconSvg}" width="40" height="40" style="display:block;" />
+                  <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
+                  <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
+                </div>
+              `);
 
-            if (grandParent) {
-              const hasAttachments = grandParent
-                .components()
-                .some(
-                  (c) => c.getAttributes()["data-type"] === "attachment-filled"
-                );
-              if (!hasAttachments) {
-                restoreAttachmentPlaceholder(
-                  grandParent
-                    .components()
-                    .add(
-                      isHtmlTemplate.current
-                        ? `<div style="width:100%; box-sizing:border-box;"></div>`
-                        : `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent"></mj-section>`
-                    )
-                );
+              const view = mjSection.getView?.();
+              if (view && typeof view.render === "function") {
+                view.render();
+              } else {
+                editor.trigger("component:update", mjSection);
+              }
+            } else {
+              // MJML path
+              const grandParent = mjSection.parent();
+              mjSection.remove();
+
+              if (grandParent) {
+                const hasAttachments = grandParent
+                  .components()
+                  .some(
+                    (c) =>
+                      c.getAttributes()["data-type"] === "attachment-filled"
+                  );
+                if (!hasAttachments) {
+                  restoreAttachmentPlaceholder(
+                    grandParent
+                      .components()
+                      .add(
+                        `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="transparent"></mj-section>`
+                      )
+                  );
+                }
               }
             }
           }

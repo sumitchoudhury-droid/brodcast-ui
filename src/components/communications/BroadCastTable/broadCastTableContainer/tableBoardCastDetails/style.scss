@@ -331,6 +331,26 @@
     .countHeader {
       font-weight: 600;
     }
+
+    .statusListRow {
+      .messageStatusList {
+        @include variable.d-flex($fd: column, $g: 10px);
+        .statusItem {
+          @include variable.d-flex($g: 14px, $al: center);
+          .statusLabel {
+            @include variable.d-flex($g: 4px, $al: center);
+            span {
+              @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+              color: variable.$color-black-6;
+            }
+            img {
+              width: 16px;
+              height: 16px;
+            }
+          }
+        }
+      }
+    }
   }
 
   /* ---------- MESSAGE TAB ---------- */

@@ -28,7 +28,7 @@
     bottom: 0;
     right: 0;
     width: 100%;
-    @include variable.d-flex($al: center, $g: 8px);
+    @include variable.d-flex($al: stretch, $g: 8px);
     justify-content: flex-end;
     padding: 16px;
     background-color: #fff;
