@@ -69,15 +69,6 @@ export const AddBroadcastMessage = ({
     <div className="addBroadcastMessage">
       <h1>Add Broadcast Message</h1>
       <div className="addBroadcastMessageContent">
-        <BroadcastTemplateDetails
-          selectedModes={selectedModes}
-          selectedTemplateType={selectedTemplateType}
-          setSelectedTemplateType={setSelectedTemplateType}
-          existingTemplateValues={existingTemplateValues}
-          setExistingTemplateValues={setExistingTemplateValues}
-          onSelectTemplate={setSelectedTemplateData}
-          selectedTemplateData={selectedTemplateData}
-        />
         <BroadcastDetails
           selectedModes={selectedModes}
           setSelectedModes={setSelectedModes}
@@ -112,6 +103,15 @@ export const AddBroadcastMessage = ({
           setRepeatType={setRepeatType}
           repeatOn={repeatOn}
           setRepeatOn={setRepeatOn}
+        />
+        <BroadcastTemplateDetails
+          selectedModes={selectedModes}
+          selectedTemplateType={selectedTemplateType}
+          setSelectedTemplateType={setSelectedTemplateType}
+          existingTemplateValues={existingTemplateValues}
+          setExistingTemplateValues={setExistingTemplateValues}
+          onSelectTemplate={setSelectedTemplateData}
+          selectedTemplateData={selectedTemplateData}
         />
       </div>
       <div className="addBroadcastMessageFooter">
