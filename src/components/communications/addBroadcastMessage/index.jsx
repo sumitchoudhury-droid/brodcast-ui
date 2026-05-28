@@ -57,7 +57,10 @@ export const AddBroadcastMessage = ({
     (patientType !== "oneTimeBroadcast" ||
       (!!broadcastStartDate && !!broadcastEndDate)) &&
     (patientType !== "targetRecipients" ||
-      (!!patientStartDateTime && !!patientEndDateTime)) &&
+      ((Array.isArray(patientStartDateTime)
+        ? patientStartDateTime.length > 0
+        : !!patientStartDateTime) &&
+        !!patientEndDateTime)) &&
     (!showRadioRow ||
       selectedTemplateType !== "existingTemplate" ||
       !!existingTemplateValues);

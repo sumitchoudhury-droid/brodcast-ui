@@ -36,6 +36,43 @@ function getCanvasDoc(editor) {
   }
 }
 
+function getComputedStyleOfComp(comp) {
+  try {
+    const view = comp?.getView?.();
+    const el = view?.el;
+    if (!el) return null;
+    const win = el.ownerDocument?.defaultView;
+    if (!win) return null;
+    return win.getComputedStyle(el);
+  } catch {
+    return null;
+  }
+}
+
+function rgbToHex(rgb) {
+  if (!rgb) return "";
+  if (rgb.startsWith("#")) return rgb;
+  const match = rgb.match(
+    /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/
+  );
+  if (!match) return rgb;
+  const r = parseInt(match[1], 10);
+  const g = parseInt(match[2], 10);
+  const b = parseInt(match[3], 10);
+  if (match[4] !== undefined && parseFloat(match[4]) === 0) {
+    return "transparent";
+  }
+  const hex =
+    "#" +
+    [r, g, b]
+      .map((x) => {
+        const hexParts = x.toString(16);
+        return hexParts.length === 1 ? "0" + hexParts : hexParts;
+      })
+      .join("");
+  return hex;
+}
+
 function getCanvasSelection(editor) {
   try {
     const frames = editor.Canvas.getFrames();
@@ -311,23 +348,58 @@ function normalizeHtmlForPreview(rawHtml) {
 function prepareHtmlForEmail(rawHtml) {
   if (!rawHtml) return "";
 
-  let html = rawHtml;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(rawHtml, "text/html");
 
-  // Remove <style> blocks that contain GrapesJS editor-specific selectors
-  // but do NOT contain @media queries (those are the real email responsive styles).
-  html = html.replace(
-    /<style\b[^>]*>([\s\S]*?)<\/style>/gi,
-    (match, content) => {
-      const isEditorStyle =
-        /\.gjs-|#gjs-|\bsp-container\b|\.CodeMirror|pointer-events\s*:\s*none|\[data-gjs-type\]/.test(
-          content
+  // 1. Remove editor-only styles/selectors from preserved stylesheets
+  const styles = doc.querySelectorAll("style");
+  styles.forEach((styleTag) => {
+    let content = styleTag.textContent;
+
+    // Check if it is a GrapesJS/editor stylesheet
+    const isEditorStyle =
+      /\.gjs-|#gjs-|\bsp-container\b|\.CodeMirror|pointer-events\s*:\s*none|\[data-gjs-type\]/.test(
+        content
+      );
+    const hasMediaQuery = /@media\s/i.test(content);
+
+    if (isEditorStyle) {
+      if (!hasMediaQuery) {
+        // Drop pure-editor style blocks completely
+        styleTag.remove();
+      } else {
+        // If it has media queries (like canvasCss), we keep it but clean up the editor-only padding rules
+        content = content.replace(
+          /\[data-type="row-frame-column"\]:not\(\[data-is-empty="true"\]\)(?:,\s*\[data-type="column-frame-column"\]:not\(\[data-is-empty="true"\]\))?\s*\{\s*padding-bottom\s*:\s*20px\s*!important;?\s*\}/gi,
+          ""
         );
-      const hasMediaQuery = /@media\s/i.test(content);
-      // Drop pure-editor style blocks; keep anything that has responsive CSS
-      if (isEditorStyle && !hasMediaQuery) return "";
-      return match;
+        content = content.replace(
+          /\[data-type="column-frame-column"\]:not\(\[data-is-empty="true"\]\)\s*\{\s*padding-bottom\s*:\s*20px\s*!important;?\s*\}/gi,
+          ""
+        );
+        styleTag.textContent = content;
+      }
     }
+  });
+
+  // 2. Remove inline padding-bottom on elements that are row-frame-column or column-frame-column
+  const frameElements = doc.querySelectorAll(
+    '[data-type="row-frame-column"], [data-type="column-frame-column"]'
   );
+  frameElements.forEach((el) => {
+    if (el.style.paddingBottom) {
+      el.style.paddingBottom = "";
+    }
+    const styleAttr = el.getAttribute("style");
+    if (styleAttr) {
+      const cleanStyle = styleAttr
+        .replace(/padding-bottom\s*:\s*[^;]+;?/gi, "")
+        .trim();
+      el.setAttribute("style", cleanStyle);
+    }
+  });
+
+  let html = doc.documentElement.outerHTML;
 
   // Remove <script> tags – not valid in email bodies
   html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
@@ -575,7 +647,7 @@ const isText = (comp) => {
     tag === "p" ||
     tag === "span" ||
     tag === "div" ||
-    ["h1", "h2", "h3", "h4", "h5", "h6"].includes(tag)
+    ["h1", "h2", "h3", "h4", "h5", "h6", "td", "th", "font"].includes(tag)
   );
 };
 
@@ -818,33 +890,58 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       }
 
       const style = selected.getStyle();
+      const computedStyle = getComputedStyleOfComp(selected) || {};
       const dimStyle = dimTarget.getStyle() || {};
+      const dimComputedStyle = getComputedStyleOfComp(dimTarget) || {};
       const dimAttrs = dimTarget.getAttributes() || {};
 
-      setBgColor(dimStyle["background-color"] || "transparent");
-      setBgImage(
-        dimStyle["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] || ""
+      setBgColor(
+        rgbToHex(dimStyle["background-color"]) ||
+          rgbToHex(dimComputedStyle["background-color"]) ||
+          "transparent"
       );
-      setBgRepeat(dimStyle["background-repeat"] || "no-repeat");
+      setBgImage(
+        dimStyle["background-image"]?.match(/url\((['"]?)(.*?)\1\)/)?.[2] ||
+          dimComputedStyle["background-image"]?.match(
+            /url\((['"]?)(.*?)\1\)/
+          )?.[2] ||
+          ""
+      );
+      setBgRepeat(
+        dimStyle["background-repeat"] ||
+          dimComputedStyle["background-repeat"] ||
+          "no-repeat"
+      );
       const rawSize =
-        dimStyle["object-fit"] || dimStyle["background-size"] || "contain";
+        dimStyle["object-fit"] ||
+        dimStyle["background-size"] ||
+        dimComputedStyle["object-fit"] ||
+        dimComputedStyle["background-size"] ||
+        "contain";
       setBgSize(rawSize === "100% 100%" ? "fill" : rawSize);
 
       const border =
-        dimAttrs["border"] || dimStyle["border"] || "0px solid #000000";
-      const bp = border.split(" ");
+        dimAttrs["border"] ||
+        dimStyle["border"] ||
+        dimComputedStyle["border"] ||
+        "";
+      const bp = border ? border.split(" ") : [];
       if (bp.length >= 3) {
-        setBorderWidth(bp[0].replace("px", ""));
+        setBorderWidth(bp[0].replace("px", "") || "");
         setBorderStyle(bp[1]);
-        setBorderColor(bp[2]);
+        setBorderColor(rgbToHex(bp[2]));
       } else {
         setBorderWidth("");
       }
       // Read border-radius from MJML attribute first, then fall back to CSS style
       const rawBrAttr =
-        dimAttrs["border-radius"] || dimStyle["border-radius"] || "0";
-      const brShorthand = rawBrAttr.split(" ");
+        dimAttrs["border-radius"] ||
+        dimStyle["border-radius"] ||
+        dimComputedStyle["border-radius"] ||
+        "";
+      const brShorthand = rawBrAttr ? rawBrAttr.split(" ") : [];
       const getBrPart = (idx) => {
+        if (brShorthand.length === 0) return "";
         if (brShorthand.length === 1) return brShorthand[0].replace("px", "");
         if (brShorthand.length === 2)
           return brShorthand[idx % 2].replace("px", "");
@@ -860,33 +957,50 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       setBorderRadius({
         tl:
           dimStyle["border-top-left-radius"]?.replace("px", "") ||
+          dimComputedStyle["border-top-left-radius"]?.replace("px", "") ||
           getBrPart(0) ||
           "",
         tr:
           dimStyle["border-top-right-radius"]?.replace("px", "") ||
+          dimComputedStyle["border-top-right-radius"]?.replace("px", "") ||
           getBrPart(1) ||
           "",
         br:
           dimStyle["border-bottom-right-radius"]?.replace("px", "") ||
+          dimComputedStyle["border-bottom-right-radius"]?.replace("px", "") ||
           getBrPart(2) ||
           "",
         bl:
           dimStyle["border-bottom-left-radius"]?.replace("px", "") ||
+          dimComputedStyle["border-bottom-left-radius"]?.replace("px", "") ||
           getBrPart(3) ||
           ""
       });
 
       if (isText(selected) || isButton(selected) || isImage(selected)) {
-        const currentFontSize = style["font-size"]?.replace("px", "") || "";
-        setTextColor(style["color"] || "#000000");
+        const currentFontSize =
+          style["font-size"]?.replace("px", "") ||
+          computedStyle["font-size"]?.replace("px", "") ||
+          "";
+        setTextColor(
+          rgbToHex(style["color"]) ||
+            rgbToHex(computedStyle["color"]) ||
+            "#000000"
+        );
         setTypography({
-          fontFamily: style["font-family"]?.replace(/['"]/g, "") || "Inter",
-          fontWeight: style["font-weight"] || "400",
+          fontFamily:
+            style["font-family"]?.replace(/['"]/g, "") ||
+            computedStyle["font-family"]?.replace(/['"]/g, "") ||
+            "Inter",
+          fontWeight:
+            style["font-weight"] || computedStyle["font-weight"] || "400",
           fontSize: currentFontSize,
-          textAlign: style["text-align"] || "left"
+          textAlign:
+            style["text-align"] || computedStyle["text-align"] || "left"
         });
 
-        const textDecoration = style["text-decoration"] || "";
+        const textDecoration =
+          style["text-decoration"] || computedStyle["text-decoration"] || "";
         const content = selected.get("content") || "";
         const hasUl =
           /data-list-type="ul"/i.test(content) || /<ul[\s>]/i.test(content);
@@ -897,18 +1011,42 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           underline: textDecoration.includes("underline"),
           lineThrough: textDecoration.includes("line-through"),
           strikethrough: textDecoration.includes("line-through"),
-          italic: (style["font-style"] || "") === "italic",
+          italic:
+            (style["font-style"] || computedStyle["font-style"] || "") ===
+            "italic",
           bold:
-            style["font-weight"] === "700" || style["font-weight"] === "bold",
-          uppercase: (style["text-transform"] || "") === "uppercase",
-          superscript: (style["vertical-align"] || "") === "super",
-          subscript: (style["vertical-align"] || "") === "sub",
+            style["font-weight"] === "700" ||
+            style["font-weight"] === "bold" ||
+            computedStyle["font-weight"] === "700" ||
+            computedStyle["font-weight"] === "bold",
+          uppercase:
+            (style["text-transform"] ||
+              computedStyle["text-transform"] ||
+              "") === "uppercase",
+          superscript:
+            (style["vertical-align"] ||
+              computedStyle["vertical-align"] ||
+              "") === "super",
+          subscript:
+            (style["vertical-align"] ||
+              computedStyle["vertical-align"] ||
+              "") === "sub",
           unorderedList: hasUl,
           orderedList: hasOl,
-          code: (style["font-family"] || "").includes("monospace"),
-          highlight: (style["background-color"] || "") === "#ffff00",
+          code: (
+            style["font-family"] ||
+            computedStyle["font-family"] ||
+            ""
+          ).includes("monospace"),
+          highlight:
+            (style["background-color"] ||
+              computedStyle["background-color"] ||
+              "") === "#ffff00",
           indentLevel: Math.floor(
-            parseInt(style["padding-left"] || "0", 10) / 24
+            parseInt(
+              style["padding-left"] || computedStyle["padding-left"] || "0",
+              10
+            ) / 24
           )
         });
 
@@ -935,7 +1073,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         setTypography((prev) => ({
           ...prev,
           textAlign:
-            style["text-align"] || selected.getAttributes()?.align || "left"
+            style["text-align"] ||
+            computedStyle["text-align"] ||
+            selected.getAttributes()?.align ||
+            "left"
         }));
         setActiveFormats({});
       }
@@ -943,9 +1084,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       if (dimTarget.get("type") === "mj-column") {
         // Column: vertical-align is the MJML inline-block equivalent of align-items
         const va =
-          dimStyle["vertical-align"] || dimAttrs["vertical-align"] || "top";
+          dimStyle["vertical-align"] ||
+          dimAttrs["vertical-align"] ||
+          dimComputedStyle["vertical-align"] ||
+          "top";
         setAlignItems(
-          va === "middle"
+          va === "middle" || va === "center"
             ? "center"
             : va === "bottom"
               ? "flex-end"
@@ -953,40 +1097,52 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         );
       } else {
         // Section: align-items is stored directly in the model style
-        setAlignItems(dimStyle["align-items"] || "flex-start");
+        setAlignItems(
+          dimStyle["align-items"] ||
+            dimComputedStyle["align-items"] ||
+            "flex-start"
+        );
       }
-      setJustifyContent(dimStyle["justify-content"] || "flex-start");
+      setJustifyContent(
+        dimStyle["justify-content"] ||
+          dimComputedStyle["justify-content"] ||
+          "flex-start"
+      );
 
       const rawPadding =
-        style["padding"] || selected.getAttributes?.()["padding"] || "";
+        style["padding"] ||
+        selected.getAttributes?.()["padding"] ||
+        computedStyle["padding"] ||
+        "";
       const getPaddingValue = (side) => {
         const specific =
           style[`padding-${side}`] ||
-          selected.getAttributes?.()[`padding-${side}`];
-        if (specific) return specific.replace("px", "") || "0";
+          selected.getAttributes?.()[`padding-${side}`] ||
+          computedStyle?.[`padding-${side}`];
+        if (specific) return specific.replace("px", "") || "";
 
-        if (!rawPadding) return "0";
+        if (!rawPadding) return "";
         const parts = rawPadding.trim().replace(/\s+/g, " ").split(" ");
         if (parts.length === 1) {
-          return parts[0].replace("px", "") || "0";
+          return parts[0].replace("px", "") || "";
         }
         if (parts.length === 2) {
           if (side === "top" || side === "bottom")
-            return parts[0].replace("px", "") || "0";
+            return parts[0].replace("px", "") || "";
           if (side === "left" || side === "right")
-            return parts[1].replace("px", "") || "0";
+            return parts[1].replace("px", "") || "";
         }
         if (parts.length === 3) {
-          if (side === "top") return parts[0].replace("px", "") || "0";
+          if (side === "top") return parts[0].replace("px", "") || "";
           if (side === "left" || side === "right")
-            return parts[1].replace("px", "") || "0";
-          if (side === "bottom") return parts[2].replace("px", "") || "0";
+            return parts[1].replace("px", "") || "";
+          if (side === "bottom") return parts[2].replace("px", "") || "";
         }
         if (parts.length >= 4) {
           const idxMap = { top: 0, right: 1, bottom: 2, left: 3 };
-          return parts[idxMap[side]].replace("px", "") || "0";
+          return parts[idxMap[side]].replace("px", "") || "";
         }
-        return "0";
+        return "";
       };
 
       setPadding({
@@ -1000,7 +1156,9 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         gap:
           dimStyle["gap"]?.replace("px", "") ||
           dimStyle["row-gap"]?.replace("px", "") ||
-          "0"
+          dimComputedStyle["gap"]?.replace("px", "") ||
+          dimComputedStyle["row-gap"]?.replace("px", "") ||
+          ""
       });
 
       const parseValueAndUnit = (val, defaultUnit = "%") => {
@@ -1015,10 +1173,16 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       };
 
       const { value: wVal, unit: wUnit } = parseValueAndUnit(
-        dimAttrs["width"] || dimStyle["width"] || ""
+        dimAttrs["width"] ||
+          dimStyle["width"] ||
+          dimComputedStyle["width"] ||
+          ""
       );
       const { value: hVal, unit: hUnit } = parseValueAndUnit(
-        dimAttrs["height"] || dimStyle["height"] || "",
+        dimAttrs["height"] ||
+          dimStyle["height"] ||
+          dimComputedStyle["height"] ||
+          "",
         "auto"
       );
 
@@ -1082,7 +1246,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         const { value: ch, unit: chu } = parseValueAndUnit(
           cAttrs["height"] || ""
         );
-        setColWidth(cw || "0");
+        setColWidth(cw || "");
         setColWidthUnit(cu || "%");
         setColHeight(ch || "");
         setColHeightUnit(chu || "auto");
@@ -1563,13 +1727,34 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
   };
 
   const handlePaddingChange = (side, value) => {
-    setPadding((prev) => ({ ...prev, [side]: value }));
-    const valStr = value === "" ? "" : `${value}px`;
+    const newPadding = { ...padding, [side]: value };
+    setPadding(newPadding);
     if (selectedComp) {
-      selectedComp.addStyle({ [`padding-${side}`]: valStr });
-      if (typeof selectedComp.addAttributes === "function") {
-        selectedComp.addAttributes({ [`padding-${side}`]: valStr });
+      const style = selectedComp.getStyle() || {};
+      const attrs = selectedComp.getAttributes() || {};
+
+      const hasShorthandStyle =
+        style["padding"] !== undefined && style["padding"] !== "";
+      const hasShorthandAttr =
+        attrs["padding"] !== undefined && attrs["padding"] !== "";
+
+      if (hasShorthandStyle || hasShorthandAttr) {
+        selectedComp.addStyle({ padding: "" });
+        if (typeof selectedComp.removeAttributes === "function") {
+          selectedComp.removeAttributes("padding");
+        }
       }
+
+      const sides = ["top", "right", "bottom", "left"];
+      sides.forEach((s) => {
+        const sVal = newPadding[s];
+        const valStr = sVal === "" ? "" : `${sVal}px`;
+        selectedComp.addStyle({ [`padding-${s}`]: valStr });
+        if (typeof selectedComp.addAttributes === "function") {
+          selectedComp.addAttributes({ [`padding-${s}`]: valStr });
+        }
+      });
+
       editorRef.current?.getEditor()?.trigger("component:update", selectedComp);
     }
   };
@@ -2428,7 +2613,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       />
 
       <div className="panelSections">
-        <SignatureSection editorRef={editorRef} />
+        <SignatureSection editorRef={editorRef} isEditorEmpty={isEditorEmpty} />
         {/* <LayoutContainer handleAddLayout={handleAddLayout} /> */}
 
         {selectedComp && isButton(selectedComp) && (

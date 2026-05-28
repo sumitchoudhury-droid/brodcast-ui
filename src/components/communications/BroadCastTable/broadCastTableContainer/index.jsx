@@ -392,7 +392,9 @@ function BroadCastTableContainer({
         ),
         cell: ({ row }) => (
           <div className="mode-cell">
-            {highlightText(row.original.mode, filters.mode)}
+            <span className="mode-text">
+              {highlightText(row.original.mode, filters.mode)}
+            </span>
             {row.original.hasError && (
               <ReusableToolTip
                 content={{ label: "Failed Reason", value: "Network Outage" }}
@@ -860,6 +862,11 @@ function BroadCastTableContainer({
                 return (
                   <th
                     key={header.id}
+                    className={`col-${header.column.id} ${
+                      header.column.id === "actions" && showSettings
+                        ? "settings-open"
+                        : ""
+                    }`}
                     onClick={
                       isSortable
                         ? header.column.getToggleSortingHandler()
@@ -878,40 +885,48 @@ function BroadCastTableContainer({
               })}
             </tr>
           ))}
-          {showSearch &&
-            table.getHeaderGroups().map((headerGroup) => (
-              <tr
-                key={`search-${headerGroup.id}`}
-                className="search-filters-row"
-              >
-                {headerGroup.headers.map((header) => {
-                  const columnId = header.column.id;
-                  if (columnId === "select" || columnId === "actions") {
-                    return <th key={`search-cell-${header.id}`}></th>;
-                  }
-                  const placeholder = getPlaceholder(columnId);
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr
+              key={`search-${headerGroup.id}`}
+              className={`search-filters-row ${showSearch ? "visible" : "hidden"}`}
+            >
+              {headerGroup.headers.map((header) => {
+                const columnId = header.column.id;
+                if (columnId === "select" || columnId === "actions") {
                   return (
-                    <th key={`search-cell-${header.id}`}>
-                      <div className="search-input-wrapper">
-                        <input
-                          type="text"
-                          placeholder={placeholder}
-                          value={filters[columnId] || ""}
-                          onChange={(e) =>
-                            handleFilterChange(columnId, e.target.value)
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.target.blur();
-                            }
-                          }}
-                        />
-                      </div>
-                    </th>
+                    <th
+                      key={`search-cell-${header.id}`}
+                      className={`col-${columnId}`}
+                    ></th>
                   );
-                })}
-              </tr>
-            ))}
+                }
+                const placeholder = getPlaceholder(columnId);
+                return (
+                  <th
+                    key={`search-cell-${header.id}`}
+                    className={`col-${columnId}`}
+                  >
+                    <div className="search-input-wrapper">
+                      <input
+                        type="text"
+                        placeholder={placeholder}
+                        value={filters[columnId] || ""}
+                        onChange={(e) =>
+                          handleFilterChange(columnId, e.target.value)
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.target.blur();
+                          }
+                        }}
+                        tabIndex={showSearch ? 0 : -1}
+                      />
+                    </div>
+                  </th>
+                );
+              })}
+            </tr>
+          ))}
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
@@ -927,6 +942,7 @@ function BroadCastTableContainer({
                 return (
                   <td
                     key={cell.id}
+                    className={`col-${cell.column.id}`}
                     onClick={
                       !isInteractiveColumn
                         ? () => setSelectedDetailsRow(row.original)

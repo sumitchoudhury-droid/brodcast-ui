@@ -2612,10 +2612,18 @@ export default function Editor({
          * load and re-enabled immediately after so the import does not
          * accidentally inject a signature mid-parse.
          */
-        loadTemplate: (mjmlString) => {
+        loadTemplate: (templateString) => {
           suppressSigReconcile.current = true;
+          const isMjmlTemplate = !!(
+            templateString &&
+            (templateString.trim().startsWith("<mjml") ||
+              templateString.trim().startsWith("<mj-body") ||
+              (templateString.includes("<mj-section") &&
+                templateString.includes("<mj-column")))
+          );
+          isHtmlTemplate.current = !isMjmlTemplate;
           try {
-            editor.setComponents(mjmlString);
+            editor.setComponents(templateString);
           } finally {
             // Re-enable after a short delay so any in-flight timers from
             // setComponents() have already been skipped.
