@@ -6,14 +6,14 @@ import { BroadCastSchedule } from "./broadCastSchedule/index";
 import BroadcastTemplateDetails from "./broadcastTemplateDetails/index";
 import BroadcastPatientDetails from "./broadcastPatientDetails/index";
 
-export const AddBroadcastMessage = ({
+export function AddBroadcastMessage({
   onNext,
   selectedModes,
   setSelectedModes,
   selectedTemplateData,
   setSelectedTemplateData,
   handleCancel
-}) => {
+}) {
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("");
 
@@ -37,6 +37,9 @@ export const AddBroadcastMessage = ({
   const [selectedTemplateType, setSelectedTemplateType] =
     useState("newTemplate");
   const [existingTemplateValues, setExistingTemplateValues] = useState("");
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [selectedEmailTemplateType, setSelectedEmailTemplateType] =
+    useState("blank");
 
   const showRadioRow =
     !selectedModes.includes("Email") &&
@@ -61,9 +64,13 @@ export const AddBroadcastMessage = ({
         ? patientStartDateTime.length > 0
         : !!patientStartDateTime) &&
         !!patientEndDateTime)) &&
-    (!showRadioRow ||
-      selectedTemplateType !== "existingTemplate" ||
-      !!existingTemplateValues);
+    (showRadioRow
+      ? selectedTemplateType === "newTemplate"
+        ? !!newTemplateName.trim()
+        : !!existingTemplateValues
+      : selectedEmailTemplateType === "blank"
+        ? !!newTemplateName.trim()
+        : !!selectedTemplateData);
 
   return (
     <div className="addBroadcastMessage">
@@ -110,6 +117,10 @@ export const AddBroadcastMessage = ({
           setSelectedTemplateType={setSelectedTemplateType}
           existingTemplateValues={existingTemplateValues}
           setExistingTemplateValues={setExistingTemplateValues}
+          newTemplateName={newTemplateName}
+          setNewTemplateName={setNewTemplateName}
+          selectedTemplate={selectedEmailTemplateType}
+          setSelectedTemplate={setSelectedEmailTemplateType}
           onSelectTemplate={setSelectedTemplateData}
           selectedTemplateData={selectedTemplateData}
         />
@@ -123,10 +134,24 @@ export const AddBroadcastMessage = ({
         <ReusableButton
           label="Next"
           variant="secondary"
-          onClick={() => onNext(selectedTemplateData)}
+          onClick={() => {
+            let finalTemplateData = selectedTemplateData;
+            if (
+              (showRadioRow && selectedTemplateType === "newTemplate") ||
+              (!showRadioRow && selectedEmailTemplateType === "blank")
+            ) {
+              finalTemplateData = {
+                title: newTemplateName,
+                ...(selectedModes.includes("Text") && { textTemplate: "" }),
+                ...(selectedModes.includes("Voice") && { voiceTemplate: "" }),
+                ...(selectedModes.includes("Email") && { emailTemplate: "" })
+              };
+            }
+            onNext(finalTemplateData);
+          }}
           disabled={!isFormValid}
         />
       </div>
     </div>
   );
-};
+}

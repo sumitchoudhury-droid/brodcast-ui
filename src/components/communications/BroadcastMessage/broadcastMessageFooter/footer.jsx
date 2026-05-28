@@ -66,7 +66,7 @@ export default function Footer({ onBack }) {
 
           <ReusableButton
             label="Save as Template"
-            variant="primary"
+            variant="secondary"
             onClick={handleSaveTemplate}
           />
         </div>
@@ -80,7 +80,7 @@ export default function Footer({ onBack }) {
 
           <ReusableButton
             label="Send"
-            variant="primary"
+            variant="secondary"
             onClick={handleSendClick} // Changed to open confirmation modal
           />
         </div>

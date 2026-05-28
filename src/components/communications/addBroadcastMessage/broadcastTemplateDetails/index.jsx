@@ -26,10 +26,13 @@ function BroadcastTemplateDetails({
   setSelectedTemplateType,
   existingTemplateValues,
   setExistingTemplateValues,
+  newTemplateName,
+  setNewTemplateName,
+  selectedTemplate,
+  setSelectedTemplate,
   onSelectTemplate,
   selectedTemplateData
 }) {
-  const [selectedTemplate, setSelectedTemplate] = useState("blank");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleDropdownSelect = (val) => {
@@ -81,6 +84,9 @@ function BroadcastTemplateDetails({
               <ReusableInput
                 label="Template Name"
                 placeholder="Enter Template Name"
+                required={true}
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
               />
             ) : (
               <ReusableDropDown
@@ -154,6 +160,9 @@ function BroadcastTemplateDetails({
                 <ReusableInput
                   label="Template Name"
                   placeholder="Enter Template Name"
+                  required={true}
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
                 />
               )}
             </div>
