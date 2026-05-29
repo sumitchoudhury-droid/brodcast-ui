@@ -53,7 +53,8 @@
     "reusabele",
     "PFNAME",
     "MHCARE",
-    "multidropdown"
+    "multidropdown",
+    "Optout"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

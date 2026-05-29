@@ -22,6 +22,9 @@ const BroadcastTextMessageEditor = ({
   const containerRef = useRef(null);
   const editorRef = useRef(null);
 
+  const [charCount, setCharCount] = useState(0);
+  const charCountRef = useRef(0);
+
   // Link Modal state for toolbar Link icon
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [linkModalText, setLinkModalText] = useState("");
@@ -52,7 +55,7 @@ const BroadcastTextMessageEditor = ({
     const editor = grapesjs.init({
       container: containerRef.current,
       fromElement: false,
-      height: "100%",
+      height: "94%",
       width: "100%",
       storageManager: false,
       panels: { defaults: [] },
@@ -160,6 +163,9 @@ const BroadcastTextMessageEditor = ({
           .trim();
         const isEmpty = plainText.length === 0 && !hasSignature && !hasForm;
 
+        charCountRef.current = plainText.length;
+        setCharCount(plainText.length);
+
         // Toggle a class for the placeholder via DOM only — model-level addClass/removeClass
         // triggers a GrapesJS re-render that resets the cursor position mid-typing
         const applyEmptyClass = (target, empty) => {
@@ -186,6 +192,8 @@ const BroadcastTextMessageEditor = ({
             .replace(/<[^>]*>/g, "")
             .replace(/&nbsp;/g, " ")
             .trim();
+          charCountRef.current = plainText.length;
+          setCharCount(plainText.length);
           onContentChange(html, plainText.length === 0);
         }
       }
@@ -294,7 +302,7 @@ const BroadcastTextMessageEditor = ({
                 style:
                   "padding: 10px 16px; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
               },
-              content: `Click here to unsubscribe: <a href="https://mh.care/stop" target="_blank" style="color: #1570EF; text-decoration: underline;">https://mh.care/stop</a>`,
+              content: `TXT Stop Optout`,
               editable: false,
               draggable: false,
               removable: false,
@@ -326,6 +334,45 @@ const BroadcastTextMessageEditor = ({
       const win = editor.Canvas.getWindow();
       if (doc) {
         doc.addEventListener("input", updateContent);
+
+        const CHAR_LIMIT = 160;
+        const isContentEditable = (el) =>
+          el &&
+          (el.classList.contains("text-editor-content") ||
+            el.getAttribute("contenteditable") === "true");
+
+        doc.addEventListener("keydown", (e) => {
+          if (!isContentEditable(doc.activeElement)) return;
+          if (e.ctrlKey || e.metaKey || e.altKey) return;
+          const nonPrintable = [
+            "Backspace",
+            "Delete",
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowUp",
+            "ArrowDown",
+            "Home",
+            "End",
+            "Tab",
+            "Escape"
+          ];
+          if (nonPrintable.includes(e.key)) return;
+          if (charCountRef.current >= CHAR_LIMIT) e.preventDefault();
+        });
+
+        doc.addEventListener("paste", (e) => {
+          if (!isContentEditable(doc.activeElement)) return;
+          const remaining = CHAR_LIMIT - charCountRef.current;
+          if (remaining <= 0) {
+            e.preventDefault();
+            return;
+          }
+          const pasted = e.clipboardData.getData("text/plain");
+          if (pasted.length > remaining) {
+            e.preventDefault();
+            doc.execCommand("insertText", false, pasted.slice(0, remaining));
+          }
+        });
 
         // Save selection whenever it changes so click-to-insert can restore it
         doc.addEventListener("selectionchange", () => {
@@ -1294,6 +1341,11 @@ const BroadcastTextMessageEditor = ({
   return (
     <div className="BroadcastTextMessageEditor">
       <div className="editor-canvas" ref={containerRef}></div>
+      <div className="char-count-display">
+        <span className={charCount >= 160 ? "at-limit" : ""}>
+          {charCount}/160
+        </span>
+      </div>
       <ReusableLinkModal
         isOpen={isLinkModalOpen}
         onClose={() => setIsLinkModalOpen(false)}
