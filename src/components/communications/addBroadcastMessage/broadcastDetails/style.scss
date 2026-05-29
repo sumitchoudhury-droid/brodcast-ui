@@ -20,12 +20,13 @@
 
   .broadcastDetailsContent {
     width: 100%;
-    @include variable.d-flex($g: 30px, $al: center);
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
     padding: 0px 24px 18px 24px;
 
     .broadcastDetailsContentRow {
-      width: 28%;
+      width: 100%;
       @include variable.d-flex($g: 12px, $fd: column);
 
       .broadcastDetailsContentRowLabel {
