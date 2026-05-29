@@ -18,7 +18,7 @@ export const ReusableMultiSelectDropdown = ({
   valueImage,
   greenIcon = true,
   required = false,
-  width = "420px",
+  width = "100%",
   overWriteClassName = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);

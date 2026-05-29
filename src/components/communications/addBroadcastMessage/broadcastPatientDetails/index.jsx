@@ -24,7 +24,7 @@ function BroadcastPatientDetails({
   const [location, setLocation] = useState("");
   const [provider, setProvider] = useState("");
   const [ageFilter, setAgeFilter] = useState("");
-  const [gender, setGender] = useState("");
+  const [gender, setGender] = useState("all");
   const [modality, setModality] = useState("");
   const [includeOptOut, setIncludeOptOut] = useState(false);
   const [patientsFoundForType, setPatientsFoundForType] = useState(null);
@@ -50,15 +50,18 @@ function BroadcastPatientDetails({
   ];
 
   const ageOptions = [
-    { label: "Between", value: "between" },
-    { label: "Greater than", value: "greater" },
-    { label: "Less than", value: "less" }
+    { label: "is equal to", value: "isEqualTo" },
+    { label: "is greater than", value: "isGreaterThan" },
+    { label: "is greater than or equal to", value: "isGreaterThanEqualTo" },
+    { label: "is lesser than", value: "isLesserThan" },
+    { label: "is lesser than or equal to", value: "isLesserThanEqualTo" },
+    { label: "is not equal to", value: "isNotEqualTo" }
   ];
 
   const genderOptions = [
+    { label: "All", value: "all" },
     { label: "Male", value: "male" },
-    { label: "Female", value: "female" },
-    { label: "Other", value: "other" }
+    { label: "Female", value: "female" }
   ];
 
   const modalityOptions = [

@@ -65,12 +65,14 @@ function TargetRecipients({
           />
         </div>
         <div className="formGroup">
-          <ReusableDropDown
+          <ReusableMultiSelectDropdown
             label="Location"
             greenIcon={false}
             placeholder="Select Location"
             options={locationOptions}
-            value={location}
+            value={
+              Array.isArray(location) ? location : location ? [location] : []
+            }
             onChange={(val) => setLocation(val)}
           />
         </div>
@@ -120,12 +122,14 @@ function TargetRecipients({
           />
         </div>
         <div className="formGroup">
-          <ReusableDropDown
+          <ReusableMultiSelectDropdown
             label="Modality"
             greenIcon={false}
             placeholder="Select Modality"
             options={modalityOptions}
-            value={modality}
+            value={
+              Array.isArray(modality) ? modality : modality ? [modality] : []
+            }
             onChange={(val) => setModality(val)}
           />
         </div>
