@@ -121,6 +121,7 @@ function ScheduleOptions({
               options={frequencyOptions}
               value={frequency}
               onChange={setFrequency}
+              required={true}
             />
           </div>
         )}
@@ -189,7 +190,6 @@ function ScheduleOptions({
           >
             <ReusableDateTime
               label="Ends On"
-              required={true}
               selected={endDateTime}
               onChange={(date) => setEndDateTime(date)}
             />

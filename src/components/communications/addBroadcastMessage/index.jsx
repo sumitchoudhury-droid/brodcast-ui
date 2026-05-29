@@ -49,7 +49,7 @@ export function AddBroadcastMessage({
     selectedModes.length > 0 &&
     !!priority &&
     (sendType === "immediately" || !!scheduleStartDateTime) &&
-    (sendType !== "recurring" || !!scheduleEndDateTime) &&
+    (sendType !== "recurring" || !!frequency) &&
     !(
       sendType === "recurring" &&
       frequency === "Custom" &&
