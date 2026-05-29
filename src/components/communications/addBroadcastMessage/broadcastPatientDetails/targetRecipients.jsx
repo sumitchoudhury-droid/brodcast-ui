@@ -104,10 +104,10 @@ function TargetRecipients({
               />
             </div>
             <div className="ageInput">
-              <ReusableInput placeholder="Enter Year" />
+              <ReusableInput placeholder="Enter Year" numbersOnly={true} />
             </div>
             <div className="ageInput">
-              <ReusableInput placeholder="Enter Month" />
+              <ReusableInput placeholder="Enter Month" numbersOnly={true} />
             </div>
           </div>
         </div>

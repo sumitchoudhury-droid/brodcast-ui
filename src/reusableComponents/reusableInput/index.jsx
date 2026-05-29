@@ -1,5 +1,19 @@
 import "./style.scss";
 
+const allowedKeys = new Set([
+  "Backspace",
+  "Delete",
+  "Tab",
+  "Escape",
+  "Enter",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Home",
+  "End"
+]);
+
 export function ReusableInput({
   label,
   type = "text",
@@ -14,8 +28,16 @@ export function ReusableInput({
   leftIcon,
   rightIcon,
   className = "",
-  Containerstyle = ""
+  Containerstyle = "",
+  numbersOnly = false
 }) {
+  const handleKeyDown = (e) => {
+    if (!numbersOnly) return;
+    if (allowedKeys.has(e.key)) return;
+    if (e.ctrlKey || e.metaKey) return;
+    if (!/^\d$/.test(e.key)) e.preventDefault();
+  };
+
   return (
     <div className={`inputWrapper ${className}`}>
       {label && (
@@ -37,6 +59,7 @@ export function ReusableInput({
           placeholder={placeholder}
           onChange={onChange}
           onBlur={onBlur}
+          onKeyDown={handleKeyDown}
           disabled={disabled}
         />
 

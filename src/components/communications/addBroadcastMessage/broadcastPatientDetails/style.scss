@@ -86,6 +86,7 @@
     }
 
     .patientsFoundContainer {
+      width: 33%;
       @include variable.d-flex(
         $jc: space-between,
         $al: center,
@@ -97,6 +98,7 @@
       padding: 16px 0px;
       border-radius: 12px;
       .patientsFoundHeading {
+        width: 100%;
         padding: 0px 16px;
         @include variable.d-flex($jc: space-between, $al: center, $g: 12px);
         p {
