@@ -11,6 +11,22 @@ export default function BroadcastTextMessageRightPanel({
   isEditorEmpty,
   editorInstance
 }) {
+  const allowOnlyNumbers = (e) => {
+    if (e.ctrlKey || e.metaKey) return;
+    const allowed = new Set([
+      "Backspace",
+      "Delete",
+      "Tab",
+      "Escape",
+      "Enter",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End"
+    ]);
+    if (!allowed.has(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
+  };
+
   const [showSendTextMessage, setShowSendTextMessage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -159,6 +175,7 @@ export default function BroadcastTextMessageRightPanel({
               placeholder="Enter Phone Number"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
+              onKeyDown={allowOnlyNumbers}
             />
           </div>
         </div>

@@ -11,6 +11,22 @@ import TextVoicePreview from "./textVoicePreview";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
 
 function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
+  const allowOnlyNumbers = (e) => {
+    if (e.ctrlKey || e.metaKey) return;
+    const allowed = new Set([
+      "Backspace",
+      "Delete",
+      "Tab",
+      "Escape",
+      "Enter",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End"
+    ]);
+    if (!allowed.has(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
+  };
+
   const [showSendTestCall, setShowSendTestCall] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -389,11 +405,12 @@ function BroadcastTextVoiceMessageRightPanel({ isEditorEmpty, editorContent }) {
           <div className="phoneNumberInputWrapper">
             <input
               id="phoneNumber"
-              type="number"
+              type="text"
               placeholder="Enter Phone Number"
               className="phoneNumberInput"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
+              onKeyDown={allowOnlyNumbers}
             />
           </div>
         </div>

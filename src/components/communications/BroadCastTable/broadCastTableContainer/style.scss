@@ -15,7 +15,7 @@
     border-spacing: 0 4px;
     margin-top: -4px;
     margin-bottom: -4px;
-    min-width: 1200px;
+    // min-width: 1200px;
   }
 
   th {
@@ -49,9 +49,9 @@
     left: 0;
     top: 0;
     z-index: 4;
-    width: 60px;
+    // width: 60px;
     min-width: 60px;
-    max-width: 60px;
+    // max-width: 60px;
   }
 
   th:last-child {
@@ -59,9 +59,9 @@
     right: 0;
     top: 0;
     z-index: 4;
-    width: 90px;
+    // width: 90px;
     min-width: 90px;
-    max-width: 90px;
+    // max-width: 90px;
 
     &.settings-open {
       z-index: 10;
@@ -73,9 +73,9 @@
     right: 90px;
     top: 0;
     z-index: 4;
-    width: 152px;
+    // width: 152px;
     min-width: 152px;
-    max-width: 152px;
+    // max-width: 152px;
   }
 
   td {
@@ -93,9 +93,6 @@
     background-color: inherit;
     z-index: 1;
     box-shadow: 4px 0 8px -4px rgba(0, 0, 0, 0.1);
-    width: 60px;
-    min-width: 60px;
-    max-width: 60px;
   }
 
   td:last-child {
@@ -103,9 +100,6 @@
     right: 0;
     background-color: inherit;
     z-index: 1;
-    width: 60px;
-    min-width: 60px;
-    max-width: 60px;
   }
 
   td:nth-last-child(2) {
@@ -114,63 +108,60 @@
     background-color: inherit;
     z-index: 1;
     box-shadow: -4px 0 8px -4px rgba(0, 0, 0, 0.1);
-    width: 175px;
-    min-width: 175px;
-    max-width: 175px;
   }
 
   .col-select {
-    width: 60px;
+    // width: 60px;
     min-width: 60px;
-    max-width: 60px;
+    // max-width: 60px;
   }
 
   .col-mode {
-    width: 85px;
+    // width: 85px;
     min-width: 85px;
-    max-width: 85px;
+    // max-width: 85px;
   }
 
   .col-template {
-    width: 170px;
+    // width: 170px;
     min-width: 170px;
-    max-width: 170px;
+    // max-width: 170px;
   }
 
   .col-appointmentType {
-    width: 205px;
+    // width: 205px;
     min-width: 205px;
-    max-width: 205px;
+    // max-width: 205px;
   }
 
   .col-location {
-    width: 216px;
+    // width: 216px;
     min-width: 216px;
-    max-width: 216px;
+    // max-width: 216px;
   }
 
   .col-provider {
-    width: 160px;
+    // width: 160px;
     min-width: 160px;
-    max-width: 160px;
+    // max-width: 160px;
   }
 
   .col-scheduledDateTime {
-    width: 179px;
+    // width: 179px;
     min-width: 179px;
-    max-width: 179px;
+    // max-width: 179px;
   }
 
   .col-messageStatus {
-    width: 124px;
-    min-width: 124px;
-    max-width: 124px;
+    // width: 124px;
+    min-width: 166px;
+    // max-width: 124px;
   }
 
   .col-broadcastStatus {
-    width: 180px;
+    // width: 180px;
     min-width: 180px;
-    max-width: 180px;
+    // max-width: 180px;
   }
 
   tbody tr {
@@ -287,7 +278,7 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      width: 50px;
+      width: 65px;
 
       svg,
       img {

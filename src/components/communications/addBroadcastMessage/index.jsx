@@ -19,7 +19,9 @@ export function AddBroadcastMessage({
 
   // Schedule state (lifted from BroadCastSchedule)
   const [sendType, setSendType] = useState("immediately");
-  const [scheduleStartDateTime, setScheduleStartDateTime] = useState(null);
+  const [scheduleStartDateTime, setScheduleStartDateTime] = useState(
+    new Date()
+  );
   const [scheduleEndDateTime, setScheduleEndDateTime] = useState(null);
   const [frequency, setFrequency] = useState("Daily");
   const [repeatType, setRepeatType] = useState("Week");
@@ -28,9 +30,9 @@ export function AddBroadcastMessage({
   // Patient state (lifted from BroadcastPatientDetails)
   const [patientType, setPatientType] = useState("targetRecipients");
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [broadcastStartDate, setBroadcastStartDate] = useState(null);
+  const [broadcastStartDate, setBroadcastStartDate] = useState(new Date());
   const [broadcastEndDate, setBroadcastEndDate] = useState(null);
-  const [patientStartDateTime, setPatientStartDateTime] = useState(null);
+  const [patientStartDateTime, setPatientStartDateTime] = useState(new Date());
   const [patientEndDateTime, setPatientEndDateTime] = useState(null);
 
   // Template state (lifted from BroadcastTemplateDetails)
@@ -49,7 +51,7 @@ export function AddBroadcastMessage({
     selectedModes.length > 0 &&
     !!priority &&
     (sendType === "immediately" || !!scheduleStartDateTime) &&
-    (sendType !== "recurring" || !!scheduleEndDateTime) &&
+    (sendType !== "recurring" || !!frequency) &&
     !(
       sendType === "recurring" &&
       frequency === "Custom" &&

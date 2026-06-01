@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./style.scss";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown";
 import { ReusableDateTime } from "../../../../reusableComponents/reusableDate&TimePicker";
@@ -5,6 +6,7 @@ import ReusableToggleButton from "../../../../reusableComponents/reusableToggleB
 import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
+import ReusableModal from "../../../../reusableComponents/reusableModal";
 
 function TargetRecipients({
   // Dropdown props
@@ -37,6 +39,21 @@ function TargetRecipients({
   modalityOptions,
   onSearch
 }) {
+  const [showOptOutModal, setShowOptOutModal] = useState(false);
+
+  const handleToggleOptOut = (val) => {
+    if (val) {
+      setShowOptOutModal(true);
+    } else {
+      setIncludeOptOut(false);
+    }
+  };
+
+  const handleConfirmOptOut = () => {
+    setIncludeOptOut(true);
+    setShowOptOutModal(false);
+  };
+
   const handleSearch = () => {
     const hasStartDateTime = Array.isArray(startDateTime)
       ? startDateTime.length > 0
@@ -65,12 +82,14 @@ function TargetRecipients({
           />
         </div>
         <div className="formGroup">
-          <ReusableDropDown
+          <ReusableMultiSelectDropdown
             label="Location"
             greenIcon={false}
             placeholder="Select Location"
             options={locationOptions}
-            value={location}
+            value={
+              Array.isArray(location) ? location : location ? [location] : []
+            }
             onChange={(val) => setLocation(val)}
           />
         </div>
@@ -102,10 +121,10 @@ function TargetRecipients({
               />
             </div>
             <div className="ageInput">
-              <ReusableInput placeholder="Enter Year" />
+              <ReusableInput placeholder="Enter Year" numbersOnly={true} />
             </div>
             <div className="ageInput">
-              <ReusableInput placeholder="Enter Month" />
+              <ReusableInput placeholder="Enter Month" numbersOnly={true} />
             </div>
           </div>
         </div>
@@ -120,12 +139,14 @@ function TargetRecipients({
           />
         </div>
         <div className="formGroup">
-          <ReusableDropDown
+          <ReusableMultiSelectDropdown
             label="Modality"
             greenIcon={false}
             placeholder="Select Modality"
             options={modalityOptions}
-            value={modality}
+            value={
+              Array.isArray(modality) ? modality : modality ? [modality] : []
+            }
             onChange={(val) => setModality(val)}
           />
         </div>
@@ -152,7 +173,7 @@ function TargetRecipients({
           <ReusableToggleButton
             label="Include Opt Out Patients"
             isChecked={includeOptOut}
-            onChange={(val) => setIncludeOptOut(val)}
+            onChange={handleToggleOptOut}
           />
         </div>
       </div>
@@ -164,6 +185,37 @@ function TargetRecipients({
           onClick={handleSearch}
         />
       </div>
+
+      <ReusableModal
+        isOpen={showOptOutModal}
+        onClose={() => setShowOptOutModal(false)}
+        onConfirm={handleConfirmOptOut}
+        title="Include Opt-Out Patients"
+        cancelText="Cancel"
+        confirmText="Confirm"
+      >
+        <p
+          style={{
+            margin: "0 0 8px",
+            fontSize: "16px",
+            lineHeight: "24px",
+            color: "#344054"
+          }}
+        >
+          Are you sure you want to{" "}
+          <strong>include opt-out patients in this broadcast?</strong>
+        </p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "16px",
+            lineHeight: "24px",
+            color: "#344054"
+          }}
+        >
+          These patients have previously chosen not to receive communications.
+        </p>
+      </ReusableModal>
     </>
   );
 }

@@ -5,6 +5,8 @@ import "./style.scss";
 import PatientUploadFile from "./patientUploadFile";
 import OneTimeBroadcast from "./oneTimeBroadcast";
 import TargetRecipients from "./targetRecipients";
+import TargetViewList from "./targetViewList";
+import OneTimeViewList from "./oneTimeViewList";
 
 function BroadcastPatientDetails({
   patientType,
@@ -24,10 +26,12 @@ function BroadcastPatientDetails({
   const [location, setLocation] = useState("");
   const [provider, setProvider] = useState("");
   const [ageFilter, setAgeFilter] = useState("");
-  const [gender, setGender] = useState("");
+  const [gender, setGender] = useState("all");
   const [modality, setModality] = useState("");
   const [includeOptOut, setIncludeOptOut] = useState(false);
   const [patientsFoundForType, setPatientsFoundForType] = useState(null);
+  const [showViewList, setShowViewList] = useState(false);
+  const [showOneTimeViewList, setShowOneTimeViewList] = useState(false);
 
   const showPatientsFound = patientsFoundForType === patientType;
 
@@ -50,15 +54,18 @@ function BroadcastPatientDetails({
   ];
 
   const ageOptions = [
-    { label: "Between", value: "between" },
-    { label: "Greater than", value: "greater" },
-    { label: "Less than", value: "less" }
+    { label: "is equal to", value: "isEqualTo" },
+    { label: "is greater than", value: "isGreaterThan" },
+    { label: "is greater than or equal to", value: "isGreaterThanEqualTo" },
+    { label: "is lesser than", value: "isLesserThan" },
+    { label: "is lesser than or equal to", value: "isLesserThanEqualTo" },
+    { label: "is not equal to", value: "isNotEqualTo" }
   ];
 
   const genderOptions = [
+    { label: "All", value: "all" },
     { label: "Male", value: "male" },
-    { label: "Female", value: "female" },
-    { label: "Other", value: "other" }
+    { label: "Female", value: "female" }
   ];
 
   const modalityOptions = [
@@ -169,23 +176,76 @@ function BroadcastPatientDetails({
                   label="View"
                   variant="primary"
                   eyeImage={true}
+                  onClick={() =>
+                    patientType === "oneTimeBroadcast"
+                      ? setShowOneTimeViewList(true)
+                      : setShowViewList(true)
+                  }
                 />
               </div>
             </div>
             <div className="patientsFoundDivider"></div>
             <div className="patientsFoundContent">
-              <div className="patientsFound">
-                <p className="patientName">Patients Found</p>
-                <p className="patientCount">2731</p>
-              </div>
-              <div className="patientsFound">
-                <p className="patientName">Opt Out Patients</p>
-                <p className="patientCount">7</p>
-              </div>
+              {patientType === "targetRecipients" && (
+                <>
+                  {includeOptOut ? (
+                    <>
+                      <div className="patientsFound">
+                        <p className="patientName">Patients Found</p>
+                        <p className="patientCount">2731</p>
+                      </div>
+                      <div className="patientsFound">
+                        <p className="patientName">Opt Out Patients</p>
+                        <p className="patientCount">7</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="patientsFound">
+                      <p className="patientName">Total Patients</p>
+                      <p className="patientCount">2731</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {patientType === "uploadFile" && (
+                <>
+                  <div className="patientsFound">
+                    <p className="patientName">Total Patients</p>
+                    <p className="patientCount">2731</p>
+                  </div>
+                  <div className="patientsFound">
+                    <p className="patientName">Eligible Patients</p>
+                    <p className="patientCount">2700</p>
+                  </div>
+                  <div className="patientsFound">
+                    <p className="patientName">Error Patients</p>
+                    <p className="patientCount">31</p>
+                  </div>
+                </>
+              )}
+
+              {patientType === "oneTimeBroadcast" && (
+                <div className="patientsFound">
+                  <p className="patientName">Patients Found</p>
+                  <p className="patientCount">2731</p>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      <TargetViewList
+        isOpen={showViewList}
+        onClose={() => setShowViewList(false)}
+        includeOptOut={includeOptOut}
+      />
+
+      <OneTimeViewList
+        isOpen={showOneTimeViewList}
+        onClose={() => setShowOneTimeViewList(false)}
+      />
     </div>
   );
 }
