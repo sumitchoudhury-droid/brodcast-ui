@@ -1,0 +1,366 @@
+@use "../../../../../style/variable.scss" as variable;
+
+.uploadFileViewListOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2.5px);
+  z-index: 1300;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.uploadFileViewListContainer {
+  min-width: 1060px;
+  max-width: 95vw;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1301;
+  animation: slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.uploadFileViewListContainer {
+  .drawerHeader {
+    width: 100%;
+    @include variable.d-flex($al: center, $jc: space-between);
+    padding: 16px 24px;
+    border-bottom: 1px solid #eaecf0;
+    background-color: #ffffff;
+
+    .headerTitle {
+      h2 {
+        @include variable.font-style($fs: 18px, $fw: 600, $lh: 24px);
+        color: variable.$color-black-4;
+        margin: 0;
+
+        span {
+          color: #888e9e;
+          @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
+        }
+      }
+    }
+
+    .headerRight {
+      display: flex;
+      align-items: center;
+
+      .drawerCloseBtn {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+
+        img {
+          width: 24px;
+          height: 24px;
+        }
+      }
+    }
+  }
+
+  /* Sub-header with toggle + action buttons */
+  .drawerSubHeader {
+    width: 100%;
+    @include variable.d-flex($al: center, $jc: space-between);
+    padding: 12px 24px;
+    border-bottom: 1px solid #eaecf0;
+    background-color: #ffffff;
+
+    .leftSide {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      span {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+        color: variable.$color-black-6;
+      }
+
+      .toggleSwitch {
+        width: 36px;
+        height: 20px;
+        background-color: #d1d5db;
+        border-radius: 9999px;
+        position: relative;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        outline: none;
+
+        &:focus-visible {
+          box-shadow: 0 0 0 3px rgba(16, 122, 108, 0.25);
+        }
+
+        &.checked {
+          background-color: variable.$primary-color;
+        }
+
+        .toggleThumb {
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          width: 16px;
+          height: 16px;
+          background-color: #ffffff;
+          border-radius: 50%;
+          transition: transform 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        &.checked .toggleThumb {
+          transform: translateX(16px);
+        }
+      }
+    }
+
+    .rightSide {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .editPatientsBtn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        border: 1px solid variable.$primary-color;
+        border-radius: 8px;
+        padding: 6px 14px;
+        cursor: pointer;
+        color: variable.$primary-color;
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+
+        img {
+          width: 16px;
+          height: 16px;
+        }
+
+        &:hover {
+          background-color: #f0fdf9;
+        }
+      }
+
+      .editModeActions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .cancelEditBtn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: transparent;
+          border: 1px solid variable.$primary-color;
+          border-radius: 8px;
+          padding: 6px 14px;
+          cursor: pointer;
+          color: variable.$primary-color;
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+
+          &:hover {
+            background-color: #f0fdf9;
+          }
+        }
+
+        .saveEditBtn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: variable.$primary-color;
+          border: 1px solid variable.$primary-color;
+          border-radius: 8px;
+          padding: 6px 14px;
+          cursor: pointer;
+          color: #ffffff;
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+
+          &:hover {
+            background-color: #0d6b5f;
+          }
+        }
+      }
+    }
+  }
+
+  .drawerContent {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  /* ---------- TABLE ---------- */
+  .drawerTableWrapper {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 4px;
+      margin-top: -4px;
+      margin-bottom: -4px;
+      background-color: variable.$color-white-13;
+      text-align: left;
+    }
+
+    th {
+      background-color: variable.$color-green-4;
+      color: variable.$color-black-11;
+      @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+      padding: 8px 16px;
+      border-bottom: 1px solid variable.$color-white-13;
+      white-space: nowrap;
+      user-select: none;
+
+      .headerCell {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+
+      .tableSearchIcon {
+        min-width: 24px;
+        height: 24px;
+        cursor: pointer;
+        vertical-align: middle;
+      }
+    }
+
+    .search-filters-row {
+      th {
+        background-color: #ffffff;
+        border-bottom: 1px solid #eaecf0;
+        padding: 6px 12px;
+
+        .search-input-wrapper {
+          width: 100%;
+          display: flex;
+          align-items: center;
+
+          input {
+            width: 100%;
+            height: 32px;
+            padding: 4px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #ffffff;
+            color: variable.$color-black-6;
+            @include variable.font-style($fs: 12px, $fw: 400, $lh: 18px);
+            outline: none;
+            box-sizing: border-box;
+            font-family: inherit;
+
+            &::placeholder {
+              color: #94a3b8;
+            }
+          }
+        }
+      }
+    }
+
+    td {
+      padding: 8px 16px;
+      @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+      color: variable.$color-black-6;
+      vertical-align: middle;
+      white-space: nowrap;
+      background-color: variable.$color-white-0;
+    }
+
+    tbody tr:hover td {
+      background-color: #f9fafb;
+    }
+
+    .invalidCell {
+      background-color: variable.$color-red-4 !important;
+      color: variable.$color-red-0;
+    }
+
+    .editableCell {
+      padding: 4px 8px;
+    }
+
+    .editInput {
+      width: 100%;
+      height: 32px;
+      padding: 4px 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background-color: #ffffff;
+      color: variable.$color-black-6;
+      @include variable.font-style($fs: 12px, $fw: 400, $lh: 18px);
+      outline: none;
+      box-sizing: border-box;
+      font-family: inherit;
+
+      &:focus {
+        border-color: variable.$primary-color;
+      }
+    }
+
+    .addRowActions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .confirmAddBtn,
+      .cancelAddBtn {
+        cursor: pointer;
+        border: 1px solid #198d85;
+        border-radius: 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 32px;
+        width: 32px;
+
+        img {
+          width: 20px;
+          height: 20px;
+        }
+      }
+    }
+
+    .reasonCell {
+      color: variable.$color-black-6;
+    }
+
+    .search-highlight {
+      background-color: #fef08a;
+      color: #854d0e;
+      padding: 0 2px;
+      border-radius: 2px;
+      font-weight: inherit;
+    }
+  }
+
+  /* ---------- FOOTER ---------- */
+  .drawerFooter {
+    width: 100%;
+
+    .drawerPagination {
+      background-color: variable.$color-white-14;
+      padding: 8px 20px;
+      width: 100%;
+      border-top: 1px solid variable.$color-white-10;
+    }
+  }
+}

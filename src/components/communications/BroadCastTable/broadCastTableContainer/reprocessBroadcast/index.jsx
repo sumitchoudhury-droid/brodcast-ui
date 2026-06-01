@@ -50,9 +50,7 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
     JSON.parse(JSON.stringify(mockFailedPatients))
   );
   const [editPatients, setEditPatients] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(
-    () => new Set(mockFailedPatients.map((p) => p.id))
-  );
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [isEditMode, setIsEditMode] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -206,6 +204,12 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return sortedPatients.slice(startIndex, startIndex + itemsPerPage);
   }, [sortedPatients, currentPage, itemsPerPage]);
+
+  const hasSelectedErrors = useMemo(() => {
+    return patients
+      .filter((p) => selectedIds.has(p.id))
+      .some((p) => isEmailInvalid(p.email) || isPhoneInvalid(p.phone));
+  }, [patients, selectedIds]);
 
   const handleReprocessSubmit = () => {
     if (selectedIds.size === 0) {
@@ -596,7 +600,9 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
               label="Reprocess"
               variant="secondary"
               onClick={handleReprocessSubmit}
-              disabled={isEditMode || selectedIds.size === 0}
+              disabled={
+                isEditMode || selectedIds.size === 0 || hasSelectedErrors
+              }
             />
           </div>
         </div>
