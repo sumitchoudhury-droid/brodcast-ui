@@ -9,11 +9,11 @@ import leftPanelLink from "../../../../../assets/leftPanel/leftPanelLink.svg";
 import leftPanelPhoto from "../../../../../assets/leftPanel/leftPanelPhoto.svg";
 import leftPanelText from "../../../../../assets/leftPanel/leftPanelText.svg";
 import leftPanelRow from "../../../../../assets/leftPanel/leftPanelRow.svg";
-import leftPanelCAT from "../../../../../assets/leftPanel/leftPanelCAT.svg";
-import leftPanelContent from "../../../../../assets/leftPanel/leftPanelContent.svg";
-import leftPanelFeatures from "../../../../../assets/leftPanel/leftPanelFeatures.svg";
-import leftPanelFooter from "../../../../../assets/leftPanel/leftPanelFooter.svg";
-import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg";
+// import leftPanelCAT from "../../../../../assets/leftPanel/leftPanelCAT.svg";
+// import leftPanelContent from "../../../../../assets/leftPanel/leftPanelContent.svg";
+// import leftPanelFeatures from "../../../../../assets/leftPanel/leftPanelFeatures.svg";
+// import leftPanelFooter from "../../../../../assets/leftPanel/leftPanelFooter.svg";
+// import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg";
 import leftPanelPlaceholders from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
 import template1 from "../../../../../assets/templates/template1.svg";
 import template2 from "../../../../../assets/templates/template2.svg";
@@ -119,46 +119,46 @@ export default function LeftPanel({
             className="ComponentIcon"
           ></img>
         );
-      case "customHeader":
-        return (
-          <img
-            src={leftPanelHeader}
-            alt="leftPanelHeader"
-            className="ComponentIcon"
-          ></img>
-        );
-      case "customContent":
-        return (
-          <img
-            src={leftPanelContent}
-            alt="leftPanelContent"
-            className="ComponentIcon"
-          ></img>
-        );
-      case "customFeatures":
-        return (
-          <img
-            src={leftPanelFeatures}
-            alt="leftPanelFeatures"
-            className="ComponentIcon"
-          ></img>
-        );
-      case "customFooter":
-        return (
-          <img
-            src={leftPanelFooter}
-            alt="leftPanelFooter"
-            className="ComponentIcon"
-          ></img>
-        );
-      case "customCTA":
-        return (
-          <img
-            src={leftPanelCAT}
-            alt="leftPanelCAT"
-            className="ComponentIcon"
-          ></img>
-        );
+      // case "customHeader":
+      //   return (
+      //     <img
+      //       src={leftPanelHeader}
+      //       alt="leftPanelHeader"
+      //       className="ComponentIcon"
+      //     ></img>
+      //   );
+      // case "customContent":
+      //   return (
+      //     <img
+      //       src={leftPanelContent}
+      //       alt="leftPanelContent"
+      //       className="ComponentIcon"
+      //     ></img>
+      //   );
+      // case "customFeatures":
+      //   return (
+      //     <img
+      //       src={leftPanelFeatures}
+      //       alt="leftPanelFeatures"
+      //       className="ComponentIcon"
+      //     ></img>
+      //   );
+      // case "customFooter":
+      //   return (
+      //     <img
+      //       src={leftPanelFooter}
+      //       alt="leftPanelFooter"
+      //       className="ComponentIcon"
+      //     ></img>
+      //   );
+      // case "customCTA":
+      //   return (
+      //     <img
+      //       src={leftPanelCAT}
+      //       alt="leftPanelCAT"
+      //       className="ComponentIcon"
+      //     ></img>
+      //   );
       default:
         return (
           <svg viewBox="0 0 24 24">
@@ -282,11 +282,6 @@ export default function LeftPanel({
               () => setShowPlaceholders((prev) => !prev),
               false
             )}
-            {createBlockItem("customHeader", "Header")}
-            {createBlockItem("customContent", "Content")}
-            {createBlockItem("customFeatures", "Features")}
-            {createBlockItem("customFooter", "Footer")}
-            {createBlockItem("customCTA", "CTA")}
           </div>
         </div>
       </div>
