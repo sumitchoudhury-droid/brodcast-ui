@@ -7,6 +7,7 @@ import OneTimeBroadcast from "./oneTimeBroadcast";
 import TargetRecipients from "./targetRecipients";
 import TargetViewList from "./targetViewList";
 import OneTimeViewList from "./oneTimeViewList";
+import UploadFileViewList from "./uploadFileViewList";
 
 function BroadcastPatientDetails({
   patientType,
@@ -32,6 +33,7 @@ function BroadcastPatientDetails({
   const [patientsFoundForType, setPatientsFoundForType] = useState(null);
   const [showViewList, setShowViewList] = useState(false);
   const [showOneTimeViewList, setShowOneTimeViewList] = useState(false);
+  const [showUploadViewList, setShowUploadViewList] = useState(false);
 
   const showPatientsFound = patientsFoundForType === patientType;
 
@@ -176,11 +178,13 @@ function BroadcastPatientDetails({
                   label="View"
                   variant="primary"
                   eyeImage={true}
-                  onClick={() =>
-                    patientType === "oneTimeBroadcast"
-                      ? setShowOneTimeViewList(true)
-                      : setShowViewList(true)
-                  }
+                  onClick={() => {
+                    if (patientType === "oneTimeBroadcast")
+                      setShowOneTimeViewList(true);
+                    else if (patientType === "uploadFile")
+                      setShowUploadViewList(true);
+                    else setShowViewList(true);
+                  }}
                 />
               </div>
             </div>
@@ -245,6 +249,11 @@ function BroadcastPatientDetails({
       <OneTimeViewList
         isOpen={showOneTimeViewList}
         onClose={() => setShowOneTimeViewList(false)}
+      />
+
+      <UploadFileViewList
+        isOpen={showUploadViewList}
+        onClose={() => setShowUploadViewList(false)}
       />
     </div>
   );

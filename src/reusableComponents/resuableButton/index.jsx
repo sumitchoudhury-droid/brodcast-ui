@@ -1,10 +1,14 @@
 import "./style.scss";
 import downloadIcon from "../../assets/commonIcons/downloadIcon.svg";
 import greenDownloadIcon from "../../assets/commonIcons/greenDownloadIcon.svg";
+import addIcon2 from "../../assets/boardCastTableIcons/addIcon.svg";
+import editIcon from "../../assets/boardCastTableIcons/editIcon.svg";
+import deleteIcon from "../../assets/boardCastTableIcons/deleteIcon.svg";
 import eyeIcon from "../../assets/commonIcons/eyeIcon.svg";
 import sendIcon from "../../assets/voiceTextIcons/messageIcon.svg";
 import playIcon from "../../assets/voiceTextIcons/pausedIcon.svg";
 import pauseIcon from "../../assets/voiceTextIcons/playIcon.svg";
+
 export function ReusableButton({
   label = "Button",
   onClick,
@@ -20,6 +24,9 @@ export function ReusableButton({
   playImage = false,
   pauseImage = false,
   addIcon = false,
+  addImage2 = false,
+  editImage = false,
+  deleteImage = false,
   addImage
 }) {
   const handleClick = (e) => {
@@ -91,6 +98,33 @@ export function ReusableButton({
             <img
               src={addImage}
               alt="addIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+
+          {addImage2 && (
+            <img
+              src={addIcon2}
+              alt="addIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+
+          {editImage && (
+            <img
+              src={editIcon}
+              alt="editIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+
+          {deleteImage && (
+            <img
+              src={deleteIcon}
+              alt="deleteIcon"
               className="icon"
               style={{ width: "20px", height: "20px" }}
             />
