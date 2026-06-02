@@ -15,37 +15,112 @@
     align-items: center;
     gap: 12px;
 
-    .items-per-page-input {
-      width: 54px;
-      height: 32px;
-      padding: 0 8px;
+    .items-per-page-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
       background-color: #ffffff;
       border: 1px solid #d1d5db;
       border-radius: 6px;
-      font-weight: 500;
-      color: #374151;
-      font-size: 14px;
-      text-align: center;
-      outline: none;
+      width: 72px;
+      height: 32px;
+      padding-right: 4px;
       transition:
         border-color 0.2s,
         box-shadow 0.2s;
 
-      &:focus {
+      &:focus-within {
         border-color: #118b7e;
         box-shadow: 0 0 0 2px rgba(17, 139, 126, 0.1);
       }
 
-      /* Hide spin buttons for Chrome, Safari, Edge, Opera */
-      &::-webkit-outer-spin-button,
-      &::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
+      .items-per-page-input {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: transparent;
+        padding: 0 4px 0 8px;
+        font-weight: 500;
+        color: #374151;
+        font-size: 14px;
+        text-align: center;
+        outline: none;
+
+        /* Hide spin buttons for Chrome, Safari, Edge, Opera */
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+
+        /* Hide spin buttons for Firefox */
+        &[type="number"] {
+          -moz-appearance: textfield;
+        }
       }
 
-      /* Hide spin buttons for Firefox */
-      &[type="number"] {
-        -moz-appearance: textfield;
+      .dropdown-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        opacity: 0.6;
+        transition:
+          transform 0.2s,
+          opacity 0.2s;
+
+        &:hover {
+          opacity: 1;
+        }
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+
+        svg {
+          width: 10px;
+          height: 10px;
+          fill: #374151;
+        }
+      }
+
+      .pagination-dropdown-options {
+        position: absolute;
+        bottom: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-shadow:
+          0 -4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 -2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 10;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 4px 0;
+
+        .dropdown-option {
+          padding: 6px 12px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #374151;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          text-align: center;
+
+          &:hover {
+            background-color: #f3f4f6;
+          }
+
+          &.selected {
+            background-color: rgba(17, 139, 126, 0.08);
+            color: #118b7e;
+          }
+        }
       }
     }
 

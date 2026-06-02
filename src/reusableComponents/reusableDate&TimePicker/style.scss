@@ -89,6 +89,7 @@
 // ─────────────────────────────────────────
 // Popup container  —  502 × 400
 // ─────────────────────────────────────────
+
 .customDatePickerPopup {
   position: absolute;
   top: calc(100% + 8px);
@@ -103,6 +104,12 @@
   height: 400px;
   display: flex;
   flex-direction: column;
+}
+
+.topDown {
+  .customDatePickerPopup {
+    top: calc(-100% - 370px);
+  }
 }
 
 // ─────────────────────────────────────────

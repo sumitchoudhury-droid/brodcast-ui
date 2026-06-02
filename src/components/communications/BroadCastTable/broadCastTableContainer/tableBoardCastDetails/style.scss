@@ -193,27 +193,7 @@
         .messageStatusList {
           @include variable.d-flex($fd: column, $g: 12px);
           width: 100%;
-          max-width: 250px;
-
-          .statusItem {
-            @include variable.d-flex($al: center, $jc: space-between);
-
-            .statusLabel {
-              @include variable.d-flex($al: center, $g: 8px);
-              color: variable.$color-black-5;
-              @include variable.font-style($fs: 14px, $fw: 500);
-
-              img {
-                width: 16px;
-                height: 16px;
-              }
-            }
-
-            .statusValue {
-              color: variable.$color-black-11;
-              @include variable.font-style($fs: 14px, $fw: 600);
-            }
-          }
+          max-width: 320px;
         }
 
         .status-badge {
@@ -334,18 +314,54 @@
 
     .statusListRow {
       .messageStatusList {
-        @include variable.d-flex($fd: column, $g: 10px);
-        .statusItem {
-          @include variable.d-flex($g: 14px, $al: center);
-          .statusLabel {
-            @include variable.d-flex($g: 4px, $al: center);
-            span {
-              @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
-              color: variable.$color-black-6;
+        @include variable.d-flex($fd: column, $g: 12px);
+
+        .modeStatusGroup {
+          background-color: variable.$color-white-13;
+          border: 1.5px solid variable.$color-white-6;
+          border-radius: 8px;
+          padding: 12px 16px;
+          width: 100%;
+          box-sizing: border-box;
+          margin-bottom: 12px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .modeStatusHeader {
+            @include variable.font-style($fs: 12px, $fw: 600, $lh: 18px);
+            color: variable.$color-green-0;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed variable.$color-white-6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .statusItem {
+            @include variable.d-flex($al: center, $jc: space-between);
+            margin-bottom: 8px;
+
+            &:last-child {
+              margin-bottom: 0;
             }
-            img {
-              width: 16px;
-              height: 16px;
+
+            .statusLabel {
+              @include variable.d-flex($al: center, $g: 8px);
+              span {
+                @include variable.font-style($fs: 13px, $fw: 500, $lh: 18px);
+                color: variable.$color-black-5;
+              }
+              img {
+                width: 14px;
+                height: 14px;
+              }
+            }
+
+            .statusValue {
+              color: variable.$color-black-11;
+              @include variable.font-style($fs: 13px, $fw: 600);
             }
           }
         }

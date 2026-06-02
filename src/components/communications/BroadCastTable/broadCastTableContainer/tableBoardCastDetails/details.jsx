@@ -87,10 +87,117 @@ const getRepeatedItems = (baseItem, mockList, targetCount) => {
   let suffixIndex = 1;
   while (list.length < targetCount) {
     const templateItem = mockList[suffixIndex % mockList.length];
-    list.push(`${templateItem} (${suffixIndex})`);
+    list.push(`${templateItem} (${suffixIndex}`);
     suffixIndex++;
   }
   return list;
+};
+
+const getModesList = (modeStr) => {
+  if (!modeStr) return [];
+  let list = modeStr
+    .split(",")
+    .map((m) => m.trim())
+    .filter((m) => m && m !== "...");
+
+  if (modeStr.includes("...")) {
+    const allPossible = ["Text", "Mail", "Voice"];
+    allPossible.forEach((p) => {
+      if (!list.some((item) => item.toLowerCase() === p.toLowerCase())) {
+        list.push(p);
+      }
+    });
+  }
+  return list;
+};
+
+const getModeSpecificStatus = (messageStatus, modesList) => {
+  if (!messageStatus) return {};
+
+  if (messageStatus.modes) {
+    return messageStatus.modes;
+  }
+
+  const parseVal = (val) => {
+    if (!val || val === "-") return 0;
+    return parseInt(String(val).replace(/,/g, ""), 10) || 0;
+  };
+
+  const totalVal = parseVal(messageStatus.total);
+  const deliveredVal = parseVal(messageStatus.delivered);
+  const failedVal = parseVal(messageStatus.failed);
+  const pendingVal = parseVal(messageStatus.pending);
+
+  const numModes = modesList.length;
+  if (numModes <= 1) {
+    const singleMode = modesList[0] || "Message";
+    return {
+      [singleMode]: {
+        total: messageStatus.total || "-",
+        delivered: messageStatus.delivered || "-",
+        failed: messageStatus.failed || "-",
+        pending: messageStatus.pending || "-"
+      }
+    };
+  }
+
+  const modeCounts = {};
+  let totalAllocated = 0;
+  let deliveredAllocated = 0;
+  let failedAllocated = 0;
+  let pendingAllocated = 0;
+
+  modesList.forEach((m, idx) => {
+    let fraction = 1 / numModes;
+    if (numModes === 2) {
+      fraction = idx === 0 ? 0.6 : 0.4;
+    } else if (numModes === 3) {
+      fraction = idx === 0 ? 0.5 : idx === 1 ? 0.3 : 0.2;
+    }
+
+    const mTotal =
+      idx === numModes - 1
+        ? totalVal - totalAllocated
+        : Math.round(totalVal * fraction);
+    const mDelivered =
+      idx === numModes - 1
+        ? deliveredVal - deliveredAllocated
+        : Math.round(deliveredVal * fraction);
+    const mFailed =
+      idx === numModes - 1
+        ? failedVal - failedAllocated
+        : Math.round(failedVal * fraction);
+    const mPending =
+      idx === numModes - 1
+        ? pendingVal - pendingAllocated
+        : Math.round(pendingVal * fraction);
+
+    totalAllocated += mTotal;
+    deliveredAllocated += mDelivered;
+    failedAllocated += mFailed;
+    pendingAllocated += mPending;
+
+    const formatVal = (val, originalStr) => {
+      if (
+        originalStr === "-" ||
+        originalStr === undefined ||
+        originalStr === null
+      ) {
+        return "-";
+      }
+      if (val === 0) return "0";
+      return val.toLocaleString("en-US");
+    };
+
+    modeCounts[m] = {
+      total: formatVal(mTotal, messageStatus.total),
+      delivered: formatVal(mDelivered, messageStatus.delivered),
+      failed: formatVal(mFailed, messageStatus.failed),
+      pending: formatVal(mPending, messageStatus.pending)
+    };
+  });
+
+  return modeCounts;
 };
 
 export default function Details({ broadcastData }) {
@@ -175,11 +282,8 @@ export default function Details({ broadcastData }) {
 
   const repeatText = getRepeatText(broadcastStatus);
 
-  // Format message status values
-  const totalMsgs = messageStatus.total || "-";
-  const successMsgs = messageStatus.delivered || "-";
-  const failedMsgs = messageStatus.failed || "-";
-  const pendingMsgs = messageStatus.pending || "-";
+  const modesList = getModesList(mode);
+  const modeSpecificCounts = getModeSpecificStatus(messageStatus, modesList);
 
   return (
     <div className="tabContentDetails">
@@ -313,34 +417,44 @@ export default function Details({ broadcastData }) {
           <div className="detailRow statusListRow">
             <div className="labelCol">Message Status</div>
             <div className="valueCol messageStatusList">
-              <div className="statusItem">
-                <div className="statusLabel">
-                  <img src={broadcastIcon} alt="Total" />
-                  <span>Total Message</span>
-                </div>
-                <div className="statusValue">{totalMsgs}</div>
-              </div>
-              <div className="statusItem">
-                <div className="statusLabel">
-                  <img src={completedGreenIcon} alt="Success" />
-                  <span>Success</span>
-                </div>
-                <div className="statusValue">{successMsgs}</div>
-              </div>
-              <div className="statusItem">
-                <div className="statusLabel">
-                  <img src={failedRedIcon} alt="Failed" />
-                  <span>Failed</span>
-                </div>
-                <div className="statusValue">{failedMsgs}</div>
-              </div>
-              <div className="statusItem">
-                <div className="statusLabel">
-                  <img src={pendingYellowIcon} alt="Pending" />
-                  <span>Pending</span>
-                </div>
-                <div className="statusValue">{pendingMsgs}</div>
-              </div>
+              {modesList.map((modeName) => {
+                const counts = modeSpecificCounts[modeName] || {};
+                return (
+                  <div key={modeName} className="modeStatusGroup">
+                    <div className="modeStatusHeader">{modeName} Mode</div>
+                    <div className="statusItem">
+                      <div className="statusLabel">
+                        <img src={broadcastIcon} alt="Total" />
+                        <span>Total Message</span>
+                      </div>
+                      <div className="statusValue">{counts.total || "-"}</div>
+                    </div>
+                    <div className="statusItem">
+                      <div className="statusLabel">
+                        <img src={completedGreenIcon} alt="Success" />
+                        <span>Success</span>
+                      </div>
+                      <div className="statusValue">
+                        {counts.delivered || "-"}
+                      </div>
+                    </div>
+                    <div className="statusItem">
+                      <div className="statusLabel">
+                        <img src={failedRedIcon} alt="Failed" />
+                        <span>Failed</span>
+                      </div>
+                      <div className="statusValue">{counts.failed || "-"}</div>
+                    </div>
+                    <div className="statusItem">
+                      <div className="statusLabel">
+                        <img src={pendingYellowIcon} alt="Pending" />
+                        <span>Pending</span>
+                      </div>
+                      <div className="statusValue">{counts.pending || "-"}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

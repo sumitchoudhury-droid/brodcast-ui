@@ -108,6 +108,7 @@ function ScheduleOptions({
               required={true}
               selected={startDateTime}
               onChange={(date) => setStartDateTime(date)}
+              className="topDown"
             />
           </div>
         )}
@@ -122,6 +123,7 @@ function ScheduleOptions({
               value={frequency}
               onChange={setFrequency}
               required={true}
+              overWriteClassName="topDown"
             />
           </div>
         )}
@@ -192,6 +194,7 @@ function ScheduleOptions({
               label="Ends On"
               selected={endDateTime}
               onChange={(date) => setEndDateTime(date)}
+              className="topDown"
             />
           </div>
         )}

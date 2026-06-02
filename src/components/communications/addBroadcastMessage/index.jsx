@@ -86,6 +86,19 @@ export function AddBroadcastMessage({
           priority={priority}
           setPriority={setPriority}
         />
+        <BroadcastTemplateDetails
+          selectedModes={selectedModes}
+          selectedTemplateType={selectedTemplateType}
+          setSelectedTemplateType={setSelectedTemplateType}
+          existingTemplateValues={existingTemplateValues}
+          setExistingTemplateValues={setExistingTemplateValues}
+          newTemplateName={newTemplateName}
+          setNewTemplateName={setNewTemplateName}
+          selectedTemplate={selectedEmailTemplateType}
+          setSelectedTemplate={setSelectedEmailTemplateType}
+          onSelectTemplate={setSelectedTemplateData}
+          selectedTemplateData={selectedTemplateData}
+        />
         <BroadcastPatientDetails
           patientType={patientType}
           setPatientType={setPatientType}
@@ -112,19 +125,6 @@ export function AddBroadcastMessage({
           setRepeatType={setRepeatType}
           repeatOn={repeatOn}
           setRepeatOn={setRepeatOn}
-        />
-        <BroadcastTemplateDetails
-          selectedModes={selectedModes}
-          selectedTemplateType={selectedTemplateType}
-          setSelectedTemplateType={setSelectedTemplateType}
-          existingTemplateValues={existingTemplateValues}
-          setExistingTemplateValues={setExistingTemplateValues}
-          newTemplateName={newTemplateName}
-          setNewTemplateName={setNewTemplateName}
-          selectedTemplate={selectedEmailTemplateType}
-          setSelectedTemplate={setSelectedEmailTemplateType}
-          onSelectTemplate={setSelectedTemplateData}
-          selectedTemplateData={selectedTemplateData}
         />
       </div>
       <div className="addBroadcastMessageFooter">
