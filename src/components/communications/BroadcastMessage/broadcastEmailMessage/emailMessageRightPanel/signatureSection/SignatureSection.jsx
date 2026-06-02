@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./style.scss";
 import signatureIcon from "../../../../../../assets/commonIcons/signatureIcon.svg";
 import fileTextIcon from "../../../../../../assets/commonIcons/fileTextIcon.svg";
 import fileHtmlIcon from "../../../../../../assets/commonIcons/fileHtmlIcon.svg";
+import checkBox from "../../../../../../assets/mainScreen/checkBox.svg";
+import uncheckBox from "../../../../../../assets/mainScreen/uncheckBox.svg";
+import searchIcon from "../../../../../../assets/mainScreen/searchIcon.svg";
+import greenChevronRight from "../../../../../../assets/mainScreen/greenChevronRight.svg";
+import eyeIcon from "../../../../../../assets/mainScreen/eyeIcon.svg";
+
 import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal";
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
@@ -10,7 +16,11 @@ import { useToast } from "../../../../../../hooks/useToast";
 
 export default function SignatureSection({ editorRef, isEditorEmpty }) {
   const [signature, setSignature] = useState("");
-  const [onDemandForm, setOnDemandForm] = useState("");
+  const [showFormsDropdown, setShowFormsDropdown] = useState(false);
+  const [selectedForms, setSelectedForms] = useState([]);
+  const [pendingForms, setPendingForms] = useState([]);
+  const [formSearch, setFormSearch] = useState("");
+  const dropdownRef = useRef(null);
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -174,8 +184,6 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
   };
 
   const handleOnDemandFormClick = (value) => {
-    setOnDemandForm(value);
-
     const editor = editorRef?.current?.getEditor();
     if (!editor) {
       toast.error("Editor Error", "Editor instance not found");
@@ -194,11 +202,11 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     };
     findBody(wrapper);
 
-    // Recursively find if there is an existing on-demand form section
+    // Recursively find if there is an existing on-demand form section for this specific value
     let existingForm = null;
     const findFormComp = (comp) => {
       if (existingForm) return;
-      if (comp.getAttributes?.()?.["data-type"] === "on-demand-form-section") {
+      if (comp.getAttributes?.()?.["data-form-value"] === value) {
         existingForm = comp;
         return;
       }
@@ -209,11 +217,13 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     if (mjBody) {
       // MJML mode
       const formUrl = `https://forms.manipalhospitals.com/${value}`;
-      const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" padding="10px 0px" margin="0px" width="100%" background-color="transparent">
+      const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" data-form-value="${value}" padding="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="10px 0px" font-family="Inter" font-size="16px" color="#181D25" line-height="24px">
-      Kindly review and submit the form at the link below.<br />
-      <a href="${formUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${formUrl}</a>
+    <mj-text padding="0px" font-family="Inter" font-size="16px" color="#181D25" line-height="24px">
+      <div style="padding: 6px 0px;">
+        Kindly review and submit the form at the link below.<br />
+        <a href="${formUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${formUrl}</a>
+      </div>
     </mj-text>
   </mj-column>
 </mj-section>`;
@@ -241,7 +251,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     } else {
       // HTML mode
       const formUrl = `https://forms.manipalhospitals.com/${value}`;
-      const newFormHtml = `<div data-type="on-demand-form-section" style="padding: 10px 0px; margin: 0px; font-family: Inter, sans-serif; font-size: 16px; color: #181D25; line-height: 24px;">
+      const newFormHtml = `<div data-type="on-demand-form-section" data-form-value="${value}" style="padding-top: 6px; padding-bottom: 6px; padding-left: 0px; padding-right: 0px; margin: 0px; font-family: Inter, sans-serif; font-size: 16px; color: #181D25; line-height: 24px;">
         Kindly review and submit the form at the link below.<br />
         <a href="${formUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${formUrl}</a>
       </div>`;
@@ -277,6 +287,72 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     toast.success("Success", "On-demand form link added to editor");
   };
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowFormsDropdown(false);
+        setPendingForms(selectedForms);
+        setFormSearch("");
+      }
+    };
+    if (showFormsDropdown)
+      document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showFormsDropdown, selectedForms]);
+
+  const handleOpenFormsDropdown = () => {
+    if (showFormsDropdown) {
+      setShowFormsDropdown(false);
+      setPendingForms(selectedForms);
+      setFormSearch("");
+    } else {
+      setPendingForms([...selectedForms]);
+      setFormSearch("");
+      setShowFormsDropdown(true);
+    }
+  };
+
+  const handleToggleForm = (value) => {
+    setPendingForms((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
+
+  const handleFormsSend = () => {
+    selectedForms.forEach((form) => {
+      const editor = editorRef?.current?.getEditor();
+      if (editor) {
+        const wrapper = editor.getWrapper();
+        let existingForm = null;
+        const findFormComp = (comp) => {
+          if (existingForm) return;
+          if (comp.getAttributes?.()?.["data-form-value"] === form) {
+            existingForm = comp;
+            return;
+          }
+          comp.components().each(findFormComp);
+        };
+        findFormComp(wrapper);
+        if (existingForm) existingForm.remove();
+      }
+    });
+
+    pendingForms.forEach((form) => handleOnDemandFormClick(form));
+    setSelectedForms(pendingForms);
+    setShowFormsDropdown(false);
+    setFormSearch("");
+  };
+
+  const handleFormsCancel = () => {
+    setPendingForms([...selectedForms]);
+    setShowFormsDropdown(false);
+    setFormSearch("");
+  };
+
+  const filteredFormOptions = OnDemandFormsOptions.filter((opt) =>
+    opt.label.toLowerCase().includes(formSearch.toLowerCase())
+  );
+
   return (
     <>
       <div className="signatureSectionContainer">
@@ -287,13 +363,88 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
           onChange={handleSignatureChange}
           valueImage={signatureIcon}
         />
-        <ReusableDropDown
-          options={OnDemandFormsOptions}
-          value={onDemandForm}
-          placeholder="Select On-Demand Form"
-          onChange={handleOnDemandFormClick}
-          valueImage={fileTextIcon}
-        />
+        {/* On-Demand Forms multiselect */}
+        <div className="formsMultiSelect" ref={dropdownRef}>
+          <div
+            className={`formsMultiSelectTrigger ${showFormsDropdown ? "open" : ""}`}
+            onClick={handleOpenFormsDropdown}
+          >
+            <img src={fileTextIcon} alt="forms" className="triggerIcon" />
+            <span
+              className={`triggerLabel ${selectedForms.length === 0 ? "placeholder" : ""}`}
+            >
+              {selectedForms.length === 0
+                ? "Select On-Demand Form"
+                : `${selectedForms.length} form${selectedForms.length > 1 ? "s" : ""} selected`}
+            </span>
+            <img
+              src={greenChevronRight}
+              alt="chevron"
+              className={`triggerChevron ${showFormsDropdown ? "rotated" : ""}`}
+            />
+          </div>
+
+          {showFormsDropdown && (
+            <div className="formsDropdownPanel">
+              {/* Search */}
+              <div className="formsSearchWrapper">
+                <img
+                  src={searchIcon}
+                  alt="search"
+                  className="formsSearchIcon"
+                />
+                <input
+                  type="text"
+                  placeholder="Search by Form Name"
+                  value={formSearch}
+                  onChange={(e) => setFormSearch(e.target.value)}
+                  className="formsSearchInput"
+                  autoFocus
+                />
+              </div>
+
+              {/* Options list */}
+              <div className="formsOptionsList">
+                {filteredFormOptions.length === 0 ? (
+                  <div className="formsNoResults">No results found</div>
+                ) : (
+                  filteredFormOptions.map((opt) => {
+                    const isChecked = pendingForms.includes(opt.value);
+                    return (
+                      <div
+                        key={opt.value}
+                        className={`formsOption ${isChecked ? "checked" : ""}`}
+                        onClick={() => handleToggleForm(opt.value)}
+                      >
+                        <img
+                          src={isChecked ? checkBox : uncheckBox}
+                          alt="checkbox"
+                          className="formsCheckbox"
+                        />
+                        <span className="formsOptionLabel">{opt.label}</span>
+                        <img
+                          src={eyeIcon}
+                          alt="preview"
+                          className="formsEyeIcon"
+                        />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer buttons */}
+              <div className="formsDropdownFooter">
+                <button className="formsCancelBtn" onClick={handleFormsCancel}>
+                  Cancel
+                </button>
+                <button className="formsSendBtn" onClick={handleFormsSend}>
+                  Send
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {isEditorEmpty && (
           <div className="importTemplateContainer" onClick={handleImportClick}>
