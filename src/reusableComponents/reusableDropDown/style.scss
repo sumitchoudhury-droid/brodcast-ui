@@ -158,12 +158,12 @@
       }
     }
   }
+}
 
-  &.topdown {
-    .dropdownSelectContainer {
-      .dropdownSelectContainerOptionsContainer {
-        top: calc(-100% - 220px);
-      }
+.topDown {
+  .dropdownSelectContainer {
+    .dropdownSelectContainerOptionsContainer {
+      top: calc(-100% - 180px);
     }
   }
 }

@@ -91,9 +91,9 @@
     }
 
     .radioRow {
-      @include variable.d-flex($al: stretch, $g: 30px);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       width: 100%;
-      max-width: 850px;
 
       .radioOptions {
         @include variable.d-flex($fd: column, $g: 12px);
