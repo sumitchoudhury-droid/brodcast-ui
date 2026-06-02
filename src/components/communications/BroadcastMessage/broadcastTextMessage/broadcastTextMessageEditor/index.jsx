@@ -957,7 +957,12 @@ const BroadcastTextMessageEditor = ({
           if (!doc || !canvasWin) return;
 
           const containerComp = wrapper.find(".text-editor-container")[0];
-          const formComp = wrapper.find(".text-form-section")[0];
+
+          // Find the existing component for this specific form value
+          const allFormComps = wrapper.find(".text-form-section");
+          const formComp = allFormComps.find(
+            (c) => c.getAttributes?.()?.["data-form-value"] === text
+          );
 
           const linkHtml = `Kindly review and submit the form at the link below.<br><a href="${url}" target="_blank" style="color: #1570EF; text-decoration: underline; font-family: Inter, sans-serif; font-size: 16px;">${url}</a>`;
 
@@ -978,6 +983,7 @@ const BroadcastTextMessageEditor = ({
                 type: "text",
                 attributes: {
                   class: "text-form-section",
+                  "data-form-value": text,
                   style:
                     "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
                 },

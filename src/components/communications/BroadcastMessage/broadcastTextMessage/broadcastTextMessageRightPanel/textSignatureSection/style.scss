@@ -6,6 +6,174 @@
   width: 100%;
 }
 
+.formsMultiSelect {
+  position: relative;
+  width: 100%;
+
+  .formsMultiSelectTrigger {
+    @include variable.d-flex($al: center, $g: 8px);
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #198d85;
+    border-radius: 8px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+
+    .triggerIcon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .triggerLabel {
+      flex: 1;
+      @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+      color: #198d85;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &.placeholder {
+        color: #198d85;
+      }
+    }
+
+    .triggerChevron {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      transition: transform 0.3s;
+
+      &.rotated {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  .formsDropdownPanel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid variable.$color-white-10;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    z-index: 200;
+    overflow: hidden;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .formsSearchWrapper {
+      @include variable.d-flex($al: center, $g: 8px);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #dee0e1;
+      background: #fff;
+
+      .formsSearchIcon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        opacity: 0.5;
+      }
+
+      .formsSearchInput {
+        flex: 1;
+        border: none;
+        outline: none;
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+        color: variable.$color-black-6;
+        background: transparent;
+
+        &::placeholder {
+          color: #9ca3af;
+        }
+      }
+    }
+
+    .formsOptionsList {
+      max-height: 200px;
+      overflow-y: auto;
+
+      .formsNoResults {
+        padding: 12px;
+        text-align: center;
+        @include variable.font-style($fs: 13px, $fw: 400, $lh: 20px);
+        color: #9ca3af;
+      }
+
+      .formsOption {
+        @include variable.d-flex($al: center, $g: 8px);
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+
+        &:hover {
+          background: #edf0f2;
+        }
+
+        .formsCheckbox {
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+
+        .formsOptionLabel {
+          flex: 1;
+          @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+          color: variable.$color-black-6;
+        }
+
+        .formsEyeIcon {
+          width: 20px;
+          height: 20px;
+          flex-shrink: 0;
+        }
+      }
+    }
+
+    .formsDropdownFooter {
+      @include variable.d-flex($al: center, $jc: flex-end, $g: 8px);
+      padding: 16px 12px 0 12px;
+      border-top: 1px solid variable.$color-white-10;
+
+      .formsCancelBtn {
+        padding: 6px 14px;
+        border: 1px solid variable.$primary-color;
+        border-radius: 8px;
+        background: transparent;
+        color: variable.$primary-color;
+        @include variable.font-style($fs: 13px, $fw: 500, $lh: 20px);
+        cursor: pointer;
+
+        &:hover {
+          background: #f0fdf9;
+        }
+      }
+
+      .formsSendBtn {
+        padding: 6px 14px;
+        border: 1px solid variable.$primary-color;
+        border-radius: 8px;
+        background: variable.$primary-color;
+        color: #ffffff;
+        @include variable.font-style($fs: 13px, $fw: 500, $lh: 20px);
+        cursor: pointer;
+
+        &:hover {
+          background: #0d6b5f;
+        }
+      }
+    }
+  }
+}
+
 .importTemplateContainer {
   @include variable.d-flex($al: center, $jc: center, $g: 8px);
   border-radius: 6px;
