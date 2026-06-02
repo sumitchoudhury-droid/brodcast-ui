@@ -102,6 +102,44 @@
           color: variable.$color-black-8;
           word-break: break-word;
         }
+
+        .modeCheckboxGroup {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-top: 4px;
+        }
+
+        .modeStatusListContainer {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 4px;
+
+          .modeStatusItemRow {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background-color: variable.$color-white-13;
+            border: 1.5px solid variable.$color-white-6;
+            border-radius: 6px;
+            padding: 8px 12px;
+
+            .modeNameSubLabel {
+              @include variable.font-style($fs: 11px, $fw: 600, $lh: 14px);
+              color: variable.$color-green-0;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+
+            .messageStatusContainer {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin-top: 2px;
+            }
+          }
+        }
       }
 
       .messageStatusContainer {
@@ -190,7 +228,7 @@
   .modalFooter {
     display: flex;
     justify-content: flex-end;
-    align-items: center;
+    align-items: stretch;
     gap: 12px;
     padding: 16px 24px;
     background-color: variable.$color-white-0;
