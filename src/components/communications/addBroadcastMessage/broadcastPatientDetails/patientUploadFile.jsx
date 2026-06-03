@@ -24,6 +24,12 @@ function PatientUploadFile({ onFileChange }) {
           label="Download Sample Template File"
           variant="secondary"
           downloadImage={true}
+          onClick={() => {
+            const link = document.createElement("a");
+            link.href = "/sampleFiles/sampleTemplateFile.xls";
+            link.download = "sampleTemplateFile.xls";
+            link.click();
+          }}
         />
       </div>
       <div className="patientUploadFileContent">
