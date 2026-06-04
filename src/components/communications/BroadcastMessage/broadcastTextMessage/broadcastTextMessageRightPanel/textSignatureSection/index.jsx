@@ -8,6 +8,7 @@ import searchIcon from "../../../../../../assets/mainScreen/searchIcon.svg";
 import greenChevronRight from "../../../../../../assets/mainScreen/greenChevronRight.svg";
 import eyeIcon from "../../../../../../assets/mainScreen/eyeIcon.svg";
 import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
+import { ReusableModal } from "../../../../../../reusableComponents/reusableModal/index";
 import { useToast } from "../../../../../../hooks/useToast";
 
 export default function TextSignatureSection({
@@ -19,6 +20,7 @@ export default function TextSignatureSection({
   const [selectedForms, setSelectedForms] = useState([]);
   const [pendingForms, setPendingForms] = useState([]);
   const [formSearch, setFormSearch] = useState("");
+  const [previewForm, setPreviewForm] = useState(null);
   const dropdownRef = useRef(null);
   const toast = useToast();
 
@@ -137,6 +139,11 @@ export default function TextSignatureSection({
     opt.label.toLowerCase().includes(formSearch.toLowerCase())
   );
 
+  const handlePreviewForm = (e, opt) => {
+    e.stopPropagation();
+    setPreviewForm(opt);
+  };
+
   return (
     <>
       <div className="signatureSectionContainer">
@@ -211,6 +218,7 @@ export default function TextSignatureSection({
                           src={eyeIcon}
                           alt="preview"
                           className="formsEyeIcon"
+                          onClick={(e) => handlePreviewForm(e, opt)}
                         />
                       </div>
                     );
@@ -231,6 +239,54 @@ export default function TextSignatureSection({
           )}
         </div>
       </div>
+
+      <ReusableModal
+        isOpen={!!previewForm}
+        title={previewForm ? `${previewForm.label} Form Preview` : ""}
+        onClose={() => setPreviewForm(null)}
+        onConfirm={() => setPreviewForm(null)}
+        confirmText="Close"
+        cancelText={null}
+      >
+        <div className="formPreviewContent">
+          <div className="formPreviewField">
+            <label>Patient Name</label>
+            <input type="text" defaultValue="John Doe" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Date of Birth</label>
+            <input type="text" defaultValue="01/15/1985" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Contact Number</label>
+            <input type="text" defaultValue="+91 98765 43210" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Email Address</label>
+            <input type="text" defaultValue="john.doe@example.com" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Doctor / Department</label>
+            <input
+              type="text"
+              defaultValue="Dr. Sharma – Cardiology"
+              readOnly
+            />
+          </div>
+          <div className="formPreviewField">
+            <label>Appointment Date</label>
+            <input type="text" defaultValue="10/06/2026" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Notes / Comments</label>
+            <textarea
+              defaultValue="Please bring all previous medical reports."
+              readOnly
+              rows={3}
+            />
+          </div>
+        </div>
+      </ReusableModal>
     </>
   );
 }

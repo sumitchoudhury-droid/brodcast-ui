@@ -25,6 +25,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [previewForm, setPreviewForm] = useState(null);
   const toast = useToast();
 
   const applySignatureToEditor = (selectedValue) => {
@@ -353,6 +354,11 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     opt.label.toLowerCase().includes(formSearch.toLowerCase())
   );
 
+  const handlePreviewForm = (e, opt) => {
+    e.stopPropagation();
+    setPreviewForm(opt);
+  };
+
   return (
     <>
       <div className="signatureSectionContainer">
@@ -426,6 +432,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
                           src={eyeIcon}
                           alt="preview"
                           className="formsEyeIcon"
+                          onClick={(e) => handlePreviewForm(e, opt)}
                         />
                       </div>
                     );
@@ -457,6 +464,55 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
           </div>
         )}
       </div>
+
+      {/* ── Form preview modal ───────────────────────────────────────────── */}
+      <ReusableModal
+        isOpen={!!previewForm}
+        title={previewForm ? `${previewForm.label} Form Preview` : ""}
+        onClose={() => setPreviewForm(null)}
+        onConfirm={() => setPreviewForm(null)}
+        confirmText="Close"
+        cancelText={null}
+      >
+        <div className="formPreviewContent">
+          <div className="formPreviewField">
+            <label>Patient Name</label>
+            <input type="text" defaultValue="John Doe" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Date of Birth</label>
+            <input type="text" defaultValue="01/15/1985" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Contact Number</label>
+            <input type="text" defaultValue="+91 98765 43210" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Email Address</label>
+            <input type="text" defaultValue="john.doe@example.com" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Doctor / Department</label>
+            <input
+              type="text"
+              defaultValue="Dr. Sharma – Cardiology"
+              readOnly
+            />
+          </div>
+          <div className="formPreviewField">
+            <label>Appointment Date</label>
+            <input type="text" defaultValue="10/06/2026" readOnly />
+          </div>
+          <div className="formPreviewField">
+            <label>Notes / Comments</label>
+            <textarea
+              defaultValue="Please bring all previous medical reports."
+              readOnly
+              rows={3}
+            />
+          </div>
+        </div>
+      </ReusableModal>
 
       {/* ── Upload modal ──────────────────────────────────────────────────── */}
       <ReusableModal
