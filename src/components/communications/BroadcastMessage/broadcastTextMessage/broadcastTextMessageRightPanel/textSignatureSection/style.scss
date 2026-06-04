@@ -199,6 +199,33 @@
   }
 }
 
+.formPreviewContent {
+  @include variable.d-flex($fd: column, $g: 14px);
+
+  .formPreviewField {
+    @include variable.d-flex($fd: column, $g: 4px);
+
+    label {
+      @include variable.font-style($fs: 12px, $fw: 600, $lh: 18px);
+      color: variable.$color-black-6;
+    }
+
+    input,
+    textarea {
+      padding: 8px 10px;
+      border: 1px solid #dee0e1;
+      border-radius: 6px;
+      background: #f9fafb;
+      @include variable.font-style($fs: 13px, $fw: 400, $lh: 20px);
+      color: variable.$color-black-6;
+      outline: none;
+      resize: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+}
+
 .confirmUploadTemplateContainer {
   @include variable.d-flex($fd: column, $g: 12px);
 
