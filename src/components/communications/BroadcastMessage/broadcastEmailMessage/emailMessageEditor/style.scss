@@ -1,3 +1,10 @@
+.gjs-toolbar {
+  .gjs-toolbar-items {
+    display: flex;
+    flex-direction: row;
+  }
+}
+
 .link-interaction-popup {
   z-index: 999999 !important;
   background: #fff;

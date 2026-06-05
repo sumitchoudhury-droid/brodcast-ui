@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import leftPanelTemplate from "../../../../../assets/leftPanel/leftPanelTemplate.svg";
 import leftPanelBlock from "../../../../../assets/leftPanel/leftPanelBlock.svg";
 import leftPanelSearch from "../../../../../assets/leftPanel/leftPanelSearch.svg";
@@ -44,6 +44,53 @@ const savedTemplateOptions = [
   { img: savedTemplate, name: "Seasonal Health Advisory" }
 ];
 
+const blockCategories = [
+  {
+    title: "Blocks",
+    items: [
+      {
+        id: "row",
+        title: "Frame - Row",
+        desc: "Use to place blocks in a row."
+      },
+      {
+        id: "column",
+        title: "Frame - Column",
+        desc: "Use to place blocks in a column."
+      }
+    ]
+  },
+  {
+    title: "Content",
+    items: [
+      {
+        id: "heading",
+        title: "Heading",
+        desc: "Big, medium or small headings."
+      },
+      { id: "paragraph", title: "Paragraph", desc: "Just start writing text." },
+      { id: "image", title: "Image", desc: "Upload or embed with a link." },
+      { id: "button", title: "Button", desc: "Create a clickable button." },
+      {
+        id: "Attachment",
+        title: "Attachment",
+        desc: "Upload a file for download."
+      }
+    ]
+  },
+  {
+    title: "Components",
+    items: [
+      {
+        id: "customPlaceholders",
+        title: "Placeholders",
+        desc: null,
+        draggable: false
+      }
+    ]
+  }
+];
+
 export default function LeftPanel({
   editorRef,
   showPlaceholders,
@@ -51,6 +98,13 @@ export default function LeftPanel({
 }) {
   const [tab, setTab] = useState("blocks");
   const [selectedTab, setSelectedTab] = useState(tabOptions?.[0]?.value || "");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleDragStart = (blockId) => (e) => {
     e.dataTransfer.setData("text/plain", blockId);
@@ -224,7 +278,13 @@ export default function LeftPanel({
         />
         <input
           className="searchInput"
-          placeholder="Search Blocks, Content, Com..."
+          placeholder={
+            tab === "blocks"
+              ? "Search Blocks, Content, Com..."
+              : "Search Templates..."
+          }
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
@@ -233,57 +293,30 @@ export default function LeftPanel({
         className="panel-content"
         style={{ display: tab === "blocks" ? "block" : "none", width: "100%" }}
       >
-        <div className="gjs-block-category">
-          <div className="gjs-title">Blocks</div>
-          <div className="gjs-blocks-c">
-            {createBlockItem(
-              "row",
-              "Frame - Row",
-              "Use to place blocks in a row."
-            )}
-            {createBlockItem(
-              "column",
-              "Frame - Column",
-              "Use to place blocks in a column."
-            )}
-          </div>
-        </div>
-
-        <div className="gjs-block-category">
-          <div className="gjs-title">Content</div>
-          <div className="gjs-blocks-c">
-            {createBlockItem(
-              "heading",
-              "Heading",
-              "Big, medium or small headings."
-            )}
-            {createBlockItem(
-              "paragraph",
-              "Paragraph",
-              "Just start writing text."
-            )}
-            {createBlockItem("image", "Image", "Upload or embed with a link.")}
-            {createBlockItem("button", "Button", "Create a clickable button.")}
-            {createBlockItem(
-              "Attachment",
-              "Attachment",
-              "Upload a file for download."
-            )}
-          </div>
-        </div>
-
-        <div className="gjs-block-category">
-          <div className="gjs-title">Components</div>
-          <div className="gjs-blocks-c">
-            {createBlockItem(
-              "customPlaceholders",
-              "Placeholders",
-              null,
-              () => setShowPlaceholders((prev) => !prev),
-              false
-            )}
-          </div>
-        </div>
+        {blockCategories.map((category) => {
+          const filtered = category.items.filter((item) =>
+            item.title.toLowerCase().includes(debouncedQuery.toLowerCase())
+          );
+          if (filtered.length === 0) return null;
+          return (
+            <div className="gjs-block-category" key={category.title}>
+              <div className="gjs-title">{category.title}</div>
+              <div className="gjs-blocks-c">
+                {filtered.map((item) =>
+                  createBlockItem(
+                    item.id,
+                    item.title,
+                    item.desc,
+                    item.id === "customPlaceholders"
+                      ? () => setShowPlaceholders((prev) => !prev)
+                      : undefined,
+                    item.draggable ?? true
+                  )
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Templates tab ── */}
@@ -302,31 +335,47 @@ export default function LeftPanel({
             setSelectedTab={setSelectedTab}
           />
 
-          {selectedTab === "library" && (
-            <div className="libraryGrid">
-              {templateLibraryOptions.map((option, index) => {
-                return (
-                  <div className="libraryWrapper" key={index}>
-                    <img src={option.img} alt={option.name} />
-                    <span>{option.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {selectedTab === "library" &&
+            (() => {
+              const filtered = templateLibraryOptions.filter((o) =>
+                o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+              );
+              return (
+                <div className="libraryGrid">
+                  {filtered.length > 0 ? (
+                    filtered.map((option, index) => (
+                      <div className="libraryWrapper" key={index}>
+                        <img src={option.img} alt={option.name} />
+                        <span>{option.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="noResults">No templates found</div>
+                  )}
+                </div>
+              );
+            })()}
 
-          {selectedTab === "savedTemplate" && (
-            <div className="savedTemplateFlex">
-              {savedTemplateOptions.map((option, index) => {
-                return (
-                  <div className="savedTemplateWrapper" key={index}>
-                    <img src={option.img} alt={option.name} />
-                    <span>{option.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {selectedTab === "savedTemplate" &&
+            (() => {
+              const filtered = savedTemplateOptions.filter((o) =>
+                o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+              );
+              return (
+                <div className="savedTemplateFlex">
+                  {filtered.length > 0 ? (
+                    filtered.map((option, index) => (
+                      <div className="savedTemplateWrapper" key={index}>
+                        <img src={option.img} alt={option.name} />
+                        <span>{option.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="noResults">No templates found</div>
+                  )}
+                </div>
+              );
+            })()}
         </div>
       </div>
     </div>

@@ -43,6 +43,15 @@
         }
       }
 
+      .noResults {
+        grid-column: 1 / -1;
+        width: 100%;
+        text-align: center;
+        padding: 20px 0;
+        color: #888;
+        font-size: 13px;
+      }
+
       .savedTemplateFlex {
         width: 100%;
         @include variable.d-flex($fd: column, $g: 14px);
