@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
+import * as XLSX from "xlsx";
 import "./style.scss";
 
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
@@ -254,6 +255,23 @@ const PatientTable = ({ patients }) => {
   );
 };
 
+const exportToExcel = (patients, fileName) => {
+  const rows = patients.map(
+    ({ firstName, lastName, dob, appointmentDateTime, phone, email }) => ({
+      "First Name": firstName,
+      "Last Name": lastName,
+      "Date of Birth": dob,
+      "Appointment Date/Time": appointmentDateTime,
+      "Phone Number": phone,
+      Email: email
+    })
+  );
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Patients");
+  XLSX.writeFile(wb, `${fileName}.xlsx`);
+};
+
 const TargetViewList = ({ isOpen, onClose, includeOptOut }) => {
   const [activeTab, setActiveTab] = useState("patientsFound");
 
@@ -295,6 +313,14 @@ const TargetViewList = ({ isOpen, onClose, includeOptOut }) => {
               label="Export"
               variant="primary"
               greenDownloadImage={true}
+              onClick={() => {
+                const isOptOut =
+                  includeOptOut && activeTab === "optOutPatients";
+                exportToExcel(
+                  isOptOut ? mockOptOutPatients : mockTargetPatients,
+                  isOptOut ? "Opt_Out_Patients" : "Patients_Found"
+                );
+              }}
             />
             <button className="drawerCloseBtn" onClick={onClose}>
               <img src={CloseButton} alt="Close" />

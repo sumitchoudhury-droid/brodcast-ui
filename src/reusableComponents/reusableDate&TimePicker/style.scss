@@ -93,7 +93,7 @@
 .customDatePickerPopup {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
   z-index: 1000;
   background-color: variable.$color-white-0;
   border: 1px solid variable.$color-white-10;
@@ -104,6 +104,11 @@
   height: 400px;
   display: flex;
   flex-direction: column;
+}
+.leftOpening {
+  .customDatePickerPopup {
+    left: 0;
+  }
 }
 
 .topDown {

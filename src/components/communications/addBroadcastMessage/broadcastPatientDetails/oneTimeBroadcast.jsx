@@ -22,6 +22,7 @@ function OneTimeBroadcast({
           required={true}
           selected={startDateTime}
           onChange={(date) => setStartDateTime(date)}
+          className="leftOpening topDown"
         />
       </div>
       <div className="dateContainer">
@@ -30,6 +31,7 @@ function OneTimeBroadcast({
           required={true}
           selected={endDateTime}
           onChange={(date) => setEndDateTime(date)}
+          className="topDown"
         />
       </div>
       <ReusableButton label="Search" variant="primary" onClick={handleSearch} />
