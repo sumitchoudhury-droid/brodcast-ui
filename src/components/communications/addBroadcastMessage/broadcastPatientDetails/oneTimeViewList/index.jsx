@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
+import * as XLSX from "xlsx";
 import "./style.scss";
 
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
@@ -62,6 +63,23 @@ const emptyFilters = {
   appointmentDateTime: "",
   phone: "",
   email: ""
+};
+
+const exportToExcel = (patients, fileName) => {
+  const rows = patients.map(
+    ({ firstName, lastName, dob, appointmentDateTime, phone, email }) => ({
+      "First Name": firstName,
+      "Last Name": lastName,
+      "Date of Birth": dob,
+      "Appointment Date/Time": appointmentDateTime,
+      "Phone Number": phone,
+      Email: email
+    })
+  );
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Patients");
+  XLSX.writeFile(wb, `${fileName}.xlsx`);
 };
 
 const OneTimeViewList = ({ isOpen, onClose }) => {
@@ -132,6 +150,7 @@ const OneTimeViewList = ({ isOpen, onClose }) => {
               label="Export"
               variant="primary"
               greenDownloadImage={true}
+              onClick={() => exportToExcel(sortedPatients, "Patients_List")}
             />
             <button className="drawerCloseBtn" onClick={onClose}>
               <img src={CloseButton} alt="Close" />

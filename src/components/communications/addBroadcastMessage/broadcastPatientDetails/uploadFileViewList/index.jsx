@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
+import * as XLSX from "xlsx";
 import "./style.scss";
 
 import { ReusableCheckbox } from "../../../../../reusableComponents/reusableCheckbox/index";
@@ -78,6 +79,32 @@ const emptyFilters = {
   appointmentDateTime: "",
   phone: "",
   email: ""
+};
+
+const exportToExcel = (patients, fileName) => {
+  const rows = patients.map(
+    ({
+      firstName,
+      lastName,
+      dob,
+      appointmentDateTime,
+      phone,
+      email,
+      reason
+    }) => ({
+      "First Name": firstName,
+      "Last Name": lastName,
+      "Date of Birth": dob,
+      "Appointment Date/Time": appointmentDateTime,
+      "Phone Number": phone,
+      Email: email,
+      Reason: reason === "-" ? "" : reason
+    })
+  );
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Patients");
+  XLSX.writeFile(wb, `${fileName}.xlsx`);
 };
 
 const UploadFileViewList = ({ isOpen, onClose }) => {
@@ -349,6 +376,12 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                   label="Export"
                   variant="primary"
                   greenDownloadImage={true}
+                  onClick={() =>
+                    exportToExcel(
+                      sortedPatients.filter((p) => selectedIds.has(p.id)),
+                      "Selected_Patients"
+                    )
+                  }
                 />
               </>
             ) : (
@@ -371,6 +404,12 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                   label="Export"
                   variant="primary"
                   greenDownloadImage={true}
+                  onClick={() =>
+                    exportToExcel(
+                      sortedPatients,
+                      showErrorOnly ? "Error_Patients" : "Patients_List"
+                    )
+                  }
                 />
               </>
             )}

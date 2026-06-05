@@ -194,7 +194,7 @@ function ScheduleOptions({
               label="Ends On"
               selected={endDateTime}
               onChange={(date) => setEndDateTime(date)}
-              className="topDown"
+              className={`topDown ${frequency === "Custom" ? "" : "leftOpening"}`}
             />
           </div>
         )}

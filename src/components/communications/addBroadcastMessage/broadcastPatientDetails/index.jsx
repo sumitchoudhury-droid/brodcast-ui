@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as XLSX from "xlsx";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton/index";
 import "./style.scss";
@@ -8,6 +9,73 @@ import TargetRecipients from "./targetRecipients";
 import TargetViewList from "./targetViewList";
 import OneTimeViewList from "./oneTimeViewList";
 import UploadFileViewList from "./uploadFileViewList";
+import {
+  mockTargetPatients,
+  mockOptOutPatients
+} from "./targetViewList/mockPatientData";
+import { mockUploadPatients } from "./uploadFileViewList/mockUploadPatients";
+
+const exportToExcel = (patients, sheetName, fileName) => {
+  const rows = patients.map(
+    ({
+      firstName,
+      lastName,
+      dob,
+      appointmentDateTime,
+      phone,
+      email,
+      reason
+    }) => {
+      const row = {
+        "First Name": firstName,
+        "Last Name": lastName,
+        "Date of Birth": dob,
+        "Appointment Date/Time": appointmentDateTime,
+        "Phone Number": phone,
+        Email: email
+      };
+      if (reason !== undefined) row["Reason"] = reason === "-" ? "" : reason;
+      return row;
+    }
+  );
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, `${fileName}.xlsx`);
+};
+
+const buildExportData = (patientType, includeOptOut) => {
+  if (patientType === "uploadFile") {
+    return {
+      data: mockUploadPatients,
+      sheet: "Patients",
+      file: "Upload_File_Patients"
+    };
+  }
+  if (patientType === "oneTimeBroadcast") {
+    return {
+      data: mockTargetPatients,
+      sheet: "Patients",
+      file: "One_Time_Broadcast_Patients"
+    };
+  }
+  if (includeOptOut) {
+    const combined = [
+      ...mockTargetPatients.map((p) => ({ ...p, _group: "Patients Found" })),
+      ...mockOptOutPatients.map((p) => ({ ...p, _group: "Opt Out" }))
+    ];
+    return {
+      data: combined,
+      sheet: "Patients",
+      file: "Target_Recipients_Patients"
+    };
+  }
+  return {
+    data: mockTargetPatients,
+    sheet: "Patients",
+    file: "Target_Recipients_Patients"
+  };
+};
 
 function BroadcastPatientDetails({
   patientType,
@@ -173,6 +241,13 @@ function BroadcastPatientDetails({
                   label="Export"
                   variant="primary"
                   greenDownloadImage={true}
+                  onClick={() => {
+                    const { data, sheet, file } = buildExportData(
+                      patientType,
+                      includeOptOut
+                    );
+                    exportToExcel(data, sheet, file);
+                  }}
                 />
                 <ReusableButton
                   label="View"
