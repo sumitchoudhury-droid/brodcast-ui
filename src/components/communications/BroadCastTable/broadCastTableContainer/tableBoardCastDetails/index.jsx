@@ -1,20 +1,22 @@
 import { useState } from "react";
 import ReusableRightDrawer from "../../../../../reusableComponents/reusabeleRightDrawer/index";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
-import refreshIcon from "../../../../../assets/boardCastTableIcons/refreshIcon.svg";
+import ReprocessIcon from "../../../../../assets/boardCastTableIcons/ReprocessIcon.svg";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
 import "./style.scss";
 import Details from "./details";
 import Message from "./message";
+import ReProcessBroadCast from "../reprocessBroadcast";
 
 function TableBoardCastDetails({ isOpen, onClose, broadcastData }) {
   const [activeTab, setActiveTab] = useState("details");
+  const [isReprocessOpen, setIsReprocessOpen] = useState(false);
 
   if (!broadcastData) return null;
 
   const handleRefresh = (e) => {
     e.stopPropagation();
-    console.log("Refreshing broadcast details...");
+    setIsReprocessOpen(true);
   };
 
   // Custom Header containing both Tabs and Action Buttons
@@ -40,7 +42,7 @@ function TableBoardCastDetails({ isOpen, onClose, broadcastData }) {
           onClick={handleRefresh}
           title="Refresh details"
         >
-          <img src={refreshIcon} alt="Refresh" />
+          <img src={ReprocessIcon} alt="Refresh" />
         </button>
         <button
           className="closeBtn"
@@ -80,6 +82,11 @@ function TableBoardCastDetails({ isOpen, onClose, broadcastData }) {
           )}
         </div>
       </ReusableRightDrawer>
+      <ReProcessBroadCast
+        isOpen={isReprocessOpen}
+        onClose={() => setIsReprocessOpen(false)}
+        broadcastData={broadcastData}
+      />
     </div>
   );
 }
