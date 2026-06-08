@@ -163,8 +163,19 @@ const BroadcastTextMessageEditor = ({
           .trim();
         const isEmpty = plainText.length === 0 && !hasSignature && !hasForm;
 
-        charCountRef.current = plainText.length;
-        setCharCount(plainText.length);
+        // Also count unsubscribe footer text
+        const footerComp = wrapper.find(".unsubscribe-footer")[0];
+        const footerEl = footerComp?.getEl();
+        const footerText = (
+          footerEl ? footerEl.innerText : footerComp?.get("content") || ""
+        )
+          .replace(/&nbsp;/g, " ")
+          .replace(/\u200B/g, "")
+          .trim();
+
+        const totalCount = plainText.length + footerText.length;
+        charCountRef.current = totalCount;
+        setCharCount(totalCount);
 
         // Toggle a class for the placeholder via DOM only — model-level addClass/removeClass
         // triggers a GrapesJS re-render that resets the cursor position mid-typing
@@ -297,17 +308,18 @@ const BroadcastTextMessageEditor = ({
             },
             {
               tagName: "div",
+              type: "text",
               attributes: {
                 class: "unsubscribe-footer",
                 style:
                   "padding: 10px 16px; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
               },
               content: `TXT Stop Optout`,
-              editable: false,
+              editable: true,
               draggable: false,
               removable: false,
               copyable: false,
-              selectable: false,
+              selectable: true,
               hoverable: false,
               badgable: false
             }

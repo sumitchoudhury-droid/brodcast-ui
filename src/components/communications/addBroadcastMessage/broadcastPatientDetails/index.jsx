@@ -153,7 +153,7 @@ function BroadcastPatientDetails({
       <div className="patientDetailsForm">
         <div className="patientTypeSection">
           <div className="patientDetailsLabel">
-            <p>Patients</p>
+            <p>Patient Selection(s)</p>
             <span>*</span>
           </div>
 

@@ -29,7 +29,8 @@ export function ReusableInput({
   rightIcon,
   className = "",
   Containerstyle = "",
-  numbersOnly = false
+  numbersOnly = false,
+  maxLength
 }) {
   const handleKeyDown = (e) => {
     if (!numbersOnly) return;
@@ -61,6 +62,7 @@ export function ReusableInput({
           onBlur={onBlur}
           onKeyDown={handleKeyDown}
           disabled={disabled}
+          maxLength={maxLength}
         />
 
         {rightIcon && <span className="rightIcon">{rightIcon}</span>}

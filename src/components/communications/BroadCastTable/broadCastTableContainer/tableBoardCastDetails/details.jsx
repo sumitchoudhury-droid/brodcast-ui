@@ -324,7 +324,7 @@ export default function Details({ broadcastData }) {
 
       {/* Patient Type */}
       <div className="detailRow">
-        <div className="labelCol">Patient Type</div>
+        <div className="labelCol">Patient Selection(s)</div>
         <div className="valueCol">
           {showUploadFileLayout ? "Upload File" : "Target Recipients"}
         </div>

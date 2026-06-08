@@ -50,7 +50,7 @@ export function ReusableDateTime({
   onChange,
   placeholder = "Select Date & Time",
   showTimeSelect = true,
-  dateFormat = "MM/dd/yyyy, h:mm:ss aa",
+  dateFormat = "MM/dd/yyyy, h:mm aa",
   required = false,
   error = "",
   disabled = false,

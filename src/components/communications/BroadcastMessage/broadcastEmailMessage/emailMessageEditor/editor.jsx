@@ -48,13 +48,13 @@ const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="s
   </mj-column>
 </mj-section>`;
 
-const UNSUBSCRIBE_SECTION_HTML = `<mj-section full-width="full-width" data-type="unsubscribe-section" padding="0px" margin="0px" width="100%" background-color="transparent">
-  <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Inter" line-height="20px" align="center">
-      Click here to unsubscribe: <a href="https://mh.care/stop" style="color:#929FB1; text-decoration:underline;">https://mh.care/stop</a>
-    </mj-text>
-  </mj-column>
-</mj-section>`;
+// const UNSUBSCRIBE_SECTION_HTML = `<mj-section full-width="full-width" data-type="unsubscribe-section" padding="0px" margin="0px" width="100%" background-color="transparent">
+//   <mj-column padding="0px" margin="0px" width="100%">
+//     <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Inter" line-height="20px" align="center">
+//       Click here to unsubscribe: <a href="https://mh.care/stop" style="color:#929FB1; text-decoration:underline;">https://mh.care/stop</a>
+//     </mj-text>
+//   </mj-column>
+// </mj-section>`;
 
 // All MJML types that are valid direct children of mj-column
 const COLUMN_VALID_CHILDREN = [
@@ -1354,8 +1354,7 @@ export default function Editor({
           COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
         const isSignature =
           comp.getAttributes?.()?.["data-type"] === "signature-section";
-        const isUnsubscribe =
-          comp.getAttributes?.()?.["data-type"] === "unsubscribe-section";
+        const isUnsubscribe = false; // unsubscribe section disabled
 
         comp.set({
           droppable: resolveDroppable(comp, isHtmlTemplate.current),
@@ -1468,53 +1467,39 @@ export default function Editor({
           if (!mjBody) return;
 
           let existingSig = null;
-          let existingUnsubscribe = null;
           const realSections = [];
           mjBody.components().each((c) => {
             if (c.get("type") === "textnode") return;
             const type = c.getAttributes()?.["data-type"];
             if (type === "signature-section") {
               existingSig = c;
-            } else if (type === "unsubscribe-section") {
-              existingUnsubscribe = c;
-            } else {
+            } else if (type !== "unsubscribe-section") {
               realSections.push(c);
             }
           });
 
-          if (
-            realSections.length === 0 &&
-            !existingSig &&
-            !existingUnsubscribe
-          ) {
+          if (realSections.length === 0 && !existingSig) {
             return;
           }
 
-          // Real content exists — sig and unsubscribe must be at the end
+          // Real content exists — sig must be at the end
           const allNonText = [];
           mjBody.components().each((c) => {
-            if (c.get("type") !== "textnode") allNonText.push(c);
+            if (
+              c.get("type") !== "textnode" &&
+              c.getAttributes()?.["data-type"] !== "unsubscribe-section"
+            ) {
+              allNonText.push(c);
+            }
           });
           const n = allNonText.length;
           const lastComp = n > 0 ? allNonText[n - 1] : null;
-          const secondLastComp = n > 1 ? allNonText[n - 2] : null;
 
-          // If signature or unsubscribe is missing, or they are not in the right order at the end:
-          if (
-            !existingSig ||
-            !existingUnsubscribe ||
-            lastComp !== existingUnsubscribe ||
-            secondLastComp !== existingSig
-          ) {
+          if (!existingSig || lastComp !== existingSig) {
             if (!existingSig) {
               mjBody.append(SIGNATURE_SECTION_HTML);
             } else {
               mjBody.append(existingSig);
-            }
-            if (!existingUnsubscribe) {
-              mjBody.append(UNSUBSCRIBE_SECTION_HTML);
-            } else {
-              mjBody.append(existingUnsubscribe);
             }
           }
         } finally {
@@ -1791,10 +1776,7 @@ export default function Editor({
       const type = comp.get("type");
 
       // Skip processing for the signature section — it's managed by the reconciler
-      if (
-        comp.getAttributes()?.["data-type"] === "signature-section" ||
-        comp.getAttributes()?.["data-type"] === "unsubscribe-section"
-      ) {
+      if (comp.getAttributes()?.["data-type"] === "signature-section") {
         comp.set({ draggable: false, droppable: false });
         return;
       }
@@ -1918,7 +1900,7 @@ export default function Editor({
       if (dt !== "frame-placeholder-ui") {
         scheduleReconcile();
         // Don't re-trigger sig reconcile when the sig itself is being removed
-        if (dt !== "signature-section" && dt !== "unsubscribe-section") {
+        if (dt !== "signature-section") {
           scheduleSignatureReconcile();
         }
       }

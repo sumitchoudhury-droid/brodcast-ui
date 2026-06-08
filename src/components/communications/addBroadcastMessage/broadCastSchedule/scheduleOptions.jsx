@@ -101,17 +101,20 @@ function ScheduleOptions({
           </div>
         </div>
 
-        {sendType !== "immediately" && (
-          <div className="dateContainer">
-            <ReusableDateTime
-              label="Start Date / Time"
-              required={true}
-              selected={startDateTime}
-              onChange={(date) => setStartDateTime(date)}
-              className="topDown"
-            />
-          </div>
-        )}
+        <div className="dateContainer">
+          <ReusableDateTime
+            label={
+              sendType !== "recurring"
+                ? "Schedule Date/Time"
+                : "Start Date/Time"
+            }
+            required={sendType !== "immediately"}
+            selected={startDateTime}
+            onChange={(date) => setStartDateTime(date)}
+            className="topDown"
+            disabled={sendType === "immediately"}
+          />
+        </div>
 
         {sendType === "recurring" && (
           <div className="frequencyContainer">

@@ -2851,7 +2851,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
             />
           </div>
 
-          <div className="emailInputContainer" style={{ marginTop: "16px" }}>
+          {/* <div className="emailInputContainer" style={{ marginTop: "16px" }}>
             <label htmlFor="subject" className="emailLabel">
               Subject
             </label>
@@ -2864,7 +2864,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               value={testSubject}
               onChange={(e) => setTestSubject(e.target.value)}
             />
-          </div>
+          </div> */}
         </div>
       </ReusableModal>
     </div>

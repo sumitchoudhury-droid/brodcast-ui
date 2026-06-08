@@ -60,6 +60,12 @@
   color: variable.$color-white-12;
 }
 
+.uploadErrorText {
+  @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+  color: #ef4444;
+  margin-top: 4px;
+}
+
 /* ---------- UPLOADED SECTION ---------- */
 
 .uploadedSection {

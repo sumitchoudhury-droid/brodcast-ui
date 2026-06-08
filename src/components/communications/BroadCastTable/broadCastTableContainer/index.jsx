@@ -19,6 +19,7 @@ import cancelledIcon from "../../../../assets/boardCastTableIcons/cancelledIcon.
 import completedGreenIcon from "../../../../assets/boardCastTableIcons/completedGreenIcon.svg";
 import failedRedIcon from "../../../../assets/boardCastTableIcons/failedRedIcon.svg";
 import pendingYellowIcon from "../../../../assets/boardCastTableIcons/pendingYellowIcon.svg";
+import cancelIcon from "../../../../assets/boardCastTableIcons/cancelIcon.svg";
 import circleAlert from "../../../../assets/boardCastTableIcons/circleAlert.svg";
 import tableMenuIcon from "../../../../assets/boardCastTableIcons/tableMenu.svg";
 
@@ -556,6 +557,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const { total, delivered, failed, pending } =
             row.original.messageStatus;
+          const isCancelled = row.original.broadcastStatus === "Cancelled";
           return (
             <div className="message-status-cell">
               <div className="status-row">
@@ -587,15 +589,27 @@ function BroadCastTableContainer({
                     <span>{failed}</span>
                   </div>
                 </ReusableToolTip>
-                <ReusableToolTip content="Pending" position="top">
-                  <div
-                    className="status-item yellow"
-                    style={{ cursor: "pointer" }}
-                  >
-                    <img src={pendingYellowIcon} alt="pending" />{" "}
-                    <span>{pending}</span>
-                  </div>
-                </ReusableToolTip>
+                {isCancelled ? (
+                  <ReusableToolTip content="Cancelled" position="top">
+                    <div
+                      className="status-item grey"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <img src={cancelIcon} alt="cancelled" />{" "}
+                      <span>{pending}</span>
+                    </div>
+                  </ReusableToolTip>
+                ) : (
+                  <ReusableToolTip content="Pending" position="top">
+                    <div
+                      className="status-item yellow"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <img src={pendingYellowIcon} alt="pending" />{" "}
+                      <span>{pending}</span>
+                    </div>
+                  </ReusableToolTip>
+                )}
               </div>
             </div>
           );
@@ -929,35 +943,54 @@ function BroadCastTableContainer({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr
-              key={row.id}
-              className={`${row.original.hasError ? "row-error" : ""} ${
-                row.original.isDisabled ? "row-disabled" : ""
-              } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
-            >
-              {row.getVisibleCells().map((cell) => {
-                const isInteractiveColumn =
-                  cell.column.id === "select" || cell.column.id === "actions";
-                return (
-                  <td
-                    key={cell.id}
-                    className={`col-${cell.column.id}`}
-                    onClick={
-                      !isInteractiveColumn
-                        ? () => setSelectedDetailsRow(row.original)
-                        : undefined
-                    }
-                    style={
-                      !isInteractiveColumn ? { cursor: "pointer" } : undefined
-                    }
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                );
-              })}
+          {table.getRowModel().rows.length === 0 ? (
+            <tr className="empty-row">
+              <td
+                colSpan={table.getVisibleLeafColumns().length}
+                style={{
+                  textAlign: "center",
+                  padding: "32px",
+                  color: "#6b7280",
+                  height: "100%"
+                }}
+              >
+                No data found.
+              </td>
             </tr>
-          ))}
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className={`${row.original.hasError ? "row-error" : ""} ${
+                  row.original.isDisabled ? "row-disabled" : ""
+                } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
+              >
+                {row.getVisibleCells().map((cell) => {
+                  const isInteractiveColumn =
+                    cell.column.id === "select" || cell.column.id === "actions";
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`col-${cell.column.id}`}
+                      onClick={
+                        !isInteractiveColumn
+                          ? () => setSelectedDetailsRow(row.original)
+                          : undefined
+                      }
+                      style={
+                        !isInteractiveColumn ? { cursor: "pointer" } : undefined
+                      }
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
