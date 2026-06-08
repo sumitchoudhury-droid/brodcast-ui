@@ -83,10 +83,11 @@ function BroadcastTemplateDetails({
             {selectedTemplateType === "newTemplate" ? (
               <ReusableInput
                 label="Template Name"
-                placeholder="Enter Template Name"
+                placeholder="Maximum 50 characters"
                 required={true}
                 value={newTemplateName}
                 onChange={(e) => setNewTemplateName(e.target.value)}
+                maxLength={50}
               />
             ) : (
               <ReusableDropDown
@@ -159,10 +160,11 @@ function BroadcastTemplateDetails({
               {selectedTemplate === "blank" && (
                 <ReusableInput
                   label="Template Name"
-                  placeholder="Enter Template Name"
+                  placeholder="Maximum 50 characters"
                   required={true}
                   value={newTemplateName}
                   onChange={(e) => setNewTemplateName(e.target.value)}
+                  maxLength={50}
                 />
               )}
             </div>
