@@ -4,33 +4,42 @@ import greenCrossIcon from "../../assets/commonIcons/greenCrossIcon.svg";
 import fileIcon from "../../assets/commonIcons/fileIcon.svg";
 import "./style.scss";
 
+const MAX_SIZE_BYTES = 650 * 1024;
+
 export function ReusableUpload({ onChange, accept }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
+  const [sizeError, setSizeError] = useState("");
+
+  const applyFile = (selectedFile) => {
+    if (selectedFile.size > MAX_SIZE_BYTES) {
+      setSizeError("File size exceeds the 650KB limit.");
+      inputRef.current.value = "";
+      return;
+    }
+    setSizeError("");
+    setFile(selectedFile);
+    onChange?.(selectedFile);
+  };
 
   /* ---------- FILE SELECT ---------- */
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      onChange?.(selectedFile);
-    }
+    if (selectedFile) applyFile(selectedFile);
   };
 
   /* ---------- DRAG DROP ---------- */
   const handleDrop = (e) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      setFile(droppedFile);
-      onChange?.(droppedFile);
-    }
+    if (droppedFile) applyFile(droppedFile);
   };
 
   /* ---------- REMOVE FILE ---------- */
   const handleRemove = (e) => {
     e.stopPropagation();
     setFile(null);
+    setSizeError("");
     inputRef.current.value = "";
     onChange?.(null);
   };
@@ -69,10 +78,12 @@ export function ReusableUpload({ onChange, accept }) {
             <p className="uploadText">
               Drag & drop your files here, or click to browse
             </p>
-            <p className="uploadLimit">up to 5 MB.</p>
+            <p className="uploadLimit">up to 650KB.</p>
           </div>
         </div>
       </div>
+
+      {sizeError && <p className="uploadErrorText">{sizeError}</p>}
 
       {/* Uploaded File */}
       {file && (

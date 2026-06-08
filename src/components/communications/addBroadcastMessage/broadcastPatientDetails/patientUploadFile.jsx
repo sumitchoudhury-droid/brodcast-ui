@@ -9,8 +9,7 @@ function PatientUploadFile({ onFileChange }) {
     "Only select patient aged 18 years and above",
     "Enter Mobile Number with following format - Eg. 9876543210",
     "If you have a big list, try to break it up into smaller batches (i.e if 5,000 in total, break it up into 2,500 patient.)",
-    "If the uploaded file has missing entries/items, will be skipped while processing.",
-    "To upload the new file, please remove the current active file first and then upload the new one."
+    "If the uploaded file has missing entries/items, will be skipped while processing."
   ];
 
   const handleFileUpload = (file) => {
@@ -21,13 +20,13 @@ function PatientUploadFile({ onFileChange }) {
     <div className="patientUploadFileContainer">
       <div>
         <ReusableButton
-          label="Download Sample Template File"
+          label="Download Patient list Template"
           variant="secondary"
           downloadImage={true}
           onClick={() => {
             const link = document.createElement("a");
-            link.href = "/sampleFiles/sampleTemplateFile.xls";
-            link.download = "sampleTemplateFile.xls";
+            link.href = "/sampleFiles/Broadcast PatientList.xlsx";
+            link.download = "Broadcast PatientList.xlsx";
             link.click();
           }}
         />
