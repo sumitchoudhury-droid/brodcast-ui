@@ -13,8 +13,10 @@ import { ReusableDropDown } from "../../../../../../reusableComponents/reusableD
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal";
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
 import { useToast } from "../../../../../../hooks/useToast";
+import { ReusableInput } from "../../../../../../reusableComponents/reusableInput";
 
 export default function SignatureSection({ editorRef, isEditorEmpty }) {
+  const [mailSubject, setMailSubject] = useState("");
   const [signature, setSignature] = useState("");
   const [showFormsDropdown, setShowFormsDropdown] = useState(false);
   const [selectedForms, setSelectedForms] = useState([]);
@@ -362,6 +364,11 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
   return (
     <>
       <div className="signatureSectionContainer">
+        <ReusableInput
+          placeholder="Enter Mail Subject"
+          value={mailSubject}
+          onChange={(e) => setMailSubject(e.target.value)}
+        />
         <ReusableDropDown
           options={SignatureOptions}
           value={signature}
