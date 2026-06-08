@@ -72,7 +72,7 @@ function BroadcastTemplateDetails({
                   onChange={setSelectedTemplateType}
                 />
                 <ReusableRadioButton
-                  label="Existing Template"
+                  label="Saved Template"
                   value="existingTemplate"
                   name="send"
                   checked={selectedTemplateType === "existingTemplate"}
@@ -154,7 +154,7 @@ function BroadcastTemplateDetails({
                       className="existingTemplateIcon"
                     />
                   </div>
-                  <p>Existing Template</p>
+                  <p>Saved Template</p>
                 </div>
               </div>
               {selectedTemplate === "blank" && (
