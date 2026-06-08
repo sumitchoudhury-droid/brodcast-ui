@@ -19,6 +19,7 @@ import cancelledIcon from "../../../../assets/boardCastTableIcons/cancelledIcon.
 import completedGreenIcon from "../../../../assets/boardCastTableIcons/completedGreenIcon.svg";
 import failedRedIcon from "../../../../assets/boardCastTableIcons/failedRedIcon.svg";
 import pendingYellowIcon from "../../../../assets/boardCastTableIcons/pendingYellowIcon.svg";
+import cancelIcon from "../../../../assets/boardCastTableIcons/cancelIcon.svg";
 import circleAlert from "../../../../assets/boardCastTableIcons/circleAlert.svg";
 import tableMenuIcon from "../../../../assets/boardCastTableIcons/tableMenu.svg";
 
@@ -556,6 +557,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const { total, delivered, failed, pending } =
             row.original.messageStatus;
+          const isCancelled = row.original.broadcastStatus === "Cancelled";
           return (
             <div className="message-status-cell">
               <div className="status-row">
@@ -587,15 +589,27 @@ function BroadCastTableContainer({
                     <span>{failed}</span>
                   </div>
                 </ReusableToolTip>
-                <ReusableToolTip content="Pending" position="top">
-                  <div
-                    className="status-item yellow"
-                    style={{ cursor: "pointer" }}
-                  >
-                    <img src={pendingYellowIcon} alt="pending" />{" "}
-                    <span>{pending}</span>
-                  </div>
-                </ReusableToolTip>
+                {isCancelled ? (
+                  <ReusableToolTip content="Cancelled" position="top">
+                    <div
+                      className="status-item grey"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <img src={cancelIcon} alt="cancelled" />{" "}
+                      <span>{pending}</span>
+                    </div>
+                  </ReusableToolTip>
+                ) : (
+                  <ReusableToolTip content="Pending" position="top">
+                    <div
+                      className="status-item yellow"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <img src={pendingYellowIcon} alt="pending" />{" "}
+                      <span>{pending}</span>
+                    </div>
+                  </ReusableToolTip>
+                )}
               </div>
             </div>
           );
