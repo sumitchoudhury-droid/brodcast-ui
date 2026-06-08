@@ -943,35 +943,54 @@ function BroadCastTableContainer({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr
-              key={row.id}
-              className={`${row.original.hasError ? "row-error" : ""} ${
-                row.original.isDisabled ? "row-disabled" : ""
-              } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
-            >
-              {row.getVisibleCells().map((cell) => {
-                const isInteractiveColumn =
-                  cell.column.id === "select" || cell.column.id === "actions";
-                return (
-                  <td
-                    key={cell.id}
-                    className={`col-${cell.column.id}`}
-                    onClick={
-                      !isInteractiveColumn
-                        ? () => setSelectedDetailsRow(row.original)
-                        : undefined
-                    }
-                    style={
-                      !isInteractiveColumn ? { cursor: "pointer" } : undefined
-                    }
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                );
-              })}
+          {table.getRowModel().rows.length === 0 ? (
+            <tr className="empty-row">
+              <td
+                colSpan={table.getVisibleLeafColumns().length}
+                style={{
+                  textAlign: "center",
+                  padding: "32px",
+                  color: "#6b7280",
+                  height: "100%"
+                }}
+              >
+                No data found.
+              </td>
             </tr>
-          ))}
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className={`${row.original.hasError ? "row-error" : ""} ${
+                  row.original.isDisabled ? "row-disabled" : ""
+                } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
+              >
+                {row.getVisibleCells().map((cell) => {
+                  const isInteractiveColumn =
+                    cell.column.id === "select" || cell.column.id === "actions";
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`col-${cell.column.id}`}
+                      onClick={
+                        !isInteractiveColumn
+                          ? () => setSelectedDetailsRow(row.original)
+                          : undefined
+                      }
+                      style={
+                        !isInteractiveColumn ? { cursor: "pointer" } : undefined
+                      }
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
