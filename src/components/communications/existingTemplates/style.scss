@@ -149,23 +149,32 @@
             }
 
             .templateCardInfo {
+              width: 100%;
               @include variable.d-flex($fd: column, $g: 6px);
               .templateCardTitle {
                 @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
                 color: variable.$color-black-6;
               }
+              .templateModeWrapper {
+                width: 100%;
+                @include variable.d-flex($jc: space-between, $al: center);
 
-              .templateModeIcons {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-top: 4px;
+                .templateModeIcons {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-top: 4px;
+
+                  img {
+                    width: 14px;
+                    height: 14px;
+                  }
+                }
 
                 img {
-                  width: 14px;
-                  height: 14px;
-                  object-fit: contain;
-                  opacity: 0.7;
+                  width: 19px;
+                  height: 19px;
+                  cursor: pointer;
                 }
               }
             }

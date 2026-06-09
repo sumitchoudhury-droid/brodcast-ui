@@ -2,7 +2,13 @@ import "./style.scss";
 
 import searchIcon from "../../assets/mainScreen/searchIcon.svg";
 
-const ResuableSearch = ({ maxWidth = "100%", width = "100%" }) => {
+const ResuableSearch = ({
+  maxWidth = "100%",
+  width = "100%",
+  placeholder = "Search by Provider Name",
+  value,
+  onChange
+}) => {
   return (
     <div
       className="searchContainers"
@@ -11,8 +17,10 @@ const ResuableSearch = ({ maxWidth = "100%", width = "100%" }) => {
       <img src={searchIcon} alt="searchIcon" className="searchIcon" />
       <input
         type="text"
-        placeholder="Search by Provider Name"
+        placeholder={placeholder}
         className="searchInput"
+        value={value}
+        onChange={onChange}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import { ReusableButton } from "../../../reusableComponents/resuableButton/index
 import emailTemplate from "./htmlTemplates/email.html?raw";
 import textTemplate from "./htmlTemplates/textMessage.html?raw";
 import voiceTemplate from "./htmlTemplates/voiceMessage.html?raw";
+import deleteIcon from "../../../assets/existingTemplate/deleteIcon.svg";
 
 const MOCK_TEMPLATES = [
   {
@@ -464,7 +465,10 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
                     </div>
                     <div className="templateCardInfo">
                       <p className="templateCardTitle">{template.title}</p>
-                      {renderModeIcons(template.modes)}
+                      <div className="templateModeWrapper">
+                        {renderModeIcons(template.modes)}
+                        <img src={deleteIcon} alt="deleteIcon" />
+                      </div>
                     </div>
                   </div>
                 ))
