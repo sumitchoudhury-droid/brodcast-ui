@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import greenDownArrow from "../../assets/mainScreen/greenChevronRight.svg";
 import downArrow from "../../assets/mainScreen/chevronRight.svg";
 import "./style.scss";
@@ -19,7 +19,8 @@ export const ReusableMultiSelectDropdown = ({
   greenIcon = true,
   required = false,
   width = "100%",
-  overWriteClassName = ""
+  overWriteClassName = "",
+  searchPlaceholder = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showOnlySelected, setShowOnlySelected] = useState(false);
@@ -29,7 +30,17 @@ export const ReusableMultiSelectDropdown = ({
   const [tempSelectedValues, setTempSelectedValues] = useState(
     Array.isArray(value) ? value : []
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const debounceTimer = useRef(null);
   const dropdownRef = useRef(null);
+
+  const handleSearchChange = useCallback((e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => setDebouncedQuery(val), 300);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -49,6 +60,8 @@ export const ReusableMultiSelectDropdown = ({
   const handleToggle = () => {
     if (!isOpen) {
       setTempSelectedValues(selectedValues);
+      setSearchQuery("");
+      setDebouncedQuery("");
     }
     setIsOpen(!isOpen);
   };
@@ -76,12 +89,14 @@ export const ReusableMultiSelectDropdown = ({
     setSelectedValues(tempSelectedValues);
     onChange?.(tempSelectedValues);
     setShowOnlySelected(false);
+    setSearchQuery("");
     setIsOpen(false);
   };
 
   const handleCancel = () => {
     setTempSelectedValues(selectedValues);
     setShowOnlySelected(false);
+    setSearchQuery("");
     setIsOpen(false);
   };
 
@@ -93,9 +108,11 @@ export const ReusableMultiSelectDropdown = ({
           .join(", ")
       : null;
 
-  const visibleOptions = showOnlySelected
-    ? options.filter((o) => tempSelectedValues.includes(o.value))
-    : options;
+  const visibleOptions = options
+    .filter((o) => !showOnlySelected || tempSelectedValues.includes(o.value))
+    .filter((o) =>
+      o.label.toLowerCase().includes(debouncedQuery.toLowerCase())
+    );
 
   return (
     <div
@@ -159,7 +176,12 @@ export const ReusableMultiSelectDropdown = ({
               />
             </div>
 
-            <ResuableSearch width="calc(100% - 16px)" />
+            <ResuableSearch
+              placeholder={searchPlaceholder}
+              width="calc(100% - 16px)"
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
 
             <div className="multidropdownSelectionOptions">
               {visibleOptions.map((option) => (

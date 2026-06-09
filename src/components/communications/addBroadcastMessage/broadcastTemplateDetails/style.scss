@@ -50,6 +50,13 @@
           cursor: pointer;
           transition: all 0.3s ease;
 
+          .savedTemplateSs {
+            width: 200px;
+            height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+          }
+
           .templateOptionIcon {
             .blackTemplateIcon {
               width: 40px;
@@ -84,7 +91,25 @@
 
           &.active {
             border-color: variable.$color-blue-0;
-            background: variable.$color-blue-3;
+            padding: 0;
+            height: 200px;
+            width: 200px;
+          }
+
+          .iconWrapper {
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            background: #d1e9ff;
+            border-radius: 0 0 8px 8px;
+            padding: 6px 10px;
+            @include variable.d-flex($jc: center, $al: center, $g: 16px);
+
+            img {
+              width: 16px;
+              height: 16px;
+              cursor: pointer;
+            }
           }
         }
       }

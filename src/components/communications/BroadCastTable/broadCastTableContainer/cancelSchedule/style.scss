@@ -54,12 +54,18 @@
     .confirmText {
       @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
       color: variable.$color-black-8;
-      margin: 0 0 16px 0;
+      margin: 0 0 10px 0;
 
       .highlightText {
         font-weight: 700;
         color: variable.$color-black-11;
       }
+    }
+
+    .describeText {
+      @include variable.font-style($fs: 15px, $fw: 500, $lh: 24px);
+      color: #404b5a;
+      margin: 0 0 10px 0;
     }
 
     .warningText {
@@ -100,7 +106,19 @@
         .detailValue {
           @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
           color: variable.$color-black-8;
-          word-break: break-word;
+          width: 260px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .detailValueEllipsis {
+          @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
+          color: variable.$color-black-8;
+          width: 195px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
         }
 
         .modeCheckboxGroup {

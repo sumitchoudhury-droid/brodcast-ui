@@ -79,6 +79,7 @@ function TargetRecipients({
                   : []
             }
             onChange={(val) => setAppointmentType(val)}
+            searchPlaceholder="Search Appointment Type"
           />
         </div>
         <div className="formGroup">
@@ -91,6 +92,7 @@ function TargetRecipients({
               Array.isArray(location) ? location : location ? [location] : []
             }
             onChange={(val) => setLocation(val)}
+            searchPlaceholder="Search Location"
           />
         </div>
         <div className="formGroup">
@@ -103,6 +105,7 @@ function TargetRecipients({
               providerOptions.find((o) => o.value === provider)?.label || ""
             }
             onChange={(val) => setProvider(val)}
+            searchPlaceholder="Search Provider"
           />
         </div>
       </div>
@@ -148,6 +151,7 @@ function TargetRecipients({
               Array.isArray(modality) ? modality : modality ? [modality] : []
             }
             onChange={(val) => setModality(val)}
+            searchPlaceholder="Search Modality"
           />
         </div>
       </div>

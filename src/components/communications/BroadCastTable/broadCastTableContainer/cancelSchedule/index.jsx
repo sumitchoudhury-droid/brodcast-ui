@@ -218,14 +218,14 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
   const displayLocation = useMemo(() => {
     const loc = broadcastData?.location || "Eastside Urgent Care";
     return broadcastData?.locationCount && broadcastData.locationCount > 1
-      ? `${loc} Riverbend... `
+      ? `${loc}`
       : loc;
   }, [broadcastData]);
 
   const displayProvider = useMemo(() => {
     const prov = broadcastData?.provider || "Barbara Phillips";
     return broadcastData?.providerCount && broadcastData.providerCount > 1
-      ? `${prov} Olivia Smith, Et...`
+      ? `${prov}`
       : prov;
   }, [broadcastData]);
 
@@ -248,6 +248,10 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
             Are you sure you want to stop this broadcast scheduled at{" "}
             <span className="highlightText">{formattedDate}</span> to{" "}
             <span className="highlightText">{patientCount} Patients?</span>
+          </p>
+
+          <p className="describeText">
+            All scheduled text, email, and voice messages will be cancelled.
           </p>
 
           <p className="warningText">
@@ -369,17 +373,17 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
               <div className="detailsColumn">
                 <div className="detailGroup">
                   <span className="detailLabel">Template</span>
-                  <span className="detailValue">
+                  <span className="detailValueEllipsis">
                     {broadcastData?.template || "Account Statement"}
                   </span>
                 </div>
                 <div className="detailGroup">
                   <span className="detailLabel">Location</span>
-                  <span className="detailValue">{displayLocation}</span>
+                  <span className="detailValueEllipsis">{displayLocation}</span>
                 </div>
                 <div className="detailGroup">
                   <span className="detailLabel">Scheduled Date/Time</span>
-                  <span className="detailValue">
+                  <span className="detailValueEllipsis">
                     {broadcastData?.scheduledDateTime || "2/15/2026 9:45:00 AM"}
                   </span>
                 </div>

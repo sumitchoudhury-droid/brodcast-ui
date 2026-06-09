@@ -1,41 +1,50 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import "./style.scss";
-import templateOneIcon from "../../../assets/existingTemplate/template1.svg";
+import emptyTemplate from "../../../assets/existingTemplate/emptyTemplate.svg";
 import emailIcon from "../../../assets/existingTemplate/mail.svg";
 import textIcon from "../../../assets/existingTemplate/message.svg";
 import voiceIcon from "../../../assets/existingTemplate/phone.svg";
 import searchIcon from "../../../assets/commonIcons/searchIcon.svg";
-import emptyTemplate from "../../../assets/existingTemplate/emptyTemplate.svg";
 import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import emailTemplate from "./htmlTemplates/email.html?raw";
 import textTemplate from "./htmlTemplates/textMessage.html?raw";
 import voiceTemplate from "./htmlTemplates/voiceMessage.html?raw";
+import deleteIcon from "../../../assets/existingTemplate/deleteIcon.svg";
+
+import templateSs1 from "../../../assets/existingTemplate/templateSs1.svg";
+import templateSs2 from "../../../assets/existingTemplate/templateSs2.svg";
+import templateSs3 from "../../../assets/existingTemplate/templateSs3.svg";
+import templateSs4 from "../../../assets/existingTemplate/templateSs4.svg";
 
 const MOCK_TEMPLATES = [
   {
     id: 1,
     title: "Appointment Rescheduled",
     modes: ["mail", "text", "voice"],
-    lastModified: "2 hours ago"
+    lastModified: "2 hours ago",
+    image: templateSs1
   },
   {
     id: 2,
     title: "Health Camp Invitation",
     modes: ["mail", "text"],
-    lastModified: "1 day ago"
+    lastModified: "1 day ago",
+    image: templateSs2
   },
   {
     id: 3,
     title: "Treatment Plan Update",
     modes: ["mail", "text", "voice"],
-    lastModified: "3 days ago"
+    lastModified: "3 days ago",
+    image: templateSs3
   },
   {
     id: 4,
     title: "Seasonal Health Advisory",
     modes: ["text", "voice"],
-    lastModified: "5 days ago"
+    lastModified: "5 days ago",
+    image: templateSs4
   },
   {
     id: 5,
@@ -69,11 +78,22 @@ const MOCK_TEMPLATES = [
   }
 ];
 
-function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
+function ExistingTemplates({
+  isOpen,
+  onClose,
+  onSelectTemplate,
+  initialModeTab = "Text"
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [activeModeTab, setActiveModeTab] = useState("Text");
+  const [activeModeTab, setActiveModeTab] = useState(initialModeTab);
+  const [prevInitialModeTab, setPrevInitialModeTab] = useState(initialModeTab);
   const [viewMode, setViewMode] = useState("desktop");
+
+  if (prevInitialModeTab !== initialModeTab) {
+    setPrevInitialModeTab(initialModeTab);
+    setActiveModeTab(initialModeTab);
+  }
 
   // Audio player state (mirrors textVoicePreview.jsx)
   const [isPlaying, setIsPlaying] = useState(false);
@@ -460,11 +480,22 @@ function ExistingTemplates({ isOpen, onClose, onSelectTemplate }) {
                     }}
                   >
                     <div className="templateThumbnail">
-                      <img src={templateOneIcon} alt="template" />
+                      {template.image ? (
+                        <img src={template.image} alt="template" />
+                      ) : (
+                        <img src={emptyTemplate} alt="defaultTemplate" />
+                      )}
                     </div>
                     <div className="templateCardInfo">
                       <p className="templateCardTitle">{template.title}</p>
-                      {renderModeIcons(template.modes)}
+                      <div className="templateModeWrapper">
+                        {renderModeIcons(template.modes)}
+                        <img
+                          src={deleteIcon}
+                          alt="deleteIcon"
+                          className="templateDeleteIcon"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))
