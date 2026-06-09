@@ -5,6 +5,11 @@ import crossIcon from "../../../../assets/commonIcons/redCrossIcon.svg";
 import ExistingTemplates from "../../existingTemplates/index";
 import "./style.scss";
 
+import messageIcon from "../../../../assets/existingTemplate/messageIcon.svg";
+import mailIcon from "../../../../assets/existingTemplate/mailIcon.svg";
+import phoneIcon from "../../../../assets/existingTemplate/phoneIcon.svg";
+import defaultTemplateSs from "../../../../assets/existingTemplate/defaultTemplateSs.svg";
+
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown";
@@ -18,6 +23,12 @@ const templateOptions = [
   { label: "Seasonal Health Advisory", value: "seasonalHealthAdvisory" },
   { label: "Diabetes Screening Alert", value: "diabetesScreeningAlert" },
   { label: "Wellness Program Enrollment", value: "wellnessProgramEnrollment" }
+];
+
+const actionIcons = [
+  { src: messageIcon, mode: "Text" },
+  { src: mailIcon, mode: "Mail" },
+  { src: phoneIcon, mode: "Voice" }
 ];
 
 function BroadcastTemplateDetails({
@@ -34,6 +45,7 @@ function BroadcastTemplateDetails({
   selectedTemplateData
 }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [initialModeTab, setInitialModeTab] = useState("Text");
 
   const handleDropdownSelect = (val) => {
     setExistingTemplateValues(val);
@@ -147,14 +159,47 @@ function BroadcastTemplateDetails({
                       />
                     </div>
                   )}
-                  <div className="templateOptionIcon">
+                  {selectedTemplate === "existing" && selectedTemplateData ? (
                     <img
-                      src={existingTemplateIcon}
-                      alt="existingTemplateIcon"
-                      className="existingTemplateIcon"
+                      src={selectedTemplateData?.image || defaultTemplateSs}
+                      alt="savedTemplate"
+                      className="savedTemplateSs"
                     />
-                  </div>
-                  <p>Saved Template</p>
+                  ) : (
+                    <>
+                      <div className="templateOptionIcon">
+                        <img
+                          src={existingTemplateIcon}
+                          alt="existingTemplateIcon"
+                          className="existingTemplateIcon"
+                        />
+                      </div>
+                      <p>Saved Template</p>
+                    </>
+                  )}
+
+                  {selectedTemplate === "existing" && selectedTemplateData && (
+                    <div className="iconWrapper">
+                      {actionIcons
+                        .filter(({ mode }) =>
+                          selectedTemplateData?.modes?.includes(
+                            mode.toLowerCase()
+                          )
+                        )
+                        .map(({ src, mode }) => (
+                          <img
+                            key={mode}
+                            src={src}
+                            alt={mode}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setInitialModeTab(mode);
+                              setIsDrawerOpen(true);
+                            }}
+                          />
+                        ))}
+                    </div>
+                  )}
                 </div>
               </div>
               {selectedTemplate === "blank" && (
@@ -176,6 +221,7 @@ function BroadcastTemplateDetails({
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onSelectTemplate={onSelectTemplate}
+        initialModeTab={initialModeTab}
       />
     </div>
   );
