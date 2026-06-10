@@ -51,6 +51,7 @@ function PatientUploadFile({ onFileChange }) {
         <ReusableUpload
           onChange={handleFileUpload}
           accept=".csv,.xlsx,.xls" // Specify accepted file types
+          maxSize={650 * 1024}
         />
       </div>
     </div>

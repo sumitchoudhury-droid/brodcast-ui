@@ -69,6 +69,7 @@
 /* ---------- UPLOADED SECTION ---------- */
 
 .uploadedSection {
+  width: 100%;
   margin-top: 22px;
   @include variable.d-flex($fd: column, $g: 12px);
 }
@@ -81,6 +82,7 @@
 /* ---------- FILE CARD ---------- */
 
 .fileCard {
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;

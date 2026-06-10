@@ -4,16 +4,23 @@ import greenCrossIcon from "../../assets/commonIcons/greenCrossIcon.svg";
 import fileIcon from "../../assets/commonIcons/fileIcon.svg";
 import "./style.scss";
 
-const MAX_SIZE_BYTES = 650 * 1024;
-
-export function ReusableUpload({ onChange, accept }) {
+export function ReusableUpload({
+  onChange,
+  accept,
+  maxSize = 10 * 1024 * 1024,
+  noLimit = false
+}) {
+  const maxSizeLabel =
+    maxSize >= 1024 * 1024
+      ? `${(maxSize / (1024 * 1024)).toFixed(0)}MB`
+      : `${(maxSize / 1024).toFixed(0)}KB`;
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [sizeError, setSizeError] = useState("");
 
   const applyFile = (selectedFile) => {
-    if (selectedFile.size > MAX_SIZE_BYTES) {
-      setSizeError("File size exceeds the 650KB limit.");
+    if (!noLimit && selectedFile.size > maxSize) {
+      setSizeError(`File size exceeds the limit of ${maxSizeLabel}.`);
       inputRef.current.value = "";
       return;
     }
@@ -78,7 +85,7 @@ export function ReusableUpload({ onChange, accept }) {
             <p className="uploadText">
               Drag & drop your files here, or click to browse
             </p>
-            <p className="uploadLimit">up to 650KB.</p>
+            {!noLimit && <p className="uploadLimit">up to {maxSizeLabel}.</p>}
           </div>
         </div>
       </div>

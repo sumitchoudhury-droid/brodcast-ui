@@ -1032,6 +1032,47 @@ const BroadcastTextMessageEditor = ({
 
           updateContent();
         },
+        appendHtml: (html) => {
+          const wrapper = editor.getWrapper();
+          const containerComp = wrapper.find(".text-editor-container")[0];
+
+          const newCompData = {
+            tagName: "div",
+            type: "text",
+            attributes: {
+              style:
+                "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+            },
+            content: html,
+            editable: true,
+            draggable: false,
+            removable: true,
+            copyable: false,
+            selectable: true,
+            hoverable: false,
+            badgable: false
+          };
+
+          if (containerComp) {
+            const children = containerComp.components();
+            let insertIdx = children.length;
+            for (let i = 0; i < children.length; i++) {
+              const classes = children.models[i].getAttributes()?.class || "";
+              if (
+                classes.includes("text-signature-section") ||
+                classes.includes("unsubscribe-footer")
+              ) {
+                insertIdx = i;
+                break;
+              }
+            }
+            containerComp.components().add(newCompData, { at: insertIdx });
+          } else {
+            wrapper.append(newCompData);
+          }
+
+          updateContent();
+        },
         loadTemplate: (templateString) => {
           editor.setComponents(templateString);
           updateContent();

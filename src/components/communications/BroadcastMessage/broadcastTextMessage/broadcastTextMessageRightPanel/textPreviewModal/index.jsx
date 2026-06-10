@@ -50,7 +50,7 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background: #fff;
-      padding: ${selectedDevice === "Mobile" ? "16px" : "20px"};
+      padding: 0;
       margin: 0;
     }
     ${
