@@ -10,6 +10,7 @@ import completedIcon from "../../../../../assets/boardCastTableIcons/completedIc
 import runningWeeklyIcon from "../../../../../assets/boardCastTableIcons/runningWeekly.svg";
 import failedIcon from "../../../../../assets/boardCastTableIcons/failedIcon.svg";
 import cancelledIcon from "../../../../../assets/boardCastTableIcons/cancelledIcon.svg";
+import cancelIcon from "../../../../../assets/boardCastTableIcons/cancelIcon.svg";
 
 import "./style.scss";
 
@@ -230,6 +231,7 @@ export default function Details({ broadcastData }) {
   );
 
   const isFailed = broadcastStatus.toLowerCase() === "failed" || hasError;
+  const isCancelled = broadcastStatus.toLowerCase().includes("cancel");
 
   // Determine if it is multiple modes (contains comma or ellipses) vs single mode
   const showUploadFileLayout =
@@ -447,8 +449,12 @@ export default function Details({ broadcastData }) {
                     </div>
                     <div className="statusItem">
                       <div className="statusLabel">
-                        <img src={pendingYellowIcon} alt="Pending" />
-                        <span>Pending</span>
+                        {isCancelled ? (
+                          <img src={cancelIcon} alt="Cancelled" />
+                        ) : (
+                          <img src={pendingYellowIcon} alt="Pending" />
+                        )}
+                        <span>{isCancelled ? "Cancelled" : "Pending"}</span>
                       </div>
                       <div className="statusValue">{counts.pending || "-"}</div>
                     </div>
