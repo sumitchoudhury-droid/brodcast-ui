@@ -137,7 +137,11 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
       toast.error("No file selected", "Please select an HTML or MJML file.");
       return;
     }
-    setOpenConfirmModal(true);
+    if (isEditorEmpty) {
+      handleFinalConfirm();
+    } else {
+      setOpenConfirmModal(true);
+    }
   };
 
   const handleFinalConfirm = async () => {
@@ -460,16 +464,14 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
           )}
         </div>
 
-        {isEditorEmpty && (
-          <div className="importTemplateContainer" onClick={handleImportClick}>
-            <img
-              src={fileHtmlIcon}
-              alt="fileHtmlIcon"
-              className="importTemplateContainerImage"
-            />
-            <p>Import Template</p>
-          </div>
-        )}
+        <div className="importTemplateContainer" onClick={handleImportClick}>
+          <img
+            src={fileHtmlIcon}
+            alt="fileHtmlIcon"
+            className="importTemplateContainerImage"
+          />
+          <p>Import Template</p>
+        </div>
       </div>
 
       {/* ── Form preview modal ───────────────────────────────────────────── */}
@@ -539,7 +541,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
       {/* ── Confirm replace modal ─────────────────────────────────────────── */}
       <ReusableModal
         isOpen={openConfirmModal}
-        title="Confirm Template Import"
+        title="Confirm Upload Template"
         onClose={handleCancelConfirm}
         onConfirm={handleFinalConfirm}
         cancelText="Cancel"
@@ -548,10 +550,12 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
         <div className="confirmUploadTemplateContainer">
           <p className="confirmUploadTemplateContainerTitle">
             Are you sure you want to{" "}
-            <span style={{ fontWeight: "600" }}>import this template?</span>
+            <span style={{ fontWeight: "600" }}>
+              upload this HTML template?
+            </span>
           </p>
           <p className="confirmUploadTemplateContainerTitle">
-            Your current editor content will be replaced with the content from{" "}
+            Your current content will be replaced with the{" "}
             <span style={{ fontWeight: "600" }}>{selectedFile?.name}</span>.
           </p>
         </div>
