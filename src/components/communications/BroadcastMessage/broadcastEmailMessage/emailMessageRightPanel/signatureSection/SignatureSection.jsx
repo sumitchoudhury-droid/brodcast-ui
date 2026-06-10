@@ -535,6 +535,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
         <ReusableUpload
           accept=".html,.htm,.mjml"
           onChange={(file) => setSelectedFile(file)}
+          noLimit={true}
         />
       </ReusableModal>
 

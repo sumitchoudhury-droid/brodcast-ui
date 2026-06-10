@@ -8,6 +8,7 @@ import eyeIcon from "../../assets/commonIcons/eyeIcon.svg";
 import sendIcon from "../../assets/voiceTextIcons/messageIcon.svg";
 import playIcon from "../../assets/voiceTextIcons/pausedIcon.svg";
 import pauseIcon from "../../assets/voiceTextIcons/playIcon.svg";
+import linkIcon from "../../assets/commonIcons/linkIcon.svg";
 
 export function ReusableButton({
   label = "Button",
@@ -27,6 +28,7 @@ export function ReusableButton({
   addImage2 = false,
   editImage = false,
   deleteImage = false,
+  linkImage = false,
   addImage
 }) {
   const handleClick = (e) => {
@@ -98,6 +100,15 @@ export function ReusableButton({
             <img
               src={addImage}
               alt="addIcon"
+              className="icon"
+              style={{ width: "20px", height: "20px" }}
+            />
+          )}
+
+          {linkImage && (
+            <img
+              src={linkIcon}
+              alt="linkIcon"
               className="icon"
               style={{ width: "20px", height: "20px" }}
             />

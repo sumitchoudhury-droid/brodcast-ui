@@ -1,11 +1,33 @@
-// import { useState } from "react";
+import { useState } from "react";
 import "./style.scss";
+
+import { ReusableButton } from "../../../../../../reusableComponents/resuableButton";
+import { ReusableModal } from "../../../../../../reusableComponents/reusableModal";
+import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
 
 export const TextDeviceSwitcher = ({
   handlePreview,
-  isEditorEmpty
-  // editorRef
+  isEditorEmpty,
+  editorRef
 }) => {
+  const [openUploadModal, setOpenUploadModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const handleAttachmentClick = () => {
+    setSelectedFile(null);
+    setOpenUploadModal(true);
+  };
+
+  const handleUploadConfirm = () => {
+    if (!selectedFile) return;
+    const fileName = selectedFile.name;
+    const url = `https://forms.manipalhospitals.com/${fileName}`;
+    const linkHtml = `<a href="${url}" target="_blank" style="color: #1570EF; text-decoration: underline; font-family: Inter, sans-serif; font-size: 16px; overflow-wrap: break-word;">${url}</a>`;
+    editorRef?.current?.appendHtml(linkHtml);
+    setOpenUploadModal(false);
+    setSelectedFile(null);
+  };
+
   // const [activeDevice, setActiveDevice] = useState("desktop");
 
   // const setDevice = (device) => {
@@ -14,10 +36,7 @@ export const TextDeviceSwitcher = ({
   // };
 
   return (
-    <div
-      className="deviceSwitcherContainer"
-      style={{ justifyContent: isEditorEmpty ? "flex-end" : "space-between" }}
-    >
+    <div className="deviceSwitcherContainer">
       {/* {!isEditorEmpty && (
         <div className="deviceToggle">
           <button
@@ -57,6 +76,11 @@ export const TextDeviceSwitcher = ({
           </button>
         </div>
       )} */}
+      <ReusableButton
+        label="Attachment"
+        linkImage={true}
+        onClick={handleAttachmentClick}
+      />
       <button
         className="previewBtn"
         onClick={handlePreview}
@@ -90,6 +114,23 @@ export const TextDeviceSwitcher = ({
         </svg>
         <p>Preview</p>
       </button>
+
+      <ReusableModal
+        isOpen={openUploadModal}
+        title="Upload Attachment"
+        onClose={() => {
+          setOpenUploadModal(false);
+          setSelectedFile(null);
+        }}
+        onConfirm={handleUploadConfirm}
+        cancelText="Cancel"
+        confirmText="Upload"
+      >
+        <ReusableUpload
+          accept=".pdf,.doc,.docx"
+          onChange={(file) => setSelectedFile(file)}
+        />
+      </ReusableModal>
     </div>
   );
 };
