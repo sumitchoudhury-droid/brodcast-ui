@@ -802,10 +802,7 @@ function BroadCastTableContainer({
                         } else if (option.action === "cancel") {
                           setSelectedCancelRow(row.original);
                         } else if (option.action === "report") {
-                          toast.success(
-                            "Report",
-                            "Report option clicked successfully."
-                          );
+                          window.open("https://google.com", "_blank");
                         }
                         setActiveMenuId(null);
                       }}

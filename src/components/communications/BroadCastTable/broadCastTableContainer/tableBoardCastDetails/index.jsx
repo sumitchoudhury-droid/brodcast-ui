@@ -40,7 +40,7 @@ function TableBoardCastDetails({ isOpen, onClose, broadcastData }) {
         <button
           className="refreshBtn"
           onClick={handleRefresh}
-          title="Refresh details"
+          title="Reprocess"
         >
           <img src={ReprocessIcon} alt="Refresh" />
         </button>
