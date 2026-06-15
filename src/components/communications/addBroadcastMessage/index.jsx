@@ -34,6 +34,10 @@ export function AddBroadcastMessage({
   const [broadcastEndDate, setBroadcastEndDate] = useState(null);
   const [patientStartDateTime, setPatientStartDateTime] = useState(new Date());
   const [patientEndDateTime, setPatientEndDateTime] = useState(null);
+  const [ageFilter, setAgeFilter] = useState("");
+  const [ageYear, setAgeYear] = useState("");
+  const [ageMonth, setAgeMonth] = useState("");
+  const [ageError, setAgeError] = useState("");
 
   // Template state (lifted from BroadcastTemplateDetails)
   const [selectedTemplateType, setSelectedTemplateType] =
@@ -111,6 +115,14 @@ export function AddBroadcastMessage({
           setStartDateTime={setPatientStartDateTime}
           endDateTime={patientEndDateTime}
           setEndDateTime={setPatientEndDateTime}
+          ageFilter={ageFilter}
+          setAgeFilter={setAgeFilter}
+          ageYear={ageYear}
+          setAgeYear={setAgeYear}
+          ageMonth={ageMonth}
+          setAgeMonth={setAgeMonth}
+          ageError={ageError}
+          setAgeError={setAgeError}
         />
         <BroadCastSchedule
           sendType={sendType}
@@ -137,6 +149,15 @@ export function AddBroadcastMessage({
           label="Next"
           variant="secondary"
           onClick={() => {
+            if (
+              patientType === "targetRecipients" &&
+              ageFilter &&
+              !ageYear &&
+              !ageMonth
+            ) {
+              setAgeError("Enter Patient Age");
+              return;
+            }
             let finalTemplateData = selectedTemplateData;
             if (
               (showRadioRow && selectedTemplateType === "newTemplate") ||
