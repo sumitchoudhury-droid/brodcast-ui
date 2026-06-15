@@ -211,8 +211,14 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
       .some((p) => isEmailInvalid(p.email) || isPhoneInvalid(p.phone));
   }, [patients, selectedIds]);
 
+  const allPatientsValid = useMemo(() => {
+    return patients.every(
+      (p) => !isEmailInvalid(p.email) && !isPhoneInvalid(p.phone)
+    );
+  }, [patients]);
+
   const handleReprocessSubmit = () => {
-    if (selectedIds.size === 0) {
+    if (selectedIds.size === 0 && !allPatientsValid) {
       toast.error(
         "Reprocess Failed",
         "Please select at least one patient to reprocess."
@@ -220,8 +226,11 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
       return;
     }
 
-    // Verify if any selected patient still has validation errors
-    const selectedPatients = patients.filter((p) => selectedIds.has(p.id));
+    // If nothing selected but all are valid, reprocess all patients
+    const selectedPatients =
+      selectedIds.size === 0
+        ? patients
+        : patients.filter((p) => selectedIds.has(p.id));
     const hasErrors = selectedPatients.some(
       (p) => isEmailInvalid(p.email) || isPhoneInvalid(p.phone)
     );
@@ -239,28 +248,19 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
 
   const handleConfirmReprocess = () => {
     setShowConfirmModal(false);
-    const selectedPatients = patients.filter((p) => selectedIds.has(p.id));
+    const selectedPatients =
+      selectedIds.size === 0
+        ? patients
+        : patients.filter((p) => selectedIds.has(p.id));
 
-    // Simulate success/failure based on selected patients
-    const hasDiana = selectedPatients.some(
-      (p) => p.firstName.toLowerCase() === "diana"
-    );
-
-    if (hasDiana) {
-      toast.error(
-        "Patients Reprocess Failed",
-        `We couldn't start reprocessing for the ${selectedIds.size} patients.\nPlease try again.`
-      );
-    } else {
-      if (onReprocess) {
-        onReprocess(selectedPatients);
-      }
-      toast.success(
-        "Patients Reprocessed Successfully",
-        `Reprocessing has been started for the ${selectedIds.size} patients.`
-      );
-      onClose();
+    if (onReprocess) {
+      onReprocess(selectedPatients);
     }
+    toast.success(
+      "Patients Reprocessed Successfully",
+      `Reprocessing has been started for the ${selectedPatients.length} patients.`
+    );
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -601,7 +601,9 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
               variant="secondary"
               onClick={handleReprocessSubmit}
               disabled={
-                isEditMode || selectedIds.size === 0 || hasSelectedErrors
+                isEditMode ||
+                (!allPatientsValid && selectedIds.size === 0) ||
+                hasSelectedErrors
               }
             />
           </div>
@@ -612,7 +614,9 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
           onConfirm={handleConfirmReprocess}
-          patientCount={selectedIds.size}
+          patientCount={
+            selectedIds.size === 0 ? patients.length : selectedIds.size
+          }
         />
       )}
     </div>,

@@ -324,6 +324,11 @@ export default function ReusableDateRangePicker({
                   setStartDate(null);
                   setEndDate(null);
                   if (onReset) onReset();
+                  setIsOpen(false);
+                  toast.success(
+                    "Date Range Reset",
+                    `Showing results for ${format(new Date(), "MM/dd/yyyy")}.`
+                  );
                 }}
               />
             </div>
