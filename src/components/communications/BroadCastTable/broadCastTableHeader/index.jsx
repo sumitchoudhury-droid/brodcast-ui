@@ -61,9 +61,6 @@ function BroadCastTableHeader({
             addIcon={true}
             addImage={calendar}
             onClick={onTodayClick}
-            disabled={
-              !!(selectedDateRange?.startDate || selectedDateRange?.endDate)
-            }
           />
         </div>
       </div>
