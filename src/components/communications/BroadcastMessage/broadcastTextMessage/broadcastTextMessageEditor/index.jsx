@@ -305,24 +305,24 @@ const BroadcastTextMessageEditor = ({
               selectable: true,
               hoverable: false,
               badgable: false
-            },
-            {
-              tagName: "div",
-              type: "text",
-              attributes: {
-                class: "unsubscribe-footer",
-                style:
-                  "padding: 10px 16px; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
-              },
-              content: `TXT Stop Optout`,
-              editable: true,
-              draggable: false,
-              removable: false,
-              copyable: false,
-              selectable: true,
-              hoverable: false,
-              badgable: false
             }
+            // {
+            //   tagName: "div",
+            //   type: "text",
+            //   attributes: {
+            //     class: "unsubscribe-footer",
+            //     style:
+            //       "padding: 10px 16px; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
+            //   },
+            //   content: `TXT Stop Optout`,
+            //   editable: true,
+            //   draggable: false,
+            //   removable: false,
+            //   copyable: false,
+            //   selectable: true,
+            //   hoverable: false,
+            //   badgable: false
+            // }
           ]
         }
       ];
