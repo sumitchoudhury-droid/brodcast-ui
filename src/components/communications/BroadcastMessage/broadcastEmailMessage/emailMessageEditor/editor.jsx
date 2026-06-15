@@ -17,6 +17,7 @@ import codeIcon from "../../../../../assets/textStyleIcons/codeIcon.svg";
 import subscriptIcon from "../../../../../assets/textStyleIcons/subscriptIcon.svg";
 import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIcon.svg";
 import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
+import imgIcon from "../../../../../assets/commonIcons/imgIcon.svg";
 
 import "../style.scss";
 import "./style.scss";
@@ -417,7 +418,15 @@ export default function Editor({
   });
 
   const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+    const ALLOWED_EXTS = /\.(jpg|jpeg|png|pdf)$/i;
+    const allFiles = Array.from(e.target.files);
+    const files = allFiles.filter(
+      (f) => ALLOWED_TYPES.includes(f.type) || ALLOWED_EXTS.test(f.name)
+    );
+    if (allFiles.length !== files.length) {
+      toast.error("Only JPG, PNG, JPEG and PDF files are allowed.");
+    }
     if (files.length === 0) return;
 
     const editor = gjsInstance.current;
@@ -2008,28 +2017,32 @@ export default function Editor({
         section.addAttributes({
           "data-type": "attachment-placeholder",
           style:
-            "border: 1px dashed #1570EF; padding: 20px; text-align: center; width: 100%; box-sizing: border-box; background-color: transparent;"
+            "border: 1px dashed #1570EF; padding: 0px; text-align: center; width: 100%; box-sizing: border-box; background-color: transparent;"
         });
         section.components(`
-          <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
-            <img src="${uploadIconSvg}" width="40" height="40" style="display:block;" />
-            <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
-            <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
+          <div style="padding:20px;display:flex;justify-content:center;align-items:center;">
+            <div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:20px 0;background:#F6F7F9;border-radius:6px;">
+              <img src="${imgIcon}" alt="imgIcon" style="width:30px;height:30px;" />
+              <p style="font-size:14px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;margin:0"><span class="browse-click-trigger" style="color:#1570EF;cursor:pointer;">click to browse</span> and upload your files here</p>
+              <p style="color:#888E9E;text-align:center;font-size:12px;font-weight:400;line-height:18px;margin:0">JPG, PNG, JPEG and PDF up to 10MB each.</p>
+            </div>
           </div>
         `);
       } else {
         section.addAttributes({
           "data-type": "attachment-placeholder",
-          border: "2px dashed #00A3FF",
-          padding: "0px 0px"
+          border: "1px dashed #1570EF",
+          padding: "0px"
         });
         section.components(`
           <mj-column padding="0px" margin="0px" width="100%">
             <mj-text align="center" padding="0px" margin="0px">
-              <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:8px;width:fit-content;margin:0 auto;cursor:pointer;">
-                <img src="${uploadIconSvg}" width="40" height="40" style="display:block;" />
-                <span style="font-size:16px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;">Upload Attachment</span>
-                <span style="font-size:12px;color:#98A2B3;font-family:Inter,sans-serif;">Click to browse files</span>
+              <div style="padding:20px;display:flex;justify-content:center;align-items:center;">
+                <div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:20px 0;background:#F6F7F9;border-radius:6px;">
+                  <img src="${imgIcon}" alt="imgIcon" style="width:30px;height:30px;" />
+                  <p style="font-size:14px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;margin:0"><span class="browse-click-trigger" style="color:#1570EF;cursor:pointer;">click to browse</span> and upload your files here</p>
+                  <p style="color:#888E9E;text-align:center;font-size:12px;font-weight:400;line-height:18px;margin:0">JPG, PNG, JPEG and PDF up to 10MB each.</p>
+                </div>
               </div>
             </mj-text>
           </mj-column>
@@ -2296,7 +2309,10 @@ export default function Editor({
         }
 
         // ── Attachment upload area click ──────────────────────────────────
-        if (e.target.closest(".attachment-click-area")) {
+        if (
+          e.target.closest(".attachment-click-area") ||
+          e.target.closest(".browse-click-trigger")
+        ) {
           fileInputRef.current?.click();
           return;
         }
@@ -2778,7 +2794,7 @@ export default function Editor({
           ref={fileInputRef}
           style={{ display: "none" }}
           multiple
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
           onChange={handleFileChange}
         />
         <input
@@ -3300,11 +3316,10 @@ function registerBlocks(editor, initialTemplate) {
           <mj-column padding="0px" margin="0px" width="100%">
             <mj-text align="center" padding="0px" margin="0px">
               <div style="padding:20px;display:flex;justify-content:center;align-items:center;">
-              <div class="attachment-click-area" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:fit-content;margin:0 auto;cursor:pointer;">
-               <svg xmlns="http://www.w3.org/2000/svg" width="19" height="21" viewBox="0 0 19 21" fill="none">
-    <path d="M12.112 4.9902L5.61201 11.4902C5.21418 11.888 4.99069 12.4276 4.99069 12.9902C4.99069 13.5528 5.21418 14.0924 5.61201 14.4902C6.00983 14.888 6.5494 15.1115 7.11201 15.1115C7.67462 15.1115 8.21418 14.888 8.61201 14.4902L15.112 7.9902C15.9077 7.19455 16.3546 6.11542 16.3546 4.9902C16.3546 3.86498 15.9077 2.78585 15.112 1.9902C14.3164 1.19455 13.2372 0.747559 12.112 0.747559C10.9868 0.747559 9.90766 1.19455 9.11201 1.9902L2.61201 8.4902C1.41853 9.68367 0.748047 11.3024 0.748047 12.9902C0.748047 14.678 1.41853 16.2967 2.61201 17.4902C3.80548 18.6837 5.42418 19.3542 7.11201 19.3542C8.79984 19.3542 10.4185 18.6837 11.612 17.4902L18.112 10.9902" stroke="#555F75" stroke-width="1.495" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-                <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter,sans-serif;">Upload Attachment</span>
+              <div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding: 20px 0; background:#F6F7F9; border-radius:6px">
+                <img src="${imgIcon}" alt="imgIcon" style="width: 30px; height: 30px" />
+                <p style="font-size:14px;font-weight:500;color:#404B5A;font-family:Inter,sans-serif;margin:0"><span class="browse-click-trigger" style="color:#1570EF;cursor:pointer;">click to browse</span> and upload your files here</p>
+                <p style="color:#888E9E;text-align: center;font-size: 12px;font-weight: 400;line-height: 18px;margin:0">JPG, PNG, JPEG and PDF up to 10MB each.</p>
               </div>
               </div>
             </mj-text>

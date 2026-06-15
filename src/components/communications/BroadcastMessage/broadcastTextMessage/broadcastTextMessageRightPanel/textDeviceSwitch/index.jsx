@@ -127,7 +127,7 @@ export const TextDeviceSwitcher = ({
         confirmText="Upload"
       >
         <ReusableUpload
-          accept=".pdf,.doc,.docx"
+          accept=".jpg,.jpeg,.png,.pdf"
           onChange={(file) => setSelectedFile(file)}
         />
       </ReusableModal>
