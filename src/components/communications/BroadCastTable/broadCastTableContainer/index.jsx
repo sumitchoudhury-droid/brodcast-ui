@@ -642,6 +642,9 @@ function BroadCastTableContainer({
           } else if (status === "Cancelled") {
             colorClass = "grey";
             iconSrc = cancelledIcon;
+          } else if (status === "In-progress") {
+            colorClass = "blue";
+            iconSrc = runningWeeklyIcon;
           }
 
           const badgeContent = (
