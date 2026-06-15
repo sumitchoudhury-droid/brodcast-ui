@@ -642,6 +642,9 @@ function BroadCastTableContainer({
           } else if (status === "Cancelled") {
             colorClass = "grey";
             iconSrc = cancelledIcon;
+          } else if (status === "In-progress") {
+            colorClass = "blue";
+            iconSrc = runningWeeklyIcon;
           }
 
           const badgeContent = (
@@ -802,10 +805,7 @@ function BroadCastTableContainer({
                         } else if (option.action === "cancel") {
                           setSelectedCancelRow(row.original);
                         } else if (option.action === "report") {
-                          toast.success(
-                            "Report",
-                            "Report option clicked successfully."
-                          );
+                          window.open("https://google.com", "_blank");
                         }
                         setActiveMenuId(null);
                       }}

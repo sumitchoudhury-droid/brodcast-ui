@@ -72,27 +72,27 @@ const BroadcastTextVoiceMessageEditor = ({
         }
       ];
 
-      if (!initialTemplate) {
-        componentsList.push({
-          tagName: "div",
-          classes: ["opt-out-section"],
-          attributes: {
-            style:
-              "padding: 10px 20px 20px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; color: #D3DBE4; cursor: default; user-select: none;"
-          },
-          content:
-            "To opt out of future calls from Manipal Hospitals, please press 9.",
-          editable: false,
-          draggable: false,
-          droppable: false,
-          removable: false,
-          selectable: false,
-          hoverable: false,
-          badgable: false,
-          copyable: false,
-          toolbar: []
-        });
-      }
+      // if (!initialTemplate) {
+      //   componentsList.push({
+      //     tagName: "div",
+      //     classes: ["opt-out-section"],
+      //     attributes: {
+      //       style:
+      //         "padding: 10px 20px 20px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 400; line-height: 20px; color: #D3DBE4; cursor: default; user-select: none;"
+      //     },
+      //     content:
+      //       "To opt out of future calls from Manipal Hospitals, please press 9.",
+      //     editable: false,
+      //     draggable: false,
+      //     droppable: false,
+      //     removable: false,
+      //     selectable: false,
+      //     hoverable: false,
+      //     badgable: false,
+      //     copyable: false,
+      //     toolbar: []
+      //   });
+      // }
 
       editor.setComponents([
         {

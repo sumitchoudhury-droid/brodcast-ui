@@ -18,6 +18,12 @@ function TargetRecipients({
   setProvider,
   ageFilter,
   setAgeFilter,
+  ageYear,
+  setAgeYear,
+  ageMonth,
+  setAgeMonth,
+  ageError,
+  setAgeError,
   gender,
   setGender,
   modality,
@@ -55,6 +61,10 @@ function TargetRecipients({
   };
 
   const handleSearch = () => {
+    if (ageFilter && !ageYear && !ageMonth) {
+      setAgeError("Enter Patient Age");
+      return;
+    }
     const hasStartDateTime = Array.isArray(startDateTime)
       ? startDateTime.length > 0
       : !!startDateTime;
@@ -124,10 +134,27 @@ function TargetRecipients({
               />
             </div>
             <div className="ageInput">
-              <ReusableInput placeholder="Enter Year" numbersOnly={true} />
+              <ReusableInput
+                placeholder="Enter Year"
+                numbersOnly={true}
+                value={ageYear}
+                onChange={(e) => {
+                  setAgeYear(e.target.value);
+                  if (e.target.value) setAgeError("");
+                }}
+              />
+              {ageError && <p className="ageErrorText">{ageError}</p>}
             </div>
             <div className="ageInput">
-              <ReusableInput placeholder="Enter Month" numbersOnly={true} />
+              <ReusableInput
+                placeholder="Enter Month"
+                numbersOnly={true}
+                value={ageMonth}
+                onChange={(e) => {
+                  setAgeMonth(e.target.value);
+                  if (e.target.value) setAgeError("");
+                }}
+              />
             </div>
           </div>
         </div>

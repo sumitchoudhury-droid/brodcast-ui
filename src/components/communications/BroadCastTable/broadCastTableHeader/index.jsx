@@ -16,8 +16,8 @@ function BroadCastTableHeader({
   onDateRangeChange,
   onTodayClick,
   selectedBroadcasts = [],
-  onBulkCancel,
-  onBulkReport
+  onBulkCancel
+  // onBulkReport
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -116,7 +116,7 @@ function BroadCastTableHeader({
                   className="bulkMenuItem"
                   onClick={() => {
                     setIsDropdownOpen(false);
-                    onBulkReport();
+                    window.open("https://google.com", "_blank");
                   }}
                 >
                   <span className="menuIcon">

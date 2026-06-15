@@ -251,7 +251,10 @@ export default function Details({ broadcastData }) {
     } else if (lowerStatus.includes("completed")) {
       colorClass = "green";
       iconSrc = completedIcon;
-    } else if (lowerStatus.includes("running")) {
+    } else if (
+      lowerStatus.includes("running") ||
+      lowerStatus === "in-progress"
+    ) {
       colorClass = "blue";
       iconSrc = runningWeeklyIcon;
     } else if (lowerStatus.includes("failed")) {
@@ -271,7 +274,8 @@ export default function Details({ broadcastData }) {
     broadcastStatus.toLowerCase().includes("daily") ||
     broadcastStatus.toLowerCase().includes("weekly") ||
     broadcastStatus.toLowerCase().includes("monthly") ||
-    broadcastStatus.toLowerCase().includes("running");
+    broadcastStatus.toLowerCase().includes("running") ||
+    broadcastStatus.toLowerCase() === "in-progress";
   const scheduleType = isRecurring ? "Recurring" : "One-time";
 
   const getRepeatText = (status) => {

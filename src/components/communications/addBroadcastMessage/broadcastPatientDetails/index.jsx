@@ -88,13 +88,20 @@ function BroadcastPatientDetails({
   startDateTime,
   setStartDateTime,
   endDateTime,
-  setEndDateTime
+  setEndDateTime,
+  ageFilter,
+  setAgeFilter,
+  ageYear,
+  setAgeYear,
+  ageMonth,
+  setAgeMonth,
+  ageError,
+  setAgeError
 }) {
   // Dropdown states (local, not needed for validation)
   const [appointmentType, setAppointmentType] = useState("");
   const [location, setLocation] = useState("");
   const [provider, setProvider] = useState("");
-  const [ageFilter, setAgeFilter] = useState("");
   const [gender, setGender] = useState("all");
   const [modality, setModality] = useState("");
   const [includeOptOut, setIncludeOptOut] = useState(false);
@@ -213,6 +220,12 @@ function BroadcastPatientDetails({
             setProvider={setProvider}
             ageFilter={ageFilter}
             setAgeFilter={setAgeFilter}
+            ageYear={ageYear}
+            setAgeYear={setAgeYear}
+            ageMonth={ageMonth}
+            setAgeMonth={setAgeMonth}
+            ageError={ageError}
+            setAgeError={setAgeError}
             gender={gender}
             setGender={setGender}
             modality={modality}

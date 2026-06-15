@@ -8,14 +8,26 @@ import MultipleBroadMessages from "./multipleBroadMessages";
 import "./style.scss";
 
 import languageIcon from "../../../assets/mainScreen/languageIcon.svg";
-import greenChevronRight from "../../../assets/mainScreen/greenChevronRight.svg";
 import Footer from "./broadcastMessageFooter/footer";
+import { ReusableDropDown } from "../../../reusableComponents/reusableDropDown";
+
+const languageOptions = [
+  { value: "english", label: "English" },
+  { value: "spanish", label: "Spanish" },
+  { value: "mandarin", label: "Mandarin" },
+  { value: "vietnamese", label: "Vietnamese" },
+  { value: "tagalog", label: "Tagalog" }
+];
 
 export const BroadcastMessage = ({ handleCancel }) => {
   const [currentStep, setCurrentStep] = useState("setup");
   const [selectedModes, setSelectedModes] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    languageOptions[0].value
+  );
 
   const editorRef = useRef(null);
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
@@ -107,13 +119,13 @@ export const BroadcastMessage = ({ handleCancel }) => {
               <h2 className="mainTitle">{heading}</h2>
             )}
 
-            <div
-              className={`headerRight ${selectedModes.length > 1 ? "noDisplay" : ""}`}
-            >
-              <img src={languageIcon} alt="languageIcon" />
-              <p>English</p>
-              <img src={greenChevronRight} alt="greenChevronRight" />
-            </div>
+            <ReusableDropDown
+              options={languageOptions}
+              value={selectedLanguage}
+              onChange={setSelectedLanguage}
+              valueImage={languageIcon}
+              maxWidth="165px"
+            />
           </div>
 
           {/* Builder */}

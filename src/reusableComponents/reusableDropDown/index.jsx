@@ -12,7 +12,8 @@ export function ReusableDropDown({
   valueImage,
   greenIcon = true,
   required = false,
-  overWriteClassName = ""
+  overWriteClassName = "",
+  maxWidth = "100%"
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -45,6 +46,7 @@ export function ReusableDropDown({
   return (
     <div
       className={`dropdown ${isOpen ? "open" : ""} ${overWriteClassName}`}
+      style={{ maxWidth: maxWidth }}
       ref={dropdownRef}
     >
       {label && (

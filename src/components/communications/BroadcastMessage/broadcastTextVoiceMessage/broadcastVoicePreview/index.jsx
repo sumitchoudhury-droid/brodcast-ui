@@ -227,9 +227,9 @@ function BroadcastVoicePreview({ isOpen, onClose, content, selectedVoiceCfg }) {
                 __html: content || "<p>Your message will appear here…</p>"
               }}
             />
-            <p className="optOutText">
+            {/* <p className="optOutText">
               To opt out of future calls from Manipal Hospitals, please press 9.
-            </p>
+            </p> */}
           </div>
         </div>
 

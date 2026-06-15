@@ -68,6 +68,16 @@
             .ageInput {
               width: 100%;
             }
+            .ageInput {
+              position: relative;
+
+              .ageErrorText {
+                position: absolute;
+                bottom: -16px;
+                font-size: 12px;
+                color: #ef4444;
+              }
+            }
           }
         }
       }
