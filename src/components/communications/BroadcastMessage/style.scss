@@ -77,9 +77,6 @@
 
   .multipleHeader {
     background-color: variable.$color-white-1;
-
-    .noDisplay {
-      border: none;
-    }
+    padding-top: 4px;
   }
 }
