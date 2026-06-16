@@ -134,6 +134,21 @@ const getPlaceholder = (columnId) => {
   }
 };
 
+const MAX_TOOLTIP_ITEMS = 9;
+
+const buildTooltipItems = (firstItem, additionalCount) => {
+  if (!additionalCount || additionalCount <= 0) return [];
+  const total = 1 + additionalCount;
+  const shown = Math.min(total, MAX_TOOLTIP_ITEMS);
+  const items = Array.from({ length: shown }, (_, i) =>
+    i === 0 ? firstItem : `${firstItem} ${i + 1}`
+  );
+  if (total > MAX_TOOLTIP_ITEMS) {
+    items.push(`+${total - MAX_TOOLTIP_ITEMS}`);
+  }
+  return items;
+};
+
 const RenderSortIcon = ({ isSorted }) => {
   const upColor = isSorted === "asc" ? "#107A6C" : "#77C1B6";
   const downColor = isSorted === "desc" ? "#107A6C" : "#77C1B6";
@@ -396,7 +411,7 @@ function BroadCastTableContainer({
             <span className="mode-text">
               {highlightText(row.original.mode, filters.mode)}
             </span>
-            {row.original.hasError && (
+            {row.original.broadcastStatus === "Failed" && (
               <ReusableToolTip
                 content={{ label: "Failed Reason", value: "Network Outage" }}
                 position="top"
@@ -438,23 +453,19 @@ function BroadCastTableContainer({
                 filters.appointmentType
               )}
             </span>
-            <ReusableToolTip
-              content={[
-                "GHC-A General Health Check",
-                "VAC-A Vaccination Appointment",
-                "ECG-A ECG Screening",
-                "FUP-A Follow-Up Consultation",
-                "BPC-A Blood Pressure Check",
-                "DER-A Dermatology Consultation",
-                "DBC-A Diabetes Check",
-                "+ 100"
-              ]}
-              position="top"
-            >
-              <span className="count-pill" style={{ cursor: "pointer" }}>
-                +{row.original.appointmentCount}
-              </span>
-            </ReusableToolTip>
+            {row.original.appointmentCount > 0 && (
+              <ReusableToolTip
+                content={buildTooltipItems(
+                  row.original.appointmentType,
+                  row.original.appointmentCount
+                )}
+                position="top"
+              >
+                <span className="count-pill" style={{ cursor: "pointer" }}>
+                  +{row.original.appointmentCount}
+                </span>
+              </ReusableToolTip>
+            )}
           </div>
         )
       },
@@ -470,21 +481,19 @@ function BroadCastTableContainer({
             <span className="cell-text" title={row.original.location}>
               {highlightText(row.original.location, filters.location)}
             </span>
-            <ReusableToolTip
-              content={[
-                "Sunnyvale Medical Center,",
-                "Riverbend Urgent Care,",
-                "Eastside Urgent Care,",
-                "Riverbend Urgent Care,",
-                "Greenwood Health Clinic,",
-                "Maplewood Family Practice."
-              ]}
-              position="top"
-            >
-              <span className="count-pill" style={{ cursor: "pointer" }}>
-                +{row.original.locationCount}
-              </span>
-            </ReusableToolTip>
+            {row.original.locationCount > 0 && (
+              <ReusableToolTip
+                content={buildTooltipItems(
+                  row.original.location,
+                  row.original.locationCount
+                )}
+                position="top"
+              >
+                <span className="count-pill" style={{ cursor: "pointer" }}>
+                  +{row.original.locationCount}
+                </span>
+              </ReusableToolTip>
+            )}
           </div>
         )
       },
@@ -500,21 +509,19 @@ function BroadCastTableContainer({
             <span className="cell-text" title={row.original.provider}>
               {highlightText(row.original.provider, filters.provider)}
             </span>
-            <ReusableToolTip
-              content={[
-                "Olivia Smith,",
-                "Ethan Brown,",
-                "Sophia Green,",
-                "Liam Carter,",
-                "Olivia White,",
-                "Noah Harris."
-              ]}
-              position="top"
-            >
-              <span className="count-pill" style={{ cursor: "pointer" }}>
-                +{row.original.providerCount}
-              </span>
-            </ReusableToolTip>
+            {row.original.providerCount > 0 && (
+              <ReusableToolTip
+                content={buildTooltipItems(
+                  row.original.provider,
+                  row.original.providerCount
+                )}
+                position="top"
+              >
+                <span className="count-pill" style={{ cursor: "pointer" }}>
+                  +{row.original.providerCount}
+                </span>
+              </ReusableToolTip>
+            )}
           </div>
         )
       },
@@ -961,7 +968,7 @@ function BroadCastTableContainer({
             table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className={`${row.original.hasError ? "row-error" : ""} ${
+                className={`${row.original.broadcastStatus === "Failed" ? "row-error" : ""} ${
                   row.original.isDisabled ? "row-disabled" : ""
                 } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
               >

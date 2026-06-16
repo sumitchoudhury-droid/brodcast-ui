@@ -106,19 +106,29 @@
         .detailValue {
           @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
           color: variable.$color-black-8;
-          width: 260px;
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
         }
 
         .detailValueEllipsis {
           @include variable.font-style($fs: 16px, $fw: 500, $lh: 24px);
           color: variable.$color-black-8;
-          width: 195px;
-          overflow: hidden;
+        }
+
+        .detailValueWithPill {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .detailCountPill {
+          @include variable.font-style($fs: 11px, $fw: 600, $lh: 16px);
+          color: variable.$color-green-0;
+          background: rgba(variable.$color-green-0, 0.1);
+          border: 1px solid rgba(variable.$color-green-0, 0.25);
+          border-radius: 20px;
+          padding: 2px 8px;
+          cursor: pointer;
           white-space: nowrap;
-          text-overflow: ellipsis;
+          flex-shrink: 0;
         }
 
         .modeCheckboxGroup {
