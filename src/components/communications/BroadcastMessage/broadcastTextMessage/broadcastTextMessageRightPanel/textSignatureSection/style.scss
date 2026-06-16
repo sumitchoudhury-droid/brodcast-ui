@@ -134,6 +134,39 @@
           width: 20px;
           height: 20px;
           flex-shrink: 0;
+          transition: transform 0.2s;
+
+          &.rotated {
+            transform: rotate(180deg);
+          }
+        }
+      }
+
+      .formsSubOptionsList {
+        padding-left: 12px;
+
+        .formsSubOption {
+          @include variable.d-flex($al: center, $g: 8px);
+          padding: 5px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background 0.15s;
+
+          &:hover {
+            background: #edf0f2;
+          }
+
+          .formsCheckbox {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+          }
+
+          .formsOptionLabel {
+            flex: 1;
+            @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+            color: #181d25;
+          }
         }
       }
     }
