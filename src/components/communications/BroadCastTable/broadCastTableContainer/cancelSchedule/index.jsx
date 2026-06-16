@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
+import ReusableToolTip from "../../../../../reusableComponents/reusableToolTip/index.jsx";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 
 // Message Status Icons
@@ -124,6 +125,21 @@ const getModeSpecificStatus = (messageStatus, modesList) => {
   });
 
   return modeCounts;
+};
+
+const MAX_TOOLTIP_ITEMS = 9;
+
+const buildTooltipItems = (firstItem, additionalCount) => {
+  if (!additionalCount || additionalCount <= 0) return [];
+  const total = 1 + additionalCount;
+  const shown = Math.min(total, MAX_TOOLTIP_ITEMS);
+  const items = Array.from({ length: shown }, (_, i) =>
+    i === 0 ? firstItem : `${firstItem} ${i + 1}`
+  );
+  if (total > MAX_TOOLTIP_ITEMS) {
+    items.push(`+${total - MAX_TOOLTIP_ITEMS}`);
+  }
+  return items;
 };
 
 // Helper to format date string to matching layout e.g. "26 Feb 2026 at 10:30 AM"
@@ -285,14 +301,44 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
                 </div>
                 <div className="detailGroup">
                   <span className="detailLabel">Appointment Type</span>
-                  <span className="detailValue">
-                    {broadcastData?.appointmentType ||
-                      "BPC-A Blood Pressure Check"}
-                  </span>
+                  <div className="detailValueWithPill">
+                    <span className="detailValue">
+                      {broadcastData?.appointmentType ||
+                        "BPC-A Blood Pressure Check"}
+                    </span>
+                    {broadcastData?.appointmentCount > 0 && (
+                      <ReusableToolTip
+                        content={buildTooltipItems(
+                          broadcastData.appointmentType,
+                          broadcastData.appointmentCount
+                        )}
+                        position="top"
+                      >
+                        <span className="detailCountPill">
+                          +{broadcastData.appointmentCount}
+                        </span>
+                      </ReusableToolTip>
+                    )}
+                  </div>
                 </div>
                 <div className="detailGroup">
                   <span className="detailLabel">Provider</span>
-                  <span className="detailValue">{displayProvider}</span>
+                  <div className="detailValueWithPill">
+                    <span className="detailValue">{displayProvider}</span>
+                    {broadcastData?.providerCount > 1 && (
+                      <ReusableToolTip
+                        content={buildTooltipItems(
+                          broadcastData.provider,
+                          broadcastData.providerCount - 1
+                        )}
+                        position="top"
+                      >
+                        <span className="detailCountPill">
+                          +{broadcastData.providerCount - 1}
+                        </span>
+                      </ReusableToolTip>
+                    )}
+                  </div>
                 </div>
                 {(!modesList.length ||
                   modesList.some((m) => selectedModes[m])) && (
@@ -379,7 +425,24 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
                 </div>
                 <div className="detailGroup">
                   <span className="detailLabel">Location</span>
-                  <span className="detailValueEllipsis">{displayLocation}</span>
+                  <div className="detailValueWithPill">
+                    <span className="detailValueEllipsis">
+                      {displayLocation}
+                    </span>
+                    {broadcastData?.locationCount > 1 && (
+                      <ReusableToolTip
+                        content={buildTooltipItems(
+                          broadcastData.location,
+                          broadcastData.locationCount - 1
+                        )}
+                        position="top"
+                      >
+                        <span className="detailCountPill">
+                          +{broadcastData.locationCount - 1}
+                        </span>
+                      </ReusableToolTip>
+                    )}
+                  </div>
                 </div>
                 <div className="detailGroup">
                   <span className="detailLabel">Scheduled Date/Time</span>
