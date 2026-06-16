@@ -6,7 +6,7 @@ import checkBox from "../../../../../../assets/mainScreen/checkBox.svg";
 import uncheckBox from "../../../../../../assets/mainScreen/uncheckBox.svg";
 import searchIcon from "../../../../../../assets/mainScreen/searchIcon.svg";
 import greenChevronRight from "../../../../../../assets/mainScreen/greenChevronRight.svg";
-import eyeIcon from "../../../../../../assets/mainScreen/eyeIcon.svg";
+import chevronRight from "../../../../../../assets/mainScreen/chevronRight.svg";
 // import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal/index";
 import { useToast } from "../../../../../../hooks/useToast";
@@ -21,6 +21,7 @@ export default function TextSignatureSection({
   const [pendingForms, setPendingForms] = useState([]);
   const [formSearch, setFormSearch] = useState("");
   const [previewForm, setPreviewForm] = useState(null);
+  const [expandedForm, setExpandedForm] = useState(null);
   const dropdownRef = useRef(null);
   const toast = useToast();
 
@@ -60,11 +61,47 @@ export default function TextSignatureSection({
   // ];
 
   const OnDemandFormsOptions = [
-    { label: "ASQ3", value: "ASQ3" },
-    { label: "Administration", value: "Administration" },
-    { label: "Clinical", value: "Clinical" },
-    { label: "Health Screening Forms", value: "Health Screening Forms" },
-    { label: "Patient Feedback Forms", value: "Patient Feedback Forms" }
+    {
+      label: "ASQ3",
+      value: "ASQ3",
+      subOptions: [
+        { label: "ASQ3 1", value: "ASQ3_1" },
+        { label: "ASQ3 2", value: "ASQ3_2" }
+      ]
+    },
+    {
+      label: "Administration",
+      value: "Administration",
+      subOptions: [
+        { label: "Administration 1", value: "Administration_1" },
+        { label: "Administration 2", value: "Administration_2" },
+        { label: "Administration 3", value: "Administration_3" }
+      ]
+    },
+    {
+      label: "Clinical",
+      value: "Clinical",
+      subOptions: [
+        { label: "Clinical 1", value: "Clinical_1" },
+        { label: "Clinical 2", value: "Clinical_2" }
+      ]
+    },
+    {
+      label: "Health Screening Forms",
+      value: "Health Screening Forms"
+      // subOptions: [
+      //   { label: "Health Screening 1", value: "HealthScreening_1" },
+      //   { label: "Health Screening 2", value: "HealthScreening_2" }
+      // ]
+    },
+    {
+      label: "Patient Feedback Forms",
+      value: "Patient Feedback Forms",
+      subOptions: [
+        { label: "Patient Feedback 1", value: "PatientFeedback_1" },
+        { label: "Patient Feedback 2", value: "PatientFeedback_2" }
+      ]
+    }
   ];
 
   const handleOnDemandFormClick = (value) => {
@@ -83,6 +120,7 @@ export default function TextSignatureSection({
         setShowFormsDropdown(false);
         setPendingForms(selectedForms);
         setFormSearch("");
+        setExpandedForm(null);
       }
     };
     if (showFormsDropdown)
@@ -108,6 +146,16 @@ export default function TextSignatureSection({
     );
   };
 
+  const handleToggleAllSubs = (opt) => {
+    const subValues = opt.subOptions.map((s) => s.value);
+    const allChecked = subValues.every((v) => pendingForms.includes(v));
+    setPendingForms((prev) =>
+      allChecked
+        ? prev.filter((v) => !subValues.includes(v))
+        : [...new Set([...prev, ...subValues])]
+    );
+  };
+
   const handleFormsSend = () => {
     // Remove forms that were deselected
     selectedForms
@@ -126,6 +174,7 @@ export default function TextSignatureSection({
     setSelectedForms(pendingForms);
     setShowFormsDropdown(false);
     setFormSearch("");
+    setExpandedForm(null);
     toast.success("Success", "On-demand form link(s) added to editor");
   };
 
@@ -133,16 +182,12 @@ export default function TextSignatureSection({
     setPendingForms([...selectedForms]);
     setShowFormsDropdown(false);
     setFormSearch("");
+    setExpandedForm(null);
   };
 
   const filteredFormOptions = OnDemandFormsOptions.filter((opt) =>
     opt.label.toLowerCase().includes(formSearch.toLowerCase())
   );
-
-  const handlePreviewForm = (e, opt) => {
-    e.stopPropagation();
-    setPreviewForm(opt);
-  };
 
   return (
     <>
@@ -201,25 +246,90 @@ export default function TextSignatureSection({
                   <div className="formsNoResults">No results found</div>
                 ) : (
                   filteredFormOptions.map((opt) => {
-                    const isChecked = pendingForms.includes(opt.value);
+                    const isFolder =
+                      opt.subOptions && opt.subOptions.length > 0;
+                    const isExpanded = expandedForm === opt.value;
+                    const allSubChecked =
+                      isFolder &&
+                      opt.subOptions.every((s) =>
+                        pendingForms.includes(s.value)
+                      );
+                    const someSubChecked =
+                      isFolder &&
+                      opt.subOptions.some((s) =>
+                        pendingForms.includes(s.value)
+                      );
+                    const isFileChecked =
+                      !isFolder && pendingForms.includes(opt.value);
+
                     return (
-                      <div
-                        key={opt.value}
-                        className={`formsOption ${isChecked ? "checked" : ""}`}
-                        onClick={() => handleToggleForm(opt.value)}
-                      >
-                        <img
-                          src={isChecked ? checkBox : uncheckBox}
-                          alt="checkbox"
-                          className="formsCheckbox"
-                        />
-                        <span className="formsOptionLabel">{opt.label}</span>
-                        <img
-                          src={eyeIcon}
-                          alt="preview"
-                          className="formsEyeIcon"
-                          onClick={(e) => handlePreviewForm(e, opt)}
-                        />
+                      <div key={opt.value}>
+                        <div
+                          className={`formsOption ${someSubChecked || isFileChecked ? "checked" : ""}`}
+                          onClick={() => {
+                            if (isFolder) {
+                              setExpandedForm(isExpanded ? null : opt.value);
+                            } else {
+                              handleToggleForm(opt.value);
+                            }
+                          }}
+                        >
+                          <img
+                            src={
+                              isFolder
+                                ? allSubChecked
+                                  ? checkBox
+                                  : uncheckBox
+                                : isFileChecked
+                                  ? checkBox
+                                  : uncheckBox
+                            }
+                            alt="checkbox"
+                            className="formsCheckbox"
+                            onClick={
+                              isFolder
+                                ? (e) => {
+                                    e.stopPropagation();
+                                    handleToggleAllSubs(opt);
+                                  }
+                                : undefined
+                            }
+                          />
+                          <span className="formsOptionLabel">{opt.label}</span>
+                          {isFolder && (
+                            <img
+                              src={chevronRight}
+                              alt="expand"
+                              className={`formsEyeIcon ${isExpanded ? "rotated" : ""}`}
+                            />
+                          )}
+                        </div>
+
+                        {isFolder && isExpanded && (
+                          <div className="formsSubOptionsList">
+                            {opt.subOptions.map((sub) => {
+                              const isSubChecked = pendingForms.includes(
+                                sub.value
+                              );
+                              return (
+                                <div
+                                  key={sub.value}
+                                  className={`formsSubOption ${isSubChecked ? "checked" : ""}`}
+                                  onClick={() => handleToggleForm(sub.value)}
+                                >
+                                  <img
+                                    src={isSubChecked ? checkBox : uncheckBox}
+                                    alt="checkbox"
+                                    className="formsCheckbox"
+                                  />
+                                  <span className="formsOptionLabel">
+                                    {sub.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })
