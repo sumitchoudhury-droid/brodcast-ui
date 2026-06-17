@@ -1,51 +1,199 @@
-import { useState } from "react";
 import "./style.scss";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import { BroadcastDetails } from "./broadcastDetails/index";
 import { BroadCastSchedule } from "./broadCastSchedule/index";
 import BroadcastTemplateDetails from "./broadcastTemplateDetails/index";
 import BroadcastPatientDetails from "./broadcastPatientDetails/index";
+import { useBroadcastForm } from "../broadcastFormContext";
 
-export function AddBroadcastMessage({
-  onNext,
-  selectedModes,
-  setSelectedModes,
-  selectedTemplateData,
-  setSelectedTemplateData,
-  handleCancel
-}) {
-  const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("");
+const getCategoryPrefill = (val) => {
+  const now = new Date();
+  const days = (n) => new Date(now.getTime() + n * 24 * 60 * 60 * 1000);
 
-  // Schedule state (lifted from BroadCastSchedule)
-  const [sendType, setSendType] = useState("immediately");
-  const [scheduleStartDateTime, setScheduleStartDateTime] = useState(
-    new Date()
-  );
-  const [scheduleEndDateTime, setScheduleEndDateTime] = useState(null);
-  const [frequency, setFrequency] = useState("Daily");
-  const [repeatType, setRepeatType] = useState("Week");
-  const [repeatOn, setRepeatOn] = useState([]);
+  const prefills = {
+    balance_payment_reminder: {
+      selectedModes: ["Text", "Email"],
+      priority: "high",
+      selectedEmailTemplateType: "blank",
+      newTemplateName: "Balance Payment Reminder",
+      selectedTemplateType: "newTemplate",
+      existingTemplateValues: "",
+      patientType: "targetRecipients",
+      appointmentType: ["checkin", "followup"],
+      location: ["main"],
+      provider: ["smith", "jones", "taylor"],
+      gender: "all",
+      modality: ["sms", "email"],
+      patientStartDateTime: now,
+      patientEndDateTime: days(30),
+      ageFilter: "isGreaterThan",
+      ageYear: "18",
+      ageMonth: "",
+      includeOptOut: false,
+      broadcastStartDate: now,
+      broadcastEndDate: null,
+      sendType: "notifyLater",
+      scheduleStartDateTime: days(1),
+      scheduleEndDateTime: null,
+      frequency: "Daily",
+      repeatType: "Week",
+      repeatOn: []
+    },
+    offer: {
+      selectedModes: ["Email"],
+      priority: "standard",
+      selectedEmailTemplateType: "blank",
+      newTemplateName: "Offer",
+      selectedTemplateType: "newTemplate",
+      existingTemplateValues: "",
+      patientType: "targetRecipients",
+      appointmentType: ["new"],
+      location: ["main", "north", "south"],
+      provider: ["smith", "jones", "taylor"],
+      gender: "all",
+      modality: ["email"],
+      patientStartDateTime: now,
+      patientEndDateTime: days(90),
+      ageFilter: "isGreaterThanEqualTo",
+      ageYear: "18",
+      ageMonth: "",
+      includeOptOut: false,
+      broadcastStartDate: now,
+      broadcastEndDate: null,
+      sendType: "immediately",
+      scheduleStartDateTime: now,
+      scheduleEndDateTime: null,
+      frequency: "Daily",
+      repeatType: "Week",
+      repeatOn: []
+    },
+    announcement: {
+      selectedModes: ["Text", "Voice", "Email"],
+      priority: "standard",
+      selectedEmailTemplateType: "blank",
+      newTemplateName: "Announcement",
+      selectedTemplateType: "newTemplate",
+      existingTemplateValues: "",
+      patientType: "oneTimeBroadcast",
+      appointmentType: [],
+      location: [],
+      provider: [],
+      gender: "all",
+      modality: [],
+      patientStartDateTime: now,
+      patientEndDateTime: null,
+      ageFilter: "",
+      ageYear: "",
+      ageMonth: "",
+      includeOptOut: false,
+      broadcastStartDate: now,
+      broadcastEndDate: days(7),
+      sendType: "immediately",
+      scheduleStartDateTime: now,
+      scheduleEndDateTime: null,
+      frequency: "Daily",
+      repeatType: "Week",
+      repeatOn: []
+    }
+  };
 
-  // Patient state (lifted from BroadcastPatientDetails)
-  const [patientType, setPatientType] = useState("targetRecipients");
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [broadcastStartDate, setBroadcastStartDate] = useState(new Date());
-  const [broadcastEndDate, setBroadcastEndDate] = useState(null);
-  const [patientStartDateTime, setPatientStartDateTime] = useState(new Date());
-  const [patientEndDateTime, setPatientEndDateTime] = useState(null);
-  const [ageFilter, setAgeFilter] = useState("");
-  const [ageYear, setAgeYear] = useState("");
-  const [ageMonth, setAgeMonth] = useState("");
-  const [ageError, setAgeError] = useState("");
+  return prefills[val] || null;
+};
 
-  // Template state (lifted from BroadcastTemplateDetails)
-  const [selectedTemplateType, setSelectedTemplateType] =
-    useState("newTemplate");
-  const [existingTemplateValues, setExistingTemplateValues] = useState("");
-  const [newTemplateName, setNewTemplateName] = useState("");
-  const [selectedEmailTemplateType, setSelectedEmailTemplateType] =
-    useState("blank");
+export function AddBroadcastMessage({ onNext, handleCancel }) {
+  const {
+    selectedModes,
+    setSelectedModes,
+    selectedTemplateData,
+    setSelectedTemplateData,
+    category,
+    setCategory,
+    priority,
+    setPriority,
+    sendType,
+    setSendType,
+    scheduleStartDateTime,
+    setScheduleStartDateTime,
+    scheduleEndDateTime,
+    setScheduleEndDateTime,
+    frequency,
+    setFrequency,
+    repeatType,
+    setRepeatType,
+    repeatOn,
+    setRepeatOn,
+    patientType,
+    setPatientType,
+    uploadedFile,
+    setUploadedFile,
+    broadcastStartDate,
+    setBroadcastStartDate,
+    broadcastEndDate,
+    setBroadcastEndDate,
+    patientStartDateTime,
+    setPatientStartDateTime,
+    patientEndDateTime,
+    setPatientEndDateTime,
+    ageFilter,
+    setAgeFilter,
+    ageYear,
+    setAgeYear,
+    ageMonth,
+    setAgeMonth,
+    ageError,
+    setAgeError,
+    selectedTemplateType,
+    setSelectedTemplateType,
+    existingTemplateValues,
+    setExistingTemplateValues,
+    newTemplateName,
+    setNewTemplateName,
+    selectedEmailTemplateType,
+    setSelectedEmailTemplateType,
+    setAppointmentType,
+    setLocation,
+    setProvider,
+    setGender,
+    setModality,
+    setIncludeOptOut,
+    setPatientsFoundForType
+  } = useBroadcastForm();
+
+  const handleCategoryChange = (val) => {
+    setCategory(val);
+    const p = getCategoryPrefill(val);
+    if (!p) return;
+    setSelectedModes(p.selectedModes);
+    setPriority(p.priority);
+    setSelectedEmailTemplateType(p.selectedEmailTemplateType);
+    setNewTemplateName(p.newTemplateName);
+    setSelectedTemplateType(p.selectedTemplateType);
+    setExistingTemplateValues(p.existingTemplateValues);
+    setSelectedTemplateData(null);
+    setPatientType(p.patientType);
+    setAppointmentType(p.appointmentType);
+    setLocation(p.location);
+    setProvider(p.provider);
+    setGender(p.gender);
+    setModality(p.modality);
+    setPatientStartDateTime(p.patientStartDateTime);
+    setPatientEndDateTime(p.patientEndDateTime);
+    setAgeFilter(p.ageFilter);
+    setAgeYear(p.ageYear);
+    setAgeMonth(p.ageMonth);
+    setAgeError("");
+    setIncludeOptOut(p.includeOptOut);
+    setPatientsFoundForType(null);
+    setBroadcastStartDate(p.broadcastStartDate);
+    setBroadcastEndDate(p.broadcastEndDate);
+    setUploadedFile(null);
+    setSendType(p.sendType);
+    setScheduleStartDateTime(p.scheduleStartDateTime);
+    setScheduleEndDateTime(p.scheduleEndDateTime);
+    setFrequency(p.frequency);
+    setRepeatType(p.repeatType);
+    setRepeatOn(p.repeatOn);
+  };
 
   const showRadioRow =
     !selectedModes.includes("Email") &&
@@ -86,7 +234,7 @@ export function AddBroadcastMessage({
           selectedModes={selectedModes}
           setSelectedModes={setSelectedModes}
           category={category}
-          setCategory={setCategory}
+          onCategoryChange={handleCategoryChange}
           priority={priority}
           setPriority={setPriority}
         />

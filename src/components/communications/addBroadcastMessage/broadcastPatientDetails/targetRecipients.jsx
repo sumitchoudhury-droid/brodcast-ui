@@ -112,7 +112,7 @@ function TargetRecipients({
             placeholder="Select Provider"
             options={providerOptions}
             value={
-              providerOptions.find((o) => o.value === provider)?.label || ""
+              Array.isArray(provider) ? provider : provider ? [provider] : []
             }
             onChange={(val) => setProvider(val)}
             searchPlaceholder="Search Provider"

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import greenDownArrow from "../../assets/mainScreen/greenChevronRight.svg";
 import downArrow from "../../assets/mainScreen/chevronRight.svg";
 import "./style.scss";
@@ -24,9 +24,6 @@ export const ReusableMultiSelectDropdown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showOnlySelected, setShowOnlySelected] = useState(false);
-  const [selectedValues, setSelectedValues] = useState(
-    Array.isArray(value) ? value : []
-  );
   const [tempSelectedValues, setTempSelectedValues] = useState(
     Array.isArray(value) ? value : []
   );
@@ -34,6 +31,11 @@ export const ReusableMultiSelectDropdown = ({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const debounceTimer = useRef(null);
   const dropdownRef = useRef(null);
+
+  const committedValues = useMemo(
+    () => (Array.isArray(value) ? value : []),
+    [value]
+  );
 
   const handleSearchChange = useCallback((e) => {
     const val = e.target.value;
@@ -45,7 +47,7 @@ export const ReusableMultiSelectDropdown = ({
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setTempSelectedValues(selectedValues);
+        setTempSelectedValues(committedValues);
         setShowOnlySelected(false);
         setIsOpen(false);
       }
@@ -55,11 +57,11 @@ export const ReusableMultiSelectDropdown = ({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [selectedValues]);
+  }, [committedValues]);
 
   const handleToggle = () => {
     if (!isOpen) {
-      setTempSelectedValues(selectedValues);
+      setTempSelectedValues(committedValues);
       setSearchQuery("");
       setDebouncedQuery("");
     }
@@ -86,7 +88,6 @@ export const ReusableMultiSelectDropdown = ({
   };
 
   const handleDone = () => {
-    setSelectedValues(tempSelectedValues);
     onChange?.(tempSelectedValues);
     setShowOnlySelected(false);
     setSearchQuery("");
@@ -94,16 +95,16 @@ export const ReusableMultiSelectDropdown = ({
   };
 
   const handleCancel = () => {
-    setTempSelectedValues(selectedValues);
+    setTempSelectedValues(committedValues);
     setShowOnlySelected(false);
     setSearchQuery("");
     setIsOpen(false);
   };
 
   const displayValue =
-    selectedValues.length > 0
+    committedValues.length > 0
       ? options
-          .filter((o) => selectedValues.includes(o.value))
+          .filter((o) => committedValues.includes(o.value))
           .map((o) => o.label)
           .join(", ")
       : null;
