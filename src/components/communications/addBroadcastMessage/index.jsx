@@ -1,51 +1,62 @@
-import { useState } from "react";
 import "./style.scss";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import { BroadcastDetails } from "./broadcastDetails/index";
 import { BroadCastSchedule } from "./broadCastSchedule/index";
 import BroadcastTemplateDetails from "./broadcastTemplateDetails/index";
 import BroadcastPatientDetails from "./broadcastPatientDetails/index";
+import { useBroadcastForm } from "../broadcastFormContext";
 
-export function AddBroadcastMessage({
-  onNext,
-  selectedModes,
-  setSelectedModes,
-  selectedTemplateData,
-  setSelectedTemplateData,
-  handleCancel
-}) {
-  const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("");
-
-  // Schedule state (lifted from BroadCastSchedule)
-  const [sendType, setSendType] = useState("immediately");
-  const [scheduleStartDateTime, setScheduleStartDateTime] = useState(
-    new Date()
-  );
-  const [scheduleEndDateTime, setScheduleEndDateTime] = useState(null);
-  const [frequency, setFrequency] = useState("Daily");
-  const [repeatType, setRepeatType] = useState("Week");
-  const [repeatOn, setRepeatOn] = useState([]);
-
-  // Patient state (lifted from BroadcastPatientDetails)
-  const [patientType, setPatientType] = useState("targetRecipients");
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [broadcastStartDate, setBroadcastStartDate] = useState(new Date());
-  const [broadcastEndDate, setBroadcastEndDate] = useState(null);
-  const [patientStartDateTime, setPatientStartDateTime] = useState(new Date());
-  const [patientEndDateTime, setPatientEndDateTime] = useState(null);
-  const [ageFilter, setAgeFilter] = useState("");
-  const [ageYear, setAgeYear] = useState("");
-  const [ageMonth, setAgeMonth] = useState("");
-  const [ageError, setAgeError] = useState("");
-
-  // Template state (lifted from BroadcastTemplateDetails)
-  const [selectedTemplateType, setSelectedTemplateType] =
-    useState("newTemplate");
-  const [existingTemplateValues, setExistingTemplateValues] = useState("");
-  const [newTemplateName, setNewTemplateName] = useState("");
-  const [selectedEmailTemplateType, setSelectedEmailTemplateType] =
-    useState("blank");
+export function AddBroadcastMessage({ onNext, handleCancel }) {
+  const {
+    selectedModes,
+    setSelectedModes,
+    selectedTemplateData,
+    setSelectedTemplateData,
+    category,
+    setCategory,
+    priority,
+    setPriority,
+    sendType,
+    setSendType,
+    scheduleStartDateTime,
+    setScheduleStartDateTime,
+    scheduleEndDateTime,
+    setScheduleEndDateTime,
+    frequency,
+    setFrequency,
+    repeatType,
+    setRepeatType,
+    repeatOn,
+    setRepeatOn,
+    patientType,
+    setPatientType,
+    uploadedFile,
+    setUploadedFile,
+    broadcastStartDate,
+    setBroadcastStartDate,
+    broadcastEndDate,
+    setBroadcastEndDate,
+    patientStartDateTime,
+    setPatientStartDateTime,
+    patientEndDateTime,
+    setPatientEndDateTime,
+    ageFilter,
+    setAgeFilter,
+    ageYear,
+    setAgeYear,
+    ageMonth,
+    setAgeMonth,
+    ageError,
+    setAgeError,
+    selectedTemplateType,
+    setSelectedTemplateType,
+    existingTemplateValues,
+    setExistingTemplateValues,
+    newTemplateName,
+    setNewTemplateName,
+    selectedEmailTemplateType,
+    setSelectedEmailTemplateType
+  } = useBroadcastForm();
 
   const showRadioRow =
     !selectedModes.includes("Email") &&

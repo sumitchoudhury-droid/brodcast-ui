@@ -1,5 +1,6 @@
 import { useState } from "react";
 import * as XLSX from "xlsx";
+import { useBroadcastForm } from "../../broadcastFormContext";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton/index";
 import "./style.scss";
@@ -98,17 +99,55 @@ function BroadcastPatientDetails({
   ageError,
   setAgeError
 }) {
-  // Dropdown states (local, not needed for validation)
-  const [appointmentType, setAppointmentType] = useState("");
-  const [location, setLocation] = useState("");
-  const [provider, setProvider] = useState("");
-  const [gender, setGender] = useState("all");
-  const [modality, setModality] = useState("");
-  const [includeOptOut, setIncludeOptOut] = useState(false);
-  const [patientsFoundForType, setPatientsFoundForType] = useState(null);
+  const {
+    appointmentType,
+    setAppointmentType,
+    location,
+    setLocation,
+    provider,
+    setProvider,
+    gender,
+    setGender,
+    modality,
+    setModality,
+    includeOptOut,
+    setIncludeOptOut,
+    patientsFoundForType,
+    setPatientsFoundForType
+  } = useBroadcastForm();
+
   const [showViewList, setShowViewList] = useState(false);
   const [showOneTimeViewList, setShowOneTimeViewList] = useState(false);
   const [showUploadViewList, setShowUploadViewList] = useState(false);
+
+  const handlePatientTypeChange = (newType) => {
+    setPatientType(newType);
+    setPatientsFoundForType(null);
+
+    if (newType !== "targetRecipients") {
+      setAppointmentType("");
+      setLocation("");
+      setProvider("");
+      setGender("all");
+      setModality("");
+      setIncludeOptOut(false);
+      setStartDateTime(new Date());
+      setEndDateTime(null);
+      setAgeFilter("");
+      setAgeYear("");
+      setAgeMonth("");
+      setAgeError("");
+    }
+
+    if (newType !== "oneTimeBroadcast") {
+      setBroadcastStartDate(new Date());
+      setBroadcastEndDate(null);
+    }
+
+    if (newType !== "uploadFile") {
+      onFileChange?.(null);
+    }
+  };
 
   const showPatientsFound = patientsFoundForType === patientType;
 
@@ -170,7 +209,7 @@ function BroadcastPatientDetails({
               value="targetRecipients"
               name="patientType"
               checked={patientType === "targetRecipients"}
-              onChange={() => setPatientType("targetRecipients")}
+              onChange={() => handlePatientTypeChange("targetRecipients")}
             />
 
             <ReusableRadioButton
@@ -178,7 +217,7 @@ function BroadcastPatientDetails({
               value="uploadFile"
               name="patientType"
               checked={patientType === "uploadFile"}
-              onChange={() => setPatientType("uploadFile")}
+              onChange={() => handlePatientTypeChange("uploadFile")}
             />
 
             <ReusableRadioButton
@@ -186,7 +225,7 @@ function BroadcastPatientDetails({
               value="oneTimeBroadcast"
               name="patientType"
               checked={patientType === "oneTimeBroadcast"}
-              onChange={() => setPatientType("oneTimeBroadcast")}
+              onChange={() => handlePatientTypeChange("oneTimeBroadcast")}
             />
           </div>
         </div>

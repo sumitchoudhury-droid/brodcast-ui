@@ -10,6 +10,10 @@ import "./style.scss";
 import languageIcon from "../../../assets/mainScreen/languageIcon.svg";
 import Footer from "./broadcastMessageFooter/footer";
 import { ReusableDropDown } from "../../../reusableComponents/reusableDropDown";
+import {
+  BroadcastFormProvider,
+  useBroadcastForm
+} from "../broadcastFormContext";
 
 const languageOptions = [
   { value: "english", label: "English" },
@@ -19,11 +23,11 @@ const languageOptions = [
   { value: "tagalog", label: "Tagalog" }
 ];
 
-export const BroadcastMessage = ({ handleCancel }) => {
+function BroadcastMessageInner({ handleCancel }) {
   const [currentStep, setCurrentStep] = useState("setup");
-  const [selectedModes, setSelectedModes] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const { selectedModes, selectedTemplateData, setSelectedTemplateData } =
+    useBroadcastForm();
 
   const [selectedLanguage, setSelectedLanguage] = useState(
     languageOptions[0].value
@@ -40,6 +44,8 @@ export const BroadcastMessage = ({ handleCancel }) => {
   const handleBack = () => {
     setCurrentStep("setup");
   };
+
+  const selectedTemplate = selectedTemplateData;
 
   const heading =
     selectedModes.length > 1
@@ -138,13 +144,9 @@ export const BroadcastMessage = ({ handleCancel }) => {
         </div>
       ) : (
         <AddBroadcastMessage
-          selectedModes={selectedModes}
-          setSelectedModes={setSelectedModes}
-          selectedTemplateData={selectedTemplate}
-          setSelectedTemplateData={setSelectedTemplate}
           onNext={(templateData) => {
             if (templateData) {
-              setSelectedTemplate(templateData);
+              setSelectedTemplateData(templateData);
             }
             setCurrentStep("editor");
             setActiveTab(selectedModes[0]);
@@ -154,4 +156,10 @@ export const BroadcastMessage = ({ handleCancel }) => {
       )}
     </>
   );
-};
+}
+
+export const BroadcastMessage = ({ handleCancel }) => (
+  <BroadcastFormProvider>
+    <BroadcastMessageInner handleCancel={handleCancel} />
+  </BroadcastFormProvider>
+);
