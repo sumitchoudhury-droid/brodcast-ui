@@ -7,7 +7,7 @@ export const BroadcastDetails = ({
   selectedModes,
   setSelectedModes,
   category,
-  setCategory,
+  onCategoryChange,
   priority,
   setPriority
 }) => {
@@ -88,7 +88,7 @@ export const BroadcastDetails = ({
             placeholder="Select Category"
             options={categoryOptions}
             value={category}
-            onChange={(val) => setCategory(val)}
+            onChange={onCategoryChange}
           />
         </div>
 
