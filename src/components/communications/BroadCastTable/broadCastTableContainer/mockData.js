@@ -323,7 +323,8 @@ const generateMockData = () => {
     "Cancelled",
     "Scheduled Weekly",
     "Running Daily",
-    "In-progress"
+    "In-progress",
+    "Scheduled"
   ];
 
   for (let i = 13; i <= 115; i++) {

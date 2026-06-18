@@ -65,6 +65,13 @@ const getMenuOptions = (status) => {
   if (!status) return [];
   const lowerStatus = status.toLowerCase();
 
+  if (lowerStatus.includes("in-progress")) {
+    return [
+      { label: "Cancel Schedule", action: "cancel", icon: CancelScheduleIcon },
+      { label: "Report", action: "report", icon: ReportIcon }
+    ];
+  }
+
   if (
     lowerStatus.includes("scheduled") ||
     lowerStatus.includes("running") ||
