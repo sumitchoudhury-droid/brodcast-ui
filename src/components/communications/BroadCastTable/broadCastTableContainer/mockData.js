@@ -54,8 +54,8 @@ const generateMockData = () => {
       mode: "Text, Mail, Voice",
       hasError: false,
       template: "Account Statement",
-      appointmentType: "VAC-A Vaccination Appointment",
-      appointmentCount: 49,
+      appointmentType: "",
+      appointmentCount: 0,
       location: "Riverbend Urgent Care",
       locationCount: 12,
       provider: "Barbara Phillips",
@@ -119,8 +119,8 @@ const generateMockData = () => {
       template: "Account Statement",
       appointmentType: "VAC-A Vaccination Appointment",
       appointmentCount: 49,
-      location: "Riverbend Urgent Care",
-      locationCount: 12,
+      location: "",
+      locationCount: 0,
       provider: "Barbara Phillips",
       providerCount: 12,
       scheduledDateTime: getScheduledDate(5),
@@ -163,8 +163,8 @@ const generateMockData = () => {
       appointmentCount: 49,
       location: "Riverbend Urgent Care",
       locationCount: 12,
-      provider: "Barbara Phillips",
-      providerCount: 12,
+      provider: "",
+      providerCount: 0,
       scheduledDateTime: getScheduledDate(7),
       messageStatus: {
         total: "2,587",
@@ -323,7 +323,8 @@ const generateMockData = () => {
     "Cancelled",
     "Scheduled Weekly",
     "Running Daily",
-    "In-progress"
+    "In-progress",
+    "Scheduled"
   ];
 
   for (let i = 13; i <= 115; i++) {

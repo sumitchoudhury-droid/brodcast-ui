@@ -65,6 +65,13 @@ const getMenuOptions = (status) => {
   if (!status) return [];
   const lowerStatus = status.toLowerCase();
 
+  if (lowerStatus.includes("in-progress")) {
+    return [
+      { label: "Cancel Schedule", action: "cancel", icon: CancelScheduleIcon },
+      { label: "Report", action: "report", icon: ReportIcon }
+    ];
+  }
+
   if (
     lowerStatus.includes("scheduled") ||
     lowerStatus.includes("running") ||
@@ -445,29 +452,32 @@ function BroadCastTableContainer({
             Appointment Type <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
-        cell: ({ row }) => (
-          <div className="text-with-pill">
-            <span className="cell-text" title={row.original.appointmentType}>
-              {highlightText(
-                row.original.appointmentType,
-                filters.appointmentType
-              )}
-            </span>
-            {row.original.appointmentCount > 0 && (
-              <ReusableToolTip
-                content={buildTooltipItems(
+        cell: ({ row }) => {
+          if (!row.original.appointmentType) return "-";
+          return (
+            <div className="text-with-pill">
+              <span className="cell-text" title={row.original.appointmentType}>
+                {highlightText(
                   row.original.appointmentType,
-                  row.original.appointmentCount
+                  filters.appointmentType
                 )}
-                position="top"
-              >
-                <span className="count-pill" style={{ cursor: "pointer" }}>
-                  +{row.original.appointmentCount}
-                </span>
-              </ReusableToolTip>
-            )}
-          </div>
-        )
+              </span>
+              {row.original.appointmentCount > 0 && (
+                <ReusableToolTip
+                  content={buildTooltipItems(
+                    row.original.appointmentType,
+                    row.original.appointmentCount
+                  )}
+                  position="top"
+                >
+                  <span className="count-pill" style={{ cursor: "pointer" }}>
+                    +{row.original.appointmentCount}
+                  </span>
+                </ReusableToolTip>
+              )}
+            </div>
+          );
+        }
       },
       {
         accessorKey: "location",
@@ -476,26 +486,29 @@ function BroadCastTableContainer({
             Location <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
-        cell: ({ row }) => (
-          <div className="text-with-pill">
-            <span className="cell-text" title={row.original.location}>
-              {highlightText(row.original.location, filters.location)}
-            </span>
-            {row.original.locationCount > 0 && (
-              <ReusableToolTip
-                content={buildTooltipItems(
-                  row.original.location,
-                  row.original.locationCount
-                )}
-                position="top"
-              >
-                <span className="count-pill" style={{ cursor: "pointer" }}>
-                  +{row.original.locationCount}
-                </span>
-              </ReusableToolTip>
-            )}
-          </div>
-        )
+        cell: ({ row }) => {
+          if (!row.original.location) return "-";
+          return (
+            <div className="text-with-pill">
+              <span className="cell-text" title={row.original.location}>
+                {highlightText(row.original.location, filters.location)}
+              </span>
+              {row.original.locationCount > 0 && (
+                <ReusableToolTip
+                  content={buildTooltipItems(
+                    row.original.location,
+                    row.original.locationCount
+                  )}
+                  position="top"
+                >
+                  <span className="count-pill" style={{ cursor: "pointer" }}>
+                    +{row.original.locationCount}
+                  </span>
+                </ReusableToolTip>
+              )}
+            </div>
+          );
+        }
       },
       {
         accessorKey: "provider",
@@ -504,26 +517,29 @@ function BroadCastTableContainer({
             Provider <RenderSortIcon isSorted={column.getIsSorted()} />
           </div>
         ),
-        cell: ({ row }) => (
-          <div className="text-with-pill">
-            <span className="cell-text" title={row.original.provider}>
-              {highlightText(row.original.provider, filters.provider)}
-            </span>
-            {row.original.providerCount > 0 && (
-              <ReusableToolTip
-                content={buildTooltipItems(
-                  row.original.provider,
-                  row.original.providerCount
-                )}
-                position="top"
-              >
-                <span className="count-pill" style={{ cursor: "pointer" }}>
-                  +{row.original.providerCount}
-                </span>
-              </ReusableToolTip>
-            )}
-          </div>
-        )
+        cell: ({ row }) => {
+          if (!row.original.provider) return "-";
+          return (
+            <div className="text-with-pill">
+              <span className="cell-text" title={row.original.provider}>
+                {highlightText(row.original.provider, filters.provider)}
+              </span>
+              {row.original.providerCount > 0 && (
+                <ReusableToolTip
+                  content={buildTooltipItems(
+                    row.original.provider,
+                    row.original.providerCount
+                  )}
+                  position="top"
+                >
+                  <span className="count-pill" style={{ cursor: "pointer" }}>
+                    +{row.original.providerCount}
+                  </span>
+                </ReusableToolTip>
+              )}
+            </div>
+          );
+        }
       },
       {
         accessorKey: "scheduledDateTime",
