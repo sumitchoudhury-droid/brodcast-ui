@@ -104,14 +104,11 @@ export default function TextSignatureSection({
     }
   ];
 
-  const handleOnDemandFormClick = (value) => {
-    if (!editorInstance) {
-      toast.error("Editor Error", "Editor instance not found");
-      return;
-    }
-
-    const formUrl = `https://forms.manipalhospitals.com/${value}`;
-    editorInstance.insertFormLink(value, formUrl);
+  const buildCombinedFormUrl = (formValues) => {
+    const params = formValues
+      .map((v) => `forms=${encodeURIComponent(v)}`)
+      .join("&");
+    return `https://forms.manipalhospitals.com?${params}`;
   };
 
   useEffect(() => {
@@ -157,25 +154,29 @@ export default function TextSignatureSection({
   };
 
   const handleFormsSend = () => {
-    // Remove forms that were deselected
-    selectedForms
-      .filter((form) => !pendingForms.includes(form))
-      .forEach((form) => {
-        if (editorInstance) {
-          editorInstance.insertFormLink(form, null);
-        }
-      });
+    if (!editorInstance) {
+      toast.error("Editor Error", "Editor instance not found");
+      return;
+    }
 
-    // Add newly selected forms
-    pendingForms
-      .filter((form) => !selectedForms.includes(form))
-      .forEach((form) => handleOnDemandFormClick(form));
+    // Remove previous combined link if any were selected before
+    if (selectedForms.length > 0) {
+      editorInstance.insertFormLink("ondemand_forms", null);
+    }
+
+    // Insert one combined link for all currently pending selections
+    if (pendingForms.length > 0) {
+      const combinedUrl = buildCombinedFormUrl(pendingForms);
+      editorInstance.insertFormLink("ondemand_forms", combinedUrl);
+    }
 
     setSelectedForms(pendingForms);
     setShowFormsDropdown(false);
     setFormSearch("");
     setExpandedForm(null);
-    toast.success("Success", "On-demand form link(s) added to editor");
+    if (pendingForms.length > 0) {
+      toast.success("Success", "On-demand form link added to editor");
+    }
   };
 
   const handleFormsCancel = () => {

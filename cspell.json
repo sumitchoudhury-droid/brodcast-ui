@@ -55,7 +55,8 @@
     "MHCARE",
     "multidropdown",
     "Optout",
-    "Sharma"
+    "Sharma",
+    "ondemand"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

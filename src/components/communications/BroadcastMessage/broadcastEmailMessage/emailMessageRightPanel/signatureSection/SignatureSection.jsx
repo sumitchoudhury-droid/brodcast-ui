@@ -63,7 +63,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
       // MJML mode
       const newSigHtml = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="16px 0px" margin="0px" color="#181D25" font-size="20px" font-weight="500" font-family="Inter" line-height="20px">
+    <mj-text padding="16px" margin="0px" color="#181D25" font-size="20px" font-weight="500" font-family="Inter" line-height="20px">
       ${selectedValue}
     </mj-text>
   </mj-column>
@@ -79,7 +79,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
       }
     } else {
       // HTML mode
-      const newSigHtml = `<div data-type="signature-section" style="padding: 16px 0px; margin: 0px; color: #181D25; font-size: 20px; font-weight: 500; font-family: Inter, sans-serif; line-height: 20px;">
+      const newSigHtml = `<div data-type="signature-section" style="padding: 16px; margin: 0px; color: #181D25; font-size: 20px; font-weight: 500; font-family: Inter, sans-serif; line-height: 20px;">
         ${selectedValue}
       </div>`;
 
@@ -227,7 +227,14 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     setSelectedFile(null);
   };
 
-  const handleOnDemandFormClick = (value) => {
+  const buildCombinedFormUrl = (formValues) => {
+    const params = formValues
+      .map((v) => `forms=${encodeURIComponent(v)}`)
+      .join("&");
+    return `https://forms.manipalhospitals.com?${params}`;
+  };
+
+  const insertCombinedFormLink = (formValues) => {
     const editor = editorRef?.current?.getEditor();
     if (!editor) {
       toast.error("Editor Error", "Editor instance not found");
@@ -246,11 +253,11 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     };
     findBody(wrapper);
 
-    // Recursively find if there is an existing on-demand form section for this specific value
+    // Find existing combined form section
     let existingForm = null;
     const findFormComp = (comp) => {
       if (existingForm) return;
-      if (comp.getAttributes?.()?.["data-form-value"] === value) {
+      if (comp.getAttributes?.()?.["data-form-value"] === "ondemand_forms") {
         existingForm = comp;
         return;
       }
@@ -258,15 +265,15 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     };
     findFormComp(wrapper);
 
+    const combinedUrl = buildCombinedFormUrl(formValues);
+
     if (mjBody) {
-      // MJML mode
-      const formUrl = `https://forms.manipalhospitals.com/${value}`;
-      const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" data-form-value="${value}" padding="0px" margin="0px" width="100%" background-color="transparent">
+      const newFormHtml = `<mj-section full-width="full-width" data-type="on-demand-form-section" data-form-value="ondemand_forms" padding="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text padding="0px" font-family="Inter" font-size="16px" color="#181D25" line-height="24px">
-      <div style="padding: 6px 0px;">
+      <div style="padding: 16px;">
         Kindly review and submit the form at the link below.<br />
-        <a href="${formUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${formUrl}</a>
+        <a href="${combinedUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${combinedUrl}</a>
       </div>
     </mj-text>
   </mj-column>
@@ -278,7 +285,6 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
         existingForm.remove();
         parent.components().add(newFormHtml, { at: idx });
       } else {
-        // If signature section exists, place the form section just above it
         let existingSig = null;
         mjBody.components().each((c) => {
           if (c.getAttributes?.()?.["data-type"] === "signature-section") {
@@ -293,11 +299,9 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
         }
       }
     } else {
-      // HTML mode
-      const formUrl = `https://forms.manipalhospitals.com/${value}`;
-      const newFormHtml = `<div data-type="on-demand-form-section" data-form-value="${value}" style="padding-top: 6px; padding-bottom: 6px; padding-left: 0px; padding-right: 0px; margin: 0px; font-family: Inter, sans-serif; font-size: 16px; color: #181D25; line-height: 24px;">
+      const newFormHtml = `<div data-type="on-demand-form-section" data-form-value="ondemand_forms" style="padding-top: 6px; padding-bottom: 6px; padding-left: 0px; padding-right: 0px; margin: 0px; font-family: Inter, sans-serif; font-size: 16px; color: #181D25; line-height: 24px;">
         Kindly review and submit the form at the link below.<br />
-        <a href="${formUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${formUrl}</a>
+        <a href="${combinedUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">${combinedUrl}</a>
       </div>`;
 
       if (existingForm) {
@@ -306,7 +310,6 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
         existingForm.remove();
         parent.components().add(newFormHtml, { at: idx });
       } else {
-        // If signature section exists, place the form section just above it
         let existingSig = null;
         const findSigComp = (comp) => {
           if (existingSig) return;
@@ -327,8 +330,6 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
         }
       }
     }
-
-    toast.success("Success", "On-demand form link added to editor");
   };
 
   useEffect(() => {
@@ -374,14 +375,20 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
   };
 
   const handleFormsSend = () => {
-    selectedForms.forEach((form) => {
+    if (pendingForms.length > 0) {
+      insertCombinedFormLink(pendingForms);
+      toast.success("Success", "On-demand form link added to editor");
+    } else if (selectedForms.length > 0) {
+      // All forms deselected — remove the existing combined section
       const editor = editorRef?.current?.getEditor();
       if (editor) {
         const wrapper = editor.getWrapper();
         let existingForm = null;
         const findFormComp = (comp) => {
           if (existingForm) return;
-          if (comp.getAttributes?.()?.["data-form-value"] === form) {
+          if (
+            comp.getAttributes?.()?.["data-form-value"] === "ondemand_forms"
+          ) {
             existingForm = comp;
             return;
           }
@@ -390,9 +397,8 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
         findFormComp(wrapper);
         if (existingForm) existingForm.remove();
       }
-    });
+    }
 
-    pendingForms.forEach((form) => handleOnDemandFormClick(form));
     setSelectedForms(pendingForms);
     setShowFormsDropdown(false);
     setFormSearch("");

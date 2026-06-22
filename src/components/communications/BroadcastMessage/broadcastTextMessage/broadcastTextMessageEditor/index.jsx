@@ -930,7 +930,7 @@ const BroadcastTextMessageEditor = ({
                 attributes: {
                   class: "text-signature-section",
                   style:
-                    "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+                    "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
                 },
                 content: selectedValue,
                 editable: true,
@@ -997,7 +997,7 @@ const BroadcastTextMessageEditor = ({
                   class: "text-form-section",
                   "data-form-value": text,
                   style:
-                    "padding: 10px 0; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+                    "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
                 },
                 content: linkHtml,
                 editable: true,

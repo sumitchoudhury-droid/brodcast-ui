@@ -41,9 +41,9 @@ const EMPTY_TEMPLATE = `
 </mjml>
 `.trim();
 
-const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" margin="0px" width="100%" background-color="transparent">
+const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text  padding="16px 0px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height=20px>
+    <mj-text padding="16px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height="20px">
       Add Signature
     </mj-text>
   </mj-column>
@@ -1787,6 +1787,13 @@ export default function Editor({
       // Skip processing for the signature section — it's managed by the reconciler
       if (comp.getAttributes()?.["data-type"] === "signature-section") {
         comp.set({ draggable: false, droppable: false });
+        comp.addAttributes({
+          padding: "0px",
+          "padding-top": "0px",
+          "padding-right": "0px",
+          "padding-bottom": "0px",
+          "padding-left": "0px"
+        });
         return;
       }
 
@@ -1882,13 +1889,35 @@ export default function Editor({
         }
 
         if (COLUMN_VALID_CHILDREN.includes(type)) {
-          comp.addAttributes({
-            padding: "0px",
-            "padding-top": "0px",
-            "padding-right": "0px",
-            "padding-bottom": "0px",
-            "padding-left": "0px"
-          });
+          const isInsideSig = (() => {
+            let p = comp.parent();
+            while (p) {
+              if (p.getAttributes?.()?.["data-type"] === "signature-section")
+                return true;
+              p = p.parent();
+            }
+            return false;
+          })();
+          if (isInsideSig) {
+            // Type defaults already wrote 0px to the individual padding attrs.
+            // Sync them to the shorthand value so CSS individual properties
+            // don't override the intended padding.
+            const sigPadding = comp.getAttributes()?.["padding"] || "16px";
+            comp.addAttributes({
+              "padding-top": sigPadding,
+              "padding-right": sigPadding,
+              "padding-bottom": sigPadding,
+              "padding-left": sigPadding
+            });
+          } else {
+            comp.addAttributes({
+              padding: "0px",
+              "padding-top": "0px",
+              "padding-right": "0px",
+              "padding-bottom": "0px",
+              "padding-left": "0px"
+            });
+          }
         }
       }
 
