@@ -179,7 +179,7 @@
         color: variable.$color-black-12;
         background-color: #ffffff;
         border: 1px solid #eaecf0;
-        @include variable.font-style($fs: 12px, $fw: 500, $lh: 216px);
+        @include variable.font-style($fs: 12px, $fw: 500, $lh: 16px);
         transition: all 0.2s;
 
         &:hover:not(.active):not(.dots) {
