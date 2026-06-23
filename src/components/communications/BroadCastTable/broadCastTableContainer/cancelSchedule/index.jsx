@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
-import ReusableToolTip from "../../../../../reusableComponents/reusableToolTip/index.jsx";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 
 // Message Status Icons
@@ -15,10 +14,21 @@ import scheduledDailyIcon from "../../../../../assets/boardCastTableIcons/schedu
 import runningWeeklyIcon from "../../../../../assets/boardCastTableIcons/runningWeekly.svg";
 import failedIcon from "../../../../../assets/boardCastTableIcons/failedIcon.svg";
 import cancelledIcon from "../../../../../assets/boardCastTableIcons/cancelledIcon.svg";
+import xlsIcon from "../../../../../assets/commonIcons/xlsIcon.svg";
+import downloadIcon2 from "../../../../../assets/commonIcons/downloadIcon 2.svg";
+import uncheckedRadioIcon from "../../../../../assets/commonIcons/uncheckedRadioIcon.svg";
+import checkedRadioIcon from "../../../../../assets/commonIcons/checkedRadioIcon.svg";
 
 import "./style.scss";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
 import { ReusableCheckbox } from "../../../../../reusableComponents/reusableCheckbox/index";
+import { ReusableDropDown } from "../../../../../reusableComponents/reusableDropDown";
+
+const dateOptions = [
+  { label: "9 Mar 2026, 6 Apr 2026", value: "1" },
+  { label: "7 Apr 2026, 4 May 2026", value: "2" },
+  { label: "5 May 2026, 2 Jun 2026", value: "3" }
+];
 
 const getModesList = (modeStr) => {
   if (!modeStr) return [];
@@ -127,21 +137,6 @@ const getModeSpecificStatus = (messageStatus, modesList) => {
   return modeCounts;
 };
 
-const MAX_TOOLTIP_ITEMS = 9;
-
-const buildTooltipItems = (firstItem, additionalCount) => {
-  if (!additionalCount || additionalCount <= 0) return [];
-  const total = 1 + additionalCount;
-  const shown = Math.min(total, MAX_TOOLTIP_ITEMS);
-  const items = Array.from({ length: shown }, (_, i) =>
-    i === 0 ? firstItem : `${firstItem} ${i + 1}`
-  );
-  if (total > MAX_TOOLTIP_ITEMS) {
-    items.push(`+${total - MAX_TOOLTIP_ITEMS}`);
-  }
-  return items;
-};
-
 // Helper to format date string to matching layout e.g. "26 Feb 2026 at 10:30 AM"
 const formatScheduleDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return "26 Feb 2026 at 10:30 AM";
@@ -187,6 +182,9 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
     return getModeSpecificStatus(broadcastData?.messageStatus, modesList);
   }, [broadcastData?.messageStatus, modesList]);
 
+  const [dateFilter, setDateFilter] = useState(dateOptions[0].value);
+  const [selectedOccurrence, setSelectedOccurrence] = useState("this");
+
   const [selectedModes, setSelectedModes] = useState(() => {
     const list = getModesList(broadcastData?.mode);
     const initial = {};
@@ -221,6 +219,8 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
       return { className: "purpleBadge", icon: scheduledDailyIcon };
     } else if (lowerStatus.includes("running")) {
       return { className: "blueBadge", icon: runningWeeklyIcon };
+    } else if (lowerStatus.includes("in-progress")) {
+      return { className: "blueBadge", icon: runningWeeklyIcon };
     } else if (lowerStatus.includes("failed")) {
       return { className: "redBadge", icon: failedIcon };
     } else if (lowerStatus.includes("cancel")) {
@@ -231,21 +231,9 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
 
   const statusDetails = getStatusDetails(broadcastData?.broadcastStatus);
 
-  const displayLocation = useMemo(() => {
-    const loc = broadcastData?.location || "Eastside Urgent Care";
-    return broadcastData?.locationCount && broadcastData.locationCount > 1
-      ? `${loc}`
-      : loc;
-  }, [broadcastData]);
-
-  const displayProvider = useMemo(() => {
-    const prov = broadcastData?.provider || "Barbara Phillips";
-    return broadcastData?.providerCount && broadcastData.providerCount > 1
-      ? `${prov}`
-      : prov;
-  }, [broadcastData]);
-
   if (!isOpen) return null;
+
+  const patientType = "uploadFile";
 
   return ReactDOM.createPortal(
     <div className="cancelScheduleOverlay" onClick={onClose}>
@@ -266,203 +254,196 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
             <span className="highlightText">{patientCount} Patients?</span>
           </p>
 
-          <p className="describeText">
-            All scheduled text, email, and voice messages will be cancelled.
-          </p>
-
           <p className="warningText">
             Once confirmed, this action cannot be undone.
           </p>
 
-          {/* Details Card */}
-          <div className="detailsCard">
-            <div className="detailsGrid">
-              {/* Left Column */}
-              <div className="detailsColumn">
-                <div className="detailGroup">
-                  <span className="detailLabel">Mode</span>
-                  <div className="modeCheckboxGroup">
-                    {modesList.length > 0 ? (
-                      modesList.map((m) => (
-                        <ReusableCheckbox
-                          key={m}
-                          label={m}
-                          name="cancelMode"
-                          checked={!!selectedModes[m]}
-                          onChange={() => handleCheckboxChange(m)}
-                        />
-                      ))
-                    ) : (
-                      <span className="detailValue">
-                        {broadcastData?.mode || "Mail"}
-                      </span>
-                    )}
+          <div className="statementCard">
+            <div className="topContent">
+              <div className="header">
+                <h2>Account Statement</h2>
+                <div className={`statusBadge ${statusDetails.className}`}>
+                  <img
+                    src={statusDetails.icon}
+                    alt={broadcastData?.broadcastStatus || "Completed"}
+                  />
+                  <span>{broadcastData?.broadcastStatus || "Completed"}</span>
+                </div>
+              </div>
+              <p>Monthly on 2nd Monday, until Jul 30, 2026</p>
+              <p>
+                <span>Next Occurrence:</span> 9 Feb 2026 10:30 AM
+              </p>
+            </div>
+            {patientType === "uploadFile" && (
+              <div className="excelCon">
+                <div className="details">
+                  <img src={xlsIcon} alt="xlsIcon" className="xlsIcon" />
+                  <div className="xlsDetails">
+                    <p>Patients List.xlsx</p>
+                    <span>2.5 MB</span>
                   </div>
                 </div>
-                <div className="detailGroup">
-                  <span className="detailLabel">Appointment Type</span>
-                  <div className="detailValueWithPill">
-                    <span className="detailValue">
-                      {broadcastData?.appointmentType ||
-                        "BPC-A Blood Pressure Check"}
-                    </span>
-                    {broadcastData?.appointmentCount > 0 && (
-                      <ReusableToolTip
-                        content={buildTooltipItems(
-                          broadcastData.appointmentType,
-                          broadcastData.appointmentCount
-                        )}
-                        position="top"
-                      >
-                        <span className="detailCountPill">
-                          +{broadcastData.appointmentCount}
-                        </span>
-                      </ReusableToolTip>
-                    )}
-                  </div>
+                <img
+                  src={downloadIcon2}
+                  alt="downloadIcon2"
+                  className="downloadIcon"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = "/sampleFiles/Broadcast PatientList.xlsx";
+                    link.download = "Broadcast PatientList.xlsx";
+                    link.click();
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="cancelCard">
+            <div className="cancelCardDetail">
+              <h4>Cancel by Occurrence</h4>
+
+              <div
+                className={`occurrenceSelector${selectedOccurrence === "this" ? " selected" : ""}`}
+                onClick={() => setSelectedOccurrence("this")}
+              >
+                <img
+                  src={
+                    selectedOccurrence === "this"
+                      ? checkedRadioIcon
+                      : uncheckedRadioIcon
+                  }
+                  alt="radioIcon"
+                  className="radioIcon"
+                />
+                <div className="occurrenceDetails">
+                  <p>Only this occurrence (9 Feb 2026)</p>
+                  <span>Future occurrences will continue as scheduled.</span>
                 </div>
-                <div className="detailGroup">
-                  <span className="detailLabel">Provider</span>
-                  <div className="detailValueWithPill">
-                    <span className="detailValue">{displayProvider}</span>
-                    {broadcastData?.providerCount > 1 && (
-                      <ReusableToolTip
-                        content={buildTooltipItems(
-                          broadcastData.provider,
-                          broadcastData.providerCount - 1
-                        )}
-                        position="top"
-                      >
-                        <span className="detailCountPill">
-                          +{broadcastData.providerCount - 1}
-                        </span>
-                      </ReusableToolTip>
-                    )}
-                  </div>
-                </div>
-                {(!modesList.length ||
-                  modesList.some((m) => selectedModes[m])) && (
-                  <div className="detailGroup">
-                    <span className="detailLabel">Message Status</span>
-                    <div className="modeStatusListContainer">
-                      {modesList.length > 0 ? (
-                        modesList
-                          .filter((modeName) => selectedModes[modeName])
-                          .map((modeName) => {
-                            const counts = modeSpecificCounts[modeName] || {};
-                            return (
-                              <div key={modeName} className="modeStatusItemRow">
-                                <span className="modeNameSubLabel">
-                                  {modeName} Mode
-                                </span>
-                                <div className="messageStatusContainer">
-                                  <div className="statusItem blue">
-                                    <img src={broadcastIcon} alt="total" />
-                                    <span>{counts.total || "-"}</span>
-                                  </div>
-                                  <div className="statusItem green">
-                                    <img
-                                      src={completedGreenIcon}
-                                      alt="delivered"
-                                    />
-                                    <span>{counts.delivered || "-"}</span>
-                                  </div>
-                                  <div className="statusItem red">
-                                    <img src={failedRedIcon} alt="failed" />
-                                    <span>{counts.failed || "-"}</span>
-                                  </div>
-                                  <div className="statusItem yellow">
-                                    <img
-                                      src={pendingYellowIcon}
-                                      alt="pending"
-                                    />
-                                    <span>{counts.pending || "-"}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })
-                      ) : (
-                        <div className="messageStatusContainer">
-                          <div className="statusItem blue">
-                            <img src={broadcastIcon} alt="total" />
-                            <span>
-                              {broadcastData?.messageStatus?.total || "-"}
-                            </span>
-                          </div>
-                          <div className="statusItem green">
-                            <img src={completedGreenIcon} alt="delivered" />
-                            <span>
-                              {broadcastData?.messageStatus?.delivered || "-"}
-                            </span>
-                          </div>
-                          <div className="statusItem red">
-                            <img src={failedRedIcon} alt="failed" />
-                            <span>
-                              {broadcastData?.messageStatus?.failed || "-"}
-                            </span>
-                          </div>
-                          <div className="statusItem yellow">
-                            <img src={pendingYellowIcon} alt="pending" />
-                            <span>
-                              {broadcastData?.messageStatus?.pending || "-"}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Right Column */}
-              <div className="detailsColumn">
-                <div className="detailGroup">
-                  <span className="detailLabel">Template</span>
-                  <span className="detailValueEllipsis">
-                    {broadcastData?.template || "Account Statement"}
+              <div
+                className={`occurrenceSelector${selectedOccurrence === "specific" ? " selected" : ""}`}
+                onClick={() => setSelectedOccurrence("specific")}
+              >
+                <img
+                  src={
+                    selectedOccurrence === "specific"
+                      ? checkedRadioIcon
+                      : uncheckedRadioIcon
+                  }
+                  alt="radioIcon"
+                  className="radioIcon"
+                />
+                <div className="occurrenceDetails">
+                  <p>A specific upcoming occurrence</p>
+                  <span>
+                    Pick any future date in the series to skip. Others continue.
                   </span>
-                </div>
-                <div className="detailGroup">
-                  <span className="detailLabel">Location</span>
-                  <div className="detailValueWithPill">
-                    <span className="detailValueEllipsis">
-                      {displayLocation}
-                    </span>
-                    {broadcastData?.locationCount > 1 && (
-                      <ReusableToolTip
-                        content={buildTooltipItems(
-                          broadcastData.location,
-                          broadcastData.locationCount - 1
-                        )}
-                        position="top"
-                      >
-                        <span className="detailCountPill">
-                          +{broadcastData.locationCount - 1}
-                        </span>
-                      </ReusableToolTip>
-                    )}
-                  </div>
-                </div>
-                <div className="detailGroup">
-                  <span className="detailLabel">Scheduled Date/Time</span>
-                  <span className="detailValueEllipsis">
-                    {broadcastData?.scheduledDateTime || "2/15/2026 9:45:00 AM"}
-                  </span>
-                </div>
-                <div className="detailGroup">
-                  <span className="detailLabel">Broadcast Status</span>
-                  <div className={`statusBadge ${statusDetails.className}`}>
-                    <img
-                      src={statusDetails.icon}
-                      alt={broadcastData?.broadcastStatus || "Completed"}
+                  {selectedOccurrence === "specific" && (
+                    <ReusableDropDown
+                      greenIcon={false}
+                      placeholder="Select Filter"
+                      options={dateOptions}
+                      value={dateFilter}
+                      onChange={(val) => setDateFilter(val)}
                     />
-                    <span>{broadcastData?.broadcastStatus || "Completed"}</span>
-                  </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={`occurrenceSelector${selectedOccurrence === "all" ? " selected" : ""}`}
+                onClick={() => setSelectedOccurrence("all")}
+              >
+                <img
+                  src={
+                    selectedOccurrence === "all"
+                      ? checkedRadioIcon
+                      : uncheckedRadioIcon
+                  }
+                  alt="radioIcon"
+                  className="radioIcon"
+                />
+                <div className="occurrenceDetails">
+                  <p>This and all future occurrences</p>
+                  <span>Ends the entire series. Cannot be restarted.</span>
                 </div>
               </div>
             </div>
+
+            <div className="cancelCardDetail">
+              <h4>Cancel by Mode</h4>
+
+              {modesList.length > 0 ? (
+                modesList.map((m) => {
+                  const counts = modeSpecificCounts[m] || {};
+                  return (
+                    <div key={m} className="modeRow">
+                      <ReusableCheckbox
+                        label={m}
+                        name="cancelMode"
+                        checked={!!selectedModes[m]}
+                        onChange={() => handleCheckboxChange(m)}
+                      />
+                      <div className="messageStatusContainer">
+                        <div className="statusItem blue">
+                          <img src={broadcastIcon} alt="total" />
+                          <span>{counts.total || "-"}</span>
+                        </div>
+                        <div className="statusItem green">
+                          <img src={completedGreenIcon} alt="delivered" />
+                          <span>{counts.delivered || "-"}</span>
+                        </div>
+                        <div className="statusItem red">
+                          <img src={failedRedIcon} alt="failed" />
+                          <span>{counts.failed || "-"}</span>
+                        </div>
+                        <div className="statusItem yellow">
+                          <img src={pendingYellowIcon} alt="pending" />
+                          <span>{counts.pending || "-"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="modeRow">
+                  <span className="detailValue">
+                    {broadcastData?.mode || "Mail"}
+                  </span>
+                  <div className="messageStatusContainer">
+                    <div className="statusItem blue">
+                      <img src={broadcastIcon} alt="total" />
+                      <span>{broadcastData?.messageStatus?.total || "-"}</span>
+                    </div>
+                    <div className="statusItem green">
+                      <img src={completedGreenIcon} alt="delivered" />
+                      <span>
+                        {broadcastData?.messageStatus?.delivered || "-"}
+                      </span>
+                    </div>
+                    <div className="statusItem red">
+                      <img src={failedRedIcon} alt="failed" />
+                      <span>{broadcastData?.messageStatus?.failed || "-"}</span>
+                    </div>
+                    <div className="statusItem yellow">
+                      <img src={pendingYellowIcon} alt="pending" />
+                      <span>
+                        {broadcastData?.messageStatus?.pending || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+
+          <p className="disclaimerPara">
+            All scheduled text, email, and voice messages for 9 Mar 2026 and 6
+            Apr 2026 will be cancelled. Future monthly occurrences will continue
+            as scheduled.
+          </p>
         </div>
 
         {/* Footer */}
