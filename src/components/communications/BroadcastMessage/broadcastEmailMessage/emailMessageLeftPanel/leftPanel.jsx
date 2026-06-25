@@ -15,6 +15,7 @@ import leftPanelRow from "../../../../../assets/leftPanel/leftPanelRow.svg";
 // import leftPanelFooter from "../../../../../assets/leftPanel/leftPanelFooter.svg";
 // import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg";
 import leftPanelPlaceholders from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
+import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?raw";
 import template1 from "../../../../../assets/templates/template1.svg";
 import template2 from "../../../../../assets/templates/template2.svg";
 import template3 from "../../../../../assets/templates/template3.svg";
@@ -31,17 +32,17 @@ const tabOptions = [
 ];
 
 const templateLibraryOptions = [
-  { img: template1, name: "Template 1" },
-  { img: template2, name: "Template 2" },
-  { img: template3, name: "Template 3" },
-  { img: template4, name: "Template 4" }
+  { img: template1, name: "Template 1", html: emailTemplate },
+  { img: template2, name: "Template 2", html: emailTemplate },
+  { img: template3, name: "Template 3", html: emailTemplate },
+  { img: template4, name: "Template 4", html: emailTemplate }
 ];
 
 const savedTemplateOptions = [
-  { img: savedTemplate, name: "Payment Reminder" },
-  { img: savedTemplate, name: "Health Camp Invitation" },
-  { img: savedTemplate, name: "Treatment Plan Update" },
-  { img: savedTemplate, name: "Seasonal Health Advisory" }
+  { img: savedTemplate, name: "Payment Reminder", html: emailTemplate },
+  { img: savedTemplate, name: "Health Camp Invitation", html: emailTemplate },
+  { img: savedTemplate, name: "Treatment Plan Update", html: emailTemplate },
+  { img: savedTemplate, name: "Seasonal Health Advisory", html: emailTemplate }
 ];
 
 const blockCategories = [
@@ -120,6 +121,12 @@ export default function LeftPanel({
     if (!editor) return;
     const block = editor.BlockManager.get(blockId);
     if (block) editor.BlockManager.startDrag(block, e.nativeEvent);
+  };
+
+  const handleTemplateSelect = (templateHtml) => () => {
+    const editor = editorRef?.current?.getEditor?.();
+    if (!editor) return;
+    editor.setComponents(templateHtml);
   };
 
   const handleDragEnd = () => {
@@ -344,7 +351,11 @@ export default function LeftPanel({
                 <div className="libraryGrid">
                   {filtered.length > 0 ? (
                     filtered.map((option, index) => (
-                      <div className="libraryWrapper" key={index}>
+                      <div
+                        className="libraryWrapper"
+                        key={index}
+                        onClick={handleTemplateSelect(option.html)}
+                      >
                         <img src={option.img} alt={option.name} />
                         <span>{option.name}</span>
                       </div>
@@ -365,7 +376,11 @@ export default function LeftPanel({
                 <div className="savedTemplateFlex">
                   {filtered.length > 0 ? (
                     filtered.map((option, index) => (
-                      <div className="savedTemplateWrapper" key={index}>
+                      <div
+                        className="savedTemplateWrapper"
+                        key={index}
+                        onClick={handleTemplateSelect(option.html)}
+                      >
                         <img src={option.img} alt={option.name} />
                         <span>{option.name}</span>
                       </div>
