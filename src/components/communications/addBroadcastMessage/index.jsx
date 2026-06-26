@@ -5,6 +5,17 @@ import { BroadCastSchedule } from "./broadCastSchedule/index";
 import BroadcastTemplateDetails from "./broadcastTemplateDetails/index";
 import BroadcastPatientDetails from "./broadcastPatientDetails/index";
 import { useBroadcastForm } from "../broadcastFormContext";
+import { MOCK_TEMPLATES } from "../existingTemplates/mockTemplates";
+import emailTemplate from "../existingTemplates/htmlTemplates/email.html?raw";
+import textTemplate from "../existingTemplates/htmlTemplates/textMessage.html?raw";
+import voiceTemplate from "../existingTemplates/htmlTemplates/voiceMessage.html?raw";
+
+const buildTemplateData = (template) => ({
+  ...template,
+  emailTemplate,
+  textTemplate,
+  voiceTemplate
+});
 
 const getCategoryPrefill = (val) => {
   const now = new Date();
@@ -14,7 +25,8 @@ const getCategoryPrefill = (val) => {
     balance_payment_reminder: {
       selectedModes: ["Text", "Email"],
       priority: "high",
-      selectedEmailTemplateType: "blank",
+      selectedEmailTemplateType: "existing",
+      selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[0]),
       newTemplateName: "Balance Payment Reminder",
       selectedTemplateType: "newTemplate",
       existingTemplateValues: "",
@@ -42,7 +54,8 @@ const getCategoryPrefill = (val) => {
     offer: {
       selectedModes: ["Email"],
       priority: "standard",
-      selectedEmailTemplateType: "blank",
+      selectedEmailTemplateType: "existing",
+      selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[1]),
       newTemplateName: "Offer",
       selectedTemplateType: "newTemplate",
       existingTemplateValues: "",
@@ -70,7 +83,8 @@ const getCategoryPrefill = (val) => {
     announcement: {
       selectedModes: ["Text", "Voice", "Email"],
       priority: "standard",
-      selectedEmailTemplateType: "blank",
+      selectedEmailTemplateType: "existing",
+      selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[2]),
       newTemplateName: "Announcement",
       selectedTemplateType: "newTemplate",
       existingTemplateValues: "",
@@ -169,7 +183,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     setNewTemplateName(p.newTemplateName);
     setSelectedTemplateType(p.selectedTemplateType);
     setExistingTemplateValues(p.existingTemplateValues);
-    setSelectedTemplateData(null);
+    setSelectedTemplateData(p.selectedTemplateData ?? null);
     setPatientType(p.patientType);
     setAppointmentType(p.appointmentType);
     setLocation(p.location);
