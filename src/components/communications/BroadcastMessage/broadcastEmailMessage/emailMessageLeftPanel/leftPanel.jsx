@@ -25,6 +25,7 @@ import savedTemplate from "../../../../../assets/templates/savedTemplate.svg";
 import "./style.scss";
 
 import ReusableTab from "../../../../../reusableComponents/reusableTab";
+import { ReusableModal } from "../../../../../reusableComponents/reusableModal";
 
 const tabOptions = [
   { label: "Library", value: "library" },
@@ -101,6 +102,8 @@ export default function LeftPanel({
   const [selectedTab, setSelectedTab] = useState(tabOptions?.[0]?.value || "");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [openConfirmModal, setOpenConfirmModal] = useState(false);
+  const [pendingTemplate, setPendingTemplate] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
@@ -123,10 +126,21 @@ export default function LeftPanel({
     if (block) editor.BlockManager.startDrag(block, e.nativeEvent);
   };
 
-  const handleTemplateSelect = (templateHtml) => () => {
+  const handleTemplateSelect = (option) => () => {
+    setPendingTemplate(option);
+    setOpenConfirmModal(true);
+  };
+
+  const handleConfirmTemplate = () => {
     const editor = editorRef?.current?.getEditor?.();
-    if (!editor) return;
-    editor.setComponents(templateHtml);
+    if (editor && pendingTemplate) editor.setComponents(pendingTemplate.html);
+    setOpenConfirmModal(false);
+    setPendingTemplate(null);
+  };
+
+  const handleCancelConfirm = () => {
+    setOpenConfirmModal(false);
+    setPendingTemplate(null);
   };
 
   const handleDragEnd = () => {
@@ -253,146 +267,177 @@ export default function LeftPanel({
   );
 
   return (
-    <div className="leftPanel">
-      {/* ── Tab switcher ── */}
-      <div className="tabSwitcher">
-        <button
-          className={`tab-btn ${tab === "templates" ? "active" : ""}`}
-          onClick={() => setTab("templates")}
-        >
+    <>
+      <div className="leftPanel">
+        {/* ── Tab switcher ── */}
+        <div className="tabSwitcher">
+          <button
+            className={`tab-btn ${tab === "templates" ? "active" : ""}`}
+            onClick={() => setTab("templates")}
+          >
+            <img
+              src={leftPanelTemplate}
+              alt="leftPanelTemplate"
+              className="tabIcon"
+            />
+            Templates
+          </button>
+          <button
+            className={`tab-btn ${tab === "blocks" ? "active" : ""}`}
+            onClick={() => setTab("blocks")}
+          >
+            <img
+              src={leftPanelBlock}
+              alt="leftPanelBlock"
+              className="tabIcon"
+            />
+            Blocks
+          </button>
+        </div>
+
+        {/* ── Search ── */}
+        <div className="searchContainer">
           <img
-            src={leftPanelTemplate}
-            alt="leftPanelTemplate"
-            className="tabIcon"
+            src={leftPanelSearch}
+            alt="leftPanelSearch"
+            className="searchIcon"
           />
-          Templates
-        </button>
-        <button
-          className={`tab-btn ${tab === "blocks" ? "active" : ""}`}
-          onClick={() => setTab("blocks")}
+          <input
+            className="searchInput"
+            placeholder={
+              tab === "blocks"
+                ? "Search Blocks, Content, Com..."
+                : "Search Templates..."
+            }
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* ── Blocks tab ── */}
+        <div
+          className="panel-content"
+          style={{
+            display: tab === "blocks" ? "block" : "none",
+            width: "100%"
+          }}
         >
-          <img src={leftPanelBlock} alt="leftPanelBlock" className="tabIcon" />
-          Blocks
-        </button>
-      </div>
-
-      {/* ── Search ── */}
-      <div className="searchContainer">
-        <img
-          src={leftPanelSearch}
-          alt="leftPanelSearch"
-          className="searchIcon"
-        />
-        <input
-          className="searchInput"
-          placeholder={
-            tab === "blocks"
-              ? "Search Blocks, Content, Com..."
-              : "Search Templates..."
-          }
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      {/* ── Blocks tab ── */}
-      <div
-        className="panel-content"
-        style={{ display: tab === "blocks" ? "block" : "none", width: "100%" }}
-      >
-        {blockCategories.map((category) => {
-          const filtered = category.items.filter((item) =>
-            item.title.toLowerCase().includes(debouncedQuery.toLowerCase())
-          );
-          if (filtered.length === 0) return null;
-          return (
-            <div className="gjs-block-category" key={category.title}>
-              <div className="gjs-title">{category.title}</div>
-              <div className="gjs-blocks-c">
-                {filtered.map((item) =>
-                  createBlockItem(
-                    item.id,
-                    item.title,
-                    item.desc,
-                    item.id === "customPlaceholders"
-                      ? () => setShowPlaceholders((prev) => !prev)
-                      : undefined,
-                    item.draggable ?? true
-                  )
-                )}
+          {blockCategories.map((category) => {
+            const filtered = category.items.filter((item) =>
+              item.title.toLowerCase().includes(debouncedQuery.toLowerCase())
+            );
+            if (filtered.length === 0) return null;
+            return (
+              <div className="gjs-block-category" key={category.title}>
+                <div className="gjs-title">{category.title}</div>
+                <div className="gjs-blocks-c">
+                  {filtered.map((item) =>
+                    createBlockItem(
+                      item.id,
+                      item.title,
+                      item.desc,
+                      item.id === "customPlaceholders"
+                        ? () => setShowPlaceholders((prev) => !prev)
+                        : undefined,
+                      item.draggable ?? true
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* ── Templates tab ── */}
-      <div
-        className="panel-content"
-        style={{
-          display: tab === "templates" ? "block" : "none",
-          maxWidth: "248px",
-          width: "100%"
-        }}
-      >
-        <div className="templates-container">
-          <ReusableTab
-            tabOptions={tabOptions}
-            selectedTab={selectedTab}
-            setSelectedTab={setSelectedTab}
-          />
+        {/* ── Templates tab ── */}
+        <div
+          className="panel-content"
+          style={{
+            display: tab === "templates" ? "block" : "none",
+            maxWidth: "248px",
+            width: "100%"
+          }}
+        >
+          <div className="templates-container">
+            <ReusableTab
+              tabOptions={tabOptions}
+              selectedTab={selectedTab}
+              setSelectedTab={setSelectedTab}
+            />
 
-          {selectedTab === "library" &&
-            (() => {
-              const filtered = templateLibraryOptions.filter((o) =>
-                o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
-              );
-              return (
-                <div className="libraryGrid">
-                  {filtered.length > 0 ? (
-                    filtered.map((option, index) => (
-                      <div
-                        className="libraryWrapper"
-                        key={index}
-                        onClick={handleTemplateSelect(option.html)}
-                      >
-                        <img src={option.img} alt={option.name} />
-                        <span>{option.name}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="noResults">No templates found</div>
-                  )}
-                </div>
-              );
-            })()}
+            {selectedTab === "library" &&
+              (() => {
+                const filtered = templateLibraryOptions.filter((o) =>
+                  o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+                );
+                return (
+                  <div className="libraryGrid">
+                    {filtered.length > 0 ? (
+                      filtered.map((option, index) => (
+                        <div
+                          className="libraryWrapper"
+                          key={index}
+                          onClick={handleTemplateSelect(option)}
+                        >
+                          <img src={option.img} alt={option.name} />
+                          <span>{option.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="noResults">No templates found</div>
+                    )}
+                  </div>
+                );
+              })()}
 
-          {selectedTab === "savedTemplate" &&
-            (() => {
-              const filtered = savedTemplateOptions.filter((o) =>
-                o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
-              );
-              return (
-                <div className="savedTemplateFlex">
-                  {filtered.length > 0 ? (
-                    filtered.map((option, index) => (
-                      <div
-                        className="savedTemplateWrapper"
-                        key={index}
-                        onClick={handleTemplateSelect(option.html)}
-                      >
-                        <img src={option.img} alt={option.name} />
-                        <span>{option.name}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="noResults">No templates found</div>
-                  )}
-                </div>
-              );
-            })()}
+            {selectedTab === "savedTemplate" &&
+              (() => {
+                const filtered = savedTemplateOptions.filter((o) =>
+                  o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+                );
+                return (
+                  <div className="savedTemplateFlex">
+                    {filtered.length > 0 ? (
+                      filtered.map((option, index) => (
+                        <div
+                          className="savedTemplateWrapper"
+                          key={index}
+                          onClick={handleTemplateSelect(option)}
+                        >
+                          <img src={option.img} alt={option.name} />
+                          <span>{option.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="noResults">No templates found</div>
+                    )}
+                  </div>
+                );
+              })()}
+          </div>
         </div>
       </div>
-    </div>
+
+      <ReusableModal
+        isOpen={openConfirmModal}
+        title="Confirm Upload Template"
+        onClose={handleCancelConfirm}
+        onConfirm={handleConfirmTemplate}
+        cancelText="Cancel"
+        confirmText="Confirm & Import"
+      >
+        <div className="confirmUploadTemplateContainer">
+          <p className="confirmUploadTemplateContainerTitle">
+            Are you sure you want to{" "}
+            <span style={{ fontWeight: "600" }}>
+              upload this HTML template?
+            </span>
+          </p>
+          <p className="confirmUploadTemplateContainerTitle">
+            Your current content will be replaced with the{" "}
+            <span style={{ fontWeight: "600" }}>{pendingTemplate?.name}</span>.
+          </p>
+        </div>
+      </ReusableModal>
+    </>
   );
 }
