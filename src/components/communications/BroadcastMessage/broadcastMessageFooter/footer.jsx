@@ -6,11 +6,24 @@ import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbo
 import { useToast } from "../../../../hooks/useToast";
 import { ReusableModal } from "../../../../reusableComponents/reusableModal/index";
 
+import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
+
+const MAX_TOOLTIP_ITEMS = 9;
+const buildTooltipItems = (firstItem, additionalCount) => {
+  if (!additionalCount || additionalCount <= 0) return [];
+  const total = 1 + additionalCount;
+  const shown = Math.min(total, MAX_TOOLTIP_ITEMS);
+  const items = Array.from({ length: shown }, (_, i) =>
+    i === 0 ? firstItem : `${firstItem} ${i + 1}`
+  );
+  if (total > MAX_TOOLTIP_ITEMS) items.push(`+${total - MAX_TOOLTIP_ITEMS}`);
+  return items;
+};
 
 import "./style.scss";
 
-export default function Footer({ onBack }) {
+export default function Footer({ onBack, broadcastType = "immediate" }) {
   const toast = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
@@ -55,6 +68,93 @@ export default function Footer({ onBack }) {
 
   const toggleFilterExpansion = () => {
     setIsFilterExpanded(!isFilterExpanded);
+  };
+
+  const getModalTitle = () => {
+    switch (broadcastType) {
+      case "recurring":
+        return "Confirm Recurring Broadcast";
+      case "scheduled":
+        return "Confirm Scheduled Broadcast";
+      case "out-of-business":
+        return "Send Now - Out of Business Hours Alert";
+      default:
+        return "Confirm Immediate Broadcast";
+    }
+  };
+
+  const renderConfirmBody = () => {
+    if (broadcastType === "immediate") {
+      return (
+        <p className="confirmBroadcastModalText">
+          Are you sure you want to send this broadcast now to{" "}
+          <span className="bold">428 Patients</span>?
+          <br />
+          <br />
+          This message will be delivered immediately upon confirmation.
+          <br />
+          <br />
+          Once confirmed, this action cannot be undone.
+        </p>
+      );
+    }
+    if (broadcastType === "recurring") {
+      return (
+        <p className="confirmBroadcastModalText">
+          Are you sure you want to start this recurring broadcast on{" "}
+          <span className="bold">26 Feb 2026 at 10:30 AM</span> for{" "}
+          <span className="bold">428 Patients</span>?
+          <br />
+          <br />
+          It will repeat every Tuesday until 30th April 2026.
+          <br />
+          <br />
+          Once confirmed, this action cannot be undone.
+        </p>
+      );
+    }
+    if (broadcastType === "scheduled") {
+      return (
+        <p className="confirmBroadcastModalText">
+          Are you sure you want to schedule this broadcast for{" "}
+          <span className="bold">26 Feb 2026 at 10:30 AM</span> to{" "}
+          <span className="bold">428 Patients</span>?
+          <br />
+          <br />
+          Once confirmed, this action cannot be undone.
+        </p>
+      );
+    }
+    if (broadcastType === "out-of-business") {
+      return (
+        <p className="confirmBroadcastModalText">
+          This broadcast will be delivered outside of business hours and may
+          reach patients at late hours.
+          <br />
+          Are you sure you want to send this broadcast now to{" "}
+          <span className="bold">428 Patients</span>? This message will be
+          delivered immediately upon confirmation.
+        </p>
+      );
+    }
+    // default: "immediate-invalid"
+    return (
+      <>
+        <p className="confirmBroadcastModalText">
+          <span className="bold">Out of 428 patients, 8 </span>
+          have invalid contact records and will be excluded. Do you wish to
+          proceed?
+        </p>
+        <div className="viewInvalidPatients">
+          <p>View Invalid Patients</p>
+          <img
+            src={externalLinkIcon}
+            alt="External link icon"
+            className="externalLinkIcon"
+          />
+        </div>
+      </>
+    );
   };
 
   return (
@@ -121,7 +221,7 @@ export default function Footer({ onBack }) {
       <ReusableModal
         isOpen={isConfirmModalOpen}
         onClose={handleCancelBroadcast}
-        title="Confirm Immediate Broadcast"
+        title={getModalTitle()}
         confirmText="Confirm & Schedule"
         cancelText="Back to Editing"
         confirmBtnVariant="primary"
@@ -130,20 +230,7 @@ export default function Footer({ onBack }) {
         onCancel={handleCancelBroadcast}
       >
         <div className="confirmBroadcastModal">
-          <p className="confirmBroadcastModalText">
-            <span className="bold">Out of 428 patients, 8 </span>
-            have invalid contact records and will be excluded. Do you wish to
-            proceed?
-          </p>
-
-          <div className="viewInvalidPatients">
-            <p>View Invalid Patients</p>
-            <img
-              src={externalLinkIcon}
-              alt="External link icon"
-              className="externalLinkIcon"
-            />
-          </div>
+          {renderConfirmBody()}
 
           {/* Patient Filter Summary Section */}
           <div className="patientFilterSummary">
@@ -197,7 +284,17 @@ export default function Footer({ onBack }) {
                   <p className="filterLabel">Appointment Type</p>
                   <div className="filterValue">
                     <p>BPC-A Blood Pressure Check</p>
-                    <div className="badge">+111</div>
+                    <ReusableToolTip
+                      content={buildTooltipItems(
+                        "BPC-A Blood Pressure Check",
+                        111
+                      )}
+                      position="top"
+                    >
+                      <div className="badge" style={{ cursor: "pointer" }}>
+                        +111
+                      </div>
+                    </ReusableToolTip>
                   </div>
                 </div>
               </div>
@@ -211,7 +308,14 @@ export default function Footer({ onBack }) {
                       Eastside Urgent Care, Riverbend Urgent Care, Greenwood
                       Health Clinic, Maplewood Family Practice,
                     </p>
-                    <div className="badge">+6</div>
+                    <ReusableToolTip
+                      content={buildTooltipItems("Eastside Urgent Care", 6)}
+                      position="top"
+                    >
+                      <div className="badge" style={{ cursor: "pointer" }}>
+                        +6
+                      </div>
+                    </ReusableToolTip>
                   </div>
                 </div>
 
@@ -220,7 +324,14 @@ export default function Footer({ onBack }) {
                   <p className="filterLabel">Provider</p>
                   <div className="filterValue">
                     <p>Barbara Phillips, Olivia Smith</p>
-                    <div className="badge">+12</div>
+                    <ReusableToolTip
+                      content={buildTooltipItems("Barbara Phillips", 12)}
+                      position="top"
+                    >
+                      <div className="badge" style={{ cursor: "pointer" }}>
+                        +12
+                      </div>
+                    </ReusableToolTip>
                   </div>
                 </div>
               </div>
