@@ -22,12 +22,12 @@ import checkedRadioIcon from "../../../../../assets/commonIcons/checkedRadioIcon
 import "./style.scss";
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton/index";
 import { ReusableCheckbox } from "../../../../../reusableComponents/reusableCheckbox/index";
-import { ReusableDropDown } from "../../../../../reusableComponents/reusableDropDown";
+import { ReusableMulti } from "../../../../../reusableComponents/reusableMulti";
 
 const dateOptions = [
-  { label: "9 Mar 2026, 6 Apr 2026", value: "1" },
-  { label: "7 Apr 2026, 4 May 2026", value: "2" },
-  { label: "5 May 2026, 2 Jun 2026", value: "3" }
+  { label: "9 Mar 2026 - 6 Apr 2026", value: "1" },
+  { label: "7 Apr 2026 - 4 May 2026", value: "2" },
+  { label: "5 May 2026 - 2 Jun 2026", value: "3" }
 ];
 
 const getModesList = (modeStr) => {
@@ -182,7 +182,7 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
     return getModeSpecificStatus(broadcastData?.messageStatus, modesList);
   }, [broadcastData?.messageStatus, modesList]);
 
-  const [dateFilter, setDateFilter] = useState(dateOptions[0].value);
+  const [dateFilter, setDateFilter] = useState([]);
   const [selectedOccurrence, setSelectedOccurrence] = useState("this");
 
   const [selectedModes, setSelectedModes] = useState(() => {
@@ -341,7 +341,7 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
                     Pick any future date in the series to skip. Others continue.
                   </span>
                   {selectedOccurrence === "specific" && (
-                    <ReusableDropDown
+                    <ReusableMulti
                       greenIcon={false}
                       placeholder="Select Filter"
                       options={dateOptions}
@@ -451,7 +451,22 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
           <ReusableButton variant="primary" onClick={onClose} label="Cancel" />
           <ReusableButton
             variant="secondary"
-            onClick={onConfirm}
+            disabled={
+              selectedOccurrence === "specific" && dateFilter.length === 0
+            }
+            onClick={() => {
+              const activeModes = Object.keys(selectedModes).filter(
+                (k) => selectedModes[k]
+              );
+              const selectedDateLabels = dateOptions
+                .filter((opt) => dateFilter.includes(opt.value))
+                .map((opt) => opt.label);
+              onConfirm({
+                selectedOccurrence,
+                selectedDates: selectedDateLabels,
+                selectedModes: activeModes
+              });
+            }}
             label="Confirm"
           />
         </div>

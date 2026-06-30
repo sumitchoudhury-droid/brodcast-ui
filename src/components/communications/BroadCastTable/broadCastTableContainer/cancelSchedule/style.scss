@@ -223,6 +223,7 @@
 
           .occurrenceDetails {
             width: 100%;
+            min-width: 0;
             @include variable.d-flex($fd: column, $g: 4px);
 
             p {
