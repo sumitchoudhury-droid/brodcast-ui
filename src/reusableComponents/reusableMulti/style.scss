@@ -1,0 +1,137 @@
+@use "../../style/variable.scss" as variable;
+
+.reusableMulti {
+  @include variable.d-flex($fd: column, $al: flex-start, $jc: center, $g: 8px);
+  width: 100%;
+  position: relative;
+
+  .reusableMultiLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+
+    .required {
+      color: variable.$color-red-0;
+      margin-left: 2px;
+    }
+  }
+
+  .reusableMultiSelectContainer {
+    position: relative;
+    width: 100%;
+    border: 1px solid variable.$color-green-0;
+    border-radius: 6px;
+    background-color: variable.$color-white-0;
+    transition: all 0.2s ease;
+
+    .reusableMultiSelectValue {
+      @include variable.d-flex(
+        $fd: row,
+        $al: center,
+        $jc: space-between,
+        $g: 8px
+      );
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 16px;
+      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+
+      .reusableMultiSelectValueText {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+        color: variable.$color-green-0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .reusableMultiArrow {
+        width: 20px;
+        height: 20px;
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    .reusableMultiOptions {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background-color: variable.$color-white-0;
+      padding: 4px;
+      border: 1px solid variable.$color-white-5;
+      border-radius: 8px;
+      box-shadow: variable.$shadow-4;
+      z-index: 1000;
+      max-height: 300px;
+      overflow-y: auto;
+      animation: reusableMultiFadeIn 0.2s ease;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+
+        &:hover {
+          background: #a8a8a8;
+        }
+      }
+    }
+
+    .reusableMultiOption {
+      @include variable.d-flex($fd: row, $al: center, $jc: flex-start, $g: 8px);
+      padding: 10px 14px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: variable.$color-white-5;
+      }
+
+      .reusableMultiCheckIcon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      .reusableMultiOptionText {
+        @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+        color: variable.$color-black-8;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+}
+
+@keyframes reusableMultiFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

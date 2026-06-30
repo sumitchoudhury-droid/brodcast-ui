@@ -1032,7 +1032,7 @@ function BroadCastTableContainer({
           isOpen={!!selectedCancelRow}
           onClose={() => setSelectedCancelRow(null)}
           broadcastData={selectedCancelRow}
-          onConfirm={() => {
+          onConfirm={(cancelData) => {
             const formattedDate = ((dateTimeStr) => {
               if (!dateTimeStr) return "26 Feb 2026 at 10:30 AM";
               try {
@@ -1069,11 +1069,31 @@ function BroadCastTableContainer({
             const patientCount =
               selectedCancelRow.messageStatus?.total || "428";
 
+            const { selectedOccurrence, selectedDates, selectedModes } =
+              cancelData || {};
+
+            let occurrenceText = "";
+            if (selectedOccurrence === "this") {
+              occurrenceText = "this occurrence only";
+            } else if (selectedOccurrence === "specific") {
+              occurrenceText =
+                selectedDates?.length > 0
+                  ? `specific occurrence(s): ${selectedDates.join(", ")}`
+                  : "a specific upcoming occurrence";
+            } else if (selectedOccurrence === "all") {
+              occurrenceText = "this and all future occurrences";
+            }
+
+            const modesText =
+              selectedModes?.length > 0
+                ? selectedModes.join(", ")
+                : "all modes";
+
             // If it's the specific Row ID 9, simulate cancellation failure
             if (selectedCancelRow.id === "9") {
               toast.error(
                 "Failed to Cancel Schedule",
-                `The broadcast scheduled for ${formattedDate} could not be cancelled. Please try again.`
+                `Could not cancel ${occurrenceText} via ${modesText} for the broadcast scheduled at ${formattedDate} to ${patientCount} patients. Please try again.`
               );
             } else {
               // Simulate success and update local state to "Cancelled"
@@ -1088,9 +1108,10 @@ function BroadCastTableContainer({
                     : item
                 )
               );
+
               toast.success(
                 "Schedule Cancelled Successfully",
-                `The broadcast scheduled for ${formattedDate} to ${patientCount} patients has been cancelled.`
+                `Cancelled ${occurrenceText} via ${modesText} for the broadcast scheduled at ${formattedDate} to ${patientCount} patients.`
               );
             }
             setSelectedCancelRow(null);
