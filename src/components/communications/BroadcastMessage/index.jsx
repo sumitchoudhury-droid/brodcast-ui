@@ -26,6 +26,7 @@ const languageOptions = [
 function BroadcastMessageInner({ handleCancel }) {
   const [currentStep, setCurrentStep] = useState("setup");
   const [activeTab, setActiveTab] = useState(null);
+  const [mountedModes, setMountedModes] = useState(() => new Set());
   const { selectedModes, selectedTemplateData, setSelectedTemplateData } =
     useBroadcastForm();
 
@@ -62,7 +63,7 @@ function BroadcastMessageInner({ handleCancel }) {
         <MultipleBroadMessages
           selectedModes={selectedModes}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          mountedModes={mountedModes}
           editorRef={editorRef}
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
@@ -115,7 +116,15 @@ function BroadcastMessageInner({ handleCancel }) {
                   <button
                     key={mode}
                     className={`tab ${activeTab === mode ? "active" : ""}`}
-                    onClick={() => setActiveTab(mode)}
+                    onClick={() => {
+                      setActiveTab(mode);
+                      setMountedModes((prev) => {
+                        if (prev.has(mode)) return prev;
+                        const next = new Set(prev);
+                        next.add(mode);
+                        return next;
+                      });
+                    }}
                   >
                     {mode}
                   </button>
@@ -150,6 +159,7 @@ function BroadcastMessageInner({ handleCancel }) {
             }
             setCurrentStep("editor");
             setActiveTab(selectedModes[0]);
+            setMountedModes(new Set([selectedModes[0]]));
           }}
           handleCancel={handleCancel}
         />

@@ -5,6 +5,8 @@ import "./style.scss";
 
 function MultipleBroadMessages({
   activeTab,
+  mountedModes,
+  selectedModes,
   editorRef,
   handleLoadTemplate,
   showPlaceholders,
@@ -13,8 +15,8 @@ function MultipleBroadMessages({
   setIsEditorEmpty,
   selectedTemplate
 }) {
-  const renderContent = () => {
-    switch (activeTab) {
+  const renderEditor = (mode) => {
+    switch (mode) {
       case "Text":
         return <BroadcastTextMessage selectedTemplate={selectedTemplate} />;
       case "Email":
@@ -40,7 +42,15 @@ function MultipleBroadMessages({
 
   return (
     <div className="multipleBroadMessages">
-      <div className="tabContent">{renderContent()}</div>
+      {selectedModes.map((mode) => (
+        <div
+          key={mode}
+          className="tabContent"
+          style={{ display: activeTab === mode ? "flex" : "none" }}
+        >
+          {mountedModes.has(mode) && renderEditor(mode)}
+        </div>
+      ))}
     </div>
   );
 }
