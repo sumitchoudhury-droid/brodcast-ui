@@ -24,7 +24,11 @@ const buildTooltipItems = (firstItem, additionalCount) => {
 
 import "./style.scss";
 
-export default function Footer({ onBack, broadcastType = "immediate" }) {
+export default function Footer({
+  onBack,
+  broadcastType = "immediate",
+  disabled = false
+}) {
   const toast = useToast();
   const { selectedEmailTemplateType } = useBroadcastForm();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -174,6 +178,7 @@ export default function Footer({ onBack, broadcastType = "immediate" }) {
             }
             variant="secondary"
             onClick={handleSaveTemplate}
+            disabled={disabled}
           />
         </div>
 
@@ -187,7 +192,8 @@ export default function Footer({ onBack, broadcastType = "immediate" }) {
           <ReusableButton
             label="Send"
             variant="secondary"
-            onClick={handleSendClick} // Changed to open confirmation modal
+            onClick={handleSendClick}
+            disabled={disabled}
           />
         </div>
       </div>

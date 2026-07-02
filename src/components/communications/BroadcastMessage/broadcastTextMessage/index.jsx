@@ -4,14 +4,18 @@ import BroadcastTextMessageLeftPanel from "./broadcastTextMessageLeftPanel/index
 import BroadcastTextMessageRightPanel from "./broadcastTextMessageRightPanel/index";
 import BroadcastTextMessageEditor from "./broadcastTextMessageEditor/index";
 
-function BroadcastTextMessage({ selectedTemplate }) {
+function BroadcastTextMessage({ selectedTemplate, onEmptyChange }) {
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
   const [editorInstance, setEditorInstance] = useState(null);
 
-  const handleContentChange = useCallback((html, isEmpty) => {
-    setIsEditorEmpty(isEmpty);
-    console.log("Final HTML Content:", html);
-  }, []);
+  const handleContentChange = useCallback(
+    (html, isEmpty) => {
+      setIsEditorEmpty(isEmpty);
+      onEmptyChange?.(isEmpty);
+      console.log("Final HTML Content:", html);
+    },
+    [onEmptyChange]
+  );
 
   const handleEditorReady = useCallback((instance) => {
     setEditorInstance(instance);
