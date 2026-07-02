@@ -1,6 +1,8 @@
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 
+import infoIcon from "../../../../assets/mainScreen/infoCircle.svg";
+
 import "./style.scss";
 
 export const BroadcastDetails = ({
@@ -12,6 +14,7 @@ export const BroadcastDetails = ({
   setPriority
 }) => {
   const categoryOptions = [
+    { value: "select", label: "Select" },
     {
       value: "balance_payment_reminder",
       label: "Balance Payment Reminder"
@@ -88,7 +91,7 @@ export const BroadcastDetails = ({
             placeholder="Select Category"
             options={categoryOptions}
             value={category}
-            onChange={onCategoryChange}
+            onChange={(val) => onCategoryChange(val)}
           />
         </div>
 
@@ -103,6 +106,16 @@ export const BroadcastDetails = ({
             onChange={(val) => setPriority(val)}
             required={true}
           />
+        </div>
+
+        <div className="broadcastScheduleInfoBox">
+          <img src={infoIcon} alt="infoIcon" className="infoIcon" />
+          <p>
+            Select High for urgent communications that must reach all recipients
+            on the same day. Select Standard for routine communications that can
+            be completed during business hours and continue the next business
+            day if needed
+          </p>
         </div>
       </div>
     </div>

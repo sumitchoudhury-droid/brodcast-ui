@@ -234,7 +234,7 @@ function BroadcastPatientDetails({
           <PatientUploadFile
             onFileChange={(file) => {
               onFileChange?.(file);
-              if (file) setPatientsFoundForType("uploadFile");
+              setPatientsFoundForType(file ? "uploadFile" : null);
             }}
           />
         )}

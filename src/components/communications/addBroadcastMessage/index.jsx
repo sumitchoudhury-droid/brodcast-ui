@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./style.scss";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import { BroadcastDetails } from "./broadcastDetails/index";
@@ -9,6 +10,7 @@ import { MOCK_TEMPLATES } from "../existingTemplates/mockTemplates";
 import emailTemplate from "../existingTemplates/htmlTemplates/email.html?raw";
 import textTemplate from "../existingTemplates/htmlTemplates/textMessage.html?raw";
 import voiceTemplate from "../existingTemplates/htmlTemplates/voiceMessage.html?raw";
+import { ReusableModal } from "../../../reusableComponents/reusableModal/index";
 
 const buildTemplateData = (template) => ({
   ...template,
@@ -361,7 +363,39 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
   const handleCategoryChange = (val) => {
     setCategory(val);
     const p = getCategoryPrefill(val);
-    if (!p) return;
+    if (!p) {
+      setSelectedModes([]);
+      setPriority("standard");
+      setSelectedEmailTemplateType("blank");
+      setNewTemplateName("");
+      setSelectedTemplateType("newTemplate");
+      setExistingTemplateValues("");
+      setSelectedTemplateData(null);
+      setPatientType("targetRecipients");
+      setAppointmentType("");
+      setLocation("");
+      setProvider("");
+      setGender("all");
+      setModality("");
+      setPatientStartDateTime(new Date());
+      setPatientEndDateTime(null);
+      setAgeFilter("");
+      setAgeYear("");
+      setAgeMonth("");
+      setAgeError("");
+      setIncludeOptOut(false);
+      setPatientsFoundForType(null);
+      setBroadcastStartDate(new Date());
+      setBroadcastEndDate(null);
+      setUploadedFile(null);
+      setSendType("immediately");
+      setScheduleStartDateTime(new Date());
+      setScheduleEndDateTime(null);
+      setFrequency("Daily");
+      setRepeatType("Week");
+      setRepeatOn([]);
+      return;
+    }
     setSelectedModes(p.selectedModes);
     setPriority(p.priority);
     setSelectedEmailTemplateType(p.selectedEmailTemplateType);
@@ -432,6 +466,9 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     setSelectedTemplateData(templateData);
   };
 
+  const [showHighPriorityModal, setShowHighPriorityModal] = useState(false);
+  const [pendingTemplateData, setPendingTemplateData] = useState(null);
+
   const showRadioRow =
     !selectedModes.includes("Email") &&
     (selectedModes.includes("Text") || selectedModes.includes("Voice"));
@@ -465,6 +502,10 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
 
   return (
     <div className="addBroadcastMessage">
+      <p className="disclaimer">
+        <span>*</span> Indicates Mandatory
+      </p>
+
       <h1>Add Broadcast Message</h1>
       <div className="addBroadcastMessageContent">
         <BroadcastDetails
@@ -555,11 +596,67 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
                 ...(selectedModes.includes("Email") && { emailTemplate: "" })
               };
             }
+            if (priority === "high") {
+              setPendingTemplateData(finalTemplateData);
+              setShowHighPriorityModal(true);
+              return;
+            }
             onNext(finalTemplateData);
           }}
           disabled={!isFormValid}
         />
       </div>
+      <ReusableModal
+        isOpen={showHighPriorityModal}
+        onClose={() => setShowHighPriorityModal(false)}
+        title="High Priority Broadcast Confirmation"
+        confirmText="Yes, Send as High Priority"
+        cancelText="No, Keep Standard Priority"
+        confirmBtnVariant="primary"
+        cancelBtnVariant="secondary"
+        onConfirm={() => {
+          setShowHighPriorityModal(false);
+          onNext(pendingTemplateData);
+        }}
+        onCancel={() => {
+          setPriority("standard");
+          setShowHighPriorityModal(false);
+        }}
+      >
+        <p
+          style={{
+            margin: "0 0 8px",
+            fontSize: "16px",
+            lineHeight: "24px",
+            color: "#344054"
+          }}
+        >
+          This broadcast has been marked as <strong>High Priority</strong> and
+          will be prioritized over other patient communications.
+        </p>
+        <p
+          style={{
+            margin: "0 0 8px",
+            fontSize: "16px",
+            lineHeight: "24px",
+            color: "#344054"
+          }}
+        >
+          All eligible recipients will be processed on the scheduled day. Other
+          pending patient notifications may be delayed until this broadcast has
+          been completed.
+        </p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "16px",
+            lineHeight: "24px",
+            color: "#344054"
+          }}
+        >
+          Are you sure you want to continue?
+        </p>
+      </ReusableModal>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { ReusableInput } from "../../../../reusableComponents/reusableInput/inde
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 import { useToast } from "../../../../hooks/useToast";
 import { ReusableModal } from "../../../../reusableComponents/reusableModal/index";
+import { useBroadcastForm } from "../../broadcastFormContext";
 
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
@@ -23,8 +24,16 @@ const buildTooltipItems = (firstItem, additionalCount) => {
 
 import "./style.scss";
 
-export default function Footer({ onBack, broadcastType = "immediate" }) {
+export default function Footer({
+  onBack,
+  onCancel,
+  broadcastType = "immediate",
+  disabled = false
+}) {
   const toast = useToast();
+  const { selectedEmailTemplateType, scheduleStartDateTime, sendType } =
+    useBroadcastForm();
+  const [isOffBusinessModalOpen, setIsOffBusinessModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");
@@ -57,9 +66,30 @@ export default function Footer({ onBack, broadcastType = "immediate" }) {
     setIsConfirmModalOpen(true);
   };
 
+  const isOffBusinessHours = (date) => {
+    if (!date) return false;
+    const hours = new Date(date).getHours();
+    return hours >= 18 || hours < 6;
+  };
+
   const handleConfirmBroadcast = () => {
+    if (
+      sendType !== "immediately" &&
+      isOffBusinessHours(scheduleStartDateTime)
+    ) {
+      setIsConfirmModalOpen(false);
+      setIsOffBusinessModalOpen(true);
+      return;
+    }
     toast.success("Broadcast confirmed and scheduled");
     setIsConfirmModalOpen(false);
+    onCancel?.();
+  };
+
+  const handleOffBusinessConfirm = () => {
+    toast.success("Broadcast confirmed and scheduled");
+    setIsOffBusinessModalOpen(false);
+    onCancel?.();
   };
 
   const handleCancelBroadcast = () => {
@@ -165,23 +195,25 @@ export default function Footer({ onBack, broadcastType = "immediate" }) {
           <ReusableButton label="Back" variant="primary" onClick={onBack} />
 
           <ReusableButton
-            label="Save as Template"
+            label={
+              selectedEmailTemplateType === "blank"
+                ? "Save Template"
+                : "Save as Template"
+            }
             variant="secondary"
             onClick={handleSaveTemplate}
+            disabled={disabled}
           />
         </div>
 
         <div className="buttonBlock">
-          <ReusableButton
-            label="Cancel"
-            variant="primary"
-            onClick={() => console.log("Cancel")}
-          />
+          <ReusableButton label="Cancel" variant="primary" onClick={onCancel} />
 
           <ReusableButton
             label="Send"
             variant="secondary"
-            onClick={handleSendClick} // Changed to open confirmation modal
+            onClick={handleSendClick}
+            disabled={disabled}
           />
         </div>
       </div>
@@ -374,6 +406,31 @@ export default function Footer({ onBack, broadcastType = "immediate" }) {
             </div>
           </div>
         </div>
+      </ReusableModal>
+      {/* Off-Business Hours Modal */}
+      <ReusableModal
+        isOpen={isOffBusinessModalOpen}
+        onClose={() => setIsOffBusinessModalOpen(false)}
+        title="Off-Business Hours"
+        confirmText="Confirm"
+        cancelText="Cancel"
+        confirmBtnVariant="primary"
+        cancelBtnVariant="secondary"
+        onConfirm={handleOffBusinessConfirm}
+        onCancel={() => setIsOffBusinessModalOpen(false)}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: "16px",
+            lineHeight: "24px",
+            color: "#344054"
+          }}
+        >
+          You have scheduled broadcast message to send during off business
+          hours. Do you still want to continue scheduling? Click on Confirm to
+          continue.
+        </p>
       </ReusableModal>
     </>
   );

@@ -4,7 +4,7 @@ import BroadcastTextVoiceMessageLeftPanel from "./broadcastTextVoiceMessageLeftP
 import BroadcastTextVoiceMessageRightPanel from "./broadcastTextVoiceMessageRightPanel/index";
 import "./style.scss";
 
-function BroadcastTextVoiceMessage({ selectedTemplate }) {
+function BroadcastTextVoiceMessage({ selectedTemplate, onEmptyChange }) {
   const [content, setContent] = useState("");
   const [editorInstance, setEditorInstance] = useState(null);
 
@@ -12,11 +12,19 @@ function BroadcastTextVoiceMessage({ selectedTemplate }) {
     setEditorInstance(instance);
   }, []);
 
+  const handleContentChange = useCallback(
+    (value) => {
+      setContent(value);
+      onEmptyChange?.(!value || value.trim() === "");
+    },
+    [onEmptyChange]
+  );
+
   return (
     <div className="broadcastTexVoiceMessageContainer">
       <BroadcastTextVoiceMessageLeftPanel editorInstance={editorInstance} />
       <BroadcastTextVoiceMessageEditor
-        onContentChange={setContent}
+        onContentChange={handleContentChange}
         onReady={handleEditorReady}
         initialTemplate={selectedTemplate?.voiceTemplate}
       />

@@ -1,7 +1,7 @@
 @use "../../../style/variable.scss" as variable;
 
 .addBroadcastMessage {
-  @include variable.d-flex($al: center, $g: 12px, $fd: column);
+  @include variable.d-flex($g: 12px, $fd: column);
   position: relative;
   background-color: variable.$color-white-0;
   height: 100vh;
@@ -10,6 +10,18 @@
   padding: 16px 24px;
   overflow-y: auto;
   box-shadow: variable.$shadow-1;
+
+  .disclaimer {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 18px;
+    color: #181d25;
+
+    span {
+      color: #f04438;
+      font-size: 16px;
+    }
+  }
 
   h1 {
     width: 100%;
