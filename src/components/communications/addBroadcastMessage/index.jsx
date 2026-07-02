@@ -363,7 +363,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     const p = getCategoryPrefill(val);
     if (!p) {
       setSelectedModes([]);
-      setPriority("");
+      setPriority("standard");
       setSelectedEmailTemplateType("blank");
       setNewTemplateName("");
       setSelectedTemplateType("newTemplate");

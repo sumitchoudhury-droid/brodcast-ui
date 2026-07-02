@@ -7,7 +7,7 @@ export function BroadcastFormProvider({ children }) {
   const [selectedTemplateData, setSelectedTemplateData] = useState(null);
 
   const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("");
+  const [priority, setPriority] = useState("standard");
 
   const [sendType, setSendType] = useState("immediately");
   const [scheduleStartDateTime, setScheduleStartDateTime] = useState(
