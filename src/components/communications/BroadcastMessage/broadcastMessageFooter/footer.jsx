@@ -5,6 +5,7 @@ import { ReusableInput } from "../../../../reusableComponents/reusableInput/inde
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 import { useToast } from "../../../../hooks/useToast";
 import { ReusableModal } from "../../../../reusableComponents/reusableModal/index";
+import { useBroadcastForm } from "../../broadcastFormContext";
 
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
@@ -25,6 +26,7 @@ import "./style.scss";
 
 export default function Footer({ onBack, broadcastType = "immediate" }) {
   const toast = useToast();
+  const { selectedEmailTemplateType } = useBroadcastForm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");
@@ -165,7 +167,11 @@ export default function Footer({ onBack, broadcastType = "immediate" }) {
           <ReusableButton label="Back" variant="primary" onClick={onBack} />
 
           <ReusableButton
-            label="Save as Template"
+            label={
+              selectedEmailTemplateType === "blank"
+                ? "Save Template"
+                : "Save as Template"
+            }
             variant="secondary"
             onClick={handleSaveTemplate}
           />
