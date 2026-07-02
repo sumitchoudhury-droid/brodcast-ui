@@ -8,11 +8,14 @@ export const ReusableModal = ({
   title = "Modal Title",
   children,
   onClose,
+  onCancel,
   onConfirm,
   confirmText = "Confirm",
   cancelText = "Cancel"
 }) => {
   if (!isOpen) return null;
+
+  const handleCancel = onCancel ?? onClose;
 
   return ReactDOM.createPortal(
     <div className="reusableModal">
@@ -37,7 +40,7 @@ export const ReusableModal = ({
             <ReusableButton
               label={cancelText}
               variant="primary"
-              onClick={onClose}
+              onClick={handleCancel}
             />
           )}
           {confirmText && (
