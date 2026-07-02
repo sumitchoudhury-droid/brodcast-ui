@@ -37,7 +37,7 @@
           color: variable.$color-black-6;
         }
         span {
-          @include variable.font-style($fs: 12px, $fw: 500, $lh: 18px);
+          @include variable.font-style($fs: 16px, $fw: 500, $lh: 18px);
           color: variable.$color-red-0;
         }
       }

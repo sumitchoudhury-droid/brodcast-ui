@@ -465,6 +465,10 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
 
   return (
     <div className="addBroadcastMessage">
+      <p className="disclaimer">
+        <span>*</span> Indicates Mandatory
+      </p>
+
       <h1>Add Broadcast Message</h1>
       <div className="addBroadcastMessageContent">
         <BroadcastDetails

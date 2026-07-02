@@ -92,7 +92,7 @@
     }
 
     .required {
-      @include variable.font-style($fs: 10px, $fw: 400, $lh: 18px);
+      @include variable.font-style($fs: 16px);
       color: variable.$color-red-0;
     }
   }
