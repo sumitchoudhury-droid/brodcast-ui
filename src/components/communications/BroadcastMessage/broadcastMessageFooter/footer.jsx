@@ -31,7 +31,9 @@ export default function Footer({
   disabled = false
 }) {
   const toast = useToast();
-  const { selectedEmailTemplateType } = useBroadcastForm();
+  const { selectedEmailTemplateType, scheduleStartDateTime, sendType } =
+    useBroadcastForm();
+  const [isOffBusinessModalOpen, setIsOffBusinessModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");
@@ -64,9 +66,29 @@ export default function Footer({
     setIsConfirmModalOpen(true);
   };
 
+  const isOffBusinessHours = (date) => {
+    if (!date) return false;
+    const hours = new Date(date).getHours();
+    return hours >= 18 || hours < 6;
+  };
+
   const handleConfirmBroadcast = () => {
+    if (
+      sendType !== "immediately" &&
+      isOffBusinessHours(scheduleStartDateTime)
+    ) {
+      setIsConfirmModalOpen(false);
+      setIsOffBusinessModalOpen(true);
+      return;
+    }
     toast.success("Broadcast confirmed and scheduled");
     setIsConfirmModalOpen(false);
+    onCancel?.();
+  };
+
+  const handleOffBusinessConfirm = () => {
+    toast.success("Broadcast confirmed and scheduled");
+    setIsOffBusinessModalOpen(false);
     onCancel?.();
   };
 
@@ -384,6 +406,31 @@ export default function Footer({
             </div>
           </div>
         </div>
+      </ReusableModal>
+      {/* Off-Business Hours Modal */}
+      <ReusableModal
+        isOpen={isOffBusinessModalOpen}
+        onClose={() => setIsOffBusinessModalOpen(false)}
+        title="Off-Business Hours"
+        confirmText="Confirm"
+        cancelText="Cancel"
+        confirmBtnVariant="primary"
+        cancelBtnVariant="secondary"
+        onConfirm={handleOffBusinessConfirm}
+        onCancel={() => setIsOffBusinessModalOpen(false)}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: "16px",
+            lineHeight: "24px",
+            color: "#344054"
+          }}
+        >
+          You have scheduled broadcast message to send during off business
+          hours. Do you still want to continue scheduling? Click on Confirm to
+          continue.
+        </p>
       </ReusableModal>
     </>
   );
