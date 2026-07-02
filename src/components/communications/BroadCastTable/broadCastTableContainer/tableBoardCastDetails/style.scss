@@ -111,6 +111,125 @@
     padding-top: 24px;
     padding-bottom: 24px;
     @include variable.d-flex($fd: column, $g: 20px);
+
+    h3 {
+      color: #606e80;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+    }
+
+    hr {
+      width: 100%;
+      height: 0;
+      border: 0.5px solid #e1e5ea;
+    }
+
+    .occurCancelled {
+      width: 100%;
+      display: flex;
+      padding: 12px;
+      flex-direction: column;
+      gap: 8px;
+      border-radius: 8px;
+      border: 1px dashed #f97066;
+      background: #fffbfa;
+
+      .topLayer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        span {
+          color: #f04438;
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 20px;
+        }
+      }
+
+      p {
+        color: #f04438;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 20px;
+
+        span {
+          font-weight: 500;
+        }
+      }
+    }
+
+    .cancelledCard {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e1e5ea;
+      background: #fff;
+
+      .left {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .topLeft {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          img {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+          }
+          .dateP {
+            color: #404b5a;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 20px;
+          }
+        }
+
+        p {
+          color: #929fb1;
+          font-size: 12px;
+          font-weight: 400;
+        }
+      }
+
+      .right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .modeCard {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 16px;
+          border-radius: 16px;
+          border: 1px solid #e1e5ea;
+          background: #fff;
+
+          img {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+          }
+
+          span {
+            color: #404b5a;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 20px;
+          }
+        }
+      }
+    }
+
     .detailRow {
       width: 100%;
       @include variable.d-flex($al: flex-start);
@@ -313,50 +432,45 @@
     }
 
     .statusListRow {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .labelCol {
+        color: variable.$color-white-12;
+        @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+      }
+
       .messageStatusList {
-        @include variable.d-flex($fd: column, $g: 12px);
+        @include variable.d-flex($fd: column, $g: 8px);
 
         .modeStatusGroup {
-          background-color: variable.$color-white-13;
-          border: 1.5px solid variable.$color-white-6;
-          border-radius: 8px;
-          padding: 12px 16px;
-          width: 100%;
+          padding: 10px 0;
           box-sizing: border-box;
-          margin-bottom: 12px;
           width: 100%;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
+          display: flex;
+          align-items: center;
+          gap: 10px;
 
           .modeStatusHeader {
-            @include variable.font-style($fs: 12px, $fw: 600, $lh: 18px);
-            color: variable.$color-green-0;
-            margin-bottom: 10px;
-            padding-bottom: 6px;
-            border-bottom: 1px dashed variable.$color-white-6;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            width: 288px;
+            @include variable.font-style($fs: 12px, $fw: 600, $lh: 20px);
+            color: #404b5a;
           }
 
           .statusItem {
-            @include variable.d-flex($al: center, $jc: space-between);
-            margin-bottom: 8px;
-
-            &:last-child {
-              margin-bottom: 0;
-            }
+            @include variable.d-flex($al: center, $g: 30px);
 
             .statusLabel {
-              @include variable.d-flex($al: center, $g: 8px);
+              @include variable.d-flex($al: center, $g: 5px);
               span {
-                @include variable.font-style($fs: 13px, $fw: 500, $lh: 18px);
-                color: variable.$color-black-5;
+                @include variable.font-style($fs: 12px, $fw: 500, $lh: 20px);
+                color: #181d25;
               }
               img {
-                width: 14px;
-                height: 14px;
+                width: 12px;
+                height: 12px;
               }
             }
 

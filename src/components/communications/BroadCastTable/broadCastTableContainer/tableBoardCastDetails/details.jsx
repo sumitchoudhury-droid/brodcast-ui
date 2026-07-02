@@ -11,6 +11,11 @@ import runningWeeklyIcon from "../../../../../assets/boardCastTableIcons/running
 import failedIcon from "../../../../../assets/boardCastTableIcons/failedIcon.svg";
 import cancelledIcon from "../../../../../assets/boardCastTableIcons/cancelledIcon.svg";
 import cancelIcon from "../../../../../assets/boardCastTableIcons/cancelIcon.svg";
+import warningRedIcon from "../../../../../assets/commonIcons/warningRedIcon.svg";
+import cancelRedIcon from "../../../../../assets/commonIcons/cancelRedIcon.svg";
+import emailIcon from "../../../../../assets/existingTemplate/mail.svg";
+import textIcon from "../../../../../assets/existingTemplate/message.svg";
+import voiceIcon from "../../../../../assets/existingTemplate/phone.svg";
 
 import "./style.scss";
 
@@ -294,6 +299,7 @@ export default function Details({ broadcastData }) {
   return (
     <div className="tabContentDetails">
       {/* Mode */}
+      <h3>CONFIGURATIONS</h3>
       <div className="detailRow">
         <div className="labelCol">Mode</div>
         <div className="valueCol modeVal">
@@ -390,102 +396,6 @@ export default function Details({ broadcastData }) {
             <div className="labelCol">File Created on</div>
             <div className="valueCol">3/01/2026 04:32:00 PM</div>
           </div>
-
-          {/* Schedule Type */}
-          <div className="detailRow">
-            <div className="labelCol">Schedule Type</div>
-            <div className="valueCol">{scheduleType}</div>
-          </div>
-
-          {/* Repeat */}
-          {isRecurring && (
-            <div className="detailRow">
-              <div className="labelCol">Repeat</div>
-              <div className="valueCol">{repeatText}</div>
-            </div>
-          )}
-
-          {/* Schedule Start Date/Time */}
-          <div className="detailRow">
-            <div className="labelCol">Schedule Start Date/Time</div>
-            <div className="valueCol">{scheduledDateTime}</div>
-          </div>
-
-          {/* Schedule End Date */}
-          {isRecurring && (
-            <div className="detailRow">
-              <div className="labelCol">Schedule End Date</div>
-              <div className="valueCol">5/31/2026</div>
-            </div>
-          )}
-
-          {/* Message Status */}
-          <div className="detailRow statusListRow">
-            <div className="labelCol">Message Status</div>
-            <div className="valueCol messageStatusList">
-              {modesList.map((modeName) => {
-                const counts = modeSpecificCounts[modeName] || {};
-                return (
-                  <div key={modeName} className="modeStatusGroup">
-                    <div className="modeStatusHeader">{modeName} Mode</div>
-                    <div className="statusItem">
-                      <div className="statusLabel">
-                        <img src={broadcastIcon} alt="Total" />
-                        <span>Total Message</span>
-                      </div>
-                      <div className="statusValue">{counts.total || "-"}</div>
-                    </div>
-                    <div className="statusItem">
-                      <div className="statusLabel">
-                        <img src={completedGreenIcon} alt="Success" />
-                        <span>Success</span>
-                      </div>
-                      <div className="statusValue">
-                        {counts.delivered || "-"}
-                      </div>
-                    </div>
-                    <div className="statusItem">
-                      <div className="statusLabel">
-                        <img src={failedRedIcon} alt="Failed" />
-                        <span>Failed</span>
-                      </div>
-                      <div className="statusValue">{counts.failed || "-"}</div>
-                    </div>
-                    <div className="statusItem">
-                      <div className="statusLabel">
-                        {isCancelled ? (
-                          <img src={cancelIcon} alt="Cancelled" />
-                        ) : (
-                          <img src={pendingYellowIcon} alt="Pending" />
-                        )}
-                        <span>{isCancelled ? "Cancelled" : "Pending"}</span>
-                      </div>
-                      <div className="statusValue">{counts.pending || "-"}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Broadcast Status */}
-          <div className="detailRow">
-            <div className="labelCol">Broadcast Status</div>
-            <div className="valueCol">
-              {broadcastStatus && (
-                <div className={`status-badge ${colorClass}`}>
-                  {iconSrc && (
-                    <img
-                      src={iconSrc}
-                      alt={broadcastStatus}
-                      style={{ width: "12px", height: "12px" }}
-                    />
-                  )}
-                  {broadcastStatus}
-                </div>
-              )}
-            </div>
-          </div>
         </>
       ) : (
         /* TARGET RECIPIENTS LAYOUT */
@@ -545,6 +455,149 @@ export default function Details({ broadcastData }) {
           </div>
         </>
       )}
+      <hr />
+
+      <h3>SCHEDULE</h3>
+
+      {/* Schedule Type */}
+      <div className="detailRow">
+        <div className="labelCol">Schedule Type</div>
+        <div className="valueCol">{scheduleType}</div>
+      </div>
+
+      {/* Repeat */}
+      {isRecurring && (
+        <div className="detailRow">
+          <div className="labelCol">Repeat</div>
+          <div className="valueCol">{repeatText}</div>
+        </div>
+      )}
+
+      {/* Schedule Start Date/Time */}
+      <div className="detailRow">
+        <div className="labelCol">Schedule Start Date/Time</div>
+        <div className="valueCol">{scheduledDateTime}</div>
+      </div>
+
+      {/* Schedule End Date */}
+      {isRecurring && (
+        <div className="detailRow">
+          <div className="labelCol">Schedule End Date</div>
+          <div className="valueCol">5/31/2026</div>
+        </div>
+      )}
+
+      {isCancelled && (
+        <>
+          <div className="occurCancelled">
+            <div className="topLayer">
+              <img src={warningRedIcon} alt="warningRedIcon" />
+              <span>2 Occurrences Cancelled</span>
+            </div>
+            <p>
+              <span>
+                Only Mail and Voice messages are cancelled for the selected
+                occurrences.
+              </span>{" "}
+              Text messages will still be sent, and all three modes will
+              continue as scheduled for subsequent occurrences.
+            </p>
+          </div>
+
+          <div className="cancelledCard">
+            <div className="left">
+              <div className="topLeft">
+                <img src={cancelRedIcon} alt="cancelRedIcon" />
+                <p className="dateP">2 Mar 2026, 10:30 AM</p>
+              </div>
+              <p>
+                Mail and Voice messages were cancelled for this occurrence. Text
+                messages will be sent as scheduled.
+              </p>
+            </div>
+            <div className="right">
+              {[
+                { icon: emailIcon, label: "Mail" },
+                { icon: textIcon, label: "Text" },
+                { icon: voiceIcon, label: "Voice" }
+              ].map(({ icon, label }) => (
+                <div key={label} className="modeCard">
+                  <img src={icon} alt={label} />
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="detailRow">
+        <div className="labelCol">Next Occurrence:</div>
+        <div className="valueCol">2 May 2026 10:30 AM</div>
+      </div>
+
+      <hr />
+
+      <h3>STATUS</h3>
+
+      {/* Broadcast Status */}
+      <div className="detailRow">
+        <div className="labelCol">Broadcast Status</div>
+        <div className="valueCol">
+          {broadcastStatus && (
+            <div className={`status-badge ${colorClass}`}>
+              {iconSrc && (
+                <img
+                  src={iconSrc}
+                  alt={broadcastStatus}
+                  style={{ width: "12px", height: "12px" }}
+                />
+              )}
+              {broadcastStatus}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Message Status */}
+      <div className="statusListRow">
+        <div className="labelCol">Message Status</div>
+        <div className="valueCol messageStatusList">
+          {modesList.map((modeName) => {
+            const counts = modeSpecificCounts[modeName] || {};
+            return (
+              <div key={modeName} className="modeStatusGroup">
+                <div className="modeStatusHeader">{modeName}</div>
+                <div className="statusItem">
+                  <div className="statusLabel">
+                    <img src={broadcastIcon} alt="Total" />
+                    <div className="statusValue">{counts.total || "-"}</div>
+                  </div>
+
+                  <div className="statusLabel">
+                    <img src={completedGreenIcon} alt="Success" />
+                    <div className="statusValue">{counts.delivered || "-"}</div>
+                  </div>
+
+                  <div className="statusLabel">
+                    <img src={failedRedIcon} alt="Failed" />
+                    <div className="statusValue">{counts.failed || "-"}</div>
+                  </div>
+
+                  <div className="statusLabel">
+                    {isCancelled ? (
+                      <img src={cancelIcon} alt="Cancelled" />
+                    ) : (
+                      <img src={pendingYellowIcon} alt="Pending" />
+                    )}
+                    <div className="statusValue">{counts.pending || "-"}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
