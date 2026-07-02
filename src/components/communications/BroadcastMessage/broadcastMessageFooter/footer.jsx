@@ -26,6 +26,7 @@ import "./style.scss";
 
 export default function Footer({
   onBack,
+  onCancel,
   broadcastType = "immediate",
   disabled = false
 }) {
@@ -183,11 +184,7 @@ export default function Footer({
         </div>
 
         <div className="buttonBlock">
-          <ReusableButton
-            label="Cancel"
-            variant="primary"
-            onClick={() => console.log("Cancel")}
-          />
+          <ReusableButton label="Cancel" variant="primary" onClick={onCancel} />
 
           <ReusableButton
             label="Send"

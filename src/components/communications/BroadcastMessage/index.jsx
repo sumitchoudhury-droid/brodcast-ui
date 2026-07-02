@@ -179,7 +179,11 @@ function BroadcastMessageInner({ handleCancel }) {
 
           {/* Footer */}
           <div className="footerContainer">
-            <Footer onBack={handleBack} disabled={hasEmptyEditor} />
+            <Footer
+              onBack={handleBack}
+              onCancel={handleCancel}
+              disabled={hasEmptyEditor}
+            />
           </div>
         </div>
       ) : (
