@@ -361,7 +361,39 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
   const handleCategoryChange = (val) => {
     setCategory(val);
     const p = getCategoryPrefill(val);
-    if (!p) return;
+    if (!p) {
+      setSelectedModes([]);
+      setPriority("");
+      setSelectedEmailTemplateType("blank");
+      setNewTemplateName("");
+      setSelectedTemplateType("newTemplate");
+      setExistingTemplateValues("");
+      setSelectedTemplateData(null);
+      setPatientType("targetRecipients");
+      setAppointmentType("");
+      setLocation("");
+      setProvider("");
+      setGender("all");
+      setModality("");
+      setPatientStartDateTime(new Date());
+      setPatientEndDateTime(null);
+      setAgeFilter("");
+      setAgeYear("");
+      setAgeMonth("");
+      setAgeError("");
+      setIncludeOptOut(false);
+      setPatientsFoundForType(null);
+      setBroadcastStartDate(new Date());
+      setBroadcastEndDate(null);
+      setUploadedFile(null);
+      setSendType("immediately");
+      setScheduleStartDateTime(new Date());
+      setScheduleEndDateTime(null);
+      setFrequency("Daily");
+      setRepeatType("Week");
+      setRepeatOn([]);
+      return;
+    }
     setSelectedModes(p.selectedModes);
     setPriority(p.priority);
     setSelectedEmailTemplateType(p.selectedEmailTemplateType);

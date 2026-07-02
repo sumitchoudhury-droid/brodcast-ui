@@ -12,6 +12,7 @@ export const BroadcastDetails = ({
   setPriority
 }) => {
   const categoryOptions = [
+    { value: "select", label: "Select" },
     {
       value: "balance_payment_reminder",
       label: "Balance Payment Reminder"
@@ -88,7 +89,7 @@ export const BroadcastDetails = ({
             placeholder="Select Category"
             options={categoryOptions}
             value={category}
-            onChange={onCategoryChange}
+            onChange={(val) => onCategoryChange(val)}
           />
         </div>
 
