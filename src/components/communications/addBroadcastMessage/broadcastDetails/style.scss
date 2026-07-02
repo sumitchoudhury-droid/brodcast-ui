@@ -25,6 +25,21 @@
     gap: 20px;
     padding: 0px 24px 18px 24px;
 
+    .broadcastScheduleInfoBox {
+      grid-column: 1 / -1;
+      @include variable.d-flex($al: center, $g: 8px);
+
+      .infoIcon {
+        width: 18px;
+        height: 18px;
+      }
+      p {
+        @include variable.font-style($fs: 14px, $fw: 400, $lh: 20px);
+        color: variable.$color-black-7;
+        margin: 0;
+      }
+    }
+
     .broadcastDetailsContentRow {
       width: 100%;
       @include variable.d-flex($g: 12px, $fd: column);
