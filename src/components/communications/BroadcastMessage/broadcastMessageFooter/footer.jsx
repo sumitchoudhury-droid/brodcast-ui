@@ -67,6 +67,7 @@ export default function Footer({
   const handleConfirmBroadcast = () => {
     toast.success("Broadcast confirmed and scheduled");
     setIsConfirmModalOpen(false);
+    onCancel?.();
   };
 
   const handleCancelBroadcast = () => {
