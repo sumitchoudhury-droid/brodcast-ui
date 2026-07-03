@@ -186,6 +186,11 @@
       background-color: #f1f5f9;
     }
 
+    &.row-highlight {
+      background-color: #d1e9ff;
+      transition: background-color 1s ease;
+    }
+
     &.row-error {
       background-color: #fee2e2;
       position: relative;

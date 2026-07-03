@@ -27,7 +27,7 @@ export const queryClient = new QueryClient({
 
 export const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
-  "https://cademo.hacheckinasyst.com:20056/";
+  "https://cademo.hacheckinasyst.com:20056";
 
 export async function handleResponse(res) {
   if (!res.ok) {
