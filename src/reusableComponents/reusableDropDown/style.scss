@@ -11,6 +11,9 @@
     color: #333;
     margin-bottom: 4px;
     max-height: 17px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 
     .required {
       color: variable.$color-red-0;

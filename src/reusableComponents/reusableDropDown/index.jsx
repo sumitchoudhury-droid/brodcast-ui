@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import greenDownArrow from "../../assets/mainScreen/greenChevronRight.svg";
 import downArrow from "../../assets/mainScreen/chevronRight.svg";
+import infoIcon from "../../assets/mainScreen/infoCircle.svg";
+import { ReusableToolTip } from "../reusableToolTip/index";
 import "./style.scss";
 
 export function ReusableDropDown({
@@ -13,7 +15,8 @@ export function ReusableDropDown({
   greenIcon = true,
   required = false,
   overWriteClassName = "",
-  maxWidth = "100%"
+  maxWidth = "100%",
+  info = false
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -51,7 +54,20 @@ export function ReusableDropDown({
     >
       {label && (
         <label className="dropdownLabel">
-          {label} {required && <span className="required">*</span>}
+          {label} {required && <span className="required">*</span>}{" "}
+          {info && (
+            <ReusableToolTip
+              content="Select High for urgent communications that must reach all recipients on the same day. Select Standard for routine communications that can be completed during business hours and continue the next business day if needed."
+              position="top"
+            >
+              <img
+                src={infoIcon}
+                alt="infoIcon"
+                className="infoIcon"
+                style={{ cursor: "pointer" }}
+              />
+            </ReusableToolTip>
+          )}
         </label>
       )}
       <div

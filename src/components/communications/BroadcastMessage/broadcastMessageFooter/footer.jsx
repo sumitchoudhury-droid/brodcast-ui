@@ -33,7 +33,6 @@ export default function Footer({
   const toast = useToast();
   const { selectedEmailTemplateType, scheduleStartDateTime, sendType } =
     useBroadcastForm();
-  const [isOffBusinessModalOpen, setIsOffBusinessModalOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");
@@ -72,23 +71,12 @@ export default function Footer({
     return hours >= 18 || hours < 6;
   };
 
+  const isOffBusiness =
+    sendType !== "immediately" && isOffBusinessHours(scheduleStartDateTime);
+
   const handleConfirmBroadcast = () => {
-    if (
-      sendType !== "immediately" &&
-      isOffBusinessHours(scheduleStartDateTime)
-    ) {
-      setIsConfirmModalOpen(false);
-      setIsOffBusinessModalOpen(true);
-      return;
-    }
     toast.success("Broadcast confirmed and scheduled");
     setIsConfirmModalOpen(false);
-    onCancel?.();
-  };
-
-  const handleOffBusinessConfirm = () => {
-    toast.success("Broadcast confirmed and scheduled");
-    setIsOffBusinessModalOpen(false);
     onCancel?.();
   };
 
@@ -101,19 +89,33 @@ export default function Footer({
   };
 
   const getModalTitle = () => {
+    if (isOffBusiness) return "Send Now – Out of Business Hours Alert";
     switch (broadcastType) {
       case "recurring":
         return "Confirm Recurring Broadcast";
       case "scheduled":
         return "Confirm Scheduled Broadcast";
-      case "out-of-business":
-        return "Send Now - Out of Business Hours Alert";
       default:
         return "Confirm Immediate Broadcast";
     }
   };
 
   const renderConfirmBody = () => {
+    if (isOffBusiness) {
+      return (
+        <p className="confirmBroadcastModalText">
+          This broadcast will be delivered outside of business hours and may{" "}
+          <span className="bold">reach patients at late hours.</span>
+          <br />
+          <br />
+          Are you sure you want to{" "}
+          <span className="bold">
+            send this broadcast now to 428 Patients?
+          </span>{" "}
+          This message will be delivered immediately upon confirmation.
+        </p>
+      );
+    }
     if (broadcastType === "immediate") {
       return (
         <p className="confirmBroadcastModalText">
@@ -152,18 +154,6 @@ export default function Footer({
           <br />
           <br />
           Once confirmed, this action cannot be undone.
-        </p>
-      );
-    }
-    if (broadcastType === "out-of-business") {
-      return (
-        <p className="confirmBroadcastModalText">
-          This broadcast will be delivered outside of business hours and may
-          reach patients at late hours.
-          <br />
-          Are you sure you want to send this broadcast now to{" "}
-          <span className="bold">428 Patients</span>? This message will be
-          delivered immediately upon confirmation.
         </p>
       );
     }
@@ -406,31 +396,6 @@ export default function Footer({
             </div>
           </div>
         </div>
-      </ReusableModal>
-      {/* Off-Business Hours Modal */}
-      <ReusableModal
-        isOpen={isOffBusinessModalOpen}
-        onClose={() => setIsOffBusinessModalOpen(false)}
-        title="Off-Business Hours"
-        confirmText="Confirm"
-        cancelText="Cancel"
-        confirmBtnVariant="primary"
-        cancelBtnVariant="secondary"
-        onConfirm={handleOffBusinessConfirm}
-        onCancel={() => setIsOffBusinessModalOpen(false)}
-      >
-        <p
-          style={{
-            margin: 0,
-            fontSize: "16px",
-            lineHeight: "24px",
-            color: "#344054"
-          }}
-        >
-          You have scheduled broadcast message to send during off business
-          hours. Do you still want to continue scheduling? Click on Confirm to
-          continue.
-        </p>
       </ReusableModal>
     </>
   );
