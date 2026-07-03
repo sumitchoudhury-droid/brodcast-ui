@@ -63,11 +63,10 @@
     .filterSummaryHeader {
       @include variable.d-flex($fd: row, $al: center, $jc: space-between);
       cursor: pointer;
-      border-bottom: 1px solid variable.$color-white-5;
-      background-color: variable.$color-white-0;
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-      padding: 16px 0px;
+      border-radius: 12px;
+      border: 1px dashed #eaedf2;
+      background: #fcfcfd;
+      padding: 16px;
 
       p {
         @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
@@ -77,9 +76,10 @@
 
       .chevronIcon {
         transition: transform 0.3s ease;
+        transform: rotate(180deg);
 
         &.expanded {
-          transform: rotate(180deg);
+          transform: rotate(0deg);
         }
       }
     }
