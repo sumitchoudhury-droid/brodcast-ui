@@ -187,7 +187,8 @@ function BroadCastTableContainer({
   selectedDateRange,
   bulkCancelOpen,
   setBulkCancelOpen,
-  onSelectionChange
+  onSelectionChange,
+  highlightFirstRow = false
 }) {
   const toast = useToast();
   const [data, setData] = useState(mockData);
@@ -981,12 +982,14 @@ function BroadCastTableContainer({
               </td>
             </tr>
           ) : (
-            table.getRowModel().rows.map((row) => (
+            table.getRowModel().rows.map((row, rowIndex) => (
               <tr
                 key={row.id}
                 className={`${row.original.broadcastStatus === "Failed" ? "row-error" : ""} ${
                   row.original.isDisabled ? "row-disabled" : ""
-                } ${activeMenuId === row.original.id ? "row-active-menu" : ""}`}
+                } ${activeMenuId === row.original.id ? "row-active-menu" : ""} ${
+                  highlightFirstRow && rowIndex === 0 ? "row-highlight" : ""
+                }`}
               >
                 {row.getVisibleCells().map((cell) => {
                   const isInteractiveColumn =

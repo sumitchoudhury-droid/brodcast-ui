@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import BroadCastTableContainer from "./broadCastTableContainer/index.jsx";
 import BroadCastTableHeader from "./broadCastTableHeader/index.jsx";
 import BroadCastTablePagination from "./broadCastTablePagination/index.jsx";
@@ -21,11 +21,23 @@ export default function BroadCastTable({
   });
   const [selectedBroadcasts, setSelectedBroadcasts] = useState([]);
   const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
+  const [highlightFirstRow, setHighlightFirstRow] = useState(false);
+  const highlightTimerRef = useRef(null);
+
+  const handleScheduleConfirmed = useCallback(() => {
+    setAddScheduleModal(false);
+    setHighlightFirstRow(true);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(
+      () => setHighlightFirstRow(false),
+      3000
+    );
+  }, [setAddScheduleModal]);
 
   return (
     <>
       {addScheduleModal ? (
-        <BroadcastMessage handleCancel={() => setAddScheduleModal(false)} />
+        <BroadcastMessage handleCancel={handleScheduleConfirmed} />
       ) : (
         <div className="broadcastTable">
           <div className="broadcastTableHeader">
@@ -58,6 +70,7 @@ export default function BroadCastTable({
               bulkCancelOpen={bulkCancelOpen}
               setBulkCancelOpen={setBulkCancelOpen}
               onSelectionChange={setSelectedBroadcasts}
+              highlightFirstRow={highlightFirstRow}
             />
           </div>
           <div className="broadcastTablePagination">
