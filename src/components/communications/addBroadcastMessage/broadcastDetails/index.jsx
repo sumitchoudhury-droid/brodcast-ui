@@ -1,8 +1,6 @@
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 
-import infoIcon from "../../../../assets/mainScreen/infoCircle.svg";
-
 import "./style.scss";
 
 export const BroadcastDetails = ({
@@ -105,17 +103,8 @@ export const BroadcastDetails = ({
             value={priority}
             onChange={(val) => setPriority(val)}
             required={true}
+            info={true}
           />
-        </div>
-
-        <div className="broadcastScheduleInfoBox">
-          <img src={infoIcon} alt="infoIcon" className="infoIcon" />
-          <p>
-            Select High for urgent communications that must reach all recipients
-            on the same day. Select Standard for routine communications that can
-            be completed during business hours and continue the next business
-            day if needed
-          </p>
         </div>
       </div>
     </div>

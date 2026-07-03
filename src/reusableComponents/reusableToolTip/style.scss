@@ -23,7 +23,7 @@
   font-family: "Inter", sans-serif;
   padding: 8px 12px;
   width: max-content;
-  max-width: 280px;
+  max-width: 320px;
 
   &.is-visible {
     opacity: 1;
@@ -110,8 +110,9 @@
 
   .tooltip-text {
     @include variable.font-style($fs: 13px, $fw: 500, $lh: 18px);
-    text-align: center;
-    white-space: nowrap;
+    text-align: left;
+    white-space: normal;
+    word-wrap: break-word;
   }
 
   .tooltip-pair {

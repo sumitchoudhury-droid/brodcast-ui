@@ -1,7 +1,7 @@
 @use "../../../style/variable.scss" as variable;
 
 .addBroadcastMessage {
-  @include variable.d-flex($g: 12px, $fd: column);
+  @include variable.d-flex($g: 12px, $fd: column, $al: flex-end);
   position: relative;
   background-color: variable.$color-white-0;
   height: 100vh;
@@ -11,23 +11,27 @@
   overflow-y: auto;
   box-shadow: variable.$shadow-1;
 
-  .disclaimer {
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 18px;
-    color: #181d25;
-
-    span {
-      color: #f04438;
-      font-size: 16px;
-    }
-  }
-
-  h1 {
+  .disc {
     width: 100%;
-    @include variable.font-style($fs: 24px, $fw: 600, $lh: 32px);
-    color: variable.$color-black-6;
-    margin-bottom: 12px;
+    @include variable.d-flex($g: 20px, $al: center, $jc: space-between);
+
+    .disclaimer {
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 18px;
+      color: #888e9e;
+
+      span {
+        color: #f04438;
+        font-size: 16px;
+      }
+    }
+
+    h1 {
+      @include variable.font-style($fs: 24px, $fw: 600, $lh: 32px);
+      color: variable.$color-black-6;
+      margin-bottom: 12px;
+    }
   }
 
   .addBroadcastMessageContent {
