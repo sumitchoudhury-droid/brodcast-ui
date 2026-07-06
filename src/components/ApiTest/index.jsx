@@ -4,7 +4,7 @@ import { BASE_URL } from "../../api/api.jsx";
 const HEADERS = {
   TenantId: "tenant-001",
   OrganizationId: "1",
-  "X-Correlation-ID": "test-001"
+  "X-Correlation-ID": "postman-test-001"
 };
 
 const ENDPOINTS = [

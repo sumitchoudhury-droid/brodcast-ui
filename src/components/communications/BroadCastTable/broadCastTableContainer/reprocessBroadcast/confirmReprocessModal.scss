@@ -16,4 +16,79 @@
     @include variable.font-style($fs: 16px, $fw: 400, $lh: 24px);
     color: variable.$color-black-6;
   }
+
+  .reprocessMeta {
+    width: 100%;
+    @include variable.d-flex($g: 20px);
+    background: #f6f7f9;
+    border-radius: 8px;
+    border: 1px solid #eaedf2;
+    padding: 12px 16px;
+
+    .metaRow {
+      @include variable.d-flex($al: center, $g: 6px);
+
+      .metaLabel {
+        @include variable.font-style($fs: 13px, $fw: 500, $lh: 20px);
+        color: variable.$color-black-5;
+      }
+
+      .metaValue {
+        @include variable.font-style($fs: 13px, $fw: 600, $lh: 20px);
+        color: variable.$color-black-6;
+      }
+    }
+  }
+
+  .messageStatus {
+    @include variable.d-flex($fd: column, $g: 10px);
+    width: 100%;
+
+    .messageStatusTitle {
+      @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+      color: variable.$color-black-6;
+    }
+
+    .statusGrid {
+      @include variable.d-flex($g: 20px);
+      width: 100%;
+
+      .statusItem {
+        @include variable.d-flex(
+          $fd: column,
+          $al: center,
+          $jc: center,
+          $g: 4px
+        );
+        flex: 1;
+        padding: 12px 8px;
+        border-radius: 8px;
+
+        .statusCount {
+          @include variable.font-style($fs: 22px, $fw: 700, $lh: 28px);
+          color: #181d25;
+        }
+
+        .statusLabel {
+          @include variable.font-style($fs: 12px, $fw: 500, $lh: 16px);
+          color: #667085;
+        }
+
+        &.emailStatus {
+          border-radius: 8px;
+          border: 1px solid #eaedf2;
+        }
+
+        &.textStatus {
+          border-radius: 8px;
+          border: 1px solid #eaedf2;
+        }
+
+        &.voiceStatus {
+          border-radius: 8px;
+          border: 1px solid #eaedf2;
+        }
+      }
+    }
+  }
 }
