@@ -217,6 +217,22 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
     );
   }, [patients]);
 
+  const reprocessStats = useMemo(() => {
+    const selectedPatients =
+      selectedIds.size === 0
+        ? patients
+        : patients.filter((p) => selectedIds.has(p.id));
+    return {
+      email: selectedPatients.filter((p) => p.notificationMethod === "Email")
+        .length,
+      text: selectedPatients.filter((p) => p.notificationMethod === "Text")
+        .length,
+      voice: selectedPatients.filter((p) => p.notificationMethod === "Voice")
+        .length,
+      total: selectedPatients.length
+    };
+  }, [patients, selectedIds]);
+
   const handleReprocessSubmit = () => {
     if (selectedIds.size === 0 && !allPatientsValid) {
       toast.error(
@@ -616,9 +632,9 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
           onConfirm={handleConfirmReprocess}
-          patientCount={
-            selectedIds.size === 0 ? patients.length : selectedIds.size
-          }
+          patientCount={reprocessStats.total}
+          stats={reprocessStats}
+          reprocessDateTime={new Date()}
         />
       )}
     </>,
