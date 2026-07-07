@@ -29,6 +29,12 @@ export const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
   "https://cademo.hacheckinasyst.com:20056";
 
+export const COMMON_HEADERS = {
+  TenantId: "tenant-001",
+  OrganizationId: "1",
+  "X-Correlation-ID": "postman-test-001"
+};
+
 export async function handleResponse(res) {
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
