@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { BASE_URL, handleResponse } from "../api/api.jsx";
+import { BASE_URL, COMMON_HEADERS, handleResponse } from "../api/api.jsx";
 
 export function useGet(queryKey, endpoint, params, options = {}) {
   return useQuery({
@@ -10,7 +10,7 @@ export function useGet(queryKey, endpoint, params, options = {}) {
         Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
       }
       const res = await fetch(url.toString(), {
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json", ...COMMON_HEADERS }
       });
       return handleResponse(res);
     },

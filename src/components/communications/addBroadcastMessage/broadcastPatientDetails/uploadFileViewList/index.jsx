@@ -28,6 +28,20 @@ const isPhoneInvalid = (phone) => {
 
 const isError = (patient) => patient.reason && patient.reason !== "-";
 
+const formatDob = (value) => {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
+
+const formatPhone = (value) => {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits.length ? `(${digits}` : "";
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
 const SortIcon = ({ columnKey, sortConfig }) => {
   const isActive = sortConfig.key === columnKey;
   const direction = isActive ? sortConfig.direction : null;
@@ -76,26 +90,16 @@ const emptyFilters = {
   firstName: "",
   lastName: "",
   dob: "",
-  appointmentDateTime: "",
   phone: "",
   email: ""
 };
 
 const exportToExcel = (patients, fileName) => {
   const rows = patients.map(
-    ({
-      firstName,
-      lastName,
-      dob,
-      appointmentDateTime,
-      phone,
-      email,
-      reason
-    }) => ({
+    ({ firstName, lastName, dob, phone, email, reason }) => ({
       "First Name": firstName,
       "Last Name": lastName,
       "Date of Birth": dob,
-      "Appointment Date/Time": appointmentDateTime,
       "Phone Number": phone,
       Email: email,
       Reason: reason === "-" ? "" : reason
@@ -119,7 +123,6 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
     firstName: "",
     lastName: "",
     dob: "",
-    appointmentDateTime: "",
     phone: "",
     email: "",
     reason: "-"
@@ -209,7 +212,15 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
 
   const handleNewPatientChange = (field, value) => {
     setNewPatient((prev) => {
-      const updated = { ...prev, [field]: value };
+      const updated = {
+        ...prev,
+        [field]:
+          field === "dob"
+            ? formatDob(value)
+            : field === "phone"
+              ? formatPhone(value)
+              : value
+      };
       const emailErr = isEmailInvalid(updated.email);
       const phoneErr = isPhoneInvalid(updated.phone);
       if (!emailErr && !phoneErr) updated.reason = "-";
@@ -227,7 +238,6 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
       firstName: "",
       lastName: "",
       dob: "",
-      appointmentDateTime: "",
       phone: "",
       email: "",
       reason: "-"
@@ -240,7 +250,6 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
       firstName: "",
       lastName: "",
       dob: "",
-      appointmentDateTime: "",
       phone: "",
       email: "",
       reason: "-"
@@ -451,15 +460,6 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                       <SortIcon columnKey="dob" sortConfig={sortConfig} />
                     </div>
                   </th>
-                  <th onClick={() => handleSort("appointmentDateTime")}>
-                    <div className="headerCell">
-                      Appointment Date/Time{" "}
-                      <SortIcon
-                        columnKey="appointmentDateTime"
-                        sortConfig={sortConfig}
-                      />
-                    </div>
-                  </th>
                   <th onClick={() => handleSort("phone")}>
                     <div className="headerCell">
                       Phone Number{" "}
@@ -487,126 +487,120 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                 {showSearch && (
                   <tr className="search-filters-row">
                     {!isEditMode && <th></th>}
-                    {[
-                      "firstName",
-                      "lastName",
-                      "dob",
-                      "appointmentDateTime",
-                      "phone",
-                      "email"
-                    ].map((field) => (
-                      <th key={field}>
-                        <div className="search-input-wrapper">
-                          <input
-                            type="text"
-                            placeholder="Search..."
-                            value={filters[field]}
-                            onChange={(e) =>
-                              handleFilterChange(field, e.target.value)
-                            }
-                          />
-                        </div>
-                      </th>
-                    ))}
+                    {["firstName", "lastName", "dob", "phone", "email"].map(
+                      (field) => (
+                        <th key={field}>
+                          <div className="search-input-wrapper">
+                            <input
+                              type="text"
+                              placeholder="Search..."
+                              value={filters[field]}
+                              onChange={(e) =>
+                                handleFilterChange(field, e.target.value)
+                              }
+                            />
+                          </div>
+                        </th>
+                      )
+                    )}
                     <th></th>
                   </tr>
                 )}
               </thead>
               <tbody>
-                {isAddingRow && (
-                  <tr className="addNewRow">
-                    <td></td>
-                    <td className="editableCell">
-                      <input
-                        type="text"
-                        placeholder="First Name"
-                        value={newPatient.firstName}
-                        onChange={(e) =>
-                          handleNewPatientChange("firstName", e.target.value)
-                        }
-                        className="editInput"
-                      />
-                    </td>
-                    <td className="editableCell">
-                      <input
-                        type="text"
-                        placeholder="Last Name"
-                        value={newPatient.lastName}
-                        onChange={(e) =>
-                          handleNewPatientChange("lastName", e.target.value)
-                        }
-                        className="editInput"
-                      />
-                    </td>
-                    <td className="editableCell">
-                      <input
-                        type="text"
-                        placeholder="MM/DD/YYYY"
-                        value={newPatient.dob}
-                        onChange={(e) =>
-                          handleNewPatientChange("dob", e.target.value)
-                        }
-                        className="editInput"
-                      />
-                    </td>
-                    <td className="editableCell">
-                      <input
-                        type="text"
-                        placeholder="M/D/YYYY, H:MM:SS AM/PM"
-                        value={newPatient.appointmentDateTime}
-                        onChange={(e) =>
-                          handleNewPatientChange(
-                            "appointmentDateTime",
-                            e.target.value
-                          )
-                        }
-                        className="editInput"
-                      />
-                    </td>
-                    <td
-                      className={`editableCell ${isPhoneInvalid(newPatient.phone) && newPatient.phone ? "invalidCell" : ""}`}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Phone Number"
-                        value={newPatient.phone}
-                        onChange={(e) =>
-                          handleNewPatientChange("phone", e.target.value)
-                        }
-                        className="editInput"
-                      />
-                    </td>
-                    <td
-                      className={`editableCell ${isEmailInvalid(newPatient.email) && newPatient.email ? "invalidCell" : ""}`}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Email"
-                        value={newPatient.email}
-                        onChange={(e) =>
-                          handleNewPatientChange("email", e.target.value)
-                        }
-                        className="editInput"
-                      />
-                    </td>
-                    <td>
-                      <div className="addRowActions">
-                        <div
-                          className="cancelAddBtn"
-                          onClick={handleCancelAddRow}
+                {isAddingRow &&
+                  (() => {
+                    const hasAddRowError =
+                      (newPatient.dob &&
+                        newPatient.dob.replace(/\D/g, "").length < 8) ||
+                      (newPatient.phone && isPhoneInvalid(newPatient.phone)) ||
+                      (newPatient.email && isEmailInvalid(newPatient.email));
+                    return (
+                      <tr className="addNewRow">
+                        <td></td>
+                        <td className="editableCell">
+                          <input
+                            type="text"
+                            placeholder="First Name"
+                            value={newPatient.firstName}
+                            onChange={(e) =>
+                              handleNewPatientChange(
+                                "firstName",
+                                e.target.value
+                              )
+                            }
+                            className="editInput"
+                          />
+                        </td>
+                        <td className="editableCell">
+                          <input
+                            type="text"
+                            placeholder="Last Name"
+                            value={newPatient.lastName}
+                            onChange={(e) =>
+                              handleNewPatientChange("lastName", e.target.value)
+                            }
+                            className="editInput"
+                          />
+                        </td>
+                        <td className="editableCell">
+                          <input
+                            type="text"
+                            placeholder="MM/DD/YYYY"
+                            value={newPatient.dob}
+                            onChange={(e) =>
+                              handleNewPatientChange("dob", e.target.value)
+                            }
+                            className={`editInput${newPatient.dob && newPatient.dob.replace(/\D/g, "").length < 8 ? " editInput--invalid" : ""}`}
+                          />
+                        </td>
+                        <td
+                          className={`editableCell ${isPhoneInvalid(newPatient.phone) && newPatient.phone ? "invalidCell" : ""}`}
                         >
-                          <img src={circleCross} alt="circleCross" />
-                        </div>
-                        <div
-                          className="confirmAddBtn"
-                          onClick={handleConfirmAddRow}
+                          <input
+                            type="text"
+                            placeholder="Phone Number"
+                            value={newPatient.phone}
+                            onChange={(e) =>
+                              handleNewPatientChange("phone", e.target.value)
+                            }
+                            className={`editInput${newPatient.phone && isPhoneInvalid(newPatient.phone) ? " editInput--invalid" : ""}`}
+                          />
+                        </td>
+                        <td
+                          className={`editableCell ${isEmailInvalid(newPatient.email) && newPatient.email ? "invalidCell" : ""}`}
                         >
-                          <img src={circleChecked} alt="circleChecked" />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
+                          <input
+                            type="text"
+                            placeholder="Email"
+                            value={newPatient.email}
+                            onChange={(e) =>
+                              handleNewPatientChange("email", e.target.value)
+                            }
+                            className="editInput"
+                          />
+                        </td>
+                        <td>
+                          <div className="addRowActions">
+                            <div
+                              className="cancelAddBtn"
+                              onClick={handleCancelAddRow}
+                            >
+                              <img src={circleCross} alt="circleCross" />
+                            </div>
+                            <div
+                              className={`confirmAddBtn${hasAddRowError ? " confirmAddBtn--disabled" : ""}`}
+                              onClick={
+                                hasAddRowError ? undefined : handleConfirmAddRow
+                              }
+                            >
+                              <img src={circleChecked} alt="circleChecked" />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })()}
                 {paginatedPatients.map((patient) => {
                   const emailErr = isEmailInvalid(patient.email);
                   const phoneErr = isPhoneInvalid(patient.phone);
@@ -633,12 +627,6 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                         {highlightText(patient.lastName, filters.lastName)}
                       </td>
                       <td>{highlightText(patient.dob, filters.dob)}</td>
-                      <td>
-                        {highlightText(
-                          patient.appointmentDateTime,
-                          filters.appointmentDateTime
-                        )}
-                      </td>
                       <td
                         className={`${phoneErr ? "invalidCell" : ""} ${isEditMode ? "editableCell" : ""}`}
                       >
@@ -686,7 +674,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                 {paginatedPatients.length === 0 && (
                   <tr>
                     <td
-                      colSpan={isEditMode ? "7" : "8"}
+                      colSpan={isEditMode ? "6" : "7"}
                       style={{
                         textAlign: "center",
                         padding: "24px",

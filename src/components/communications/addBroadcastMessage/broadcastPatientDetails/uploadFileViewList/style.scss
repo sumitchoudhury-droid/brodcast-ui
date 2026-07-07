@@ -314,6 +314,14 @@
       &:focus {
         border-color: variable.$primary-color;
       }
+
+      &.editInput--invalid {
+        border-color: variable.$color-red-4;
+
+        &:focus {
+          border-color: variable.$color-red-0;
+        }
+      }
     }
 
     .addRowActions {
@@ -336,6 +344,12 @@
           width: 20px;
           height: 20px;
         }
+      }
+
+      .confirmAddBtn--disabled {
+        cursor: not-allowed;
+        border-color: #d1d5db;
+        opacity: 0.45;
       }
     }
 

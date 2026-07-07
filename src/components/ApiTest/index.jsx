@@ -1,11 +1,5 @@
 import { useState } from "react";
-import { BASE_URL } from "../../api/api.jsx";
-
-const HEADERS = {
-  TenantId: "tenant-001",
-  OrganizationId: "1",
-  "X-Correlation-ID": "postman-test-001"
-};
+import { BASE_URL, COMMON_HEADERS } from "../../api/api.jsx";
 
 const ENDPOINTS = [
   { label: "Get All Templates", path: "/api/v1/templates" },
@@ -29,7 +23,7 @@ export default function ApiTest() {
     try {
       const res = await fetch(`${BASE_URL}${endpoint.path}`, {
         method: "GET",
-        headers: HEADERS
+        headers: COMMON_HEADERS
       });
       const elapsed = Date.now() - start;
       let body;
@@ -86,7 +80,7 @@ export default function ApiTest() {
             fontSize: 12
           }}
         >
-          {JSON.stringify(HEADERS, null, 2)}
+          {JSON.stringify(COMMON_HEADERS, null, 2)}
         </pre>
       </div>
 
