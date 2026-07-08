@@ -36,9 +36,26 @@ export const COMMON_HEADERS = {
 };
 
 export async function handleResponse(res) {
+  const json = await res.json().catch(() => null);
+
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message ?? "Request failed");
+    const err = json?.error;
+    const message =
+      (typeof err === "object" ? err?.detail || err?.title : err) ||
+      json?.message ||
+      res.statusText ||
+      "Request failed";
+    throw new Error(message);
   }
-  return res.json();
+
+  if (json && json.success === false) {
+    const err = json.error;
+    const message =
+      (typeof err === "object" ? err?.detail || err?.title : err) ||
+      json.message ||
+      "Request failed";
+    throw new Error(message);
+  }
+
+  return json;
 }

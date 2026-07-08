@@ -35,6 +35,10 @@ function BroadcastMessageInner({ handleCancel }) {
   );
 
   const editorRef = useRef(null);
+  const textEditorInstanceRef = useRef(null);
+  const handleTextEditorReady = useCallback((instance) => {
+    textEditorInstanceRef.current = instance;
+  }, []);
   const [emptyMap, setEmptyMap] = useState({
     Email: true,
     Text: true,
@@ -91,6 +95,7 @@ function BroadcastMessageInner({ handleCancel }) {
           setIsEditorEmpty={setEmailEmpty}
           onTextEmptyChange={setTextEmpty}
           onVoiceEmptyChange={setVoiceEmpty}
+          onTextEditorReady={handleTextEditorReady}
           selectedTemplate={selectedTemplate}
         />
       );
@@ -115,6 +120,7 @@ function BroadcastMessageInner({ handleCancel }) {
         <BroadcastTextMessage
           selectedTemplate={selectedTemplate}
           onEmptyChange={setTextEmpty}
+          onEditorReady={handleTextEditorReady}
         />
       );
     }
@@ -183,6 +189,8 @@ function BroadcastMessageInner({ handleCancel }) {
               onBack={handleBack}
               onCancel={handleCancel}
               disabled={hasEmptyEditor}
+              editorRef={editorRef}
+              textEditorInstanceRef={textEditorInstanceRef}
             />
           </div>
         </div>

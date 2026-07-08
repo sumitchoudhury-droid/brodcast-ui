@@ -44,6 +44,8 @@ export function BroadcastFormProvider({ children }) {
   const [selectedEmailTemplateType, setSelectedEmailTemplateType] =
     useState("blank");
 
+  const [mailSubject, setMailSubject] = useState("");
+
   return (
     <BroadcastFormContext.Provider
       value={{
@@ -108,7 +110,9 @@ export function BroadcastFormProvider({ children }) {
         newTemplateName,
         setNewTemplateName,
         selectedEmailTemplateType,
-        setSelectedEmailTemplateType
+        setSelectedEmailTemplateType,
+        mailSubject,
+        setMailSubject
       }}
     >
       {children}

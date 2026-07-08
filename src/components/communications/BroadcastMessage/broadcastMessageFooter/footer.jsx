@@ -6,6 +6,7 @@ import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbo
 import { useToast } from "../../../../hooks/useToast";
 import { ReusableModal } from "../../../../reusableComponents/reusableModal/index";
 import { useBroadcastForm } from "../../broadcastFormContext";
+import { usePost } from "../../../../hooks/usePost";
 
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
@@ -28,11 +29,21 @@ export default function Footer({
   onBack,
   onCancel,
   broadcastType = "immediate",
-  disabled = false
+  disabled = false,
+  editorRef,
+  textEditorInstanceRef
 }) {
   const toast = useToast();
-  const { selectedEmailTemplateType, scheduleStartDateTime, sendType } =
-    useBroadcastForm();
+  const {
+    selectedEmailTemplateType,
+    scheduleStartDateTime,
+    sendType,
+    selectedModes,
+    newTemplateName,
+    mailSubject
+  } = useBroadcastForm();
+  const { mutate: saveTemplate, isPending: isSaving } =
+    usePost("/api/v1/templates");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");
@@ -40,6 +51,7 @@ export default function Footer({
   const [isFilterExpanded, setIsFilterExpanded] = useState(false); // Added for collapsible section
 
   const handleSaveTemplate = () => {
+    setTemplateName(newTemplateName || "");
     setIsModalOpen(true);
   };
 
@@ -51,14 +63,64 @@ export default function Footer({
 
   const handleConfirm = () => {
     if (!templateName.trim()) {
-      toast.error("Template name is required"); // Changed to error toast
+      toast.error("Template name is required");
       return;
     }
 
-    toast.success("Template saved successfully");
-    setIsModalOpen(false);
-    setTemplateName("");
-    setChecked(false);
+    const mailBody = editorRef?.current?.getHtml?.() || "";
+    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+
+    const channels = selectedModes
+      .map((mode) => {
+        if (mode === "Email") {
+          return {
+            methodType: "Mail",
+            templateBody: mailBody,
+            subjectLine: mailSubject || null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        if (mode === "Text") {
+          return {
+            methodType: "SMS",
+            templateBody: smsBody,
+            subjectLine: null,
+            smsStandardText: smsBody,
+            attachments: []
+          };
+        }
+        if (mode === "Voice") {
+          return {
+            methodType: "Voice",
+            templateBody: "",
+            subjectLine: null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    const body = {
+      name: newTemplateName || templateName,
+      templateBody: mailBody || smsBody,
+      subjectLine: mailSubject || null,
+      smsStandardText: smsBody || null,
+      messageTempLibId: null,
+      actionItemTypeId: 0,
+      channels
+    };
+
+    saveTemplate(body, {
+      onSuccess: () => {
+        toast.success("Template saved successfully");
+        setIsModalOpen(false);
+        setTemplateName("");
+        setChecked(false);
+      }
+    });
   };
 
   const handleSendClick = () => {
@@ -213,7 +275,7 @@ export default function Footer({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title="Save as New"
-        confirmText="Save"
+        confirmText={isSaving ? "Saving…" : "Save"}
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"

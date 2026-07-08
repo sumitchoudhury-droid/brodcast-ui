@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import mjml2html from "mjml-browser";
 import "./style.scss";
 import emptyTemplate from "../../../assets/existingTemplate/emptyTemplate.svg";
 import emailIcon from "../../../assets/existingTemplate/mail.svg";
@@ -9,6 +10,9 @@ import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import deleteIcon from "../../../assets/existingTemplate/deleteIcon.svg";
 import { useGet } from "../../../hooks/useGet";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { BASE_URL, COMMON_HEADERS, handleResponse } from "../../../api/api.jsx";
+import { useToast } from "../../../hooks/useToast";
 import SkeletonLoader from "../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 function ExistingTemplates({
@@ -50,6 +54,24 @@ function ExistingTemplates({
     { enabled: isOpen }
   );
 
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const { mutate: deleteTemplate } = useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(`${BASE_URL}/api/v1/templates/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...COMMON_HEADERS }
+      });
+      return handleResponse(res);
+    },
+    onSuccess: (_, id) => {
+      toast.success("Deleted", "Template deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      if (selectedTemplate?.id === id) setSelectedTemplate(null);
+    }
+  });
+
   const methodTypeToMode = (methodType) => {
     if (methodType === "Mail") return "mail";
     if (methodType === "SMS") return "text";
@@ -83,6 +105,50 @@ function ExistingTemplates({
     effectiveSelectedTemplate?.channels?.find(
       (c) => c.methodType === methodType
     )?.templateBody || "";
+
+  // Compile MJML → HTML; fall back to raw string on failure
+  const compileMjml = (raw) => {
+    if (!raw || !raw.trimStart().startsWith("<mjml")) return raw;
+    try {
+      const { html, errors } = mjml2html(raw, { validationLevel: "skip" });
+      if (errors?.length) return raw;
+      return html;
+    } catch {
+      return raw;
+    }
+  };
+
+  // Strip GrapesJS editor attributes so the content renders cleanly
+  const cleanGjsHtml = (raw) => {
+    if (!raw) return "";
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(raw, "text/html");
+    doc.querySelectorAll("*").forEach((el) => {
+      el.removeAttribute("data-gjs-highlightable");
+      el.removeAttribute("data-gjs-type");
+      el.removeAttribute("data-placeholder");
+      el.removeAttribute("contenteditable");
+      el.removeAttribute("draggable");
+      el.removeAttribute("id");
+      ["gjs-selected", "gjs-hovered", "gjs-editable", "is-empty"].forEach(
+        (cls) => el.classList.remove(cls)
+      );
+      if (el.getAttribute("class") === "") el.removeAttribute("class");
+    });
+    return doc.body.innerHTML;
+  };
+
+  const mailPreviewHtml = useMemo(
+    () => compileMjml(getChannelBody("Mail")),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveSelectedTemplate]
+  );
+
+  const smsPreviewHtml = useMemo(
+    () => cleanGjsHtml(getChannelBody("SMS")),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveSelectedTemplate]
+  );
 
   // Extract plain text from Voice channel body for speech synthesis
   const getVoiceText = () => {
@@ -381,11 +447,7 @@ function ExistingTemplates({
       </div>
     ) : (
       <iframe
-        srcDoc={
-          activeModeTab === "Mail"
-            ? getChannelBody("Mail")
-            : getChannelBody("SMS")
-        }
+        srcDoc={activeModeTab === "Mail" ? mailPreviewHtml : smsPreviewHtml}
         title="Template Preview"
         className="previewIframe"
       />
@@ -482,6 +544,10 @@ function ExistingTemplates({
                           src={deleteIcon}
                           alt="deleteIcon"
                           className="templateDeleteIcon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTemplate(template.id);
+                          }}
                         />
                       </div>
                     </div>
