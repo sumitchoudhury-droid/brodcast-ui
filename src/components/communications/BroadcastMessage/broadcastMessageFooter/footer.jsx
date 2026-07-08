@@ -104,7 +104,7 @@ export default function Footer({
       .filter(Boolean);
 
     const body = {
-      name: newTemplateName || templateName,
+      name: templateName,
       templateBody: mailBody || smsBody,
       subjectLine: mailSubject || null,
       smsStandardText: smsBody || null,
