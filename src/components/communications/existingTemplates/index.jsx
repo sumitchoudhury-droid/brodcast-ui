@@ -7,11 +7,9 @@ import voiceIcon from "../../../assets/existingTemplate/phone.svg";
 import searchIcon from "../../../assets/commonIcons/searchIcon.svg";
 import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
-import emailTemplate from "./htmlTemplates/email.html?raw";
-import textTemplate from "./htmlTemplates/textMessage.html?raw";
-import voiceTemplate from "./htmlTemplates/voiceMessage.html?raw";
 import deleteIcon from "../../../assets/existingTemplate/deleteIcon.svg";
-import { MOCK_TEMPLATES } from "./mockTemplates";
+import { useGet } from "../../../hooks/useGet";
+import SkeletonLoader from "../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 function ExistingTemplates({
   isOpen,
@@ -20,7 +18,7 @@ function ExistingTemplates({
   initialModeTab = "Text"
 }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState(MOCK_TEMPLATES[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [activeModeTab, setActiveModeTab] = useState(initialModeTab);
   const [prevInitialModeTab, setPrevInitialModeTab] = useState(initialModeTab);
   const [viewMode, setViewMode] = useState("desktop");
@@ -45,35 +43,62 @@ function ExistingTemplates({
   const offsetRef = useRef(0);
   const trackRef = useRef(null);
 
-  const filteredTemplates = MOCK_TEMPLATES.filter((template) =>
+  const { data: templatesData, isLoading: templatesLoading } = useGet(
+    ["templates"],
+    "/api/v1/templates",
+    null,
+    { enabled: isOpen }
+  );
+
+  const methodTypeToMode = (methodType) => {
+    if (methodType === "Mail") return "mail";
+    if (methodType === "SMS") return "text";
+    if (methodType === "Voice") return "voice";
+    return methodType.toLowerCase();
+  };
+
+  const templates = (templatesData?.data || []).map((t) => ({
+    id: t.id,
+    title: t.name,
+    modes: t.channels.map((c) => methodTypeToMode(c.methodType)),
+    channels: t.channels,
+    image: null
+  }));
+
+  const filteredTemplates = templates.filter((template) =>
     template.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Fall back to the first loaded template when the user hasn't made an explicit selection
+  const effectiveSelectedTemplate = selectedTemplate ?? templates[0] ?? null;
+
   const handleSelectTemplate = () => {
     if (onSelectTemplate) {
-      onSelectTemplate({
-        ...selectedTemplate,
-        emailTemplate,
-        textTemplate,
-        voiceTemplate
-      });
+      onSelectTemplate(effectiveSelectedTemplate);
     }
     onClose();
   };
 
-  // Extract plain text from voiceTemplate HTML
+  const getChannelBody = (methodType) =>
+    effectiveSelectedTemplate?.channels?.find(
+      (c) => c.methodType === methodType
+    )?.templateBody || "";
+
+  // Extract plain text from Voice channel body for speech synthesis
   const getVoiceText = () => {
+    const body = getChannelBody("Voice");
     const parser = new DOMParser();
-    const doc = parser.parseFromString(voiceTemplate, "text/html");
+    const doc = parser.parseFromString(body, "text/html");
     return doc.body.textContent?.trim() || "";
   };
 
-  // Extract inner HTML of content td from voiceTemplate
+  // Extract inner HTML of content td from Voice channel body
   const getVoiceHtmlContent = () => {
+    const body = getChannelBody("Voice");
     const parser = new DOMParser();
-    const doc = parser.parseFromString(voiceTemplate, "text/html");
+    const doc = parser.parseFromString(body, "text/html");
     const td = doc.querySelector('td[style*="padding"]');
-    return td ? td.innerHTML : voiceTemplate;
+    return td ? td.innerHTML : body;
   };
 
   const startProgressTimer = useCallback((estimatedMs, startPct = 0) => {
@@ -142,6 +167,7 @@ function ExistingTemplates({
       utteranceRef.current = utterance;
       synth.speak(utterance);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isPaused, progress, startProgressTimer]
   );
 
@@ -190,7 +216,7 @@ function ExistingTemplates({
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [activeModeTab, selectedTemplate]);
+  }, [activeModeTab, effectiveSelectedTemplate]);
 
   // Stop speech when drawer closes
   useEffect(() => {
@@ -247,6 +273,7 @@ function ExistingTemplates({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging, handlePlay]);
 
   // Prevent body scroll when drawer is open
@@ -354,7 +381,11 @@ function ExistingTemplates({
       </div>
     ) : (
       <iframe
-        srcDoc={activeModeTab === "Mail" ? emailTemplate : textTemplate}
+        srcDoc={
+          activeModeTab === "Mail"
+            ? getChannelBody("Mail")
+            : getChannelBody("SMS")
+        }
         title="Template Preview"
         className="previewIframe"
       />
@@ -395,11 +426,33 @@ function ExistingTemplates({
             </div>
 
             <div className="templatesList">
-              {filteredTemplates.length > 0 ? (
+              {templatesLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="templateItemCard">
+                    <SkeletonLoader
+                      width="72px"
+                      height="52px"
+                      borderRadius="6px"
+                    />
+                    <div className="templateCardInfo">
+                      <SkeletonLoader
+                        width="120px"
+                        height="14px"
+                        borderRadius="4px"
+                      />
+                      <SkeletonLoader
+                        width="60px"
+                        height="12px"
+                        borderRadius="4px"
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : filteredTemplates.length > 0 ? (
                 filteredTemplates.map((template) => (
                   <div
                     key={template.id}
-                    className={`templateItemCard ${selectedTemplate?.id === template.id ? "selected" : ""}`}
+                    className={`templateItemCard ${effectiveSelectedTemplate?.id === template.id ? "selected" : ""}`}
                     onClick={() => {
                       setSelectedTemplate(template);
                       if (template.modes.length > 0) {
@@ -443,13 +496,15 @@ function ExistingTemplates({
           </div>
 
           <div className="rightPanel">
-            {selectedTemplate && (
+            {effectiveSelectedTemplate && (
               <div className="rightPanelTop">
                 <div className="modeTabsContainer">
                   <div className="modeTabs">
                     {["Text", "Mail", "Voice"]
                       .filter((mode) =>
-                        selectedTemplate.modes.includes(mode.toLowerCase())
+                        effectiveSelectedTemplate.modes.includes(
+                          mode.toLowerCase()
+                        )
                       )
                       .map((mode) => (
                         <button
@@ -508,7 +563,7 @@ function ExistingTemplates({
             )}
 
             <div className="previewArea">
-              {!selectedTemplate ? (
+              {!effectiveSelectedTemplate ? (
                 <div className="previewPlaceholder">
                   <div className="placeholderIcon">
                     <img src={emptyTemplate} alt="empty" />
@@ -646,7 +701,7 @@ function ExistingTemplates({
             label="Select Template"
             onClick={handleSelectTemplate}
             variant="secondary"
-            disabled={!selectedTemplate}
+            disabled={!effectiveSelectedTemplate}
           />
         </div>
       </div>
