@@ -110,7 +110,16 @@ function ExistingTemplates({
   const compileMjml = (raw) => {
     if (!raw || !raw.trimStart().startsWith("<mjml")) return raw;
     try {
-      const { html, errors } = mjml2html(raw, { validationLevel: "skip" });
+      // Normalize mj-body width from percentage to 600px so MJML computes
+      // column and image widths correctly (percentage values cause mjml2html
+      // to treat the body as ~100px, capping image widths to the column width).
+      const normalized = raw.replace(
+        /(<mj-body\b[^>]*)\bwidth="[\d.]+%"/,
+        '$1width="600px"'
+      );
+      const { html, errors } = mjml2html(normalized, {
+        validationLevel: "skip"
+      });
       if (errors?.length) return raw;
       return html;
     } catch {

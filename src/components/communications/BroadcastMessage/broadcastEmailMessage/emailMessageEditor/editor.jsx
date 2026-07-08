@@ -35,7 +35,7 @@ const EMPTY_TEMPLATE = `
       <mj-button padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
     </mj-attributes>
   </mj-head>
-  <mj-body width="100%" background-color="transparent" padding="0px" margin="0px">
+  <mj-body width="600px" background-color="transparent" padding="0px" margin="0px">
  
   </mj-body>
 </mjml>
