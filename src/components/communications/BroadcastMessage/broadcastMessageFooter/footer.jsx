@@ -7,6 +7,7 @@ import { useToast } from "../../../../hooks/useToast";
 import { ReusableModal } from "../../../../reusableComponents/reusableModal/index";
 import { useBroadcastForm } from "../../broadcastFormContext";
 import { usePost } from "../../../../hooks/usePost";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
 
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
@@ -42,8 +43,9 @@ export default function Footer({
     newTemplateName,
     mailSubject
   } = useBroadcastForm();
-  const { mutate: saveTemplate, isPending: isSaving } =
-    usePost("/api/v1/templates");
+  const { mutate: saveTemplate, isPending: isSaving } = usePost(
+    ENDPOINTS.templates.CREATE
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");

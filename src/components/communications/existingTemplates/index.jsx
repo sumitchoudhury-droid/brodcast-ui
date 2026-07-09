@@ -12,6 +12,7 @@ import deleteIcon from "../../../assets/existingTemplate/deleteIcon.svg";
 import { useGet } from "../../../hooks/useGet";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BASE_URL, COMMON_HEADERS, handleResponse } from "../../../api/api.jsx";
+import { ENDPOINTS } from "../../../api/endpoints.js";
 import { useToast } from "../../../hooks/useToast";
 import SkeletonLoader from "../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
@@ -49,7 +50,7 @@ function ExistingTemplates({
 
   const { data: templatesData, isLoading: templatesLoading } = useGet(
     ["templates"],
-    "/api/v1/templates",
+    ENDPOINTS.templates.GET_ALL,
     null,
     { enabled: isOpen }
   );
@@ -59,10 +60,13 @@ function ExistingTemplates({
 
   const { mutate: deleteTemplate } = useMutation({
     mutationFn: async (id) => {
-      const res = await fetch(`${BASE_URL}/api/v1/templates/${id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", ...COMMON_HEADERS }
-      });
+      const res = await fetch(
+        `${BASE_URL}${ENDPOINTS.templates.DELETE_BY_ID(id)}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", ...COMMON_HEADERS }
+        }
+      );
       return handleResponse(res);
     },
     onSuccess: (_, id) => {
