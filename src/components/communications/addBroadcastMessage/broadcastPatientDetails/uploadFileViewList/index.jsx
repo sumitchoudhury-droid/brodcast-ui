@@ -26,6 +26,28 @@ const isPhoneInvalid = (phone) => {
   return digits.length !== 10;
 };
 
+const computeReason = (patient) => {
+  const missing = [];
+  if (
+    !patient.firstName ||
+    !patient.firstName.trim() ||
+    patient.firstName === "-"
+  )
+    missing.push("First Name");
+  if (!patient.lastName || !patient.lastName.trim() || patient.lastName === "-")
+    missing.push("Last Name");
+  if (
+    !patient.dob ||
+    patient.dob === "-" ||
+    patient.dob.replace(/\D/g, "").length < 8
+  )
+    missing.push("DOB");
+  const phoneOk = !isPhoneInvalid(patient.phone);
+  const emailOk = !isEmailInvalid(patient.email);
+  if (!phoneOk && !emailOk) missing.push("Phone or Email");
+  return missing.length > 0 ? `Missing: ${missing.join(", ")}` : "-";
+};
+
 const isError = (patient) => patient.reason && patient.reason !== "-";
 
 const formatDob = (value) => {
@@ -114,7 +136,10 @@ const exportToExcel = (patients, fileName) => {
 const UploadFileViewList = ({ isOpen, onClose }) => {
   const toast = useToast();
   const [patients, setPatients] = useState(() =>
-    JSON.parse(JSON.stringify(mockUploadPatients))
+    JSON.parse(JSON.stringify(mockUploadPatients)).map((p) => ({
+      ...p,
+      reason: computeReason(p)
+    }))
   );
   const [editPatients, setEditPatients] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -163,15 +188,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
       prev.map((patient) => {
         if (patient.id !== id) return patient;
         const updated = { ...patient, [field]: value };
-        const emailErr = isEmailInvalid(updated.email);
-        const phoneErr = isPhoneInvalid(updated.phone);
-        if (!emailErr && !phoneErr) {
-          updated.reason = "-";
-        } else if (emailErr && !phoneErr) {
-          updated.reason = "Invalid Email";
-        } else if (!emailErr && phoneErr) {
-          updated.reason = "Invalid Number";
-        }
+        updated.reason = computeReason(updated);
         return updated;
       })
     );
@@ -221,12 +238,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
               ? formatPhone(value)
               : value
       };
-      const emailErr = isEmailInvalid(updated.email);
-      const phoneErr = isPhoneInvalid(updated.phone);
-      if (!emailErr && !phoneErr) updated.reason = "-";
-      else if (emailErr && !phoneErr) updated.reason = "Invalid Email";
-      else if (!emailErr && phoneErr) updated.reason = "Invalid Number";
-      else updated.reason = "-";
+      updated.reason = computeReason(updated);
       return updated;
     });
   };
@@ -511,10 +523,12 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                 {isAddingRow &&
                   (() => {
                     const hasAddRowError =
-                      (newPatient.dob &&
-                        newPatient.dob.replace(/\D/g, "").length < 8) ||
-                      (newPatient.phone && isPhoneInvalid(newPatient.phone)) ||
-                      (newPatient.email && isEmailInvalid(newPatient.email));
+                      !newPatient.firstName.trim() ||
+                      !newPatient.lastName.trim() ||
+                      !newPatient.dob ||
+                      newPatient.dob.replace(/\D/g, "").length < 8 ||
+                      (isPhoneInvalid(newPatient.phone) &&
+                        isEmailInvalid(newPatient.email));
                     return (
                       <tr className="addNewRow">
                         <td></td>
@@ -529,7 +543,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                                 e.target.value
                               )
                             }
-                            className="editInput"
+                            className={`editInput${!newPatient.firstName.trim() ? " editInput--invalid" : ""}`}
                           />
                         </td>
                         <td className="editableCell">
@@ -540,7 +554,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                             onChange={(e) =>
                               handleNewPatientChange("lastName", e.target.value)
                             }
-                            className="editInput"
+                            className={`editInput${!newPatient.lastName.trim() ? " editInput--invalid" : ""}`}
                           />
                         </td>
                         <td className="editableCell">

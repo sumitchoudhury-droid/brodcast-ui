@@ -189,7 +189,12 @@ function TargetRecipients({
             label="Appointment Start Date / Time"
             required={true}
             selected={startDateTime}
-            onChange={(date) => setStartDateTime(date)}
+            onChange={(date) => {
+              setStartDateTime(date);
+              if (endDateTime && date && endDateTime <= date) {
+                setEndDateTime(null);
+              }
+            }}
             className="leftOpening topDown"
           />
         </div>
@@ -200,6 +205,7 @@ function TargetRecipients({
             selected={endDateTime}
             onChange={(date) => setEndDateTime(date)}
             className="topDown"
+            minDate={startDateTime}
           />
         </div>
         <div className="toggleButtonContainer">

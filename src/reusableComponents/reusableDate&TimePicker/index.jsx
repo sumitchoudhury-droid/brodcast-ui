@@ -18,7 +18,9 @@ import {
   setMinutes,
   isToday,
   getHours,
-  getMinutes
+  getMinutes,
+  isBefore,
+  startOfDay
 } from "date-fns";
 import "./style.scss";
 
@@ -56,11 +58,12 @@ export function ReusableDateTime({
   disabled = false,
   className = "",
   onCancel,
-  onOk
+  onOk,
+  minDate = null
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [viewDate, setViewDate] = useState(selected || new Date());
-  const [tempDate, setTempDate] = useState(selected || new Date());
+  const [viewDate, setViewDate] = useState(selected || minDate || new Date());
+  const [tempDate, setTempDate] = useState(selected || minDate || new Date());
   const containerRef = useRef(null);
   const hourListRef = useRef(null);
   const minuteListRef = useRef(null);
@@ -75,6 +78,11 @@ export function ReusableDateTime({
       setTempDate(selected);
       setViewDate(selected);
       setAmPm(getHours(selected) >= 12 ? "PM" : "AM");
+    } else {
+      const fallback = minDate || new Date();
+      setTempDate(fallback);
+      setViewDate(fallback);
+      setAmPm(getHours(fallback) >= 12 ? "PM" : "AM");
     }
   }
 
@@ -130,6 +138,7 @@ export function ReusableDateTime({
   const handleNextMonth = () => setViewDate(addMonths(viewDate, 1));
 
   const handleDateSelect = (date) => {
+    if (minDate && isBefore(startOfDay(date), startOfDay(minDate))) return;
     const newDate = setMinutes(
       setHours(date, getHours(tempDate)),
       getMinutes(tempDate)
@@ -163,6 +172,7 @@ export function ReusableDateTime({
   };
 
   const handleOk = () => {
+    if (minDate && isBefore(tempDate, minDate)) return;
     onChange(tempDate);
     setIsOpen(false);
     if (onOk) onOk();
@@ -264,20 +274,26 @@ export function ReusableDateTime({
                 </div>
 
                 <div className="daysGrid">
-                  {days.map((day, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      className={`dayCell
-                        ${!isSameMonth(day, viewDate) ? "outsideMonth" : ""}
-                        ${isSameDay(day, tempDate) ? "selected" : ""}
-                        ${isToday(day) && !isSameDay(day, tempDate) ? "today" : ""}
-                      `}
-                      onClick={() => handleDateSelect(day)}
-                    >
-                      {format(day, "d")}
-                    </button>
-                  ))}
+                  {days.map((day, idx) => {
+                    const isBeforeMin =
+                      minDate && isBefore(startOfDay(day), startOfDay(minDate));
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`dayCell
+                          ${!isSameMonth(day, viewDate) ? "outsideMonth" : ""}
+                          ${isSameDay(day, tempDate) ? "selected" : ""}
+                          ${isToday(day) && !isSameDay(day, tempDate) ? "today" : ""}
+                          ${isBeforeMin ? "disabledDay" : ""}
+                        `}
+                        onClick={() => !isBeforeMin && handleDateSelect(day)}
+                        disabled={isBeforeMin}
+                      >
+                        {format(day, "d")}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
