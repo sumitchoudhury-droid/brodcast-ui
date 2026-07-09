@@ -215,6 +215,12 @@
       color: variable.$color-white-12;
     }
 
+    &.disabledDay {
+      color: variable.$color-white-12;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
     // Solid teal circle — matches screenshot 1
     &.selected {
       background-color: variable.$primary-color !important;

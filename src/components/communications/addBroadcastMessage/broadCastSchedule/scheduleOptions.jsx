@@ -110,9 +110,15 @@ function ScheduleOptions({
             }
             required={sendType !== "immediately"}
             selected={startDateTime}
-            onChange={(date) => setStartDateTime(date)}
+            onChange={(date) => {
+              setStartDateTime(date);
+              if (endDateTime && date && endDateTime <= date) {
+                setEndDateTime(null);
+              }
+            }}
             className="topDown"
             disabled={sendType === "immediately"}
+            minDate={sendType === "notifyLater" ? new Date() : null}
           />
         </div>
 
@@ -198,6 +204,7 @@ function ScheduleOptions({
               selected={endDateTime}
               onChange={(date) => setEndDateTime(date)}
               className={`topDown ${frequency === "Custom" ? "" : "leftOpening"}`}
+              minDate={startDateTime}
             />
           </div>
         )}
