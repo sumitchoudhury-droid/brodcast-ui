@@ -21,7 +21,12 @@ function OneTimeBroadcast({
           label={"Start Date"}
           required={true}
           selected={startDateTime}
-          onChange={(date) => setStartDateTime(date)}
+          onChange={(date) => {
+            setStartDateTime(date);
+            if (endDateTime && date && endDateTime <= date) {
+              setEndDateTime(null);
+            }
+          }}
           className="leftOpening topDown"
         />
       </div>
@@ -32,6 +37,7 @@ function OneTimeBroadcast({
           selected={endDateTime}
           onChange={(date) => setEndDateTime(date)}
           className="topDown"
+          minDate={startDateTime}
         />
       </div>
       <ReusableButton label="Search" variant="primary" onClick={handleSearch} />
