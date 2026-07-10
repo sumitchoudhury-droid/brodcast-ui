@@ -2,12 +2,13 @@
 
 .builder {
   display: flex;
+  justify-content: space-between;
   width: 100%;
   flex: 1;
   position: relative;
   overflow: hidden;
   background-color: variable.$color-white-1;
-  gap: 2.21%;
+  gap: 20px;
   border-radius: 10px;
   padding: 12px;
 
@@ -39,7 +40,8 @@
 .editorArea {
   display: flex;
   flex-direction: column;
-  width: 51.77%;
+  width: 600px;
+  min-width: 600px;
   height: 100%;
   border: 1px solid variable.$color-white-7;
   border-radius: 10px;

@@ -1,7 +1,8 @@
 @use "../../../../../style//variable.scss" as variable;
 
 .BroadcastTextMessageEditor {
-  width: 52.03%;
+  width: 600px;
+  min-width: 600px;
   border: 1px solid #eaedf2;
   border-radius: 8px;
   overflow: hidden;

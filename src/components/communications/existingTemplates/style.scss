@@ -14,8 +14,8 @@
   animation: fadeIn 0.2s ease-out;
 
   .existingTemplatesDrawerContainer {
-    width: 90%;
-    max-width: 988px;
+    width: 100%;
+    max-width: 950px;
     height: 100vh;
     background: #fff;
     display: flex;
@@ -56,7 +56,7 @@
       border: 1px solid variable.$color-white-5;
 
       .leftPanel {
-        width: 29.78%;
+        width: 280px;
         padding: 20px 16px;
         @include variable.d-flex($fd: column, $g: 18px);
 
@@ -195,7 +195,7 @@
           $g: 20px,
           $jc: flex-start
         );
-        width: 70.22%;
+        width: 600px;
         border: none;
         padding-top: 20px;
         overflow: hidden;
@@ -431,7 +431,7 @@
             .mobilePhoneMockup {
               width: auto;
               height: 100%;
-              aspect-ratio: 375 / 670;
+              aspect-ratio: 9 / 16;
               background: #fff;
               border: 10px solid #000;
               border-radius: 40px;

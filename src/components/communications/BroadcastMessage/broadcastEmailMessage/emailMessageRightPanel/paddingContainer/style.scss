@@ -4,6 +4,7 @@
   border-bottom: 1px solid variable.$color-white-5;
   background-color: variable.$color-white-0;
   padding: 16px;
+  width: 100%;
 
   .sectionContent {
     @include variable.d-flex($fd: column, $g: 16px);
@@ -22,6 +23,7 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
+        width: 100%;
 
         .inputWrapper {
           @include variable.d-flex($fd: column, $g: 4px);
