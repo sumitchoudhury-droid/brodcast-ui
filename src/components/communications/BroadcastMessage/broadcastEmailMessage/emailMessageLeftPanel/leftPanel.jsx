@@ -33,6 +33,7 @@ import {
   COMMON_HEADERS,
   handleResponse
 } from "../../../../../api/api.jsx";
+import SkeletonLoader from "../../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 const tabOptions = [
   { label: "Library", value: "library" },
@@ -434,7 +435,24 @@ export default function LeftPanel({
             {selectedTab === "savedTemplate" &&
               (() => {
                 if (isLoadingTemplates) {
-                  return <div className="noResults">Loading templates...</div>;
+                  return (
+                    <div className="savedTemplateFlex">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="savedTemplateWrapper">
+                          <SkeletonLoader
+                            width="40px"
+                            height="40px"
+                            borderRadius="6px"
+                          />
+                          <SkeletonLoader
+                            width="120px"
+                            height="13px"
+                            borderRadius="4px"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
                 }
                 const filtered = apiSavedTemplates.filter((o) =>
                   o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
