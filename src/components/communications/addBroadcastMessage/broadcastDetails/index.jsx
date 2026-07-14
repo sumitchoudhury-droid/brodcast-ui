@@ -1,5 +1,7 @@
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
+import { useGet } from "../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
 
 import "./style.scss";
 
@@ -38,6 +40,13 @@ export const BroadcastDetails = ({
     }
   ];
 
+  const { data: modesData } = useGet(
+    ["communication-modes"],
+    ENDPOINTS.broadcastConfig.COMMUNICATION_MODES
+  );
+
+  const communicationModes = modesData?.data ?? [];
+
   const handleCheckboxChange = (mode) => {
     setSelectedModes((prev) =>
       prev.includes(mode)
@@ -61,23 +70,14 @@ export const BroadcastDetails = ({
           </div>
 
           <div className="broadcastDetailsContentRowValue">
-            <ReusableCheckbox
-              label="Text"
-              checked={selectedModes.includes("Text")}
-              onChange={() => handleCheckboxChange("Text")}
-            />
-
-            <ReusableCheckbox
-              label="Email"
-              checked={selectedModes.includes("Email")}
-              onChange={() => handleCheckboxChange("Email")}
-            />
-
-            <ReusableCheckbox
-              label="Voice"
-              checked={selectedModes.includes("Voice")}
-              onChange={() => handleCheckboxChange("Voice")}
-            />
+            {communicationModes.map((mode) => (
+              <ReusableCheckbox
+                key={mode.id}
+                label={mode.name}
+                checked={selectedModes.includes(mode.name)}
+                onChange={() => handleCheckboxChange(mode.name)}
+              />
+            ))}
           </div>
         </div>
 

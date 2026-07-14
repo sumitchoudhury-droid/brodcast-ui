@@ -7,5 +7,9 @@ export const ENDPOINTS = {
   },
   images: {
     UPLOAD: "/api/v1/Image/ImageUpload"
+  },
+  broadcastConfig: {
+    COMMUNICATION_MODES:
+      "/api/v1/aggregate/broadcast-config/communication-modes"
   }
 };

@@ -2,9 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import emailjs from "@emailjs/browser";
 import { useToast } from "../../../../../hooks/useToast";
 import {
-  uploadToCloudinary,
-  IS_CLOUDINARY_CONFIGURED,
-  uploadBase64ToCloudinary
+  uploadImageToServer,
+  uploadBase64ToServer
 } from "../../../../../utils/uploadUtils";
 
 import "./style.scss";
@@ -1423,7 +1422,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
     if (!file || !target) return;
 
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadImageToServer(file);
       if (!url) return;
 
       setBgImage(url);
@@ -2407,13 +2406,12 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         const hasBase64 =
           base64SrcMatches.length > 0 || base64BgMatches.length > 0;
 
-        if (hasBase64 && IS_CLOUDINARY_CONFIGURED) {
-          // Upload each embedded image to Cloudinary and replace the src
+        if (hasBase64) {
           let processedHtml = minifiedHtml;
           let idx = 0;
 
           for (const [fullMatch, base64Url] of base64SrcMatches) {
-            const hostedUrl = await uploadBase64ToCloudinary(
+            const hostedUrl = await uploadBase64ToServer(
               base64Url,
               `email_img_${++idx}.jpg`
             );
@@ -2426,7 +2424,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           }
 
           for (const [fullMatch, base64Url] of base64BgMatches) {
-            const hostedUrl = await uploadBase64ToCloudinary(
+            const hostedUrl = await uploadBase64ToServer(
               base64Url,
               `email_bg_${++idx}.jpg`
             );
@@ -2440,28 +2438,14 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
           minifiedHtml = processedHtml;
           payloadSizeKB = new Blob([minifiedHtml]).size / 1024;
-          console.log(
-            `[EmailJS] Size after Cloudinary upload: ${payloadSizeKB.toFixed(2)} KB`
-          );
         }
 
         // Final size check after all optimisations
         if (payloadSizeKB > 50) {
-          const hasBase64Still =
-            /src="data:image\//.test(minifiedHtml) ||
-            /url\(["']?data:image\//.test(minifiedHtml);
-
-          if (hasBase64Still && !IS_CLOUDINARY_CONFIGURED) {
-            toast.error(
-              "Image Too Large to Send",
-              "One or more images are too large to be embedded in a single email. Please configure Cloudinary in src/utils/uploadUtils.js to host images externally, or use a much smaller image."
-            );
-          } else {
-            toast.error(
-              "Email Too Large",
-              `The email (${payloadSizeKB.toFixed(2)} KB) exceeds EmailJS's 50 KB limit. Try reducing the number of sections or simplifying the content.`
-            );
-          }
+          toast.error(
+            "Email Too Large",
+            `The email (${payloadSizeKB.toFixed(2)} KB) exceeds EmailJS's 50 KB limit. Try reducing the number of sections or simplifying the content.`
+          );
           return;
         }
       }

@@ -34,3 +34,18 @@ export const uploadImageToServer = async (file) => {
     return null;
   }
 };
+
+export const uploadBase64ToServer = async (
+  base64DataUrl,
+  filename = "image.jpg"
+) => {
+  if (!base64DataUrl?.startsWith("data:")) return base64DataUrl;
+  try {
+    const res = await fetch(base64DataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], filename, { type: blob.type });
+    return await uploadImageToServer(file);
+  } catch {
+    return null;
+  }
+};
