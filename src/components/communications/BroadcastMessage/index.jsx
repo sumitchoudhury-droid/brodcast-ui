@@ -40,24 +40,26 @@ function BroadcastMessageInner({ handleCancel }) {
     textEditorInstanceRef.current = instance;
   }, []);
   const [emptyMap, setEmptyMap] = useState({
-    Email: true,
-    Text: true,
-    Voice: true
+    email: true,
+    text: true,
+    voice: true
   });
   const [showPlaceholders, setShowPlaceholders] = useState(false);
 
-  const hasEmptyEditor = selectedModes.some((mode) => emptyMap[mode]);
+  const hasEmptyEditor = selectedModes.some(
+    (mode) => emptyMap[mode.toLowerCase()]
+  );
 
   const setEmailEmpty = useCallback(
-    (isEmpty) => setEmptyMap((prev) => ({ ...prev, Email: isEmpty })),
+    (isEmpty) => setEmptyMap((prev) => ({ ...prev, email: isEmpty })),
     []
   );
   const setTextEmpty = useCallback(
-    (isEmpty) => setEmptyMap((prev) => ({ ...prev, Text: isEmpty })),
+    (isEmpty) => setEmptyMap((prev) => ({ ...prev, text: isEmpty })),
     []
   );
   const setVoiceEmpty = useCallback(
-    (isEmpty) => setEmptyMap((prev) => ({ ...prev, Voice: isEmpty })),
+    (isEmpty) => setEmptyMap((prev) => ({ ...prev, voice: isEmpty })),
     []
   );
 
@@ -71,12 +73,14 @@ function BroadcastMessageInner({ handleCancel }) {
 
   const selectedTemplate = selectedTemplateData;
 
+  const lowerModes = selectedModes.map((m) => m.toLowerCase());
+
   const heading =
     selectedModes.length > 1
       ? "Add Broadcast Message"
-      : selectedModes.includes("Email")
+      : lowerModes.includes("email")
         ? "Add Email Message for Broadcast"
-        : selectedModes.includes("Text")
+        : lowerModes.includes("text")
           ? "Add Text Message for Broadcast"
           : "Add Voice Message for Broadcast";
 
@@ -91,7 +95,7 @@ function BroadcastMessageInner({ handleCancel }) {
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
-          isEditorEmpty={emptyMap.Email}
+          isEditorEmpty={emptyMap.email}
           setIsEditorEmpty={setEmailEmpty}
           onTextEmptyChange={setTextEmpty}
           onVoiceEmptyChange={setVoiceEmpty}
@@ -101,21 +105,21 @@ function BroadcastMessageInner({ handleCancel }) {
       );
     }
 
-    if (selectedModes.includes("Email")) {
+    if (lowerModes.includes("email")) {
       return (
         <BroadcastEmailMessage
           editorRef={editorRef}
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
-          isEditorEmpty={emptyMap.Email}
+          isEditorEmpty={emptyMap.email}
           setIsEditorEmpty={setEmailEmpty}
           selectedTemplate={selectedTemplate}
         />
       );
     }
 
-    if (selectedModes.includes("Text")) {
+    if (lowerModes.includes("text")) {
       return (
         <BroadcastTextMessage
           selectedTemplate={selectedTemplate}
@@ -125,7 +129,7 @@ function BroadcastMessageInner({ handleCancel }) {
       );
     }
 
-    if (selectedModes.includes("Voice")) {
+    if (lowerModes.includes("voice")) {
       return (
         <BroadcastTextVoiceMessage
           selectedTemplate={selectedTemplate}

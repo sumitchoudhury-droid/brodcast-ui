@@ -74,7 +74,8 @@ export default function Footer({
 
     const channels = selectedModes
       .map((mode) => {
-        if (mode === "Email") {
+        const lowerMode = mode.toLowerCase();
+        if (lowerMode === "email") {
           return {
             methodType: "Mail",
             templateBody: mailBody,
@@ -83,7 +84,7 @@ export default function Footer({
             attachments: []
           };
         }
-        if (mode === "Text") {
+        if (lowerMode === "text") {
           return {
             methodType: "SMS",
             templateBody: smsBody,
@@ -92,7 +93,7 @@ export default function Footer({
             attachments: []
           };
         }
-        if (mode === "Voice") {
+        if (lowerMode === "voice") {
           return {
             methodType: "Voice",
             templateBody: "",

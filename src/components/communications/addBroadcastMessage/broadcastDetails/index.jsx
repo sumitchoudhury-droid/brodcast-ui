@@ -2,6 +2,7 @@ import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDow
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 import { useGet } from "../../../../hooks/useGet";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
+import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 import "./style.scss";
 
@@ -40,7 +41,7 @@ export const BroadcastDetails = ({
     }
   ];
 
-  const { data: modesData } = useGet(
+  const { data: modesData, isLoading: isLoadingModes } = useGet(
     ["communication-modes"],
     ENDPOINTS.broadcastConfig.COMMUNICATION_MODES
   );
@@ -70,14 +71,23 @@ export const BroadcastDetails = ({
           </div>
 
           <div className="broadcastDetailsContentRowValue">
-            {communicationModes.map((mode) => (
-              <ReusableCheckbox
-                key={mode.id}
-                label={mode.name}
-                checked={selectedModes.includes(mode.name)}
-                onChange={() => handleCheckboxChange(mode.name)}
-              />
-            ))}
+            {isLoadingModes
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <SkeletonLoader
+                    key={i}
+                    width="80px"
+                    height="20px"
+                    borderRadius="4px"
+                  />
+                ))
+              : communicationModes.map((mode) => (
+                  <ReusableCheckbox
+                    key={mode.id}
+                    label={mode.name}
+                    checked={selectedModes.includes(mode.name)}
+                    onChange={() => handleCheckboxChange(mode.name)}
+                  />
+                ))}
           </div>
         </div>
 

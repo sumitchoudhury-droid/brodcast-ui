@@ -43,7 +43,7 @@ const getTemplatePrefill = (template) => {
   const prefills = {
     // Appointment Rescheduled
     1: {
-      selectedModes: ["Email", "Text", "Voice"],
+      selectedModes: ["Email", "TEXT", "Voice"],
       priority: "high",
       patientType: "targetRecipients",
       appointmentType: ["checkin", "followup"],
@@ -60,7 +60,7 @@ const getTemplatePrefill = (template) => {
     },
     // Health Camp Invitation
     2: {
-      selectedModes: ["Email", "Text"],
+      selectedModes: ["Email", "TEXT"],
       priority: "standard",
       patientType: "targetRecipients",
       appointmentType: ["new"],
@@ -77,7 +77,7 @@ const getTemplatePrefill = (template) => {
     },
     // Treatment Plan Update
     3: {
-      selectedModes: ["Email", "Text", "Voice"],
+      selectedModes: ["Email", "TEXT", "Voice"],
       priority: "high",
       patientType: "targetRecipients",
       appointmentType: ["followup"],
@@ -94,7 +94,7 @@ const getTemplatePrefill = (template) => {
     },
     // Seasonal Health Advisory
     4: {
-      selectedModes: ["Text", "Voice"],
+      selectedModes: ["TEXT", "Voice"],
       priority: "standard",
       patientType: "oneTimeBroadcast",
       appointmentType: [],
@@ -130,7 +130,7 @@ const getTemplatePrefill = (template) => {
     },
     // Wellness Program Enrollment
     6: {
-      selectedModes: ["Email", "Text"],
+      selectedModes: ["Email", "TEXT"],
       priority: "standard",
       patientType: "targetRecipients",
       appointmentType: ["new", "checkin"],
@@ -150,7 +150,7 @@ const getTemplatePrefill = (template) => {
     },
     // Invoice Generated Notification
     7: {
-      selectedModes: ["Email", "Text", "Voice"],
+      selectedModes: ["Email", "TEXT", "Voice"],
       priority: "high",
       patientType: "targetRecipients",
       appointmentType: ["checkin", "new", "followup"],
@@ -210,7 +210,7 @@ const getCategoryPrefill = (val) => {
 
   const prefills = {
     balance_payment_reminder: {
-      selectedModes: ["Text", "Email"],
+      selectedModes: ["TEXT", "Email"],
       priority: "high",
       selectedEmailTemplateType: "existing",
       selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[0]),
@@ -268,7 +268,7 @@ const getCategoryPrefill = (val) => {
       repeatOn: []
     },
     announcement: {
-      selectedModes: ["Text", "Voice", "Email"],
+      selectedModes: ["TEXT", "Voice", "Email"],
       priority: "standard",
       selectedEmailTemplateType: "existing",
       selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[2]),
@@ -469,9 +469,8 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
   const [showHighPriorityModal, setShowHighPriorityModal] = useState(false);
   const [pendingTemplateData, setPendingTemplateData] = useState(null);
 
-  const showRadioRow =
-    !selectedModes.includes("Email") &&
-    (selectedModes.includes("Text") || selectedModes.includes("Voice"));
+  const hasEmailMode = selectedModes.some((m) => m.toLowerCase() === "email");
+  const showRadioRow = !hasEmailMode && selectedModes.length > 0;
 
   const isFormValid =
     selectedModes.length > 0 &&
@@ -593,9 +592,12 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
             ) {
               finalTemplateData = {
                 title: newTemplateName,
-                ...(selectedModes.includes("Text") && { textTemplate: "" }),
-                ...(selectedModes.includes("Voice") && { voiceTemplate: "" }),
-                ...(selectedModes.includes("Email") && { emailTemplate: "" })
+                ...Object.fromEntries(
+                  selectedModes.map((name) => [
+                    `${name.toLowerCase()}Template`,
+                    ""
+                  ])
+                )
               };
             }
             if (priority === "high") {
