@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import MainScreen from "../containers/mainScreen";
 import Communications from "../containers/communications";
-import ApiTest from "../components/ApiTest";
 import { tabs } from "../utls/constants";
 
 const renderTabContent = (path, title) => {
@@ -30,7 +29,7 @@ export const AppRoutes = () => {
           );
         })}
       </Route>
-      <Route path="/api-test" element={<ApiTest />} />
+
       <Route
         path="*"
         element={<Navigate to="/patient-communication" replace />}

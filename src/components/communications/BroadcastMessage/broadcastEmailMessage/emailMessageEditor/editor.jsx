@@ -1393,15 +1393,6 @@ export default function Editor({
               "data-gjs-direction": isColumnFrame ? "v" : "h"
             });
             if (isColumnFrame) comp.set("direction", "v");
-          } else {
-            comp.addAttributes({
-              padding: "0px",
-              "padding-top": "0px",
-              "padding-right": "0px",
-              "padding-bottom": "0px",
-              "padding-left": "0px",
-              margin: "0px"
-            });
           }
         }
 
@@ -1417,16 +1408,6 @@ export default function Editor({
           } else {
             comp.addAttributes({ padding: "0px", margin: "0px" });
           }
-        }
-
-        if (COLUMN_VALID_CHILDREN.includes(type)) {
-          comp.addAttributes({
-            padding: "0px",
-            "padding-top": "0px",
-            "padding-right": "0px",
-            "padding-bottom": "0px",
-            "padding-left": "0px"
-          });
         }
 
         comp.components().each(patchInstance);
@@ -1980,7 +1961,13 @@ export default function Editor({
     });
 
     registerBlocks(editor, initialTemplate);
+    suppressPaddingOverride.current = true;
+    suppressSigReconcile.current = true;
     editor.setComponents(initialTemplate || EMPTY_TEMPLATE);
+    setTimeout(() => {
+      suppressPaddingOverride.current = false;
+      suppressSigReconcile.current = false;
+    }, 0);
 
     // ── Restrict nested block drops to column-frame / row-frame only ────────────
     // Any block may be dropped at the top level (direct child of mj-body), which
