@@ -14,6 +14,7 @@ export const ENDPOINTS = {
     PRIORITIES: "/api/v1/aggregate/broadcast-config/priorities",
     PATIENT_TYPES: "/api/v1/aggregate/broadcast-config/patient-types",
     CATEGORIES: "/api/v1/aggregate/broadcast-config/categories/",
-    APPOINTMENT_TYPES: "/api/v1/aggregate/broadcast-config/appointment-types"
+    APPOINTMENT_TYPES: "/api/v1/aggregate/broadcast-config/appointment-types",
+    LOCATIONS: "/api/v1/aggregate/broadcast-config/locations"
   }
 };

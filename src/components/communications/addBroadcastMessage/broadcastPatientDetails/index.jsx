@@ -167,12 +167,6 @@ function BroadcastPatientDetails({
 
   const showPatientsFound = patientsFoundForType === patientType;
 
-  const locationOptions = [
-    { label: "Main Clinic", value: "main" },
-    { label: "North Branch", value: "north" },
-    { label: "South Branch", value: "south" }
-  ];
-
   const providerOptions = [
     { label: "Dr. Smith", value: "smith" },
     { label: "Dr. Jones", value: "jones" },
@@ -272,7 +266,6 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            locationOptions={locationOptions}
             providerOptions={providerOptions}
             ageOptions={ageOptions}
             genderOptions={genderOptions}
