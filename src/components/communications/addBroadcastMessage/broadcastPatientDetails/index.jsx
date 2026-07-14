@@ -167,12 +167,6 @@ function BroadcastPatientDetails({
 
   const showPatientsFound = patientsFoundForType === patientType;
 
-  const appointmentTypeOptions = [
-    { label: "Check-in", value: "checkin" },
-    { label: "Follow-up", value: "followup" },
-    { label: "New Patient", value: "new" }
-  ];
-
   const locationOptions = [
     { label: "Main Clinic", value: "main" },
     { label: "North Branch", value: "north" },
@@ -278,7 +272,6 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            appointmentTypeOptions={appointmentTypeOptions}
             locationOptions={locationOptions}
             providerOptions={providerOptions}
             ageOptions={ageOptions}

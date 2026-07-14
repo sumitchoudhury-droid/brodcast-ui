@@ -7,6 +7,9 @@ import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
 import ReusableModal from "../../../../reusableComponents/reusableModal";
+import { useGet } from "../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 
 function TargetRecipients({
   // Dropdown props
@@ -37,7 +40,6 @@ function TargetRecipients({
   includeOptOut,
   setIncludeOptOut,
   // Options arrays
-  appointmentTypeOptions,
   locationOptions,
   providerOptions,
   ageOptions,
@@ -45,6 +47,18 @@ function TargetRecipients({
   modalityOptions,
   onSearch
 }) {
+  const { data: apptTypesData } = useGet(
+    ["appointment-types"],
+    ENDPOINTS.broadcastConfig.APPOINTMENT_TYPES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const appointmentTypeOptions = (apptTypesData?.data ?? []).map((a) => ({
+    value: a.id,
+    label: a.catalogDesc
+  }));
+
   const [showOptOutModal, setShowOptOutModal] = useState(false);
 
   const handleToggleOptOut = (val) => {

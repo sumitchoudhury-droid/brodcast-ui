@@ -57,7 +57,8 @@
     "Optout",
     "Sharma",
     "ondemand",
-    "Appkey"
+    "Appkey",
+    "appt"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

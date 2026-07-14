@@ -13,6 +13,7 @@ export const ENDPOINTS = {
       "/api/v1/aggregate/broadcast-config/communication-modes",
     PRIORITIES: "/api/v1/aggregate/broadcast-config/priorities",
     PATIENT_TYPES: "/api/v1/aggregate/broadcast-config/patient-types",
-    CATEGORIES: "/api/v1/aggregate/broadcast-config/categories/"
+    CATEGORIES: "/api/v1/aggregate/broadcast-config/categories/",
+    APPOINTMENT_TYPES: "/api/v1/aggregate/broadcast-config/appointment-types"
   }
 };

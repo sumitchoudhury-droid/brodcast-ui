@@ -43,11 +43,14 @@
           $jc: flex-start,
           $g: 6px
         );
-        width: 90%;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
 
         .multidropdownSelectContainerValueImageWrapper {
           width: 20px;
           height: 20px;
+          flex-shrink: 0;
 
           img {
             width: 100%;
@@ -62,7 +65,7 @@
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          width: 90%;
+          width: 100%;
         }
       }
 
