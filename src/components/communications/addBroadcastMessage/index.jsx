@@ -600,7 +600,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
                 )
               };
             }
-            if (priority === "high") {
+            if (priority === 1) {
               setPendingTemplateData(finalTemplateData);
               setShowHighPriorityModal(true);
               return;
@@ -623,7 +623,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
           onNext(pendingTemplateData);
         }}
         onCancel={() => {
-          setPriority("standard");
+          setPriority(2);
           setShowHighPriorityModal(false);
         }}
       >

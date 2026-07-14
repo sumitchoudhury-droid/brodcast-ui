@@ -10,6 +10,7 @@ export const ENDPOINTS = {
   },
   broadcastConfig: {
     COMMUNICATION_MODES:
-      "/api/v1/aggregate/broadcast-config/communication-modes"
+      "/api/v1/aggregate/broadcast-config/communication-modes",
+    PRIORITIES: "/api/v1/aggregate/broadcast-config/priorities"
   }
 };

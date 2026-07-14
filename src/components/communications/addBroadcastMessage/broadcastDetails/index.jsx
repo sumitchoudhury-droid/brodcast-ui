@@ -30,23 +30,22 @@ export const BroadcastDetails = ({
     }
   ];
 
-  const priorityOptions = [
-    {
-      value: "standard",
-      label: "Standard"
-    },
-    {
-      value: "high",
-      label: "High"
-    }
-  ];
-
   const { data: modesData, isLoading: isLoadingModes } = useGet(
     ["communication-modes"],
     ENDPOINTS.broadcastConfig.COMMUNICATION_MODES
   );
 
+  const { data: prioritiesData } = useGet(
+    ["priorities"],
+    ENDPOINTS.broadcastConfig.PRIORITIES
+  );
+
   const communicationModes = modesData?.data ?? [];
+
+  const priorityOptions = (prioritiesData?.data ?? []).map((p) => ({
+    value: p.id,
+    label: p.displayText
+  }));
 
   const handleCheckboxChange = (mode) => {
     setSelectedModes((prev) =>
