@@ -167,15 +167,6 @@ function BroadcastPatientDetails({
 
   const showPatientsFound = patientsFoundForType === patientType;
 
-  const ageOptions = [
-    { label: "is equal to", value: "isEqualTo" },
-    { label: "is greater than", value: "isGreaterThan" },
-    { label: "is greater than or equal to", value: "isGreaterThanEqualTo" },
-    { label: "is lesser than", value: "isLesserThan" },
-    { label: "is lesser than or equal to", value: "isLesserThanEqualTo" },
-    { label: "is not equal to", value: "isNotEqualTo" }
-  ];
-
   const genderOptions = [
     { label: "All", value: "all" },
     { label: "Male", value: "male" },
@@ -260,7 +251,6 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            ageOptions={ageOptions}
             genderOptions={genderOptions}
             modalityOptions={modalityOptions}
             onSearch={() => setPatientsFoundForType("targetRecipients")}
