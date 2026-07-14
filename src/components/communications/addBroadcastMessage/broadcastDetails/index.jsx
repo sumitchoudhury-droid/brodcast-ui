@@ -2,6 +2,7 @@ import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDow
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 import { useGet } from "../../../../hooks/useGet";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 import "./style.scss";
@@ -14,30 +15,25 @@ export const BroadcastDetails = ({
   priority,
   setPriority
 }) => {
-  const categoryOptions = [
-    { value: "select", label: "Select" },
-    {
-      value: "balance_payment_reminder",
-      label: "Balance Payment Reminder"
-    },
-    {
-      value: "offer",
-      label: "Offer"
-    },
-    {
-      value: "announcement",
-      label: "Announcement"
-    }
-  ];
-
   const { data: modesData, isLoading: isLoadingModes } = useGet(
     ["communication-modes"],
-    ENDPOINTS.broadcastConfig.COMMUNICATION_MODES
+    ENDPOINTS.broadcastConfig.COMMUNICATION_MODES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
   );
 
   const { data: prioritiesData } = useGet(
     ["priorities"],
-    ENDPOINTS.broadcastConfig.PRIORITIES
+    ENDPOINTS.broadcastConfig.PRIORITIES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: categoriesData } = useGet(
+    ["categories"],
+    ENDPOINTS.broadcastConfig.CATEGORIES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
   );
 
   const communicationModes = modesData?.data ?? [];
@@ -46,6 +42,14 @@ export const BroadcastDetails = ({
     value: p.id,
     label: p.displayText
   }));
+
+  const categoryOptions = [
+    { value: "select", label: "Select" },
+    ...(categoriesData?.data ?? []).map((c) => ({
+      value: c.id,
+      label: c.name
+    }))
+  ];
 
   const handleCheckboxChange = (mode) => {
     setSelectedModes((prev) =>

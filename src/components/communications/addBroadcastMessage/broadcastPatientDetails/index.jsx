@@ -3,6 +3,9 @@ import * as XLSX from "xlsx";
 import { useBroadcastForm } from "../../broadcastFormContext";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton/index";
+import { useGet } from "../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import "./style.scss";
 import PatientUploadFile from "./patientUploadFile";
 import OneTimeBroadcast from "./oneTimeBroadcast";
@@ -116,6 +119,19 @@ function BroadcastPatientDetails({
     setPatientsFoundForType
   } = useBroadcastForm();
 
+  const { data: patientTypesData } = useGet(
+    ["patient-types"],
+    ENDPOINTS.broadcastConfig.PATIENT_TYPES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const patientTypes = (patientTypesData?.data ?? []).map((pt) => ({
+    id: pt.id,
+    label: pt.name,
+    value: pt.name.toLowerCase().replace(/\s+(\w)/g, (_, c) => c.toUpperCase())
+  }));
+
   const [showViewList, setShowViewList] = useState(false);
   const [showOneTimeViewList, setShowOneTimeViewList] = useState(false);
   const [showUploadViewList, setShowUploadViewList] = useState(false);
@@ -204,29 +220,16 @@ function BroadcastPatientDetails({
           </div>
 
           <div className="patientDetailsValue">
-            <ReusableRadioButton
-              label="Target Recipients"
-              value="targetRecipients"
-              name="patientType"
-              checked={patientType === "targetRecipients"}
-              onChange={() => handlePatientTypeChange("targetRecipients")}
-            />
-
-            <ReusableRadioButton
-              label="Upload File"
-              value="uploadFile"
-              name="patientType"
-              checked={patientType === "uploadFile"}
-              onChange={() => handlePatientTypeChange("uploadFile")}
-            />
-
-            <ReusableRadioButton
-              label="One Time Broadcast"
-              value="oneTimeBroadcast"
-              name="patientType"
-              checked={patientType === "oneTimeBroadcast"}
-              onChange={() => handlePatientTypeChange("oneTimeBroadcast")}
-            />
+            {patientTypes.map((pt) => (
+              <ReusableRadioButton
+                key={pt.id}
+                label={pt.label}
+                value={pt.value}
+                name="patientType"
+                checked={patientType === pt.value}
+                onChange={() => handlePatientTypeChange(pt.value)}
+              />
+            ))}
           </div>
         </div>
 

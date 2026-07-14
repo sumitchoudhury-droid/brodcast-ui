@@ -35,6 +35,11 @@ export const COMMON_HEADERS = {
   "X-Correlation-ID": "postman-test-001"
 };
 
+export const BROADCAST_CONFIG_HEADERS = {
+  TenantId: "Common",
+  OrganizationId: "100"
+};
+
 export async function handleResponse(res) {
   const json = await res.json().catch(() => null);
 
