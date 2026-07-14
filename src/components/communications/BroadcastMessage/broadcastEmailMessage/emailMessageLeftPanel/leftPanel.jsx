@@ -158,22 +158,32 @@ export default function LeftPanel({
   };
 
   const handleConfirmTemplate = async () => {
-    if (!pendingTemplate?.id) return;
+    if (!pendingTemplate) return;
     setIsImporting(true);
     try {
-      const res = await fetch(
-        `${BASE_URL}${ENDPOINTS.templates.GET_BY_ID(pendingTemplate.id)}`,
-        { headers: { "Content-Type": "application/json", ...COMMON_HEADERS } }
-      );
-      const json = await handleResponse(res);
-      const mailChannel = json?.data?.channels?.find(
-        (c) => c.methodType === "Mail"
-      );
-      if (mailChannel) {
-        const editor = editorRef?.current?.getEditor?.();
-        if (editor) editor.setComponents(mailChannel.templateBody);
-        if (mailChannel.subjectLine != null)
-          setMailSubject?.(mailChannel.subjectLine);
+      let templateBody = null;
+      let subjectLine = null;
+
+      if (pendingTemplate.id) {
+        const res = await fetch(
+          `${BASE_URL}${ENDPOINTS.templates.GET_BY_ID(pendingTemplate.id)}`,
+          { headers: { "Content-Type": "application/json", ...COMMON_HEADERS } }
+        );
+        const json = await handleResponse(res);
+        const mailChannel = json?.data?.channels?.find(
+          (c) => c.methodType === "Mail"
+        );
+        if (mailChannel) {
+          templateBody = mailChannel.templateBody;
+          subjectLine = mailChannel.subjectLine;
+        }
+      } else if (pendingTemplate.html) {
+        templateBody = pendingTemplate.html;
+      }
+
+      if (templateBody) {
+        editorRef?.current?.loadTemplate?.(templateBody);
+        if (subjectLine != null) setMailSubject?.(subjectLine);
       }
     } finally {
       setIsImporting(false);

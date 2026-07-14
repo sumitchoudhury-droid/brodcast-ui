@@ -1451,6 +1451,7 @@ export default function Editor({
     // Set suppressSigReconcile = true before calling setComponents() during
     // a template import so the reconciler does not add a signature mid-load.
     const suppressSigReconcile = { current: false };
+    const suppressPaddingOverride = { current: false };
     const isEnsuringSig = { current: false };
     let sigTimer = null;
     const scheduleSignatureReconcile = () => {
@@ -1851,6 +1852,7 @@ export default function Editor({
         if (type === "mj-section") {
           // Defer so children are in the tree before we check data-types
           setTimeout(() => {
+            if (suppressPaddingOverride.current) return;
             const isFrame =
               comp.getAttributes?.()?.["data-type"] ===
                 "column-frame-section" ||
@@ -1875,7 +1877,7 @@ export default function Editor({
           }, 0);
         }
 
-        if (type === "mj-column") {
+        if (type === "mj-column" && !suppressPaddingOverride.current) {
           const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
           if (parentDt !== "column-frame-section") {
             comp.addAttributes({
@@ -1888,7 +1890,10 @@ export default function Editor({
           }
         }
 
-        if (COLUMN_VALID_CHILDREN.includes(type)) {
+        if (
+          COLUMN_VALID_CHILDREN.includes(type) &&
+          !suppressPaddingOverride.current
+        ) {
           const isInsideSig = (() => {
             let p = comp.parent();
             while (p) {
@@ -2745,6 +2750,7 @@ export default function Editor({
          */
         loadTemplate: (templateString) => {
           suppressSigReconcile.current = true;
+          suppressPaddingOverride.current = true;
           const isMjmlTemplate = !!(
             templateString &&
             (templateString.trim().startsWith("<mjml") ||
@@ -2760,6 +2766,7 @@ export default function Editor({
             // setComponents() have already been skipped.
             setTimeout(() => {
               suppressSigReconcile.current = false;
+              suppressPaddingOverride.current = false;
             }, 200);
           }
         }
