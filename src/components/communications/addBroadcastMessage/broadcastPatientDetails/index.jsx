@@ -167,12 +167,6 @@ function BroadcastPatientDetails({
 
   const showPatientsFound = patientsFoundForType === patientType;
 
-  const modalityOptions = [
-    { label: "SMS", value: "sms" },
-    { label: "Email", value: "email" },
-    { label: "Voice", value: "voice" }
-  ];
-
   return (
     <div className="broadcastPatientDetailsContainer">
       <div className="patientDetailsHeader">
@@ -245,7 +239,6 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            modalityOptions={modalityOptions}
             onSearch={() => setPatientsFoundForType("targetRecipients")}
           />
         )}
