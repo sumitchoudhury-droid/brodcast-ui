@@ -40,7 +40,6 @@ function TargetRecipients({
   includeOptOut,
   setIncludeOptOut,
   // Options arrays
-  genderOptions,
   modalityOptions,
   onSearch
 }) {
@@ -72,6 +71,13 @@ function TargetRecipients({
     { headers: BROADCAST_CONFIG_HEADERS }
   );
 
+  const { data: genderOptionsData } = useGet(
+    ["gender-options"],
+    ENDPOINTS.broadcastConfig.GENDER_OPTIONS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
   const appointmentTypeOptions = (apptTypesData?.data ?? []).map((a) => ({
     value: a.id,
     label: a.catalogDesc
@@ -90,6 +96,11 @@ function TargetRecipients({
   const ageOptions = (ageOptionsData?.data ?? []).map((a) => ({
     value: a.id,
     label: a.ageCriteria
+  }));
+
+  const genderOptions = (genderOptionsData?.data ?? []).map((g) => ({
+    value: g.id,
+    label: g.name
   }));
 
   const [showOptOutModal, setShowOptOutModal] = useState(false);

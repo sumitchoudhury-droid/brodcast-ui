@@ -167,12 +167,6 @@ function BroadcastPatientDetails({
 
   const showPatientsFound = patientsFoundForType === patientType;
 
-  const genderOptions = [
-    { label: "All", value: "all" },
-    { label: "Male", value: "male" },
-    { label: "Female", value: "female" }
-  ];
-
   const modalityOptions = [
     { label: "SMS", value: "sms" },
     { label: "Email", value: "email" },
@@ -251,7 +245,6 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            genderOptions={genderOptions}
             modalityOptions={modalityOptions}
             onSearch={() => setPatientsFoundForType("targetRecipients")}
           />

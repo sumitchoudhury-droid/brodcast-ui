@@ -32,7 +32,7 @@ export function BroadcastFormProvider({ children }) {
   const [appointmentType, setAppointmentType] = useState("");
   const [location, setLocation] = useState("");
   const [provider, setProvider] = useState("");
-  const [gender, setGender] = useState("all");
+  const [gender, setGender] = useState(3);
   const [modality, setModality] = useState("");
   const [includeOptOut, setIncludeOptOut] = useState(false);
   const [patientsFoundForType, setPatientsFoundForType] = useState(null);

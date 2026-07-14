@@ -17,6 +17,7 @@ export const ENDPOINTS = {
     APPOINTMENT_TYPES: "/api/v1/aggregate/broadcast-config/appointment-types",
     LOCATIONS: "/api/v1/aggregate/broadcast-config/locations",
     PROVIDERS: "/api/v1/aggregate/broadcast-config/providers",
-    AGE_OPTIONS: "/api/v1/aggregate/broadcast-config/age-options"
+    AGE_OPTIONS: "/api/v1/aggregate/broadcast-config/age-options",
+    GENDER_OPTIONS: "/api/v1/aggregate/broadcast-config/gender-options"
   }
 };
