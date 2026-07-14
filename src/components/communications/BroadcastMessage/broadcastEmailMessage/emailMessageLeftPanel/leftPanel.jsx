@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import leftPanelTemplate from "../../../../../assets/leftPanel/leftPanelTemplate.svg";
 import leftPanelBlock from "../../../../../assets/leftPanel/leftPanelBlock.svg";
 import leftPanelSearch from "../../../../../assets/leftPanel/leftPanelSearch.svg";
@@ -20,12 +20,19 @@ import template1 from "../../../../../assets/templates/template1.svg";
 import template2 from "../../../../../assets/templates/template2.svg";
 import template3 from "../../../../../assets/templates/template3.svg";
 import template4 from "../../../../../assets/templates/template4.svg";
-import savedTemplate from "../../../../../assets/templates/savedTemplate.svg";
+import emptyTemplate from "../../../../../assets/existingTemplate/emptyTemplate.svg";
 
 import "./style.scss";
 
 import ReusableTab from "../../../../../reusableComponents/reusableTab";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal";
+import { useGet } from "../../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../../api/endpoints.js";
+import {
+  BASE_URL,
+  COMMON_HEADERS,
+  handleResponse
+} from "../../../../../api/api.jsx";
 
 const tabOptions = [
   { label: "Library", value: "library" },
@@ -37,13 +44,6 @@ const templateLibraryOptions = [
   { img: template2, name: "Template 2", html: emailTemplate },
   { img: template3, name: "Template 3", html: emailTemplate },
   { img: template4, name: "Template 4", html: emailTemplate }
-];
-
-const savedTemplateOptions = [
-  { img: savedTemplate, name: "Payment Reminder", html: emailTemplate },
-  { img: savedTemplate, name: "Health Camp Invitation", html: emailTemplate },
-  { img: savedTemplate, name: "Treatment Plan Update", html: emailTemplate },
-  { img: savedTemplate, name: "Seasonal Health Advisory", html: emailTemplate }
 ];
 
 const blockCategories = [
@@ -96,7 +96,8 @@ const blockCategories = [
 export default function LeftPanel({
   editorRef,
   showPlaceholders,
-  setShowPlaceholders
+  setShowPlaceholders,
+  setMailSubject
 }) {
   const [tab, setTab] = useState("blocks");
   const [selectedTab, setSelectedTab] = useState(tabOptions?.[0]?.value || "");
@@ -104,6 +105,30 @@ export default function LeftPanel({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [pendingTemplate, setPendingTemplate] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const { data: templatesData, isLoading: isLoadingTemplates } = useGet(
+    ["templates"],
+    ENDPOINTS.templates.GET_ALL,
+    null,
+    { enabled: tab === "templates" && selectedTab === "savedTemplate" }
+  );
+
+  const apiSavedTemplates = useMemo(() => {
+    const list = templatesData?.data ?? [];
+    return list
+      .filter((t) => t.channels?.some((c) => c.methodType === "Mail"))
+      .map((t) => {
+        const mailChannel = t.channels.find((c) => c.methodType === "Mail");
+        return {
+          id: t.id,
+          img: null,
+          name: t.name,
+          html: mailChannel.templateBody,
+          subject: mailChannel.subjectLine
+        };
+      });
+  }, [templatesData]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
@@ -131,11 +156,29 @@ export default function LeftPanel({
     setOpenConfirmModal(true);
   };
 
-  const handleConfirmTemplate = () => {
-    const editor = editorRef?.current?.getEditor?.();
-    if (editor && pendingTemplate) editor.setComponents(pendingTemplate.html);
-    setOpenConfirmModal(false);
-    setPendingTemplate(null);
+  const handleConfirmTemplate = async () => {
+    if (!pendingTemplate?.id) return;
+    setIsImporting(true);
+    try {
+      const res = await fetch(
+        `${BASE_URL}${ENDPOINTS.templates.GET_BY_ID(pendingTemplate.id)}`,
+        { headers: { "Content-Type": "application/json", ...COMMON_HEADERS } }
+      );
+      const json = await handleResponse(res);
+      const mailChannel = json?.data?.channels?.find(
+        (c) => c.methodType === "Mail"
+      );
+      if (mailChannel) {
+        const editor = editorRef?.current?.getEditor?.();
+        if (editor) editor.setComponents(mailChannel.templateBody);
+        if (mailChannel.subjectLine != null)
+          setMailSubject?.(mailChannel.subjectLine);
+      }
+    } finally {
+      setIsImporting(false);
+      setOpenConfirmModal(false);
+      setPendingTemplate(null);
+    }
   };
 
   const handleCancelConfirm = () => {
@@ -353,7 +396,6 @@ export default function LeftPanel({
           className="panel-content"
           style={{
             display: tab === "templates" ? "block" : "none",
-            maxWidth: "248px",
             width: "100%"
           }}
         >
@@ -391,7 +433,10 @@ export default function LeftPanel({
 
             {selectedTab === "savedTemplate" &&
               (() => {
-                const filtered = savedTemplateOptions.filter((o) =>
+                if (isLoadingTemplates) {
+                  return <div className="noResults">Loading templates...</div>;
+                }
+                const filtered = apiSavedTemplates.filter((o) =>
                   o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
                 );
                 return (
@@ -403,7 +448,10 @@ export default function LeftPanel({
                           key={index}
                           onClick={handleTemplateSelect(option)}
                         >
-                          <img src={option.img} alt={option.name} />
+                          <img
+                            src={option.img ?? emptyTemplate}
+                            alt={option.name}
+                          />
                           <span>{option.name}</span>
                         </div>
                       ))
@@ -423,7 +471,8 @@ export default function LeftPanel({
         onClose={handleCancelConfirm}
         onConfirm={handleConfirmTemplate}
         cancelText="Cancel"
-        confirmText="Confirm & Import"
+        confirmText={isImporting ? "Importing..." : "Confirm & Import"}
+        confirmDisabled={isImporting}
       >
         <div className="confirmUploadTemplateContainer">
           <p className="confirmUploadTemplateContainerTitle">
