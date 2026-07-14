@@ -55,7 +55,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "",
       ageYear: "",
       ageMonth: "",
-      sendType: "immediately",
+      sendType: 1,
       scheduleStartDateTime: now
     },
     // Health Camp Invitation
@@ -72,7 +72,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "",
       ageYear: "",
       ageMonth: "",
-      sendType: "notifyLater",
+      sendType: 2,
       scheduleStartDateTime: days(7)
     },
     // Treatment Plan Update
@@ -89,7 +89,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "isGreaterThan",
       ageYear: "18",
       ageMonth: "",
-      sendType: "notifyLater",
+      sendType: 2,
       scheduleStartDateTime: days(1)
     },
     // Seasonal Health Advisory
@@ -108,7 +108,7 @@ const getTemplatePrefill = (template) => {
       ageMonth: "",
       broadcastStartDate: now,
       broadcastEndDate: days(14),
-      sendType: "immediately",
+      sendType: 1,
       scheduleStartDateTime: now
     },
     // Diabetes Screening Alert
@@ -125,7 +125,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "isGreaterThan",
       ageYear: "45",
       ageMonth: "",
-      sendType: "notifyLater",
+      sendType: 2,
       scheduleStartDateTime: days(3)
     },
     // Wellness Program Enrollment
@@ -142,7 +142,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "isGreaterThanEqualTo",
       ageYear: "18",
       ageMonth: "",
-      sendType: "recurring",
+      sendType: 3,
       scheduleStartDateTime: days(1),
       frequency: "Custom",
       repeatType: "Week",
@@ -162,7 +162,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "",
       ageYear: "",
       ageMonth: "",
-      sendType: "immediately",
+      sendType: 1,
       scheduleStartDateTime: now
     },
     // Follow-Up Consultation Reminder
@@ -179,7 +179,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "isGreaterThan",
       ageYear: "18",
       ageMonth: "",
-      sendType: "notifyLater",
+      sendType: 2,
       scheduleStartDateTime: days(2)
     },
     // Consent Form Reminder
@@ -196,7 +196,7 @@ const getTemplatePrefill = (template) => {
       ageFilter: "",
       ageYear: "",
       ageMonth: "",
-      sendType: "immediately",
+      sendType: 1,
       scheduleStartDateTime: now
     }
   };
@@ -231,7 +231,7 @@ const getCategoryPrefill = (val) => {
       includeOptOut: false,
       broadcastStartDate: now,
       broadcastEndDate: null,
-      sendType: "notifyLater",
+      sendType: 2,
       scheduleStartDateTime: days(1),
       scheduleEndDateTime: null,
       frequency: "Daily",
@@ -260,7 +260,7 @@ const getCategoryPrefill = (val) => {
       includeOptOut: false,
       broadcastStartDate: now,
       broadcastEndDate: null,
-      sendType: "immediately",
+      sendType: 1,
       scheduleStartDateTime: now,
       scheduleEndDateTime: null,
       frequency: "Daily",
@@ -289,7 +289,7 @@ const getCategoryPrefill = (val) => {
       includeOptOut: false,
       broadcastStartDate: now,
       broadcastEndDate: days(7),
-      sendType: "immediately",
+      sendType: 1,
       scheduleStartDateTime: now,
       scheduleEndDateTime: null,
       frequency: "Daily",
@@ -388,7 +388,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
       setBroadcastStartDate(new Date());
       setBroadcastEndDate(null);
       setUploadedFile(null);
-      setSendType("immediately");
+      setSendType(1);
       setScheduleStartDateTime(new Date());
       setScheduleEndDateTime(null);
       setFrequency("Daily");

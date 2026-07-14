@@ -57,13 +57,13 @@ export const BroadCastSchedule = ({
   };
 
   const getSummaryText = () => {
-    if (sendType === "immediately") {
+    if (sendType === 1) {
       return "The broadcast will be delivered instantly once scheduled.";
     }
-    if (sendType === "notifyLater") {
+    if (sendType === 2) {
       return `The broadcast will be delivered at ${formatDate(startDateTime)}.`;
     }
-    if (sendType === "recurring") {
+    if (sendType === 3) {
       let recurrence = frequency.toLowerCase();
       if (frequency === "Custom") {
         recurrence = `every ${repeatEvery} ${repeatType.toLowerCase()}${repeatEvery > 1 ? "s" : ""}`;
