@@ -3,7 +3,7 @@ import grapesjs from "grapesjs";
 import ReactDOM from "react-dom";
 
 import mjmlPlugin from "grapesjs-mjml";
-import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
+import { uploadImageToServer } from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
@@ -546,7 +546,7 @@ export default function Editor({
     imageTargetCompRef.current = null;
 
     try {
-      const dataUrl = await uploadToCloudinary(file);
+      const dataUrl = await uploadImageToServer(file);
       if (!dataUrl) return;
 
       // Resolve actual pixel dimensions before inserting into the editor
