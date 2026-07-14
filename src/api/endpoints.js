@@ -6,7 +6,8 @@ export const ENDPOINTS = {
     DELETE_BY_ID: (id) => `/api/v1/templates/${id}`
   },
   images: {
-    UPLOAD: "/api/v1/Image/ImageUpload"
+    UPLOAD: "/api/v1/Image/ImageUpload",
+    ATTACHMENT_UPLOAD: "/api/v1/Image/AttachmentUpload"
   },
   broadcastConfig: {
     COMMUNICATION_MODES:

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./style.scss";
 
-import { ReusableButton } from "../../../../../../reusableComponents/resuableButton";
+// import { ReusableButton } from "../../../../../../reusableComponents/resuableButton";
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal";
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
 
@@ -13,10 +13,10 @@ export const TextDeviceSwitcher = ({
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const handleAttachmentClick = () => {
-    setSelectedFile(null);
-    setOpenUploadModal(true);
-  };
+  // const handleAttachmentClick = () => {
+  //   setSelectedFile(null);
+  //   setOpenUploadModal(true);
+  // };
 
   const handleUploadConfirm = () => {
     if (!selectedFile) return;
@@ -76,11 +76,11 @@ export const TextDeviceSwitcher = ({
           </button>
         </div>
       )} */}
-      <ReusableButton
+      {/* <ReusableButton
         label="Attachment"
         linkImage={true}
         onClick={handleAttachmentClick}
-      />
+      /> */}
       <button
         className="previewBtn"
         onClick={handlePreview}

@@ -3,7 +3,10 @@ import grapesjs from "grapesjs";
 import ReactDOM from "react-dom";
 
 import mjmlPlugin from "grapesjs-mjml";
-import { uploadImageToServer } from "../../../../../utils/uploadUtils";
+import {
+  uploadImageToServer,
+  uploadAttachmentToServer
+} from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
@@ -417,7 +420,7 @@ export default function Editor({
     el: null
   });
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
     const ALLOWED_EXTS = /\.(jpg|jpeg|png|pdf)$/i;
     const allFiles = Array.from(e.target.files);
@@ -442,6 +445,10 @@ export default function Editor({
     }
     if (!targetComp) return;
 
+    const uploadedUrls = await Promise.all(
+      files.map((file) => uploadAttachmentToServer(file))
+    );
+
     const docIcon = `data:image/svg+xml;utf8,${encodeURIComponent(
       '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M12 12V28H28V18L22 12H12Z" fill="white" stroke="#2563EB" stroke-width="2"/><path d="M22 12V18H28" stroke="#2563EB" stroke-width="2"/><text x="13" y="24" fill="#2563EB" font-family="Arial" font-size="5" font-weight="bold">DOC</text></svg>'
     )}`;
@@ -450,7 +457,7 @@ export default function Editor({
     )}`;
 
     const itemsHtml = files
-      .map((file) => {
+      .map((file, i) => {
         const sizeInBytes = file.size;
         const sizeDisplay =
           sizeInBytes < 1024 * 1024
@@ -458,8 +465,7 @@ export default function Editor({
             : `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
         const isDoc = /\.docx?$/i.test(file.name);
         const icon = isDoc ? docIcon : pdfIcon;
-        const downloadId = Math.floor(Math.random() * 90000) + 10000;
-        const downloadUrl = URL.createObjectURL(file);
+        const downloadUrl = uploadedUrls[i] || URL.createObjectURL(file);
         const displayName =
           file.name.length > 28
             ? file.name.substring(0, 25) + "..."
@@ -477,7 +483,7 @@ export default function Editor({
             <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
               <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; flex-shrink:0;">Download using Link:</p>
               <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; cursor:pointer; display:block;">
-                https://manipal.care/dl${downloadId}
+                ${downloadUrl}
               </a>
             </div>
           </div>
