@@ -167,12 +167,6 @@ function BroadcastPatientDetails({
 
   const showPatientsFound = patientsFoundForType === patientType;
 
-  const providerOptions = [
-    { label: "Dr. Smith", value: "smith" },
-    { label: "Dr. Jones", value: "jones" },
-    { label: "Dr. Taylor", value: "taylor" }
-  ];
-
   const ageOptions = [
     { label: "is equal to", value: "isEqualTo" },
     { label: "is greater than", value: "isGreaterThan" },
@@ -266,7 +260,6 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            providerOptions={providerOptions}
             ageOptions={ageOptions}
             genderOptions={genderOptions}
             modalityOptions={modalityOptions}

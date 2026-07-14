@@ -40,7 +40,6 @@ function TargetRecipients({
   includeOptOut,
   setIncludeOptOut,
   // Options arrays
-  providerOptions,
   ageOptions,
   genderOptions,
   modalityOptions,
@@ -60,6 +59,13 @@ function TargetRecipients({
     { headers: BROADCAST_CONFIG_HEADERS }
   );
 
+  const { data: providersData } = useGet(
+    ["providers"],
+    ENDPOINTS.broadcastConfig.PROVIDERS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
   const appointmentTypeOptions = (apptTypesData?.data ?? []).map((a) => ({
     value: a.id,
     label: a.catalogDesc
@@ -68,6 +74,11 @@ function TargetRecipients({
   const locationOptions = (locationsData?.data ?? []).map((l) => ({
     value: l.id,
     label: l.displayName
+  }));
+
+  const providerOptions = (providersData?.data ?? []).map((p) => ({
+    value: p.id,
+    label: p.name
   }));
 
   const [showOptOutModal, setShowOptOutModal] = useState(false);
