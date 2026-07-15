@@ -15,18 +15,20 @@ function MultipleBroadMessages({
   setIsEditorEmpty,
   onTextEmptyChange,
   onVoiceEmptyChange,
+  onTextEditorReady,
   selectedTemplate
 }) {
   const renderEditor = (mode) => {
-    switch (mode) {
-      case "Text":
+    switch (mode.toLowerCase()) {
+      case "text":
         return (
           <BroadcastTextMessage
             selectedTemplate={selectedTemplate}
             onEmptyChange={onTextEmptyChange}
+            onEditorReady={onTextEditorReady}
           />
         );
-      case "Email":
+      case "email":
         return (
           <BroadcastEmailMessage
             editorRef={editorRef}
@@ -38,7 +40,7 @@ function MultipleBroadMessages({
             selectedTemplate={selectedTemplate}
           />
         );
-      case "Voice":
+      case "voice":
         return (
           <BroadcastTextVoiceMessage
             selectedTemplate={selectedTemplate}

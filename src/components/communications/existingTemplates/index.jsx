@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import mjml2html from "mjml-browser";
 import "./style.scss";
 import emptyTemplate from "../../../assets/existingTemplate/emptyTemplate.svg";
 import emailIcon from "../../../assets/existingTemplate/mail.svg";
@@ -7,11 +8,13 @@ import voiceIcon from "../../../assets/existingTemplate/phone.svg";
 import searchIcon from "../../../assets/commonIcons/searchIcon.svg";
 import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
-import emailTemplate from "./htmlTemplates/email.html?raw";
-import textTemplate from "./htmlTemplates/textMessage.html?raw";
-import voiceTemplate from "./htmlTemplates/voiceMessage.html?raw";
 import deleteIcon from "../../../assets/existingTemplate/deleteIcon.svg";
-import { MOCK_TEMPLATES } from "./mockTemplates";
+import { useGet } from "../../../hooks/useGet";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { BASE_URL, COMMON_HEADERS, handleResponse } from "../../../api/api.jsx";
+import { ENDPOINTS } from "../../../api/endpoints.js";
+import { useToast } from "../../../hooks/useToast";
+import SkeletonLoader from "../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 function ExistingTemplates({
   isOpen,
@@ -20,7 +23,7 @@ function ExistingTemplates({
   initialModeTab = "Text"
 }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState(MOCK_TEMPLATES[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [activeModeTab, setActiveModeTab] = useState(initialModeTab);
   const [prevInitialModeTab, setPrevInitialModeTab] = useState(initialModeTab);
   const [viewMode, setViewMode] = useState("desktop");
@@ -45,35 +48,200 @@ function ExistingTemplates({
   const offsetRef = useRef(0);
   const trackRef = useRef(null);
 
-  const filteredTemplates = MOCK_TEMPLATES.filter((template) =>
+  const { data: templatesData, isLoading: templatesLoading } = useGet(
+    ["templates"],
+    ENDPOINTS.templates.GET_ALL,
+    null,
+    { enabled: isOpen }
+  );
+
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const { mutate: deleteTemplate } = useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(
+        `${BASE_URL}${ENDPOINTS.templates.DELETE_BY_ID(id)}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", ...COMMON_HEADERS }
+        }
+      );
+      return handleResponse(res);
+    },
+    onSuccess: (_, id) => {
+      toast.success("Deleted", "Template deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      if (selectedTemplate?.id === id) setSelectedTemplate(null);
+    }
+  });
+
+  const methodTypeToMode = (methodType) => {
+    if (methodType === "Mail") return "mail";
+    if (methodType === "SMS") return "text";
+    if (methodType === "Voice") return "voice";
+    return methodType.toLowerCase();
+  };
+
+  const templates = (templatesData?.data || []).map((t) => ({
+    id: t.id,
+    title: t.name,
+    modes: t.channels.map((c) => methodTypeToMode(c.methodType)),
+    channels: t.channels,
+    image: null
+  }));
+
+  const filteredTemplates = templates.filter((template) =>
     template.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Fall back to the first loaded template when the user hasn't made an explicit selection
+  const effectiveSelectedTemplate = selectedTemplate ?? templates[0] ?? null;
+
   const handleSelectTemplate = () => {
     if (onSelectTemplate) {
-      onSelectTemplate({
-        ...selectedTemplate,
-        emailTemplate,
-        textTemplate,
-        voiceTemplate
-      });
+      onSelectTemplate(effectiveSelectedTemplate);
     }
     onClose();
   };
 
-  // Extract plain text from voiceTemplate HTML
-  const getVoiceText = () => {
+  const getChannelBody = (methodType) =>
+    effectiveSelectedTemplate?.channels?.find(
+      (c) => c.methodType === methodType
+    )?.templateBody || "";
+
+  // Compile MJML → HTML; fall back to raw string on failure
+  const compileMjml = (raw) => {
+    if (!raw || !raw.trimStart().startsWith("<mjml")) return raw;
+    try {
+      // Normalize mj-body width from percentage to 600px so MJML computes
+      // column and image widths correctly (percentage values cause mjml2html
+      // to treat the body as ~100px, capping image widths to the column width).
+      let normalized = raw.replace(
+        /(<mj-body\b[^>]*)\bwidth="[\d.]+%"/,
+        '$1width="600px"'
+      );
+
+      // mjml2html strips flex properties (align-items, justify-content, gap)
+      // from mj-section because MJML uses table-based layout. To preserve
+      // these styles in the preview, we assign each section that carries them
+      // a unique css-class and inject an mj-style rule that applies the flex
+      // properties to the column-container <td> generated by MJML.
+      const flexCssRules = [];
+      let flexClassIdx = 0;
+      normalized = normalized.replace(
+        /<mj-section\b([^>]*)>/g,
+        (match, attrs) => {
+          const styleMatch = attrs.match(/\bstyle="([^"]*)"/);
+          if (!styleMatch) return match;
+
+          const styleStr = styleMatch[1];
+          const aiMatch = styleStr.match(/align-items\s*:\s*([^;,"]+)/);
+          const jcMatch = styleStr.match(/justify-content\s*:\s*([^;,"]+)/);
+          const gapMatch = styleStr.match(/\bgap\s*:\s*([^;,"]+)/);
+          if (!aiMatch && !jcMatch && !gapMatch) return match;
+
+          const cls = `gjs-flex-${flexClassIdx++}`;
+          const props = [
+            "display: flex !important",
+            "flex-direction: row !important",
+            "flex-wrap: nowrap !important"
+          ];
+          if (aiMatch)
+            props.push(`align-items: ${aiMatch[1].trim()} !important`);
+          if (jcMatch)
+            props.push(`justify-content: ${jcMatch[1].trim()} !important`);
+          if (gapMatch) props.push(`gap: ${gapMatch[1].trim()} !important`);
+
+          flexCssRules.push(
+            `.${cls} > table > tbody > tr > td { ${props.join("; ")}; }`
+          );
+
+          const existingClass = attrs.match(/\bcss-class="([^"]*)"/);
+          if (existingClass) {
+            return match.replace(
+              `css-class="${existingClass[1]}"`,
+              `css-class="${existingClass[1]} ${cls}"`
+            );
+          }
+          return `<mj-section${attrs} css-class="${cls}">`;
+        }
+      );
+
+      if (flexCssRules.length > 0) {
+        const styleTag = `<mj-style>${flexCssRules.join("\n")}</mj-style>`;
+        if (normalized.includes("<mj-head>")) {
+          normalized = normalized.replace("<mj-head>", `<mj-head>${styleTag}`);
+        } else if (/<mj-head\s*\/>/.test(normalized)) {
+          normalized = normalized.replace(
+            /<mj-head\s*\/>/,
+            `<mj-head>${styleTag}</mj-head>`
+          );
+        } else {
+          normalized = normalized.replace(
+            "<mj-body",
+            `<mj-head>${styleTag}</mj-head><mj-body`
+          );
+        }
+      }
+
+      const { html, errors } = mjml2html(normalized, {
+        validationLevel: "skip"
+      });
+      if (errors?.length) return raw;
+      return html;
+    } catch {
+      return raw;
+    }
+  };
+
+  // Strip GrapesJS editor attributes so the content renders cleanly
+  const cleanGjsHtml = (raw) => {
+    if (!raw) return "";
     const parser = new DOMParser();
-    const doc = parser.parseFromString(voiceTemplate, "text/html");
+    const doc = parser.parseFromString(raw, "text/html");
+    doc.querySelectorAll("*").forEach((el) => {
+      el.removeAttribute("data-gjs-highlightable");
+      el.removeAttribute("data-gjs-type");
+      el.removeAttribute("data-placeholder");
+      el.removeAttribute("contenteditable");
+      el.removeAttribute("draggable");
+      el.removeAttribute("id");
+      ["gjs-selected", "gjs-hovered", "gjs-editable", "is-empty"].forEach(
+        (cls) => el.classList.remove(cls)
+      );
+      if (el.getAttribute("class") === "") el.removeAttribute("class");
+    });
+    return doc.body.innerHTML;
+  };
+
+  const mailPreviewHtml = useMemo(
+    () => compileMjml(getChannelBody("Mail")),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveSelectedTemplate]
+  );
+
+  const smsPreviewHtml = useMemo(
+    () => cleanGjsHtml(getChannelBody("SMS")),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [effectiveSelectedTemplate]
+  );
+
+  // Extract plain text from Voice channel body for speech synthesis
+  const getVoiceText = () => {
+    const body = getChannelBody("Voice");
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(body, "text/html");
     return doc.body.textContent?.trim() || "";
   };
 
-  // Extract inner HTML of content td from voiceTemplate
+  // Extract inner HTML of content td from Voice channel body
   const getVoiceHtmlContent = () => {
+    const body = getChannelBody("Voice");
     const parser = new DOMParser();
-    const doc = parser.parseFromString(voiceTemplate, "text/html");
+    const doc = parser.parseFromString(body, "text/html");
     const td = doc.querySelector('td[style*="padding"]');
-    return td ? td.innerHTML : voiceTemplate;
+    return td ? td.innerHTML : body;
   };
 
   const startProgressTimer = useCallback((estimatedMs, startPct = 0) => {
@@ -142,6 +310,7 @@ function ExistingTemplates({
       utteranceRef.current = utterance;
       synth.speak(utterance);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isPaused, progress, startProgressTimer]
   );
 
@@ -190,7 +359,7 @@ function ExistingTemplates({
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [activeModeTab, selectedTemplate]);
+  }, [activeModeTab, effectiveSelectedTemplate]);
 
   // Stop speech when drawer closes
   useEffect(() => {
@@ -247,6 +416,7 @@ function ExistingTemplates({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging, handlePlay]);
 
   // Prevent body scroll when drawer is open
@@ -354,7 +524,7 @@ function ExistingTemplates({
       </div>
     ) : (
       <iframe
-        srcDoc={activeModeTab === "Mail" ? emailTemplate : textTemplate}
+        srcDoc={activeModeTab === "Mail" ? mailPreviewHtml : smsPreviewHtml}
         title="Template Preview"
         className="previewIframe"
       />
@@ -395,11 +565,33 @@ function ExistingTemplates({
             </div>
 
             <div className="templatesList">
-              {filteredTemplates.length > 0 ? (
+              {templatesLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="templateItemCard">
+                    <SkeletonLoader
+                      width="72px"
+                      height="52px"
+                      borderRadius="6px"
+                    />
+                    <div className="templateCardInfo">
+                      <SkeletonLoader
+                        width="120px"
+                        height="14px"
+                        borderRadius="4px"
+                      />
+                      <SkeletonLoader
+                        width="60px"
+                        height="12px"
+                        borderRadius="4px"
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : filteredTemplates.length > 0 ? (
                 filteredTemplates.map((template) => (
                   <div
                     key={template.id}
-                    className={`templateItemCard ${selectedTemplate?.id === template.id ? "selected" : ""}`}
+                    className={`templateItemCard ${effectiveSelectedTemplate?.id === template.id ? "selected" : ""}`}
                     onClick={() => {
                       setSelectedTemplate(template);
                       if (template.modes.length > 0) {
@@ -429,6 +621,10 @@ function ExistingTemplates({
                           src={deleteIcon}
                           alt="deleteIcon"
                           className="templateDeleteIcon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTemplate(template.id);
+                          }}
                         />
                       </div>
                     </div>
@@ -443,13 +639,15 @@ function ExistingTemplates({
           </div>
 
           <div className="rightPanel">
-            {selectedTemplate && (
+            {effectiveSelectedTemplate && (
               <div className="rightPanelTop">
                 <div className="modeTabsContainer">
                   <div className="modeTabs">
                     {["Text", "Mail", "Voice"]
                       .filter((mode) =>
-                        selectedTemplate.modes.includes(mode.toLowerCase())
+                        effectiveSelectedTemplate.modes.includes(
+                          mode.toLowerCase()
+                        )
                       )
                       .map((mode) => (
                         <button
@@ -508,7 +706,7 @@ function ExistingTemplates({
             )}
 
             <div className="previewArea">
-              {!selectedTemplate ? (
+              {!effectiveSelectedTemplate ? (
                 <div className="previewPlaceholder">
                   <div className="placeholderIcon">
                     <img src={emptyTemplate} alt="empty" />
@@ -646,7 +844,7 @@ function ExistingTemplates({
             label="Select Template"
             onClick={handleSelectTemplate}
             variant="secondary"
-            disabled={!selectedTemplate}
+            disabled={!effectiveSelectedTemplate}
           />
         </div>
       </div>

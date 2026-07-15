@@ -50,6 +50,7 @@
 
       .formGroup {
         @include variable.d-flex($fd: column, $g: 8px);
+        min-width: 0;
 
         &.ageGroup {
           .fieldLabel {

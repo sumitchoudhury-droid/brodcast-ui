@@ -1,5 +1,9 @@
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
+import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
+import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 import "./style.scss";
 
@@ -11,31 +15,40 @@ export const BroadcastDetails = ({
   priority,
   setPriority
 }) => {
+  const { data: modesData, isLoading: isLoadingModes } = useGet(
+    ["communication-modes"],
+    ENDPOINTS.broadcastConfig.COMMUNICATION_MODES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: prioritiesData } = useGet(
+    ["priorities"],
+    ENDPOINTS.broadcastConfig.PRIORITIES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: categoriesData } = useGet(
+    ["categories"],
+    ENDPOINTS.broadcastConfig.CATEGORIES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const communicationModes = modesData?.data ?? [];
+
+  const priorityOptions = (prioritiesData?.data ?? []).map((p) => ({
+    value: p.id,
+    label: p.displayText
+  }));
+
   const categoryOptions = [
     { value: "select", label: "Select" },
-    {
-      value: "balance_payment_reminder",
-      label: "Balance Payment Reminder"
-    },
-    {
-      value: "offer",
-      label: "Offer"
-    },
-    {
-      value: "announcement",
-      label: "Announcement"
-    }
-  ];
-
-  const priorityOptions = [
-    {
-      value: "standard",
-      label: "Standard"
-    },
-    {
-      value: "high",
-      label: "High"
-    }
+    ...(categoriesData?.data ?? []).map((c) => ({
+      value: c.id,
+      label: c.name
+    }))
   ];
 
   const handleCheckboxChange = (mode) => {
@@ -61,23 +74,23 @@ export const BroadcastDetails = ({
           </div>
 
           <div className="broadcastDetailsContentRowValue">
-            <ReusableCheckbox
-              label="Text"
-              checked={selectedModes.includes("Text")}
-              onChange={() => handleCheckboxChange("Text")}
-            />
-
-            <ReusableCheckbox
-              label="Email"
-              checked={selectedModes.includes("Email")}
-              onChange={() => handleCheckboxChange("Email")}
-            />
-
-            <ReusableCheckbox
-              label="Voice"
-              checked={selectedModes.includes("Voice")}
-              onChange={() => handleCheckboxChange("Voice")}
-            />
+            {isLoadingModes
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <SkeletonLoader
+                    key={i}
+                    width="80px"
+                    height="20px"
+                    borderRadius="4px"
+                  />
+                ))
+              : communicationModes.map((mode) => (
+                  <ReusableCheckbox
+                    key={mode.id}
+                    label={mode.name}
+                    checked={selectedModes.includes(mode.name)}
+                    onChange={() => handleCheckboxChange(mode.name)}
+                  />
+                ))}
           </div>
         </div>
 

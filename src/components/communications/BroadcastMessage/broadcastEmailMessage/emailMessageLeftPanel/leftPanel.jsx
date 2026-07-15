@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import leftPanelTemplate from "../../../../../assets/leftPanel/leftPanelTemplate.svg";
 import leftPanelBlock from "../../../../../assets/leftPanel/leftPanelBlock.svg";
 import leftPanelSearch from "../../../../../assets/leftPanel/leftPanelSearch.svg";
@@ -15,36 +15,37 @@ import leftPanelRow from "../../../../../assets/leftPanel/leftPanelRow.svg";
 // import leftPanelFooter from "../../../../../assets/leftPanel/leftPanelFooter.svg";
 // import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg";
 import leftPanelPlaceholders from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
-import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?raw";
-import template1 from "../../../../../assets/templates/template1.svg";
-import template2 from "../../../../../assets/templates/template2.svg";
-import template3 from "../../../../../assets/templates/template3.svg";
-import template4 from "../../../../../assets/templates/template4.svg";
-import savedTemplate from "../../../../../assets/templates/savedTemplate.svg";
+// import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?raw";
+// import template1 from "../../../../../assets/templates/template1.svg";
+// import template2 from "../../../../../assets/templates/template2.svg";
+// import template3 from "../../../../../assets/templates/template3.svg";
+// import template4 from "../../../../../assets/templates/template4.svg";
+import emptyTemplate from "../../../../../assets/existingTemplate/emptyTemplate.svg";
 
 import "./style.scss";
 
 import ReusableTab from "../../../../../reusableComponents/reusableTab";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal";
+import { useGet } from "../../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../../api/endpoints.js";
+import {
+  BASE_URL,
+  COMMON_HEADERS,
+  handleResponse
+} from "../../../../../api/api.jsx";
+import SkeletonLoader from "../../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 const tabOptions = [
   { label: "Library", value: "library" },
   { label: "Saved Template", value: "savedTemplate" }
 ];
 
-const templateLibraryOptions = [
-  { img: template1, name: "Template 1", html: emailTemplate },
-  { img: template2, name: "Template 2", html: emailTemplate },
-  { img: template3, name: "Template 3", html: emailTemplate },
-  { img: template4, name: "Template 4", html: emailTemplate }
-];
-
-const savedTemplateOptions = [
-  { img: savedTemplate, name: "Payment Reminder", html: emailTemplate },
-  { img: savedTemplate, name: "Health Camp Invitation", html: emailTemplate },
-  { img: savedTemplate, name: "Treatment Plan Update", html: emailTemplate },
-  { img: savedTemplate, name: "Seasonal Health Advisory", html: emailTemplate }
-];
+// const templateLibraryOptions = [
+//   { img: template1, name: "Template 1", html: emailTemplate },
+//   { img: template2, name: "Template 2", html: emailTemplate },
+//   { img: template3, name: "Template 3", html: emailTemplate },
+//   { img: template4, name: "Template 4", html: emailTemplate }
+// ];
 
 const blockCategories = [
   {
@@ -96,7 +97,8 @@ const blockCategories = [
 export default function LeftPanel({
   editorRef,
   showPlaceholders,
-  setShowPlaceholders
+  setShowPlaceholders,
+  setMailSubject
 }) {
   const [tab, setTab] = useState("blocks");
   const [selectedTab, setSelectedTab] = useState(tabOptions?.[0]?.value || "");
@@ -104,6 +106,32 @@ export default function LeftPanel({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [pendingTemplate, setPendingTemplate] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const { data: templatesData, isLoading: isLoadingTemplates } = useGet(
+    ["templates"],
+    ENDPOINTS.templates.GET_ALL,
+    null,
+    { enabled: tab === "templates" }
+  );
+
+  const apiSavedTemplates = useMemo(() => {
+    const list = templatesData?.data ?? [];
+    return list
+      .filter(
+        (t) => t.isActive && t.channels?.some((c) => c.methodType === "Mail")
+      )
+      .map((t) => {
+        const mailChannel = t.channels.find((c) => c.methodType === "Mail");
+        return {
+          id: t.id,
+          img: null,
+          name: t.name,
+          html: mailChannel.templateBody,
+          subject: mailChannel.subjectLine
+        };
+      });
+  }, [templatesData]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
@@ -131,11 +159,39 @@ export default function LeftPanel({
     setOpenConfirmModal(true);
   };
 
-  const handleConfirmTemplate = () => {
-    const editor = editorRef?.current?.getEditor?.();
-    if (editor && pendingTemplate) editor.setComponents(pendingTemplate.html);
-    setOpenConfirmModal(false);
-    setPendingTemplate(null);
+  const handleConfirmTemplate = async () => {
+    if (!pendingTemplate) return;
+    setIsImporting(true);
+    try {
+      let templateBody = null;
+      let subjectLine = null;
+
+      if (pendingTemplate.id) {
+        const res = await fetch(
+          `${BASE_URL}${ENDPOINTS.templates.GET_BY_ID(pendingTemplate.id)}`,
+          { headers: { "Content-Type": "application/json", ...COMMON_HEADERS } }
+        );
+        const json = await handleResponse(res);
+        const mailChannel = json?.data?.channels?.find(
+          (c) => c.methodType === "Mail"
+        );
+        if (mailChannel) {
+          templateBody = mailChannel.templateBody;
+          subjectLine = mailChannel.subjectLine;
+        }
+      } else if (pendingTemplate.html) {
+        templateBody = pendingTemplate.html;
+      }
+
+      if (templateBody) {
+        editorRef?.current?.loadTemplate?.(templateBody);
+        if (subjectLine != null) setMailSubject?.(subjectLine);
+      }
+    } finally {
+      setIsImporting(false);
+      setOpenConfirmModal(false);
+      setPendingTemplate(null);
+    }
   };
 
   const handleCancelConfirm = () => {
@@ -353,7 +409,6 @@ export default function LeftPanel({
           className="panel-content"
           style={{
             display: tab === "templates" ? "block" : "none",
-            maxWidth: "248px",
             width: "100%"
           }}
         >
@@ -365,6 +420,54 @@ export default function LeftPanel({
             />
 
             {selectedTab === "library" &&
+              (() => {
+                if (isLoadingTemplates) {
+                  return (
+                    <div className="savedTemplateFlex">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="savedTemplateWrapper">
+                          <SkeletonLoader
+                            width="40px"
+                            height="40px"
+                            borderRadius="6px"
+                          />
+                          <SkeletonLoader
+                            width="120px"
+                            height="13px"
+                            borderRadius="4px"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                const filtered = apiSavedTemplates.filter((o) =>
+                  o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+                );
+                return (
+                  <div className="savedTemplateFlex">
+                    {filtered.length > 0 ? (
+                      filtered.map((option, index) => (
+                        <div
+                          className="savedTemplateWrapper"
+                          key={index}
+                          onClick={handleTemplateSelect(option)}
+                        >
+                          <img
+                            src={option.img ?? emptyTemplate}
+                            alt={option.name}
+                          />
+                          <span>{option.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="noResults">No templates found</div>
+                    )}
+                  </div>
+                );
+              })()}
+
+            {/* {selectedTab === "library" &&
               (() => {
                 const filtered = templateLibraryOptions.filter((o) =>
                   o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
@@ -387,11 +490,31 @@ export default function LeftPanel({
                     )}
                   </div>
                 );
-              })()}
+              })()} */}
 
             {selectedTab === "savedTemplate" &&
               (() => {
-                const filtered = savedTemplateOptions.filter((o) =>
+                if (isLoadingTemplates) {
+                  return (
+                    <div className="savedTemplateFlex">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="savedTemplateWrapper">
+                          <SkeletonLoader
+                            width="40px"
+                            height="40px"
+                            borderRadius="6px"
+                          />
+                          <SkeletonLoader
+                            width="120px"
+                            height="13px"
+                            borderRadius="4px"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                const filtered = apiSavedTemplates.filter((o) =>
                   o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
                 );
                 return (
@@ -403,7 +526,10 @@ export default function LeftPanel({
                           key={index}
                           onClick={handleTemplateSelect(option)}
                         >
-                          <img src={option.img} alt={option.name} />
+                          <img
+                            src={option.img ?? emptyTemplate}
+                            alt={option.name}
+                          />
                           <span>{option.name}</span>
                         </div>
                       ))
@@ -423,7 +549,8 @@ export default function LeftPanel({
         onClose={handleCancelConfirm}
         onConfirm={handleConfirmTemplate}
         cancelText="Cancel"
-        confirmText="Confirm & Import"
+        confirmText={isImporting ? "Importing..." : "Confirm & Import"}
+        confirmDisabled={isImporting}
       >
         <div className="confirmUploadTemplateContainer">
           <p className="confirmUploadTemplateContainerTitle">

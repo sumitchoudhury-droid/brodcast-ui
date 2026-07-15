@@ -56,7 +56,9 @@
     "multidropdown",
     "Optout",
     "Sharma",
-    "ondemand"
+    "ondemand",
+    "Appkey",
+    "appt"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

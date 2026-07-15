@@ -3,6 +3,9 @@ import * as XLSX from "xlsx";
 import { useBroadcastForm } from "../../broadcastFormContext";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton/index";
+import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import "./style.scss";
 import PatientUploadFile from "./patientUploadFile";
 import OneTimeBroadcast from "./oneTimeBroadcast";
@@ -116,6 +119,19 @@ function BroadcastPatientDetails({
     setPatientsFoundForType
   } = useBroadcastForm();
 
+  const { data: patientTypesData } = useGet(
+    ["patient-types"],
+    ENDPOINTS.broadcastConfig.PATIENT_TYPES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const patientTypes = (patientTypesData?.data ?? []).map((pt) => ({
+    id: pt.id,
+    label: pt.name,
+    value: pt.name.toLowerCase().replace(/\s+(\w)/g, (_, c) => c.toUpperCase())
+  }));
+
   const [showViewList, setShowViewList] = useState(false);
   const [showOneTimeViewList, setShowOneTimeViewList] = useState(false);
   const [showUploadViewList, setShowUploadViewList] = useState(false);
@@ -151,45 +167,6 @@ function BroadcastPatientDetails({
 
   const showPatientsFound = patientsFoundForType === patientType;
 
-  const appointmentTypeOptions = [
-    { label: "Check-in", value: "checkin" },
-    { label: "Follow-up", value: "followup" },
-    { label: "New Patient", value: "new" }
-  ];
-
-  const locationOptions = [
-    { label: "Main Clinic", value: "main" },
-    { label: "North Branch", value: "north" },
-    { label: "South Branch", value: "south" }
-  ];
-
-  const providerOptions = [
-    { label: "Dr. Smith", value: "smith" },
-    { label: "Dr. Jones", value: "jones" },
-    { label: "Dr. Taylor", value: "taylor" }
-  ];
-
-  const ageOptions = [
-    { label: "is equal to", value: "isEqualTo" },
-    { label: "is greater than", value: "isGreaterThan" },
-    { label: "is greater than or equal to", value: "isGreaterThanEqualTo" },
-    { label: "is lesser than", value: "isLesserThan" },
-    { label: "is lesser than or equal to", value: "isLesserThanEqualTo" },
-    { label: "is not equal to", value: "isNotEqualTo" }
-  ];
-
-  const genderOptions = [
-    { label: "All", value: "all" },
-    { label: "Male", value: "male" },
-    { label: "Female", value: "female" }
-  ];
-
-  const modalityOptions = [
-    { label: "SMS", value: "sms" },
-    { label: "Email", value: "email" },
-    { label: "Voice", value: "voice" }
-  ];
-
   return (
     <div className="broadcastPatientDetailsContainer">
       <div className="patientDetailsHeader">
@@ -204,29 +181,16 @@ function BroadcastPatientDetails({
           </div>
 
           <div className="patientDetailsValue">
-            <ReusableRadioButton
-              label="Target Recipients"
-              value="targetRecipients"
-              name="patientType"
-              checked={patientType === "targetRecipients"}
-              onChange={() => handlePatientTypeChange("targetRecipients")}
-            />
-
-            <ReusableRadioButton
-              label="Upload File"
-              value="uploadFile"
-              name="patientType"
-              checked={patientType === "uploadFile"}
-              onChange={() => handlePatientTypeChange("uploadFile")}
-            />
-
-            <ReusableRadioButton
-              label="One Time Broadcast"
-              value="oneTimeBroadcast"
-              name="patientType"
-              checked={patientType === "oneTimeBroadcast"}
-              onChange={() => handlePatientTypeChange("oneTimeBroadcast")}
-            />
+            {patientTypes.map((pt) => (
+              <ReusableRadioButton
+                key={pt.id}
+                label={pt.label}
+                value={pt.value}
+                name="patientType"
+                checked={patientType === pt.value}
+                onChange={() => handlePatientTypeChange(pt.value)}
+              />
+            ))}
           </div>
         </div>
 
@@ -275,12 +239,6 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            appointmentTypeOptions={appointmentTypeOptions}
-            locationOptions={locationOptions}
-            providerOptions={providerOptions}
-            ageOptions={ageOptions}
-            genderOptions={genderOptions}
-            modalityOptions={modalityOptions}
             onSearch={() => setPatientsFoundForType("targetRecipients")}
           />
         )}

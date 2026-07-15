@@ -15,19 +15,21 @@ export const BroadcastEmailMessage = ({
 }) => {
   return (
     <div className="builder">
-      <LeftPanel
-        editorRef={editorRef}
-        onLoadTemplate={handleLoadTemplate}
-        showPlaceholders={showPlaceholders}
-        setShowPlaceholders={setShowPlaceholders}
-      />
-
-      {showPlaceholders && (
-        <PlaceHolderSection
+      <div className="leftPanelWrapper">
+        <LeftPanel
           editorRef={editorRef}
+          onLoadTemplate={handleLoadTemplate}
+          showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
         />
-      )}
+
+        {showPlaceholders && (
+          <PlaceHolderSection
+            editorRef={editorRef}
+            setShowPlaceholders={setShowPlaceholders}
+          />
+        )}
+      </div>
 
       <div className="editorArea">
         <Editor

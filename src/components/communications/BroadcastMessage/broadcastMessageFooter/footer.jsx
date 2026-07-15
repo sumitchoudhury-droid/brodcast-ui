@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput/index";
@@ -6,6 +7,8 @@ import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbo
 import { useToast } from "../../../../hooks/useToast";
 import { ReusableModal } from "../../../../reusableComponents/reusableModal/index";
 import { useBroadcastForm } from "../../broadcastFormContext";
+import { usePost } from "../../../../hooks/usePost";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
 
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
@@ -28,11 +31,23 @@ export default function Footer({
   onBack,
   onCancel,
   broadcastType = "immediate",
-  disabled = false
+  disabled = false,
+  editorRef,
+  textEditorInstanceRef
 }) {
   const toast = useToast();
-  const { selectedEmailTemplateType, scheduleStartDateTime, sendType } =
-    useBroadcastForm();
+  const queryClient = useQueryClient();
+  const {
+    selectedEmailTemplateType,
+    scheduleStartDateTime,
+    sendType,
+    selectedModes,
+    newTemplateName,
+    mailSubject
+  } = useBroadcastForm();
+  const { mutate: saveTemplate, isPending: isSaving } = usePost(
+    ENDPOINTS.templates.CREATE
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");
@@ -40,6 +55,7 @@ export default function Footer({
   const [isFilterExpanded, setIsFilterExpanded] = useState(false); // Added for collapsible section
 
   const handleSaveTemplate = () => {
+    setTemplateName(newTemplateName || "");
     setIsModalOpen(true);
   };
 
@@ -51,14 +67,66 @@ export default function Footer({
 
   const handleConfirm = () => {
     if (!templateName.trim()) {
-      toast.error("Template name is required"); // Changed to error toast
+      toast.error("Template name is required");
       return;
     }
 
-    toast.success("Template saved successfully");
-    setIsModalOpen(false);
-    setTemplateName("");
-    setChecked(false);
+    const mailBody = editorRef?.current?.getHtml?.() || "";
+    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+
+    const channels = selectedModes
+      .map((mode) => {
+        const lowerMode = mode.toLowerCase();
+        if (lowerMode === "email") {
+          return {
+            methodType: "Mail",
+            templateBody: mailBody,
+            subjectLine: mailSubject || null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        if (lowerMode === "text") {
+          return {
+            methodType: "SMS",
+            templateBody: smsBody,
+            subjectLine: null,
+            smsStandardText: smsBody,
+            attachments: []
+          };
+        }
+        if (lowerMode === "voice") {
+          return {
+            methodType: "Voice",
+            templateBody: "",
+            subjectLine: null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    const body = {
+      name: templateName,
+      templateBody: mailBody || smsBody,
+      subjectLine: mailSubject || null,
+      smsStandardText: smsBody || null,
+      messageTempLibId: null,
+      actionItemTypeId: 0,
+      channels
+    };
+
+    saveTemplate(body, {
+      onSuccess: () => {
+        toast.success("Template saved successfully");
+        queryClient.invalidateQueries({ queryKey: ["templates"] });
+        setIsModalOpen(false);
+        setTemplateName("");
+        setChecked(false);
+      }
+    });
   };
 
   const handleSendClick = () => {
@@ -89,7 +157,7 @@ export default function Footer({
   };
 
   const getModalTitle = () => {
-    if (isOffBusiness) return "Send Now – Out of Business Hours Alert";
+    if (isOffBusiness) return "Send Now - Out of Business Hours Alert";
     switch (broadcastType) {
       case "recurring":
         return "Confirm Recurring Broadcast";
@@ -213,7 +281,7 @@ export default function Footer({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title="Save as New"
-        confirmText="Save"
+        confirmText={isSaving ? "Saving…" : "Save"}
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"

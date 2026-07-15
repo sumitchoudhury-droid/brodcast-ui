@@ -17,7 +17,7 @@ export const queryClient = new QueryClient({
       staleTime: 0,
       gcTime: 0,
       retry: 1,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: true
     },
     mutations: {
       retry: 0
@@ -27,18 +27,40 @@ export const queryClient = new QueryClient({
 
 export const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
-  "https://cademo.hacheckinasyst.com:20056";
+  "https://cademo.hacheckinasyst.com:20029/api/v1";
 
 export const COMMON_HEADERS = {
-  TenantId: "tenant-001",
-  OrganizationId: "1",
+  TenantId: "V827QA",
+  OrganizationId: "600",
   "X-Correlation-ID": "postman-test-001"
 };
 
+export const BROADCAST_CONFIG_HEADERS = {
+  TenantId: "Common",
+  OrganizationId: "100"
+};
+
 export async function handleResponse(res) {
+  const json = await res.json().catch(() => null);
+
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message ?? "Request failed");
+    const err = json?.error;
+    const message =
+      (typeof err === "object" ? err?.detail || err?.title : err) ||
+      json?.message ||
+      res.statusText ||
+      "Request failed";
+    throw new Error(message);
   }
-  return res.json();
+
+  if (json && json.success === false) {
+    const err = json.error;
+    const message =
+      (typeof err === "object" ? err?.detail || err?.title : err) ||
+      json.message ||
+      "Request failed";
+    throw new Error(message);
+  }
+
+  return json;
 }

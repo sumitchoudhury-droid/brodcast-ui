@@ -2,6 +2,9 @@ import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDow
 import ReusableDateTime from "../../../../reusableComponents/reusableDate&TimePicker/index";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput/index";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton/index";
+import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 
 function ScheduleOptions({
   sendType,
@@ -21,6 +24,15 @@ function ScheduleOptions({
   repeatDay,
   setRepeatDay
 }) {
+  const { data: sendOptionsData } = useGet(
+    ["schedule-send-options"],
+    ENDPOINTS.broadcastConfig.SCHEDULE_SEND_OPTIONS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const sendOptions = sendOptionsData?.data ?? [];
+
   const frequencyOptions = [
     { label: "Daily", value: "Daily" },
     { label: "Weekly on Monday", value: "Weekly on Monday" },
@@ -77,38 +89,23 @@ function ScheduleOptions({
             <span>*</span>
           </div>
           <div className="radioGroup">
-            <ReusableRadioButton
-              label="Immediately"
-              value="immediately"
-              name="send"
-              checked={sendType === "immediately"}
-              onChange={setSendType}
-            />
-            <ReusableRadioButton
-              label="Notify Later"
-              value="notifyLater"
-              name="send"
-              checked={sendType === "notifyLater"}
-              onChange={setSendType}
-            />
-            <ReusableRadioButton
-              label="Recurring"
-              value="recurring"
-              name="send"
-              checked={sendType === "recurring"}
-              onChange={setSendType}
-            />
+            {sendOptions.map((option) => (
+              <ReusableRadioButton
+                key={option.id}
+                label={option.name}
+                value={option.id}
+                name="send"
+                checked={sendType === option.id}
+                onChange={setSendType}
+              />
+            ))}
           </div>
         </div>
 
         <div className="dateContainer">
           <ReusableDateTime
-            label={
-              sendType !== "recurring"
-                ? "Schedule Date/Time"
-                : "Start Date/Time"
-            }
-            required={sendType !== "immediately"}
+            label={sendType !== 3 ? "Schedule Date/Time" : "Start Date/Time"}
+            required={sendType !== 1}
             selected={startDateTime}
             onChange={(date) => {
               setStartDateTime(date);
@@ -117,12 +114,12 @@ function ScheduleOptions({
               }
             }}
             className="topDown"
-            disabled={sendType === "immediately"}
-            minDate={sendType === "notifyLater" ? new Date() : null}
+            disabled={sendType === 1}
+            minDate={sendType === 2 ? new Date() : null}
           />
         </div>
 
-        {sendType === "recurring" && (
+        {sendType === 3 && (
           <div className="frequencyContainer">
             <ReusableDropDown
               label="Repeat"
@@ -138,7 +135,7 @@ function ScheduleOptions({
         )}
 
         {/* Row 2 (Conditional) */}
-        {sendType === "recurring" && frequency === "Custom" && (
+        {sendType === 3 && frequency === "Custom" && (
           <>
             <div className="repeatEveryContainer">
               <div className="customRepeatGroup">
@@ -195,7 +192,7 @@ function ScheduleOptions({
         )}
 
         {/* Ends On Positioning */}
-        {sendType === "recurring" && (
+        {sendType === 3 && (
           <div
             className={`dateContainer ${frequency !== "Custom" ? "endsOnFull" : ""}`}
           >

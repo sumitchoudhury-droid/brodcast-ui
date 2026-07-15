@@ -11,7 +11,8 @@ export const ReusableModal = ({
   onCancel,
   onConfirm,
   confirmText = "Confirm",
-  cancelText = "Cancel"
+  cancelText = "Cancel",
+  confirmDisabled = false
 }) => {
   if (!isOpen) return null;
 
@@ -48,6 +49,7 @@ export const ReusableModal = ({
               label={confirmText}
               variant="secondary"
               onClick={onConfirm}
+              disabled={confirmDisabled}
             />
           )}
         </div>

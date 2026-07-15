@@ -2,7 +2,7 @@
 @use "../../../../../style/variable.scss" as variable;
 
 .rightPanel {
-  width: 22.3%;
+  width: 100%;
   border: 1px solid variable.$color-white-7;
   border-radius: 10px;
   @include variable.d-flex($fd: column);

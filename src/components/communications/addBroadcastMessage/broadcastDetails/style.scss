@@ -58,6 +58,7 @@
       }
       .broadcastDetailsContentRowValue {
         @include variable.d-flex($g: 24px, $al: center);
+        flex-wrap: wrap;
       }
     }
   }

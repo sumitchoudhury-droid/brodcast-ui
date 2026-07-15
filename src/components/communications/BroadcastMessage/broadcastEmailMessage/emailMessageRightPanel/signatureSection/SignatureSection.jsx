@@ -14,9 +14,10 @@ import { ReusableModal } from "../../../../../../reusableComponents/reusableModa
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
 import { useToast } from "../../../../../../hooks/useToast";
 import { ReusableInput } from "../../../../../../reusableComponents/reusableInput";
+import { useBroadcastForm } from "../../../../broadcastFormContext";
 
 export default function SignatureSection({ editorRef, isEditorEmpty }) {
-  const [mailSubject, setMailSubject] = useState("");
+  const { mailSubject, setMailSubject } = useBroadcastForm();
   const [signature, setSignature] = useState("");
   const [showFormsDropdown, setShowFormsDropdown] = useState(false);
   const [selectedForms, setSelectedForms] = useState([]);

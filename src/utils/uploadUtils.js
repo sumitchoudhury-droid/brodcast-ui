@@ -1,166 +1,84 @@
-/**
- * Utility to upload files to Cloudinary.
- *
- * To use this, you need a Cloudinary account:
- * 1. Get your "Cloud Name" from the Cloudinary Dashboard.
- * 2. Create an "Unsigned Upload Preset" in Settings > Upload > Upload presets.
- *
- * If Cloudinary is NOT configured, images are stored as compressed Data URLs.
- * Small compressed images can still be sent via EmailJS as long as the total
- * email payload stays under 50 KB.
- */
+const IMAGE_UPLOAD_APP_KEY = JSON.stringify({
+  AuthorizedAccessToken:
+    "bearer 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",
+  ClientId: "9e3a16cf-1e10-44e5-a16b-7eef8ed4729f",
+  TenantId: "V824QA",
+  ExpiryTime: "/Date(1784034946841)/"
+});
 
-const CLOUDINARY_CLOUD_NAME = "YOUR_CLOUD_NAME"; // Replace with your cloud name
-const CLOUDINARY_UPLOAD_PRESET = "YOUR_UPLOAD_PRESET"; // Replace with your unsigned upload preset
-
-/** True when the user has filled in real Cloudinary credentials. */
-export const IS_CLOUDINARY_CONFIGURED =
-  CLOUDINARY_CLOUD_NAME !== "YOUR_CLOUD_NAME" &&
-  CLOUDINARY_UPLOAD_PRESET !== "YOUR_UPLOAD_PRESET";
-
-/**
- * Compress an image File/Blob while preserving its original format.
- * SVGs are returned as-is. PNGs keep their format (and transparency).
- * JPEGs and other formats use JPEG compression.
- * Adaptively reduces resolution (and quality for JPEG) until the result
- * fits within targetKB.
- *
- * @param {File|Blob} file
- * @param {number} [targetKB=500]   Target max size of the resulting data URL in KB.
- * @returns {Promise<string>}       Data URL preserving the original image format.
- */
-const compressImage = (file, targetKB = 500) => {
-  const mimeType = file.type;
-
-  // SVGs are vector — no canvas compression needed, return as-is
-  if (mimeType === "image/svg+xml") {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  const isPng = mimeType === "image/png";
-
-  return new Promise((resolve) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-
-      const compress = (maxWidth, quality) => {
-        const scale = Math.min(1, maxWidth / img.width);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext("2d");
-
-        if (!isPng) {
-          // JPEG has no alpha channel — fill white to avoid black artifacts
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        return isPng
-          ? canvas.toDataURL("image/png")
-          : canvas.toDataURL("image/jpeg", quality);
-      };
-
-      // PNG: only resize (lossless — no quality param)
-      // JPEG: resize + reduce quality
-      const widthSteps = [1600, 1200, 800, 600, 400, 300, 200];
-      const qualitySteps = isPng ? [1] : [0.92, 0.8, 0.65, 0.5, 0.35, 0.2];
-      const targetBytes = targetKB * 1024;
-
-      for (const maxWidth of widthSteps) {
-        for (const quality of qualitySteps) {
-          const dataUrl = compress(maxWidth, quality);
-          // Base64 overhead is ~1.37x, so we check the actual base64 string size
-          if (dataUrl.length <= targetBytes * 1.33) {
-            return resolve(dataUrl);
-          }
-        }
-      }
-
-      // Last resort: minimum size
-      resolve(compress(isPng ? 300 : 150, isPng ? 1 : 0.1));
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    };
-
-    img.src = objectUrl;
-  });
-};
-
-/**
- * Uploads a File object to Cloudinary and returns the secure URL.
- * When Cloudinary is not configured the image is adaptively compressed and
- * returned as a Data URL that fits within EmailJS's payload limit.
- *
- * @param {File} file  The File object to upload.
- * @returns {Promise<string>} Cloudinary URL or compressed Data URL.
- */
-export const uploadToCloudinary = async (file) => {
+export const uploadImageToServer = async (file) => {
   if (!file) return null;
-
-  if (!IS_CLOUDINARY_CONFIGURED) {
-    // Compress so the Data URL is as small as possible for email embedding
-    return compressImage(file);
-  }
+  const { BASE_URL, COMMON_HEADERS } = await import("../api/api.jsx");
+  const { ENDPOINTS } = await import("../api/endpoints.js");
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  formData.append("tenantId", "Common");
+  formData.append("orgId", "100");
 
   try {
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      { method: "POST", body: formData }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || "Upload failed");
-    }
-
-    const data = await response.json();
-    return data.secure_url;
-  } catch (error) {
-    console.error("[Cloudinary] Upload error:", error);
-    // Compress + fall back to Data URL so the image still appears in the editor
-    return compressImage(file);
+    const res = await fetch(`${BASE_URL}${ENDPOINTS.images.UPLOAD}`, {
+      method: "POST",
+      headers: {
+        TenantId: COMMON_HEADERS.TenantId,
+        OrgId: COMMON_HEADERS.OrganizationId,
+        Appkey: IMAGE_UPLOAD_APP_KEY
+      },
+      body: formData
+    });
+    if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
+    const json = await res.json();
+    if (json?.success && json?.publicUrl) return json.publicUrl;
+    throw new Error(json?.message || "Upload failed");
+  } catch (err) {
+    console.error("[ImageUpload] Error:", err);
+    return null;
   }
 };
 
-/**
- * Converts a base64 Data URL to a hosted Cloudinary URL.
- * Returns null when Cloudinary is not configured or the upload fails.
- *
- * @param {string} base64DataUrl  A data: URL string (e.g. "data:image/png;base64,...").
- * @param {string} [filename]     Optional filename hint.
- * @returns {Promise<string|null>} Hosted URL, or null on failure.
- */
-export const uploadBase64ToCloudinary = async (
+export const uploadAttachmentToServer = async (file) => {
+  if (!file) return null;
+  const { BASE_URL, COMMON_HEADERS } = await import("../api/api.jsx");
+  const { ENDPOINTS } = await import("../api/endpoints.js");
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("tenantId", "Common");
+  formData.append("orgId", "100");
+
+  try {
+    const res = await fetch(
+      `${BASE_URL}${ENDPOINTS.images.ATTACHMENT_UPLOAD}`,
+      {
+        method: "POST",
+        headers: {
+          TenantId: COMMON_HEADERS.TenantId,
+          OrgId: COMMON_HEADERS.OrganizationId,
+          Appkey: IMAGE_UPLOAD_APP_KEY
+        },
+        body: formData
+      }
+    );
+    if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
+    const json = await res.json();
+    if (json?.success && json?.publicUrl) return json.publicUrl;
+    throw new Error(json?.message || "Upload failed");
+  } catch (err) {
+    console.error("[AttachmentUpload] Error:", err);
+    return null;
+  }
+};
+
+export const uploadBase64ToServer = async (
   base64DataUrl,
-  filename = "email_image.png"
+  filename = "image.jpg"
 ) => {
   if (!base64DataUrl?.startsWith("data:")) return base64DataUrl;
-  if (!IS_CLOUDINARY_CONFIGURED) return null;
-
   try {
     const res = await fetch(base64DataUrl);
     const blob = await res.blob();
     const file = new File([blob], filename, { type: blob.type });
-    const url = await uploadToCloudinary(file);
-    return url?.startsWith("http") ? url : null;
+    return await uploadImageToServer(file);
   } catch {
     return null;
   }

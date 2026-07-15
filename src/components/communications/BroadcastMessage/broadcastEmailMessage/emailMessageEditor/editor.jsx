@@ -3,7 +3,10 @@ import grapesjs from "grapesjs";
 import ReactDOM from "react-dom";
 
 import mjmlPlugin from "grapesjs-mjml";
-import { uploadToCloudinary } from "../../../../../utils/uploadUtils";
+import {
+  uploadImageToServer,
+  uploadAttachmentToServer
+} from "../../../../../utils/uploadUtils";
 import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
@@ -35,7 +38,7 @@ const EMPTY_TEMPLATE = `
       <mj-button padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
     </mj-attributes>
   </mj-head>
-  <mj-body width="100%" background-color="transparent" padding="0px" margin="0px">
+  <mj-body width="600px" background-color="transparent" padding="0px" margin="0px">
  
   </mj-body>
 </mjml>
@@ -417,7 +420,7 @@ export default function Editor({
     el: null
   });
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
     const ALLOWED_EXTS = /\.(jpg|jpeg|png|pdf)$/i;
     const allFiles = Array.from(e.target.files);
@@ -442,6 +445,10 @@ export default function Editor({
     }
     if (!targetComp) return;
 
+    const uploadedUrls = await Promise.all(
+      files.map((file) => uploadAttachmentToServer(file))
+    );
+
     const docIcon = `data:image/svg+xml;utf8,${encodeURIComponent(
       '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M12 12V28H28V18L22 12H12Z" fill="white" stroke="#2563EB" stroke-width="2"/><path d="M22 12V18H28" stroke="#2563EB" stroke-width="2"/><text x="13" y="24" fill="#2563EB" font-family="Arial" font-size="5" font-weight="bold">DOC</text></svg>'
     )}`;
@@ -450,7 +457,7 @@ export default function Editor({
     )}`;
 
     const itemsHtml = files
-      .map((file) => {
+      .map((file, i) => {
         const sizeInBytes = file.size;
         const sizeDisplay =
           sizeInBytes < 1024 * 1024
@@ -458,8 +465,7 @@ export default function Editor({
             : `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
         const isDoc = /\.docx?$/i.test(file.name);
         const icon = isDoc ? docIcon : pdfIcon;
-        const downloadId = Math.floor(Math.random() * 90000) + 10000;
-        const downloadUrl = URL.createObjectURL(file);
+        const downloadUrl = uploadedUrls[i] || URL.createObjectURL(file);
         const displayName =
           file.name.length > 28
             ? file.name.substring(0, 25) + "..."
@@ -477,7 +483,7 @@ export default function Editor({
             <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
               <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; flex-shrink:0;">Download using Link:</p>
               <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; cursor:pointer; display:block;">
-                https://manipal.care/dl${downloadId}
+                ${downloadUrl}
               </a>
             </div>
           </div>
@@ -546,7 +552,7 @@ export default function Editor({
     imageTargetCompRef.current = null;
 
     try {
-      const dataUrl = await uploadToCloudinary(file);
+      const dataUrl = await uploadImageToServer(file);
       if (!dataUrl) return;
 
       // Resolve actual pixel dimensions before inserting into the editor
@@ -1387,15 +1393,6 @@ export default function Editor({
               "data-gjs-direction": isColumnFrame ? "v" : "h"
             });
             if (isColumnFrame) comp.set("direction", "v");
-          } else {
-            comp.addAttributes({
-              padding: "0px",
-              "padding-top": "0px",
-              "padding-right": "0px",
-              "padding-bottom": "0px",
-              "padding-left": "0px",
-              margin: "0px"
-            });
           }
         }
 
@@ -1411,16 +1408,6 @@ export default function Editor({
           } else {
             comp.addAttributes({ padding: "0px", margin: "0px" });
           }
-        }
-
-        if (COLUMN_VALID_CHILDREN.includes(type)) {
-          comp.addAttributes({
-            padding: "0px",
-            "padding-top": "0px",
-            "padding-right": "0px",
-            "padding-bottom": "0px",
-            "padding-left": "0px"
-          });
         }
 
         comp.components().each(patchInstance);
@@ -1451,6 +1438,7 @@ export default function Editor({
     // Set suppressSigReconcile = true before calling setComponents() during
     // a template import so the reconciler does not add a signature mid-load.
     const suppressSigReconcile = { current: false };
+    const suppressPaddingOverride = { current: false };
     const isEnsuringSig = { current: false };
     let sigTimer = null;
     const scheduleSignatureReconcile = () => {
@@ -1851,6 +1839,7 @@ export default function Editor({
         if (type === "mj-section") {
           // Defer so children are in the tree before we check data-types
           setTimeout(() => {
+            if (suppressPaddingOverride.current) return;
             const isFrame =
               comp.getAttributes?.()?.["data-type"] ===
                 "column-frame-section" ||
@@ -1875,7 +1864,7 @@ export default function Editor({
           }, 0);
         }
 
-        if (type === "mj-column") {
+        if (type === "mj-column" && !suppressPaddingOverride.current) {
           const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
           if (parentDt !== "column-frame-section") {
             comp.addAttributes({
@@ -1888,7 +1877,10 @@ export default function Editor({
           }
         }
 
-        if (COLUMN_VALID_CHILDREN.includes(type)) {
+        if (
+          COLUMN_VALID_CHILDREN.includes(type) &&
+          !suppressPaddingOverride.current
+        ) {
           const isInsideSig = (() => {
             let p = comp.parent();
             while (p) {
@@ -1969,7 +1961,13 @@ export default function Editor({
     });
 
     registerBlocks(editor, initialTemplate);
+    suppressPaddingOverride.current = true;
+    suppressSigReconcile.current = true;
     editor.setComponents(initialTemplate || EMPTY_TEMPLATE);
+    setTimeout(() => {
+      suppressPaddingOverride.current = false;
+      suppressSigReconcile.current = false;
+    }, 0);
 
     // ── Restrict nested block drops to column-frame / row-frame only ────────────
     // Any block may be dropped at the top level (direct child of mj-body), which
@@ -2745,6 +2743,7 @@ export default function Editor({
          */
         loadTemplate: (templateString) => {
           suppressSigReconcile.current = true;
+          suppressPaddingOverride.current = true;
           const isMjmlTemplate = !!(
             templateString &&
             (templateString.trim().startsWith("<mjml") ||
@@ -2760,6 +2759,7 @@ export default function Editor({
             // setComponents() have already been skipped.
             setTimeout(() => {
               suppressSigReconcile.current = false;
+              suppressPaddingOverride.current = false;
             }, 200);
           }
         }

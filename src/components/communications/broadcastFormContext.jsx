@@ -6,10 +6,10 @@ export function BroadcastFormProvider({ children }) {
   const [selectedModes, setSelectedModes] = useState([]);
   const [selectedTemplateData, setSelectedTemplateData] = useState(null);
 
-  const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("standard");
+  const [category, setCategory] = useState("select");
+  const [priority, setPriority] = useState(2);
 
-  const [sendType, setSendType] = useState("immediately");
+  const [sendType, setSendType] = useState(1);
   const [scheduleStartDateTime, setScheduleStartDateTime] = useState(
     new Date()
   );
@@ -24,7 +24,7 @@ export function BroadcastFormProvider({ children }) {
   const [broadcastEndDate, setBroadcastEndDate] = useState(null);
   const [patientStartDateTime, setPatientStartDateTime] = useState(new Date());
   const [patientEndDateTime, setPatientEndDateTime] = useState(null);
-  const [ageFilter, setAgeFilter] = useState("");
+  const [ageFilter, setAgeFilter] = useState(0);
   const [ageYear, setAgeYear] = useState("");
   const [ageMonth, setAgeMonth] = useState("");
   const [ageError, setAgeError] = useState("");
@@ -32,7 +32,7 @@ export function BroadcastFormProvider({ children }) {
   const [appointmentType, setAppointmentType] = useState("");
   const [location, setLocation] = useState("");
   const [provider, setProvider] = useState("");
-  const [gender, setGender] = useState("all");
+  const [gender, setGender] = useState(3);
   const [modality, setModality] = useState("");
   const [includeOptOut, setIncludeOptOut] = useState(false);
   const [patientsFoundForType, setPatientsFoundForType] = useState(null);
@@ -43,6 +43,8 @@ export function BroadcastFormProvider({ children }) {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [selectedEmailTemplateType, setSelectedEmailTemplateType] =
     useState("blank");
+
+  const [mailSubject, setMailSubject] = useState("");
 
   return (
     <BroadcastFormContext.Provider
@@ -108,7 +110,9 @@ export function BroadcastFormProvider({ children }) {
         newTemplateName,
         setNewTemplateName,
         selectedEmailTemplateType,
-        setSelectedEmailTemplateType
+        setSelectedEmailTemplateType,
+        mailSubject,
+        setMailSubject
       }}
     >
       {children}

@@ -6,300 +6,7 @@ import { BroadCastSchedule } from "./broadCastSchedule/index";
 import BroadcastTemplateDetails from "./broadcastTemplateDetails/index";
 import BroadcastPatientDetails from "./broadcastPatientDetails/index";
 import { useBroadcastForm } from "../broadcastFormContext";
-import { MOCK_TEMPLATES } from "../existingTemplates/mockTemplates";
-import emailTemplate from "../existingTemplates/htmlTemplates/email.html?raw";
-import textTemplate from "../existingTemplates/htmlTemplates/textMessage.html?raw";
-import voiceTemplate from "../existingTemplates/htmlTemplates/voiceMessage.html?raw";
 import { ReusableModal } from "../../../reusableComponents/reusableModal/index";
-
-const buildTemplateData = (template) => ({
-  ...template,
-  emailTemplate,
-  textTemplate,
-  voiceTemplate
-});
-
-const MODALITY_MAP = { mail: "email", text: "sms", voice: "voice" };
-
-const getTemplatePrefill = (template) => {
-  const now = new Date();
-  const days = (n) => new Date(now.getTime() + n * 24 * 60 * 60 * 1000);
-
-  const base = {
-    selectedEmailTemplateType: "existing",
-    selectedTemplateType: "existingTemplate",
-    existingTemplateValues: "",
-    newTemplateName: template.title,
-    modality: template.modes.map((m) => MODALITY_MAP[m]).filter(Boolean),
-    includeOptOut: false,
-    broadcastStartDate: now,
-    broadcastEndDate: null,
-    scheduleEndDateTime: null,
-    frequency: "Daily",
-    repeatType: "Week",
-    repeatOn: []
-  };
-
-  const prefills = {
-    // Appointment Rescheduled
-    1: {
-      selectedModes: ["Email", "Text", "Voice"],
-      priority: "high",
-      patientType: "targetRecipients",
-      appointmentType: ["checkin", "followup"],
-      location: ["main", "north"],
-      provider: ["smith"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(30),
-      ageFilter: "",
-      ageYear: "",
-      ageMonth: "",
-      sendType: "immediately",
-      scheduleStartDateTime: now
-    },
-    // Health Camp Invitation
-    2: {
-      selectedModes: ["Email", "Text"],
-      priority: "standard",
-      patientType: "targetRecipients",
-      appointmentType: ["new"],
-      location: ["main", "north", "south"],
-      provider: ["smith", "jones"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(60),
-      ageFilter: "",
-      ageYear: "",
-      ageMonth: "",
-      sendType: "notifyLater",
-      scheduleStartDateTime: days(7)
-    },
-    // Treatment Plan Update
-    3: {
-      selectedModes: ["Email", "Text", "Voice"],
-      priority: "high",
-      patientType: "targetRecipients",
-      appointmentType: ["followup"],
-      location: ["main"],
-      provider: ["smith", "jones", "taylor"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(30),
-      ageFilter: "isGreaterThan",
-      ageYear: "18",
-      ageMonth: "",
-      sendType: "notifyLater",
-      scheduleStartDateTime: days(1)
-    },
-    // Seasonal Health Advisory
-    4: {
-      selectedModes: ["Text", "Voice"],
-      priority: "standard",
-      patientType: "oneTimeBroadcast",
-      appointmentType: [],
-      location: [],
-      provider: [],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: null,
-      ageFilter: "",
-      ageYear: "",
-      ageMonth: "",
-      broadcastStartDate: now,
-      broadcastEndDate: days(14),
-      sendType: "immediately",
-      scheduleStartDateTime: now
-    },
-    // Diabetes Screening Alert
-    5: {
-      selectedModes: ["Email"],
-      priority: "standard",
-      patientType: "targetRecipients",
-      appointmentType: ["checkin"],
-      location: ["main", "north"],
-      provider: ["smith"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(30),
-      ageFilter: "isGreaterThan",
-      ageYear: "45",
-      ageMonth: "",
-      sendType: "notifyLater",
-      scheduleStartDateTime: days(3)
-    },
-    // Wellness Program Enrollment
-    6: {
-      selectedModes: ["Email", "Text"],
-      priority: "standard",
-      patientType: "targetRecipients",
-      appointmentType: ["new", "checkin"],
-      location: ["main", "north", "south"],
-      provider: ["smith", "jones"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(90),
-      ageFilter: "isGreaterThanEqualTo",
-      ageYear: "18",
-      ageMonth: "",
-      sendType: "recurring",
-      scheduleStartDateTime: days(1),
-      frequency: "Custom",
-      repeatType: "Week",
-      repeatOn: ["monday", "thursday"]
-    },
-    // Invoice Generated Notification
-    7: {
-      selectedModes: ["Email", "Text", "Voice"],
-      priority: "high",
-      patientType: "targetRecipients",
-      appointmentType: ["checkin", "new", "followup"],
-      location: ["main"],
-      provider: ["smith", "jones"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(30),
-      ageFilter: "",
-      ageYear: "",
-      ageMonth: "",
-      sendType: "immediately",
-      scheduleStartDateTime: now
-    },
-    // Follow-Up Consultation Reminder
-    8: {
-      selectedModes: ["Email", "Voice"],
-      priority: "standard",
-      patientType: "targetRecipients",
-      appointmentType: ["followup"],
-      location: ["main", "north"],
-      provider: ["smith", "taylor"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(30),
-      ageFilter: "isGreaterThan",
-      ageYear: "18",
-      ageMonth: "",
-      sendType: "notifyLater",
-      scheduleStartDateTime: days(2)
-    },
-    // Consent Form Reminder
-    9: {
-      selectedModes: ["Email"],
-      priority: "high",
-      patientType: "targetRecipients",
-      appointmentType: ["checkin", "followup"],
-      location: ["main"],
-      provider: ["smith"],
-      gender: "all",
-      patientStartDateTime: now,
-      patientEndDateTime: days(30),
-      ageFilter: "",
-      ageYear: "",
-      ageMonth: "",
-      sendType: "immediately",
-      scheduleStartDateTime: now
-    }
-  };
-
-  return { ...base, ...(prefills[template.id] ?? {}) };
-};
-
-const getCategoryPrefill = (val) => {
-  const now = new Date();
-  const days = (n) => new Date(now.getTime() + n * 24 * 60 * 60 * 1000);
-
-  const prefills = {
-    balance_payment_reminder: {
-      selectedModes: ["Text", "Email"],
-      priority: "high",
-      selectedEmailTemplateType: "existing",
-      selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[0]),
-      newTemplateName: "Balance Payment Reminder",
-      selectedTemplateType: "newTemplate",
-      existingTemplateValues: "",
-      patientType: "targetRecipients",
-      appointmentType: ["checkin", "followup"],
-      location: ["main"],
-      provider: ["smith", "jones", "taylor"],
-      gender: "all",
-      modality: ["sms", "email"],
-      patientStartDateTime: now,
-      patientEndDateTime: days(30),
-      ageFilter: "isGreaterThan",
-      ageYear: "18",
-      ageMonth: "",
-      includeOptOut: false,
-      broadcastStartDate: now,
-      broadcastEndDate: null,
-      sendType: "notifyLater",
-      scheduleStartDateTime: days(1),
-      scheduleEndDateTime: null,
-      frequency: "Daily",
-      repeatType: "Week",
-      repeatOn: []
-    },
-    offer: {
-      selectedModes: ["Email"],
-      priority: "standard",
-      selectedEmailTemplateType: "existing",
-      selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[1]),
-      newTemplateName: "Offer",
-      selectedTemplateType: "newTemplate",
-      existingTemplateValues: "",
-      patientType: "targetRecipients",
-      appointmentType: ["new"],
-      location: ["main", "north", "south"],
-      provider: ["smith", "jones", "taylor"],
-      gender: "all",
-      modality: ["email"],
-      patientStartDateTime: now,
-      patientEndDateTime: days(90),
-      ageFilter: "isGreaterThanEqualTo",
-      ageYear: "18",
-      ageMonth: "",
-      includeOptOut: false,
-      broadcastStartDate: now,
-      broadcastEndDate: null,
-      sendType: "immediately",
-      scheduleStartDateTime: now,
-      scheduleEndDateTime: null,
-      frequency: "Daily",
-      repeatType: "Week",
-      repeatOn: []
-    },
-    announcement: {
-      selectedModes: ["Text", "Voice", "Email"],
-      priority: "standard",
-      selectedEmailTemplateType: "existing",
-      selectedTemplateData: buildTemplateData(MOCK_TEMPLATES[2]),
-      newTemplateName: "Announcement",
-      selectedTemplateType: "newTemplate",
-      existingTemplateValues: "",
-      patientType: "oneTimeBroadcast",
-      appointmentType: [],
-      location: [],
-      provider: [],
-      gender: "all",
-      modality: [],
-      patientStartDateTime: now,
-      patientEndDateTime: null,
-      ageFilter: "",
-      ageYear: "",
-      ageMonth: "",
-      includeOptOut: false,
-      broadcastStartDate: now,
-      broadcastEndDate: days(7),
-      sendType: "immediately",
-      scheduleStartDateTime: now,
-      scheduleEndDateTime: null,
-      frequency: "Daily",
-      repeatType: "Week",
-      repeatOn: []
-    }
-  };
-
-  return prefills[val] || null;
-};
 
 export function AddBroadcastMessage({ onNext, handleCancel }) {
   const {
@@ -350,128 +57,49 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     newTemplateName,
     setNewTemplateName,
     selectedEmailTemplateType,
-    setSelectedEmailTemplateType,
-    setAppointmentType,
-    setLocation,
-    setProvider,
-    setGender,
-    setModality,
-    setIncludeOptOut,
-    setPatientsFoundForType
+    setSelectedEmailTemplateType
   } = useBroadcastForm();
 
   const handleCategoryChange = (val) => {
     setCategory(val);
-    const p = getCategoryPrefill(val);
-    if (!p) {
-      setSelectedModes([]);
-      setPriority("standard");
-      setSelectedEmailTemplateType("blank");
-      setNewTemplateName("");
-      setSelectedTemplateType("newTemplate");
-      setExistingTemplateValues("");
-      setSelectedTemplateData(null);
-      setPatientType("targetRecipients");
-      setAppointmentType("");
-      setLocation("");
-      setProvider("");
-      setGender("all");
-      setModality("");
-      setPatientStartDateTime(new Date());
-      setPatientEndDateTime(null);
-      setAgeFilter("");
-      setAgeYear("");
-      setAgeMonth("");
-      setAgeError("");
-      setIncludeOptOut(false);
-      setPatientsFoundForType(null);
-      setBroadcastStartDate(new Date());
-      setBroadcastEndDate(null);
-      setUploadedFile(null);
-      setSendType("immediately");
-      setScheduleStartDateTime(new Date());
-      setScheduleEndDateTime(null);
-      setFrequency("Daily");
-      setRepeatType("Week");
-      setRepeatOn([]);
-      return;
-    }
-    setSelectedModes(p.selectedModes);
-    setPriority(p.priority);
-    setSelectedEmailTemplateType(p.selectedEmailTemplateType);
-    setNewTemplateName(p.newTemplateName);
-    setSelectedTemplateType(p.selectedTemplateType);
-    setExistingTemplateValues(p.existingTemplateValues);
-    setSelectedTemplateData(p.selectedTemplateData ?? null);
-    setPatientType(p.patientType);
-    setAppointmentType(p.appointmentType);
-    setLocation(p.location);
-    setProvider(p.provider);
-    setGender(p.gender);
-    setModality(p.modality);
-    setPatientStartDateTime(p.patientStartDateTime);
-    setPatientEndDateTime(p.patientEndDateTime);
-    setAgeFilter(p.ageFilter);
-    setAgeYear(p.ageYear);
-    setAgeMonth(p.ageMonth);
-    setAgeError("");
-    setIncludeOptOut(p.includeOptOut);
-    setPatientsFoundForType(null);
-    setBroadcastStartDate(p.broadcastStartDate);
-    setBroadcastEndDate(p.broadcastEndDate);
-    setUploadedFile(null);
-    setSendType(p.sendType);
-    setScheduleStartDateTime(p.scheduleStartDateTime);
-    setScheduleEndDateTime(p.scheduleEndDateTime);
-    setFrequency(p.frequency);
-    setRepeatType(p.repeatType);
-    setRepeatOn(p.repeatOn);
   };
+
+  const methodTypeToModeName = { Mail: "Email", SMS: "TEXT", Voice: "Voice" };
 
   const handleTemplateSelect = (templateData) => {
     if (!templateData) {
       setSelectedTemplateData(null);
       return;
     }
-    const p = getTemplatePrefill(templateData);
-    setSelectedModes(p.selectedModes);
-    setPriority(p.priority);
-    setSelectedEmailTemplateType(p.selectedEmailTemplateType);
-    setSelectedTemplateType(p.selectedTemplateType);
-    setExistingTemplateValues(p.existingTemplateValues);
-    setNewTemplateName(p.newTemplateName);
-    setPatientType(p.patientType);
-    setAppointmentType(p.appointmentType);
-    setLocation(p.location);
-    setProvider(p.provider);
-    setGender(p.gender);
-    setModality(p.modality);
-    setPatientStartDateTime(p.patientStartDateTime);
-    setPatientEndDateTime(p.patientEndDateTime);
-    setAgeFilter(p.ageFilter);
-    setAgeYear(p.ageYear);
-    setAgeMonth(p.ageMonth);
-    setAgeError("");
-    setIncludeOptOut(p.includeOptOut);
-    setBroadcastStartDate(p.broadcastStartDate);
-    setBroadcastEndDate(p.broadcastEndDate);
-    setUploadedFile(null);
-    setSendType(p.sendType);
-    setScheduleStartDateTime(p.scheduleStartDateTime);
-    setScheduleEndDateTime(p.scheduleEndDateTime);
-    setFrequency(p.frequency);
-    setRepeatType(p.repeatType);
-    setRepeatOn(p.repeatOn);
-    setPatientsFoundForType(null);
-    setSelectedTemplateData(templateData);
+    const transformed = {
+      ...templateData,
+      emailTemplate:
+        templateData.channels?.find((c) => c.methodType === "Mail")
+          ?.templateBody ?? "",
+      textTemplate:
+        templateData.channels?.find((c) => c.methodType === "SMS")
+          ?.templateBody ?? "",
+      voiceTemplate:
+        templateData.channels?.find((c) => c.methodType === "Voice")
+          ?.templateBody ?? ""
+    };
+    setSelectedTemplateData(transformed);
+    setSelectedEmailTemplateType("existing");
+    setSelectedTemplateType("existingTemplate");
+
+    const modesFromTemplate = (templateData.channels ?? [])
+      .map((c) => methodTypeToModeName[c.methodType])
+      .filter(Boolean);
+    if (modesFromTemplate.length > 0) {
+      setSelectedModes(modesFromTemplate);
+    }
   };
 
   const [showHighPriorityModal, setShowHighPriorityModal] = useState(false);
   const [pendingTemplateData, setPendingTemplateData] = useState(null);
 
-  const showRadioRow =
-    !selectedModes.includes("Email") &&
-    (selectedModes.includes("Text") || selectedModes.includes("Voice"));
+  const hasEmailMode = selectedModes.some((m) => m.toLowerCase() === "email");
+  const showRadioRow = !hasEmailMode && selectedModes.length > 0;
 
   const isFormValid =
     selectedModes.length > 0 &&
@@ -593,12 +221,15 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
             ) {
               finalTemplateData = {
                 title: newTemplateName,
-                ...(selectedModes.includes("Text") && { textTemplate: "" }),
-                ...(selectedModes.includes("Voice") && { voiceTemplate: "" }),
-                ...(selectedModes.includes("Email") && { emailTemplate: "" })
+                ...Object.fromEntries(
+                  selectedModes.map((name) => [
+                    `${name.toLowerCase()}Template`,
+                    ""
+                  ])
+                )
               };
             }
-            if (priority === "high") {
+            if (priority === 1) {
               setPendingTemplateData(finalTemplateData);
               setShowHighPriorityModal(true);
               return;
@@ -621,7 +252,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
           onNext(pendingTemplateData);
         }}
         onCancel={() => {
-          setPriority("standard");
+          setPriority(2);
           setShowHighPriorityModal(false);
         }}
       >

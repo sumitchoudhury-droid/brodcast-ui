@@ -7,6 +7,9 @@ import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
 import ReusableModal from "../../../../reusableComponents/reusableModal";
+import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 
 function TargetRecipients({
   // Dropdown props
@@ -37,14 +40,80 @@ function TargetRecipients({
   includeOptOut,
   setIncludeOptOut,
   // Options arrays
-  appointmentTypeOptions,
-  locationOptions,
-  providerOptions,
-  ageOptions,
-  genderOptions,
-  modalityOptions,
   onSearch
 }) {
+  const { data: apptTypesData } = useGet(
+    ["appointment-types"],
+    ENDPOINTS.broadcastConfig.APPOINTMENT_TYPES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: locationsData } = useGet(
+    ["locations"],
+    ENDPOINTS.broadcastConfig.LOCATIONS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: providersData } = useGet(
+    ["providers"],
+    ENDPOINTS.broadcastConfig.PROVIDERS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: ageOptionsData } = useGet(
+    ["age-options"],
+    ENDPOINTS.broadcastConfig.AGE_OPTIONS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: genderOptionsData } = useGet(
+    ["gender-options"],
+    ENDPOINTS.broadcastConfig.GENDER_OPTIONS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: modalitiesData } = useGet(
+    ["modalities"],
+    ENDPOINTS.broadcastConfig.MODALITIES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const appointmentTypeOptions = (apptTypesData?.data ?? []).map((a) => ({
+    value: a.id,
+    label: a.catalogDesc
+  }));
+
+  const locationOptions = (locationsData?.data ?? []).map((l) => ({
+    value: l.id,
+    label: l.displayName
+  }));
+
+  const providerOptions = (providersData?.data ?? []).map((p) => ({
+    value: p.id,
+    label: p.name
+  }));
+
+  const ageOptions = (ageOptionsData?.data ?? []).map((a) => ({
+    value: a.id,
+    label: a.ageCriteria
+  }));
+
+  const genderOptions = (genderOptionsData?.data ?? []).map((g) => ({
+    value: g.id,
+    label: g.name
+  }));
+
+  const modalityOptions = (modalitiesData?.data ?? []).map((m) => ({
+    value: m.kioskCatalogId,
+    label: m.catalogDec.trim()
+  }));
+
   const [showOptOutModal, setShowOptOutModal] = useState(false);
 
   const handleToggleOptOut = (val) => {
