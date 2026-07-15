@@ -64,6 +64,8 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     setCategory(val);
   };
 
+  const methodTypeToModeName = { Mail: "Email", SMS: "TEXT", Voice: "Voice" };
+
   const handleTemplateSelect = (templateData) => {
     if (!templateData) {
       setSelectedTemplateData(null);
@@ -84,6 +86,13 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     setSelectedTemplateData(transformed);
     setSelectedEmailTemplateType("existing");
     setSelectedTemplateType("existingTemplate");
+
+    const modesFromTemplate = (templateData.channels ?? [])
+      .map((c) => methodTypeToModeName[c.methodType])
+      .filter(Boolean);
+    if (modesFromTemplate.length > 0) {
+      setSelectedModes(modesFromTemplate);
+    }
   };
 
   const [showHighPriorityModal, setShowHighPriorityModal] = useState(false);

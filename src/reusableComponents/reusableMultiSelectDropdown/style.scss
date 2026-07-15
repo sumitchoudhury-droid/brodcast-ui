@@ -94,27 +94,8 @@
       box-shadow: variable.$shadow-4;
       z-index: 1000;
       max-height: 320px;
-      overflow-y: auto;
+      overflow: hidden;
       animation: dropdownFadeIn 0.2s ease;
-
-      // Custom scrollbar
-      &::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
-
-        &:hover {
-          background: #a8a8a8;
-        }
-      }
 
       .checkboxMulti {
         @include variable.d-flex($al: center, $jc: space-between);
@@ -134,6 +115,27 @@
       @include variable.d-flex($fd: column);
       width: 100%;
       padding: 0 8px;
+      overflow-y: auto;
+      flex: 1;
+
+      &::-webkit-scrollbar {
+        display: block;
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+
+        &:hover {
+          background: #a8a8a8;
+        }
+      }
 
       .multidropdownSelectContainerOptions {
         display: flex;

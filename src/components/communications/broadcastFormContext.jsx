@@ -6,7 +6,7 @@ export function BroadcastFormProvider({ children }) {
   const [selectedModes, setSelectedModes] = useState([]);
   const [selectedTemplateData, setSelectedTemplateData] = useState(null);
 
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("select");
   const [priority, setPriority] = useState(2);
 
   const [sendType, setSendType] = useState(1);
@@ -24,7 +24,7 @@ export function BroadcastFormProvider({ children }) {
   const [broadcastEndDate, setBroadcastEndDate] = useState(null);
   const [patientStartDateTime, setPatientStartDateTime] = useState(new Date());
   const [patientEndDateTime, setPatientEndDateTime] = useState(null);
-  const [ageFilter, setAgeFilter] = useState("");
+  const [ageFilter, setAgeFilter] = useState(0);
   const [ageYear, setAgeYear] = useState("");
   const [ageMonth, setAgeMonth] = useState("");
   const [ageError, setAgeError] = useState("");
