@@ -1,27 +1,25 @@
 export const ENDPOINTS = {
   templates: {
-    GET_ALL: "/api/v1/templates",
+    GET_ALL: "/templates",
     GET_BY_ID: (id) => `/api/v1/templates/${id}`,
-    CREATE: "/api/v1/templates",
-    DELETE_BY_ID: (id) => `/api/v1/templates/${id}`
+    CREATE: "/templates",
+    DELETE_BY_ID: (id) => `/templates/${id}`
   },
   images: {
-    UPLOAD: "/api/v1/Image/ImageUpload",
-    ATTACHMENT_UPLOAD: "/api/v1/Image/AttachmentUpload"
+    UPLOAD: "/Image/ImageUpload",
+    ATTACHMENT_UPLOAD: "/Image/AttachmentUpload"
   },
   broadcastConfig: {
-    COMMUNICATION_MODES:
-      "/api/v1/aggregate/broadcast-config/communication-modes",
-    PRIORITIES: "/api/v1/aggregate/broadcast-config/priorities",
-    PATIENT_TYPES: "/api/v1/aggregate/broadcast-config/patient-types",
-    CATEGORIES: "/api/v1/aggregate/broadcast-config/categories/",
-    APPOINTMENT_TYPES: "/api/v1/aggregate/broadcast-config/appointment-types",
-    LOCATIONS: "/api/v1/aggregate/broadcast-config/locations",
-    PROVIDERS: "/api/v1/aggregate/broadcast-config/providers",
-    AGE_OPTIONS: "/api/v1/aggregate/broadcast-config/age-options",
-    GENDER_OPTIONS: "/api/v1/aggregate/broadcast-config/gender-options",
-    MODALITIES: "/api/v1/aggregate/broadcast-config/modalities",
-    SCHEDULE_SEND_OPTIONS:
-      "/api/v1/aggregate/broadcast-config/schedule-send-options"
+    COMMUNICATION_MODES: "/aggregate/broadcast-config/communication-modes",
+    PRIORITIES: "/aggregate/broadcast-config/priorities",
+    PATIENT_TYPES: "/aggregate/broadcast-config/patient-types",
+    CATEGORIES: "/aggregate/broadcast-config/categories/",
+    APPOINTMENT_TYPES: "/aggregate/broadcast-config/appointment-types",
+    LOCATIONS: "/aggregate/broadcast-config/locations",
+    PROVIDERS: "/aggregate/broadcast-config/providers",
+    AGE_OPTIONS: "/aggregate/broadcast-config/age-options",
+    GENDER_OPTIONS: "/aggregate/broadcast-config/gender-options",
+    MODALITIES: "/aggregate/broadcast-config/modalities",
+    SCHEDULE_SEND_OPTIONS: "/aggregate/broadcast-config/schedule-send-options"
   }
 };

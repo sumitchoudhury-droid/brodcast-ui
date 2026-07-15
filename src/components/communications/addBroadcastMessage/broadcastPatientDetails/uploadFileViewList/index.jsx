@@ -42,9 +42,8 @@ const computeReason = (patient) => {
     patient.dob.replace(/\D/g, "").length < 8
   )
     missing.push("DOB");
-  const phoneOk = !isPhoneInvalid(patient.phone);
-  const emailOk = !isEmailInvalid(patient.email);
-  if (!phoneOk && !emailOk) missing.push("Phone or Email");
+  if (isPhoneInvalid(patient.phone)) missing.push("Phone");
+  if (isEmailInvalid(patient.email)) missing.push("Email");
   return missing.length > 0 ? `Missing: ${missing.join(", ")}` : "-";
 };
 

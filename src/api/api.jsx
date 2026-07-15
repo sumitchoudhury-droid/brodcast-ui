@@ -27,7 +27,7 @@ export const queryClient = new QueryClient({
 
 export const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
-  "https://cademo.hacheckinasyst.com:20029";
+  "https://cademo.hacheckinasyst.com:20029/api/v1";
 
 export const COMMON_HEADERS = {
   TenantId: "V827QA",
