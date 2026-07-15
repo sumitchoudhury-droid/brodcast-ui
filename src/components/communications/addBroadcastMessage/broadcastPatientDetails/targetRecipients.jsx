@@ -7,7 +7,7 @@ import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
 import ReusableModal from "../../../../reusableComponents/reusableModal";
-import { useGet } from "../../../../hooks/useGet";
+import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 

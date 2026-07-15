@@ -1,6 +1,6 @@
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
-import { useGet } from "../../../../hooks/useGet";
+import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";

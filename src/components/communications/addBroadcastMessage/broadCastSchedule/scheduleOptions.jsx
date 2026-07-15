@@ -2,7 +2,7 @@ import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDow
 import ReusableDateTime from "../../../../reusableComponents/reusableDate&TimePicker/index";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput/index";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton/index";
-import { useGet } from "../../../../hooks/useGet";
+import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 
