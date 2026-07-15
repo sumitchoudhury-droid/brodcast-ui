@@ -37,6 +37,12 @@
   }
 }
 
+.leftPanelWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .editorArea {
   display: flex;
   flex-direction: column;
