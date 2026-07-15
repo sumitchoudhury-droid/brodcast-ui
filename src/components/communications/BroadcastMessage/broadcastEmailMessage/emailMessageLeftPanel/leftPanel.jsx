@@ -15,11 +15,11 @@ import leftPanelRow from "../../../../../assets/leftPanel/leftPanelRow.svg";
 // import leftPanelFooter from "../../../../../assets/leftPanel/leftPanelFooter.svg";
 // import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg";
 import leftPanelPlaceholders from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
-import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?raw";
-import template1 from "../../../../../assets/templates/template1.svg";
-import template2 from "../../../../../assets/templates/template2.svg";
-import template3 from "../../../../../assets/templates/template3.svg";
-import template4 from "../../../../../assets/templates/template4.svg";
+// import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?raw";
+// import template1 from "../../../../../assets/templates/template1.svg";
+// import template2 from "../../../../../assets/templates/template2.svg";
+// import template3 from "../../../../../assets/templates/template3.svg";
+// import template4 from "../../../../../assets/templates/template4.svg";
 import emptyTemplate from "../../../../../assets/existingTemplate/emptyTemplate.svg";
 
 import "./style.scss";
@@ -40,12 +40,12 @@ const tabOptions = [
   { label: "Saved Template", value: "savedTemplate" }
 ];
 
-const templateLibraryOptions = [
-  { img: template1, name: "Template 1", html: emailTemplate },
-  { img: template2, name: "Template 2", html: emailTemplate },
-  { img: template3, name: "Template 3", html: emailTemplate },
-  { img: template4, name: "Template 4", html: emailTemplate }
-];
+// const templateLibraryOptions = [
+//   { img: template1, name: "Template 1", html: emailTemplate },
+//   { img: template2, name: "Template 2", html: emailTemplate },
+//   { img: template3, name: "Template 3", html: emailTemplate },
+//   { img: template4, name: "Template 4", html: emailTemplate }
+// ];
 
 const blockCategories = [
   {
@@ -112,13 +112,15 @@ export default function LeftPanel({
     ["templates"],
     ENDPOINTS.templates.GET_ALL,
     null,
-    { enabled: tab === "templates" && selectedTab === "savedTemplate" }
+    { enabled: tab === "templates" }
   );
 
   const apiSavedTemplates = useMemo(() => {
     const list = templatesData?.data ?? [];
     return list
-      .filter((t) => t.channels?.some((c) => c.methodType === "Mail"))
+      .filter(
+        (t) => t.isActive && t.channels?.some((c) => c.methodType === "Mail")
+      )
       .map((t) => {
         const mailChannel = t.channels.find((c) => c.methodType === "Mail");
         return {
@@ -419,6 +421,54 @@ export default function LeftPanel({
 
             {selectedTab === "library" &&
               (() => {
+                if (isLoadingTemplates) {
+                  return (
+                    <div className="savedTemplateFlex">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="savedTemplateWrapper">
+                          <SkeletonLoader
+                            width="40px"
+                            height="40px"
+                            borderRadius="6px"
+                          />
+                          <SkeletonLoader
+                            width="120px"
+                            height="13px"
+                            borderRadius="4px"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                const filtered = apiSavedTemplates.filter((o) =>
+                  o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+                );
+                return (
+                  <div className="savedTemplateFlex">
+                    {filtered.length > 0 ? (
+                      filtered.map((option, index) => (
+                        <div
+                          className="savedTemplateWrapper"
+                          key={index}
+                          onClick={handleTemplateSelect(option)}
+                        >
+                          <img
+                            src={option.img ?? emptyTemplate}
+                            alt={option.name}
+                          />
+                          <span>{option.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="noResults">No templates found</div>
+                    )}
+                  </div>
+                );
+              })()}
+
+            {/* {selectedTab === "library" &&
+              (() => {
                 const filtered = templateLibraryOptions.filter((o) =>
                   o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
                 );
@@ -440,7 +490,7 @@ export default function LeftPanel({
                     )}
                   </div>
                 );
-              })()}
+              })()} */}
 
             {selectedTab === "savedTemplate" &&
               (() => {
