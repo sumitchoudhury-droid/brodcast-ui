@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput/index";
@@ -35,6 +36,7 @@ export default function Footer({
   textEditorInstanceRef
 }) {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const {
     selectedEmailTemplateType,
     scheduleStartDateTime,
@@ -119,6 +121,7 @@ export default function Footer({
     saveTemplate(body, {
       onSuccess: () => {
         toast.success("Template saved successfully");
+        queryClient.invalidateQueries({ queryKey: ["templates"] });
         setIsModalOpen(false);
         setTemplateName("");
         setChecked(false);
@@ -154,7 +157,7 @@ export default function Footer({
   };
 
   const getModalTitle = () => {
-    if (isOffBusiness) return "Send Now – Out of Business Hours Alert";
+    if (isOffBusiness) return "Send Now - Out of Business Hours Alert";
     switch (broadcastType) {
       case "recurring":
         return "Confirm Recurring Broadcast";
