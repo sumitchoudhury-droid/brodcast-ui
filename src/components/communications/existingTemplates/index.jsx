@@ -16,11 +16,14 @@ import { ENDPOINTS } from "../../../api/endpoints.js";
 import { useToast } from "../../../hooks/useToast";
 import SkeletonLoader from "../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
+const modeNameToMethodType = { Email: "Mail", TEXT: "SMS", Voice: "Voice" };
+
 function ExistingTemplates({
   isOpen,
   onClose,
   onSelectTemplate,
-  initialModeTab = "Text"
+  initialModeTab = "Text",
+  selectedModes = []
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -48,10 +51,16 @@ function ExistingTemplates({
   const offsetRef = useRef(0);
   const trackRef = useRef(null);
 
+  const methodTypes = selectedModes
+    .map((m) => modeNameToMethodType[m])
+    .filter(Boolean);
+
   const { data: templatesData, isLoading: templatesLoading } = useGet(
-    ["templates"],
+    ["templates", ...methodTypes],
     ENDPOINTS.templates.GET_ALL,
-    null,
+    methodTypes.length > 0
+      ? { methodTypes, includeInactive: false }
+      : { includeInactive: false },
     { enabled: isOpen }
   );
 

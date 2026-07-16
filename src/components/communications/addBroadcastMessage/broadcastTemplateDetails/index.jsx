@@ -19,6 +19,7 @@ const actionIcons = [
 ];
 
 function BroadcastTemplateDetails({
+  selectedModes,
   newTemplateName,
   setNewTemplateName,
   selectedTemplate,
@@ -137,6 +138,7 @@ function BroadcastTemplateDetails({
         onClose={() => setIsDrawerOpen(false)}
         onSelectTemplate={onSelectTemplate}
         initialModeTab={initialModeTab}
+        selectedModes={selectedModes}
       />
     </div>
   );

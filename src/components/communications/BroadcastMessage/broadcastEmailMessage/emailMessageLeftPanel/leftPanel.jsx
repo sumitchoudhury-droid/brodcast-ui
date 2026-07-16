@@ -9,17 +9,7 @@ import leftPanelLink from "../../../../../assets/leftPanel/leftPanelLink.svg";
 import leftPanelPhoto from "../../../../../assets/leftPanel/leftPanelPhoto.svg";
 import leftPanelText from "../../../../../assets/leftPanel/leftPanelText.svg";
 import leftPanelRow from "../../../../../assets/leftPanel/leftPanelRow.svg";
-// import leftPanelCAT from "../../../../../assets/leftPanel/leftPanelCAT.svg";
-// import leftPanelContent from "../../../../../assets/leftPanel/leftPanelContent.svg";
-// import leftPanelFeatures from "../../../../../assets/leftPanel/leftPanelFeatures.svg";
-// import leftPanelFooter from "../../../../../assets/leftPanel/leftPanelFooter.svg";
-// import leftPanelHeader from "../../../../../assets/leftPanel/leftPanelHeader.svg";
 import leftPanelPlaceholders from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
-// import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?raw";
-// import template1 from "../../../../../assets/templates/template1.svg";
-// import template2 from "../../../../../assets/templates/template2.svg";
-// import template3 from "../../../../../assets/templates/template3.svg";
-// import template4 from "../../../../../assets/templates/template4.svg";
 import emptyTemplate from "../../../../../assets/existingTemplate/emptyTemplate.svg";
 
 import "./style.scss";
@@ -39,13 +29,6 @@ const tabOptions = [
   { label: "Library", value: "library" },
   { label: "Saved Template", value: "savedTemplate" }
 ];
-
-// const templateLibraryOptions = [
-//   { img: template1, name: "Template 1", html: emailTemplate },
-//   { img: template2, name: "Template 2", html: emailTemplate },
-//   { img: template3, name: "Template 3", html: emailTemplate },
-//   { img: template4, name: "Template 4", html: emailTemplate }
-// ];
 
 const blockCategories = [
   {
@@ -109,9 +92,9 @@ export default function LeftPanel({
   const [isImporting, setIsImporting] = useState(false);
 
   const { data: templatesData, isLoading: isLoadingTemplates } = useGet(
-    ["templates"],
+    ["templates", selectedTab],
     ENDPOINTS.templates.GET_ALL,
-    null,
+    { includeInactive: false },
     { enabled: tab === "templates" }
   );
 
@@ -466,31 +449,6 @@ export default function LeftPanel({
                   </div>
                 );
               })()}
-
-            {/* {selectedTab === "library" &&
-              (() => {
-                const filtered = templateLibraryOptions.filter((o) =>
-                  o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
-                );
-                return (
-                  <div className="libraryGrid">
-                    {filtered.length > 0 ? (
-                      filtered.map((option, index) => (
-                        <div
-                          className="libraryWrapper"
-                          key={index}
-                          onClick={handleTemplateSelect(option)}
-                        >
-                          <img src={option.img} alt={option.name} />
-                          <span>{option.name}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="noResults">No templates found</div>
-                    )}
-                  </div>
-                );
-              })()} */}
 
             {selectedTab === "savedTemplate" &&
               (() => {
