@@ -10,6 +10,7 @@ export const ENDPOINTS = {
     ATTACHMENT_UPLOAD: "/Image/AttachmentUpload"
   },
   broadcastSchedule: {
+    GET_ALL: "/aggregate/broadcast-schedules",
     CREATE: "/aggregate/broadcast-schedules"
   },
   broadcastConfig: {

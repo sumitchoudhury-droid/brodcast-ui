@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useGet } from "../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
 import {
   flexRender,
   getCoreRowModel,
@@ -31,13 +33,57 @@ import ReportIcon from "../../../../assets/boardCastTableIcons/ReportIcon.svg";
 import ReprocessIcon from "../../../../assets/boardCastTableIcons/ReprocessIcon.svg";
 
 import "./style.scss";
-import { mockData } from "./mockData";
+import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 import TableSettings from "./tableSettings/index";
 import { useToast } from "../../../../hooks/useToast";
 import ReProcessBroadCast from "./reprocessBroadcast/index.jsx";
 import CancelSchedule from "./cancelSchedule/index.jsx";
 import TableBoardCastDetails from "./tableBoardCastDetails/index.jsx";
 import StopScheduleBulk from "../stopScheduleBulk/index.jsx";
+
+const formatScheduleDate = (isoStr) => {
+  if (!isoStr) return "";
+  const d = new Date(isoStr);
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const year = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+};
+
+const transformSchedule = (s) => ({
+  id: String(s.scheduleId),
+  scheduleIds: s.scheduleIds ?? [],
+  mode: s.mode ?? "",
+  template: s.templateName ?? "",
+  appointmentType: s.appointmentTypeNames?.[0] ?? "",
+  appointmentTypeNames: s.appointmentTypeNames ?? [],
+  appointmentCount: Math.max(0, (s.appointmentTypeNames?.length ?? 0) - 1),
+  location: s.locationNames?.[0] ?? "",
+  locationNames: s.locationNames ?? [],
+  locationCount: Math.max(0, (s.locationNames?.length ?? 0) - 1),
+  provider: s.providerNames?.[0] ?? "",
+  providerNames: s.providerNames ?? [],
+  providerCount: Math.max(0, (s.providerNames?.length ?? 0) - 1),
+  scheduledDateTime: formatScheduleDate(s.scheduleDateTime),
+  messageStatus: {
+    total: s.eligibleCount ?? 0,
+    delivered: s.successCount ?? 0,
+    failed: s.failedCount ?? 0,
+    pending: s.pendingCount ?? 0
+  },
+  broadcastStatus: s.broadcastStatus ?? "",
+  isDisabled: false
+});
+
+const buildTooltipContent = (names) =>
+  names.length > 9
+    ? [...names.slice(0, 9), `+${names.length - 9} more`]
+    : names;
 
 const DEFAULT_ORDER = [
   "mode",
@@ -141,21 +187,6 @@ const getPlaceholder = (columnId) => {
   }
 };
 
-const MAX_TOOLTIP_ITEMS = 9;
-
-const buildTooltipItems = (firstItem, additionalCount) => {
-  if (!additionalCount || additionalCount <= 0) return [];
-  const total = 1 + additionalCount;
-  const shown = Math.min(total, MAX_TOOLTIP_ITEMS);
-  const items = Array.from({ length: shown }, (_, i) =>
-    i === 0 ? firstItem : `${firstItem} ${i + 1}`
-  );
-  if (total > MAX_TOOLTIP_ITEMS) {
-    items.push(`+${total - MAX_TOOLTIP_ITEMS}`);
-  }
-  return items;
-};
-
 const RenderSortIcon = ({ isSorted }) => {
   const upColor = isSorted === "asc" ? "#107A6C" : "#77C1B6";
   const downColor = isSorted === "desc" ? "#107A6C" : "#77C1B6";
@@ -191,7 +222,25 @@ function BroadCastTableContainer({
   highlightFirstRow = false
 }) {
   const toast = useToast();
-  const [data, setData] = useState(mockData);
+  const [data, setData] = useState([]);
+
+  const { data: schedulesResponse, isLoading } = useGet(
+    ["broadcast-schedules", currentPage, itemsPerPage],
+    ENDPOINTS.broadcastSchedule.GET_ALL,
+    { pageNumber: currentPage, pageSize: itemsPerPage }
+  );
+
+  useEffect(() => {
+    const schedules = schedulesResponse?.data?.data?.schedules ?? [];
+    setData(schedules.map(transformSchedule));
+  }, [schedulesResponse]);
+
+  useEffect(() => {
+    const totalCount = schedulesResponse?.data?.data?.totalCount;
+    if (totalCount !== undefined && setTotalItems) {
+      setTotalItems(totalCount);
+    }
+  }, [schedulesResponse, setTotalItems]);
   const [rowSelection, setRowSelection] = useState({});
   const [sorting, setSorting] = useState([]);
   const [activeMenuId, setActiveMenuId] = useState(null);
@@ -364,12 +413,6 @@ function BroadCastTableContainer({
   }, [bulkCancelOpen]);
 
   useEffect(() => {
-    if (setTotalItems) {
-      setTotalItems(filteredData.length);
-    }
-  }, [filteredData.length, setTotalItems]);
-
-  useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setActiveMenuId(null);
@@ -454,25 +497,21 @@ function BroadCastTableContainer({
           </div>
         ),
         cell: ({ row }) => {
-          if (!row.original.appointmentType) return "-";
+          const names = row.original.appointmentTypeNames ?? [];
+          const first = names[0] ?? "";
+          if (!first) return "-";
           return (
             <div className="text-with-pill">
-              <span className="cell-text" title={row.original.appointmentType}>
-                {highlightText(
-                  row.original.appointmentType,
-                  filters.appointmentType
-                )}
+              <span className="cell-text" title={first}>
+                {highlightText(first, filters.appointmentType)}
               </span>
-              {row.original.appointmentCount > 0 && (
+              {names.length > 1 && (
                 <ReusableToolTip
-                  content={buildTooltipItems(
-                    row.original.appointmentType,
-                    row.original.appointmentCount
-                  )}
+                  content={buildTooltipContent(names)}
                   position="top"
                 >
                   <span className="count-pill" style={{ cursor: "pointer" }}>
-                    +{row.original.appointmentCount}
+                    +{names.length - 1}
                   </span>
                 </ReusableToolTip>
               )}
@@ -488,22 +527,21 @@ function BroadCastTableContainer({
           </div>
         ),
         cell: ({ row }) => {
-          if (!row.original.location) return "-";
+          const names = row.original.locationNames ?? [];
+          const first = names[0] ?? "";
+          if (!first) return "-";
           return (
             <div className="text-with-pill">
-              <span className="cell-text" title={row.original.location}>
-                {highlightText(row.original.location, filters.location)}
+              <span className="cell-text" title={first}>
+                {highlightText(first, filters.location)}
               </span>
-              {row.original.locationCount > 0 && (
+              {names.length > 1 && (
                 <ReusableToolTip
-                  content={buildTooltipItems(
-                    row.original.location,
-                    row.original.locationCount
-                  )}
+                  content={buildTooltipContent(names)}
                   position="top"
                 >
                   <span className="count-pill" style={{ cursor: "pointer" }}>
-                    +{row.original.locationCount}
+                    +{names.length - 1}
                   </span>
                 </ReusableToolTip>
               )}
@@ -519,22 +557,21 @@ function BroadCastTableContainer({
           </div>
         ),
         cell: ({ row }) => {
-          if (!row.original.provider) return "-";
+          const names = row.original.providerNames ?? [];
+          const first = names[0] ?? "";
+          if (!first) return "-";
           return (
             <div className="text-with-pill">
-              <span className="cell-text" title={row.original.provider}>
-                {highlightText(row.original.provider, filters.provider)}
+              <span className="cell-text" title={first}>
+                {highlightText(first, filters.provider)}
               </span>
-              {row.original.providerCount > 0 && (
+              {names.length > 1 && (
                 <ReusableToolTip
-                  content={buildTooltipItems(
-                    row.original.provider,
-                    row.original.providerCount
-                  )}
+                  content={buildTooltipContent(names)}
                   position="top"
                 >
                   <span className="count-pill" style={{ cursor: "pointer" }}>
-                    +{row.original.providerCount}
+                    +{names.length - 1}
                   </span>
                 </ReusableToolTip>
               )}
@@ -967,7 +1004,54 @@ function BroadCastTableContainer({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <tr key={`skeleton-${i}`}>
+                <td className="col-select">
+                  <SkeletonLoader
+                    width="16px"
+                    height="16px"
+                    borderRadius="3px"
+                  />
+                </td>
+                <td className="col-mode">
+                  <SkeletonLoader width="80px" height="14px" />
+                </td>
+                <td className="col-template">
+                  <SkeletonLoader width="140px" height="14px" />
+                </td>
+                <td className="col-appointmentType">
+                  <SkeletonLoader width="120px" height="14px" />
+                </td>
+                <td className="col-location">
+                  <SkeletonLoader width="100px" height="14px" />
+                </td>
+                <td className="col-provider">
+                  <SkeletonLoader width="100px" height="14px" />
+                </td>
+                <td className="col-scheduledDateTime">
+                  <SkeletonLoader width="110px" height="14px" />
+                </td>
+                <td className="col-messageStatus">
+                  <SkeletonLoader width="80px" height="32px" />
+                </td>
+                <td className="col-broadcastStatus">
+                  <SkeletonLoader
+                    width="90px"
+                    height="22px"
+                    borderRadius="12px"
+                  />
+                </td>
+                <td className="col-actions">
+                  <SkeletonLoader
+                    width="20px"
+                    height="20px"
+                    borderRadius="50%"
+                  />
+                </td>
+              </tr>
+            ))
+          ) : table.getRowModel().rows.length === 0 ? (
             <tr className="empty-row">
               <td
                 colSpan={table.getVisibleLeafColumns().length}
