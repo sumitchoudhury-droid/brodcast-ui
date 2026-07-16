@@ -133,39 +133,79 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
                     />
                   </div>
                 </th>
+                <th onClick={() => handleSort("provider")}>
+                  <div className="headerContent">
+                    Provider{" "}
+                    <RenderSortIcon
+                      columnKey="provider"
+                      sortConfig={sortConfig}
+                    />
+                  </div>
+                </th>
+                <th onClick={() => handleSort("scheduledDateTime")}>
+                  <div className="headerContent">
+                    Scheduled Date/Time{" "}
+                    <RenderSortIcon
+                      columnKey="scheduledDateTime"
+                      sortConfig={sortConfig}
+                    />
+                  </div>
+                </th>
+                <th onClick={() => handleSort("broadcastStatus")}>
+                  <div className="headerContent">
+                    Broadcast Status{" "}
+                    <RenderSortIcon
+                      columnKey="broadcastStatus"
+                      sortConfig={sortConfig}
+                    />
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {sortedBroadcasts.map((broadcast) => (
-                <tr key={broadcast.id}>
-                  <td>{broadcast.mode || "-"}</td>
-                  <td>{broadcast.template || "-"}</td>
-                  <td>
-                    <div className="cellWithPill">
-                      <span className="cellText">
-                        {broadcast.appointmentType || "-"}
-                      </span>
-                      {broadcast.appointmentCount !== undefined && (
-                        <span className="countPill">
-                          +{broadcast.appointmentCount}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="cellWithPill">
-                      <span className="cellText">
-                        {broadcast.location || "-"}
-                      </span>
-                      {broadcast.locationCount !== undefined && (
-                        <span className="countPill">
-                          +{broadcast.locationCount}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {sortedBroadcasts.map((broadcast) => {
+                const apptNames = broadcast.appointmentTypeNames ?? [];
+                const locNames = broadcast.locationNames ?? [];
+                const provNames = broadcast.providerNames ?? [];
+                return (
+                  <tr key={broadcast.id}>
+                    <td>{broadcast.mode || "-"}</td>
+                    <td>{broadcast.template || "-"}</td>
+                    <td>
+                      <div className="cellWithPill">
+                        <span className="cellText">{apptNames[0] || "-"}</span>
+                        {apptNames.length > 1 && (
+                          <span className="countPill">
+                            +{apptNames.length - 1}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cellWithPill">
+                        <span className="cellText">{locNames[0] || "-"}</span>
+                        {locNames.length > 1 && (
+                          <span className="countPill">
+                            +{locNames.length - 1}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cellWithPill">
+                        <span className="cellText">{provNames[0] || "-"}</span>
+                        {provNames.length > 1 && (
+                          <span className="countPill">
+                            +{provNames.length - 1}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>{broadcast.scheduledDateTime || "-"}</td>
+                    <td>{broadcast.broadcastStatus || "-"}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

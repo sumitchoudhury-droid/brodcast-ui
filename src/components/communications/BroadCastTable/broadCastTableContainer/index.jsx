@@ -240,6 +240,7 @@ function BroadCastTableContainer({
   onSelectionChange,
   highlightFirstRow = false
 }) {
+  "use no memo";
   const toast = useToast();
   const [data, setData] = useState([]);
   const [filters, setFilters] = useState({
@@ -301,12 +302,42 @@ function BroadCastTableContainer({
     setData(schedules.map(transformSchedule));
   }, [schedulesResponse]);
 
+  const [totalCount, setTotalCount] = useState(0);
+
   useEffect(() => {
-    const totalCount = schedulesResponse?.data?.data?.totalCount;
-    if (totalCount !== undefined && setTotalItems) {
-      setTotalItems(totalCount);
+    const count = schedulesResponse?.data?.data?.totalCount;
+    if (count !== undefined) {
+      if (setTotalItems) setTotalItems(count);
+      setTotalCount(count);
     }
   }, [schedulesResponse, setTotalItems]);
+
+  const [fetchAllEnabled, setFetchAllEnabled] = useState(false);
+  const { data: allSchedulesResponse } = useGet(
+    ["broadcast-schedules-all", fromDate, toDate, debouncedFilters],
+    ENDPOINTS.broadcastSchedule.GET_ALL,
+    {
+      pageNumber: 1,
+      pageSize: totalCount || 10000,
+      fromDate,
+      toDate,
+      ...activeFilters
+    },
+    { enabled: fetchAllEnabled }
+  );
+
+  useEffect(() => {
+    if (!fetchAllEnabled || !allSchedulesResponse) return;
+    const schedules = allSchedulesResponse?.data?.data?.schedules ?? [];
+    const allItems = schedules.map(transformSchedule);
+    const newRowSelection = {};
+    allItems.forEach((item) => {
+      newRowSelection[item.id] = true;
+    });
+    setAllSelectedItems(allItems);
+    setRowSelection(newRowSelection);
+    setFetchAllEnabled(false);
+  }, [allSchedulesResponse, fetchAllEnabled]);
   const [rowSelection, setRowSelection] = useState({});
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [showReprocessDrawer, setShowReprocessDrawer] = useState(false);
@@ -349,6 +380,8 @@ function BroadCastTableContainer({
       );
 
       setRowSelection({});
+      setAllSelectedItems([]);
+      setFetchAllEnabled(false);
     }
 
     setShowStopScheduleBulk(false);
@@ -382,13 +415,22 @@ function BroadCastTableContainer({
 
   const filteredData = data;
 
-  // Compute selected broadcasts based on rowSelection and filteredData
-  const selectedBroadcasts = useMemo(() => {
-    const selectedIds = Object.keys(rowSelection).filter(
-      (key) => rowSelection[key]
-    );
-    return filteredData.filter((item) => selectedIds.includes(item.id));
+  // Accumulate selected items across pages, preserved in insertion order
+  const [allSelectedItems, setAllSelectedItems] = useState([]);
+
+  useEffect(() => {
+    setAllSelectedItems((prev) => {
+      const withoutCurrentPage = prev.filter(
+        (item) => !filteredData.some((d) => d.id === item.id)
+      );
+      const currentPageSelected = filteredData.filter(
+        (item) => rowSelection[item.id]
+      );
+      return [...withoutCurrentPage, ...currentPageSelected];
+    });
   }, [rowSelection, filteredData]);
+
+  const selectedBroadcasts = allSelectedItems;
 
   const selectedRowsCount = selectedBroadcasts.length;
 
@@ -431,12 +473,23 @@ function BroadCastTableContainer({
       {
         id: "select",
         enableSorting: false,
-        header: ({ table }) => (
-          <ReusableCheckbox
-            checked={table.getIsAllRowsSelected()}
-            onChange={table.getToggleAllRowsSelectedHandler()}
-          />
-        ),
+        header: ({ table }) => {
+          const allSelected =
+            totalCount > 0 && allSelectedItems.length === totalCount;
+          return (
+            <ReusableCheckbox
+              checked={allSelected || table.getIsAllRowsSelected()}
+              onChange={() => {
+                if (allSelected) {
+                  setAllSelectedItems([]);
+                  setRowSelection({});
+                } else {
+                  setFetchAllEnabled(true);
+                }
+              }}
+            />
+          );
+        },
         cell: ({ row }) => (
           <ReusableCheckbox
             checked={row.getIsSelected()}
@@ -886,6 +939,8 @@ function BroadCastTableContainer({
       dataColumnOrder,
       columnVisibility,
       toast,
+      allSelectedItems,
+      totalCount,
       setDataColumnOrder,
       setColumnVisibility,
       setActiveMenuId,
@@ -895,6 +950,7 @@ function BroadCastTableContainer({
     ]
   );
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredData,
     columns,
