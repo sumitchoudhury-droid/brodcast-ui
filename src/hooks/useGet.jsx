@@ -8,7 +8,13 @@ export function useGet(queryKey, endpoint, params, options = {}) {
     queryFn: async () => {
       const url = new URL(`${BASE_URL}${endpoint}`, window.location.origin);
       if (params) {
-        Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+        Object.entries(params).forEach(([k, v]) => {
+          if (Array.isArray(v)) {
+            v.forEach((val) => url.searchParams.append(k, val));
+          } else {
+            url.searchParams.set(k, v);
+          }
+        });
       }
       const res = await fetch(url.toString(), {
         headers: {

@@ -30,14 +30,14 @@ export const BASE_URL =
   "https://cademo.hacheckinasyst.com:20029/api/v1";
 
 export const COMMON_HEADERS = {
-  TenantId: "V827QA",
-  OrganizationId: "600",
+  TenantId: "Common",
+  OrgId: "100",
   "X-Correlation-ID": "postman-test-001"
 };
 
 export const BROADCAST_CONFIG_HEADERS = {
   TenantId: "Common",
-  OrganizationId: "100"
+  Org: "100"
 };
 
 export async function handleResponse(res) {

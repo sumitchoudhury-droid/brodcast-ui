@@ -1,7 +1,7 @@
 export const ENDPOINTS = {
   templates: {
-    GET_ALL: "/templates",
-    GET_BY_ID: (id) => `/api/v1/templates/${id}`,
+    GET_ALL: "/templates/list",
+    GET_BY_ID: (id) => `/templates/${id}`,
     CREATE: "/templates",
     DELETE_BY_ID: (id) => `/templates/${id}`
   },
