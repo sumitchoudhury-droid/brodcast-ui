@@ -19,86 +19,6 @@ import voiceIcon from "../../../../../assets/existingTemplate/phone.svg";
 
 import "./style.scss";
 
-const MOCK_APPOINTMENTS = [
-  "GHC-A General Health Check",
-  "BPC-A Blood Pressure Check",
-  "VAC-A Vaccination Appointment",
-  "ECG-A ECG Screening",
-  "FUP-A Follow-Up Consultation",
-  "ANC-A Antenatal Checkup",
-  "FUP-A Follow-Up Consultation",
-  "LAB-A Lab Test Appointment",
-  "VAC-A Vaccination Appointment",
-  "ECG-A ECG Screening",
-  "DBC-A Diabetes Check",
-  "ANC-A Antenatal Checkup",
-  "FUP-A Follow-Up Consultation",
-  "LAB-A Lab Test Appointment",
-  "VAC-A Vaccination Appointment"
-];
-
-const MOCK_LOCATIONS = [
-  "Eastside Urgent Care",
-  "Riverbend Urgent Care",
-  "Greenwood Health Clinic",
-  "Maplewood Family Practice",
-  "Sunnyvale Medical Center",
-  "Eastside Urgent Care",
-  "Riverbend Urgent Care",
-  "Greenwood Health Clinic",
-  "Maplewood Family Practice",
-  "Sunnyvale Medical Center",
-  "Eastside Urgent Care",
-  "Riverbend Urgent Care",
-  "Greenwood Health Clinic",
-  "Maplewood Family Practice",
-  "Sunnyvale Medical Center"
-];
-
-const MOCK_PROVIDERS = [
-  "Olivia Smith",
-  "Ethan Brown",
-  "Sophia Green",
-  "Liam Carter",
-  "Olivia White",
-  "Noah Harris",
-  "Olivia Smith",
-  "Ethan Brown",
-  "Sophia Green",
-  "Liam Carter",
-  "Olivia White",
-  "Noah Harris",
-  "Olivia Smith",
-  "Ethan Brown",
-  "Sophia Green"
-];
-
-const getRepeatedItems = (baseItem, mockList, targetCount) => {
-  if (!targetCount) return [];
-  const list = [];
-  if (baseItem) {
-    list.push(baseItem);
-  }
-
-  // Fill with unique items from mockList first
-  for (let i = 0; i < mockList.length; i++) {
-    if (list.length >= targetCount) break;
-    const item = mockList[i];
-    if (item !== baseItem && !list.includes(item)) {
-      list.push(item);
-    }
-  }
-
-  // If we still need more, generate them with index suffixes to ensure they look like actual different entries
-  let suffixIndex = 1;
-  while (list.length < targetCount) {
-    const templateItem = mockList[suffixIndex % mockList.length];
-    list.push(`${templateItem} (${suffixIndex}`);
-    suffixIndex++;
-  }
-  return list;
-};
-
 const getModesList = (modeStr) => {
   if (!modeStr) return [];
   let list = modeStr
@@ -214,33 +134,16 @@ export default function Details({ broadcastData }) {
     broadcastStatus = "",
     scheduledDateTime = "",
     messageStatus = {},
-    appointmentCount = 112,
-    locationCount = 24,
-    providerCount = 5
+    appointmentTypeNames = [],
+    locationNames = [],
+    providerNames = [],
+    patientSelectionType = ""
   } = broadcastData || {};
-
-  const appointmentsList = getRepeatedItems(
-    broadcastData?.appointmentType,
-    MOCK_APPOINTMENTS,
-    appointmentCount
-  );
-  const locationsList = getRepeatedItems(
-    broadcastData?.location,
-    MOCK_LOCATIONS,
-    locationCount
-  );
-  const providersList = getRepeatedItems(
-    broadcastData?.provider,
-    MOCK_PROVIDERS,
-    providerCount
-  );
 
   const isFailed = broadcastStatus.toLowerCase() === "failed" || hasError;
   const isCancelled = broadcastStatus.toLowerCase().includes("cancel");
 
-  // Determine if it is multiple modes (contains comma or ellipses) vs single mode
-  const showUploadFileLayout =
-    mode.includes(",") || mode.toLowerCase().includes("...");
+  const showUploadFileLayout = patientSelectionType === "UploadFile";
 
   // Resolve Broadcast Status Badge details
   const getBadgeDetails = (status) => {
@@ -404,12 +307,12 @@ export default function Details({ broadcastData }) {
           <div className="detailRow listRow">
             <div className="labelCol">Appointment Type</div>
             <div className="valueCol countHeader">
-              {appointmentCount} Appointments
+              {appointmentTypeNames.length} Appointments
             </div>
           </div>
           <div className="listScrollBox">
             <div className="gridList">
-              {appointmentsList.map((item, idx) => (
+              {appointmentTypeNames.map((item, idx) => (
                 <div key={idx} className="listItem">
                   <span className="bulletDot"></span>
                   <span className="itemText">{item}</span>
@@ -422,12 +325,12 @@ export default function Details({ broadcastData }) {
           <div className="detailRow listRow">
             <div className="labelCol">Location</div>
             <div className="valueCol countHeader">
-              {locationCount} Locations
+              {locationNames.length} Locations
             </div>
           </div>
           <div className="listScrollBox">
             <div className="gridList">
-              {locationsList.map((item, idx) => (
+              {locationNames.map((item, idx) => (
                 <div key={idx} className="listItem">
                   <span className="bulletDot"></span>
                   <span className="itemText">{item}</span>
@@ -440,12 +343,12 @@ export default function Details({ broadcastData }) {
           <div className="detailRow listRow">
             <div className="labelCol">Provider</div>
             <div className="valueCol countHeader">
-              {providerCount} Providers
+              {providerNames.length} Providers
             </div>
           </div>
           <div className="listScrollBox">
             <div className="gridList">
-              {providersList.map((item, idx) => (
+              {providerNames.map((item, idx) => (
                 <div key={idx} className="listItem">
                   <span className="bulletDot"></span>
                   <span className="itemText">{item}</span>
@@ -531,10 +434,12 @@ export default function Details({ broadcastData }) {
         </>
       )}
 
-      <div className="detailRow">
-        <div className="labelCol">Next Occurrence:</div>
-        <div className="valueCol">2 May 2026 10:30 AM</div>
-      </div>
+      {isRecurring && (
+        <div className="detailRow">
+          <div className="labelCol">Next Occurrence:</div>
+          <div className="valueCol">2 May 2026 10:30 AM</div>
+        </div>
+      )}
 
       <hr />
 

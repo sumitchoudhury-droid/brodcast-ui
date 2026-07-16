@@ -76,6 +76,7 @@ const transformSchedule = (s) => ({
     pending: s.pendingCount ?? 0
   },
   broadcastStatus: s.broadcastStatus ?? "",
+  patientSelectionType: s.patientSelectionType ?? "",
   isDisabled: false
 });
 
