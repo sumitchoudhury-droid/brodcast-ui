@@ -10,6 +10,7 @@ import ReusableModal from "../../../../reusableComponents/reusableModal";
 import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
+import { useBroadcastForm } from "../../broadcastFormContext";
 
 function TargetRecipients({
   // Dropdown props
@@ -114,6 +115,14 @@ function TargetRecipients({
     label: m.catalogDec.trim()
   }));
 
+  const { setAppointmentTypeLabels, setLocationLabels, setProviderLabels } =
+    useBroadcastForm();
+
+  const getLabels = (ids, options) =>
+    (Array.isArray(ids) ? ids : ids ? [ids] : [])
+      .map((id) => options.find((o) => o.value === id)?.label)
+      .filter(Boolean);
+
   const [showOptOutModal, setShowOptOutModal] = useState(false);
 
   const handleToggleOptOut = (val) => {
@@ -157,7 +166,10 @@ function TargetRecipients({
                   ? [appointmentType]
                   : []
             }
-            onChange={(val) => setAppointmentType(val)}
+            onChange={(val) => {
+              setAppointmentType(val);
+              setAppointmentTypeLabels(getLabels(val, appointmentTypeOptions));
+            }}
             searchPlaceholder="Search Appointment Type"
           />
         </div>
@@ -170,7 +182,10 @@ function TargetRecipients({
             value={
               Array.isArray(location) ? location : location ? [location] : []
             }
-            onChange={(val) => setLocation(val)}
+            onChange={(val) => {
+              setLocation(val);
+              setLocationLabels(getLabels(val, locationOptions));
+            }}
             searchPlaceholder="Search Location"
           />
         </div>
@@ -183,7 +198,10 @@ function TargetRecipients({
             value={
               Array.isArray(provider) ? provider : provider ? [provider] : []
             }
-            onChange={(val) => setProvider(val)}
+            onChange={(val) => {
+              setProvider(val);
+              setProviderLabels(getLabels(val, providerOptions));
+            }}
             searchPlaceholder="Search Provider"
           />
         </div>

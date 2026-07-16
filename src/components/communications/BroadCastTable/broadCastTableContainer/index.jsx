@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useGet } from "../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
 import {
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
@@ -31,13 +32,77 @@ import ReportIcon from "../../../../assets/boardCastTableIcons/ReportIcon.svg";
 import ReprocessIcon from "../../../../assets/boardCastTableIcons/ReprocessIcon.svg";
 
 import "./style.scss";
-import { mockData } from "./mockData";
+import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 import TableSettings from "./tableSettings/index";
 import { useToast } from "../../../../hooks/useToast";
 import ReProcessBroadCast from "./reprocessBroadcast/index.jsx";
 import CancelSchedule from "./cancelSchedule/index.jsx";
 import TableBoardCastDetails from "./tableBoardCastDetails/index.jsx";
 import StopScheduleBulk from "../stopScheduleBulk/index.jsx";
+
+const formatScheduleDate = (isoStr) => {
+  if (!isoStr) return "";
+  const d = new Date(isoStr);
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const year = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const seconds = String(d.getSeconds()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+};
+
+const transformSchedule = (s) => ({
+  id: String(s.scheduleId),
+  scheduleIds: s.scheduleIds ?? [],
+  mode: s.mode ?? "",
+  template: s.templateName ?? "",
+  appointmentType: s.appointmentTypeNames?.[0] ?? "",
+  appointmentTypeNames: s.appointmentTypeNames ?? [],
+  appointmentCount: Math.max(0, (s.appointmentTypeNames?.length ?? 0) - 1),
+  location: s.locationNames?.[0] ?? "",
+  locationNames: s.locationNames ?? [],
+  locationCount: Math.max(0, (s.locationNames?.length ?? 0) - 1),
+  provider: s.providerNames?.[0] ?? "",
+  providerNames: s.providerNames ?? [],
+  providerCount: Math.max(0, (s.providerNames?.length ?? 0) - 1),
+  scheduledDateTime: formatScheduleDate(s.scheduleDateTime),
+  messageStatus: {
+    total: s.eligibleCount ?? 0,
+    delivered: s.successCount ?? 0,
+    failed: s.failedCount ?? 0,
+    pending: s.pendingCount ?? 0
+  },
+  broadcastStatus: s.broadcastStatus ?? "",
+  patientSelectionType: s.patientSelectionType ?? "",
+  isDisabled: false
+});
+
+const SORT_FIELD_MAP = {
+  scheduledDateTime: "scheduleDateTime",
+  mode: "mode",
+  template: "templateName",
+  appointmentType: "appointmentType",
+  location: "location",
+  provider: "provider",
+  broadcastStatus: "broadcastStatus"
+};
+
+const formatDateParam = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const buildTooltipContent = (names) =>
+  names.length > 9
+    ? [...names.slice(0, 9), `+${names.length - 9} more`]
+    : names;
 
 const DEFAULT_ORDER = [
   "mode",
@@ -141,21 +206,6 @@ const getPlaceholder = (columnId) => {
   }
 };
 
-const MAX_TOOLTIP_ITEMS = 9;
-
-const buildTooltipItems = (firstItem, additionalCount) => {
-  if (!additionalCount || additionalCount <= 0) return [];
-  const total = 1 + additionalCount;
-  const shown = Math.min(total, MAX_TOOLTIP_ITEMS);
-  const items = Array.from({ length: shown }, (_, i) =>
-    i === 0 ? firstItem : `${firstItem} ${i + 1}`
-  );
-  if (total > MAX_TOOLTIP_ITEMS) {
-    items.push(`+${total - MAX_TOOLTIP_ITEMS}`);
-  }
-  return items;
-};
-
 const RenderSortIcon = ({ isSorted }) => {
   const upColor = isSorted === "asc" ? "#107A6C" : "#77C1B6";
   const downColor = isSorted === "desc" ? "#107A6C" : "#77C1B6";
@@ -191,9 +241,73 @@ function BroadCastTableContainer({
   highlightFirstRow = false
 }) {
   const toast = useToast();
-  const [data, setData] = useState(mockData);
-  const [rowSelection, setRowSelection] = useState({});
+  const [data, setData] = useState([]);
+  const [filters, setFilters] = useState({
+    mode: "",
+    template: "",
+    appointmentType: "",
+    location: "",
+    provider: "",
+    scheduledDateTime: "",
+    messageStatus: "",
+    broadcastStatus: ""
+  });
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [sorting, setSorting] = useState([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedFilters(filters), 500);
+    return () => clearTimeout(timer);
+  }, [filters]);
+
+  const today = new Date();
+  const fromDate = formatDateParam(selectedDateRange?.startDate ?? today);
+  const toDate = formatDateParam(selectedDateRange?.endDate ?? today);
+
+  const activeFilters = Object.fromEntries(
+    Object.entries(debouncedFilters).filter(([, v]) => v.trim())
+  );
+
+  const activeSortField = sorting[0]
+    ? (SORT_FIELD_MAP[sorting[0].id] ?? sorting[0].id)
+    : null;
+
+  const { data: schedulesResponse, isLoading } = useGet(
+    [
+      "broadcast-schedules",
+      currentPage,
+      itemsPerPage,
+      fromDate,
+      toDate,
+      debouncedFilters,
+      sorting
+    ],
+    ENDPOINTS.broadcastSchedule.GET_ALL,
+    {
+      pageNumber: currentPage,
+      pageSize: itemsPerPage,
+      fromDate,
+      toDate,
+      ...activeFilters,
+      ...(activeSortField && {
+        sortBy: activeSortField,
+        sortDescending: sorting[0].desc
+      })
+    }
+  );
+
+  useEffect(() => {
+    const schedules = schedulesResponse?.data?.data?.schedules ?? [];
+    setData(schedules.map(transformSchedule));
+  }, [schedulesResponse]);
+
+  useEffect(() => {
+    const totalCount = schedulesResponse?.data?.data?.totalCount;
+    if (totalCount !== undefined && setTotalItems) {
+      setTotalItems(totalCount);
+    }
+  }, [schedulesResponse, setTotalItems]);
+  const [rowSelection, setRowSelection] = useState({});
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [showReprocessDrawer, setShowReprocessDrawer] = useState(false);
   const [selectedCancelRow, setSelectedCancelRow] = useState(null);
@@ -259,16 +373,6 @@ function BroadCastTableContainer({
   }, [dataColumnOrder]);
 
   const [showSearch, setShowSearch] = useState(false);
-  const [filters, setFilters] = useState({
-    mode: "",
-    template: "",
-    appointmentType: "",
-    location: "",
-    provider: "",
-    scheduledDateTime: "",
-    messageStatus: "",
-    broadcastStatus: ""
-  });
   const handleFilterChange = (columnId, value) => {
     setFilters((prev) => ({
       ...prev,
@@ -276,68 +380,7 @@ function BroadCastTableContainer({
     }));
   };
 
-  const filteredData = useMemo(() => {
-    return data.filter((row) => {
-      // 1. Date Range Filter
-      const { startDate, endDate } = selectedDateRange || {};
-      const dateStr = row.scheduledDateTime;
-      if (dateStr) {
-        const [datePart] = dateStr.split(" ");
-        const [month, day, year] = datePart.split("/").map(Number);
-        const rowDate = new Date(year, month - 1, day);
-
-        if (startDate || endDate) {
-          if (startDate) {
-            const startMidnight = new Date(
-              startDate.getFullYear(),
-              startDate.getMonth(),
-              startDate.getDate()
-            );
-            if (rowDate < startMidnight) return false;
-          }
-
-          if (endDate) {
-            const endMidnight = new Date(
-              endDate.getFullYear(),
-              endDate.getMonth(),
-              endDate.getDate()
-            );
-            if (rowDate > endMidnight) return false;
-          }
-        } else {
-          // Default to today's date
-          const today = new Date();
-          const todayMidnight = new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate()
-          );
-          if (rowDate.getTime() !== todayMidnight.getTime()) {
-            return false;
-          }
-        }
-      }
-
-      // 2. Column filters
-      return Object.entries(filters).every(([columnId, query]) => {
-        if (!query) return true;
-
-        if (columnId === "messageStatus") {
-          const { total, delivered, failed, pending } = row.messageStatus || {};
-          const combined =
-            `${total || ""} ${delivered || ""} ${failed || ""} ${pending || ""}`.toLowerCase();
-          return combined.includes(query.toLowerCase());
-        }
-
-        const value = row[columnId];
-        if (value !== undefined && value !== null) {
-          return String(value).toLowerCase().includes(query.toLowerCase());
-        }
-
-        return true;
-      });
-    });
-  }, [data, filters, selectedDateRange]);
+  const filteredData = data;
 
   // Compute selected broadcasts based on rowSelection and filteredData
   const selectedBroadcasts = useMemo(() => {
@@ -362,12 +405,6 @@ function BroadCastTableContainer({
       setShowStopScheduleBulk(true);
     }
   }, [bulkCancelOpen]);
-
-  useEffect(() => {
-    if (setTotalItems) {
-      setTotalItems(filteredData.length);
-    }
-  }, [filteredData.length, setTotalItems]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -454,25 +491,21 @@ function BroadCastTableContainer({
           </div>
         ),
         cell: ({ row }) => {
-          if (!row.original.appointmentType) return "-";
+          const names = row.original.appointmentTypeNames ?? [];
+          const first = names[0] ?? "";
+          if (!first) return "-";
           return (
             <div className="text-with-pill">
-              <span className="cell-text" title={row.original.appointmentType}>
-                {highlightText(
-                  row.original.appointmentType,
-                  filters.appointmentType
-                )}
+              <span className="cell-text" title={first}>
+                {highlightText(first, filters.appointmentType)}
               </span>
-              {row.original.appointmentCount > 0 && (
+              {names.length > 1 && (
                 <ReusableToolTip
-                  content={buildTooltipItems(
-                    row.original.appointmentType,
-                    row.original.appointmentCount
-                  )}
+                  content={buildTooltipContent(names)}
                   position="top"
                 >
                   <span className="count-pill" style={{ cursor: "pointer" }}>
-                    +{row.original.appointmentCount}
+                    +{names.length - 1}
                   </span>
                 </ReusableToolTip>
               )}
@@ -488,22 +521,21 @@ function BroadCastTableContainer({
           </div>
         ),
         cell: ({ row }) => {
-          if (!row.original.location) return "-";
+          const names = row.original.locationNames ?? [];
+          const first = names[0] ?? "";
+          if (!first) return "-";
           return (
             <div className="text-with-pill">
-              <span className="cell-text" title={row.original.location}>
-                {highlightText(row.original.location, filters.location)}
+              <span className="cell-text" title={first}>
+                {highlightText(first, filters.location)}
               </span>
-              {row.original.locationCount > 0 && (
+              {names.length > 1 && (
                 <ReusableToolTip
-                  content={buildTooltipItems(
-                    row.original.location,
-                    row.original.locationCount
-                  )}
+                  content={buildTooltipContent(names)}
                   position="top"
                 >
                   <span className="count-pill" style={{ cursor: "pointer" }}>
-                    +{row.original.locationCount}
+                    +{names.length - 1}
                   </span>
                 </ReusableToolTip>
               )}
@@ -519,22 +551,21 @@ function BroadCastTableContainer({
           </div>
         ),
         cell: ({ row }) => {
-          if (!row.original.provider) return "-";
+          const names = row.original.providerNames ?? [];
+          const first = names[0] ?? "";
+          if (!first) return "-";
           return (
             <div className="text-with-pill">
-              <span className="cell-text" title={row.original.provider}>
-                {highlightText(row.original.provider, filters.provider)}
+              <span className="cell-text" title={first}>
+                {highlightText(first, filters.provider)}
               </span>
-              {row.original.providerCount > 0 && (
+              {names.length > 1 && (
                 <ReusableToolTip
-                  content={buildTooltipItems(
-                    row.original.provider,
-                    row.original.providerCount
-                  )}
+                  content={buildTooltipContent(names)}
                   position="top"
                 >
                   <span className="count-pill" style={{ cursor: "pointer" }}>
-                    +{row.original.providerCount}
+                    +{names.length - 1}
                   </span>
                 </ReusableToolTip>
               )}
@@ -864,7 +895,6 @@ function BroadCastTableContainer({
     ]
   );
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredData,
     columns,
@@ -873,11 +903,7 @@ function BroadCastTableContainer({
       rowSelection,
       columnVisibility,
       columnOrder,
-      sorting,
-      pagination: {
-        pageIndex: currentPage - 1,
-        pageSize: itemsPerPage
-      }
+      sorting
     },
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
@@ -885,8 +911,7 @@ function BroadCastTableContainer({
     onColumnOrderChange: setDataColumnOrder,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel()
+    getCoreRowModel: getCoreRowModel()
   });
 
   return (
@@ -967,7 +992,54 @@ function BroadCastTableContainer({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <tr key={`skeleton-${i}`}>
+                <td className="col-select">
+                  <SkeletonLoader
+                    width="16px"
+                    height="16px"
+                    borderRadius="3px"
+                  />
+                </td>
+                <td className="col-mode">
+                  <SkeletonLoader width="80px" height="14px" />
+                </td>
+                <td className="col-template">
+                  <SkeletonLoader width="140px" height="14px" />
+                </td>
+                <td className="col-appointmentType">
+                  <SkeletonLoader width="120px" height="14px" />
+                </td>
+                <td className="col-location">
+                  <SkeletonLoader width="100px" height="14px" />
+                </td>
+                <td className="col-provider">
+                  <SkeletonLoader width="100px" height="14px" />
+                </td>
+                <td className="col-scheduledDateTime">
+                  <SkeletonLoader width="110px" height="14px" />
+                </td>
+                <td className="col-messageStatus">
+                  <SkeletonLoader width="80px" height="32px" />
+                </td>
+                <td className="col-broadcastStatus">
+                  <SkeletonLoader
+                    width="90px"
+                    height="22px"
+                    borderRadius="12px"
+                  />
+                </td>
+                <td className="col-actions">
+                  <SkeletonLoader
+                    width="20px"
+                    height="20px"
+                    borderRadius="50%"
+                  />
+                </td>
+              </tr>
+            ))
+          ) : table.getRowModel().rows.length === 0 ? (
             <tr className="empty-row">
               <td
                 colSpan={table.getVisibleLeafColumns().length}
