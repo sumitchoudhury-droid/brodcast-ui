@@ -30,8 +30,13 @@ export function BroadcastFormProvider({ children }) {
   const [ageError, setAgeError] = useState("");
 
   const [appointmentType, setAppointmentType] = useState("");
+  const [appointmentTypeLabels, setAppointmentTypeLabels] = useState([]);
   const [location, setLocation] = useState("");
+  const [locationLabels, setLocationLabels] = useState([]);
   const [provider, setProvider] = useState("");
+  const [providerLabels, setProviderLabels] = useState([]);
+  const [categoryLabel, setCategoryLabel] = useState("");
+  const [priorityLabel, setPriorityLabel] = useState("");
   const [gender, setGender] = useState(3);
   const [modality, setModality] = useState("");
   const [includeOptOut, setIncludeOptOut] = useState(false);
@@ -91,10 +96,20 @@ export function BroadcastFormProvider({ children }) {
         setAgeError,
         appointmentType,
         setAppointmentType,
+        appointmentTypeLabels,
+        setAppointmentTypeLabels,
         location,
         setLocation,
+        locationLabels,
+        setLocationLabels,
         provider,
         setProvider,
+        providerLabels,
+        setProviderLabels,
+        categoryLabel,
+        setCategoryLabel,
+        priorityLabel,
+        setPriorityLabel,
         gender,
         setGender,
         modality,

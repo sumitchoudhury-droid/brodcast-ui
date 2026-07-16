@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import { ReusableCheckbox } from "../../../../reusableComponents/reusableCheckbox/index";
 import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
+import { useBroadcastForm } from "../../broadcastFormContext";
 
 import "./style.scss";
 
@@ -36,12 +38,20 @@ export const BroadcastDetails = ({
     { headers: BROADCAST_CONFIG_HEADERS }
   );
 
+  const { setCategoryLabel, setPriorityLabel } = useBroadcastForm();
+
   const communicationModes = modesData?.data ?? [];
 
   const priorityOptions = (prioritiesData?.data ?? []).map((p) => ({
     value: p.id,
     label: p.displayText
   }));
+
+  useEffect(() => {
+    const match = priorityOptions.find((o) => o.value === priority);
+    if (match) setPriorityLabel(match.label);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prioritiesData]);
 
   const categoryOptions = [
     { value: "select", label: "Select" },
@@ -102,7 +112,12 @@ export const BroadcastDetails = ({
             placeholder="Select Category"
             options={categoryOptions}
             value={category}
-            onChange={(val) => onCategoryChange(val)}
+            onChange={(val) => {
+              onCategoryChange(val);
+              setCategoryLabel(
+                categoryOptions.find((o) => o.value === val)?.label ?? ""
+              );
+            }}
           />
         </div>
 
@@ -114,7 +129,12 @@ export const BroadcastDetails = ({
             placeholder="Select Priority"
             options={priorityOptions}
             value={priority}
-            onChange={(val) => setPriority(val)}
+            onChange={(val) => {
+              setPriority(val);
+              setPriorityLabel(
+                priorityOptions.find((o) => o.value === val)?.label ?? ""
+              );
+            }}
             required={true}
             info={true}
           />

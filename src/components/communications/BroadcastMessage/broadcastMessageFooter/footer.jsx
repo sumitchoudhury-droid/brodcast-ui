@@ -9,20 +9,19 @@ import { ReusableModal } from "../../../../reusableComponents/reusableModal/inde
 import { useBroadcastForm } from "../../broadcastFormContext";
 import { usePost } from "../../../../hooks/usePost";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
-
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
-const MAX_TOOLTIP_ITEMS = 9;
-const buildTooltipItems = (firstItem, additionalCount) => {
-  if (!additionalCount || additionalCount <= 0) return [];
-  const total = 1 + additionalCount;
-  const shown = Math.min(total, MAX_TOOLTIP_ITEMS);
-  const items = Array.from({ length: shown }, (_, i) =>
-    i === 0 ? firstItem : `${firstItem} ${i + 1}`
-  );
-  if (total > MAX_TOOLTIP_ITEMS) items.push(`+${total - MAX_TOOLTIP_ITEMS}`);
-  return items;
+const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+const buildTooltipContent = (labels) =>
+  labels.length > 10
+    ? [...labels.slice(0, 10), `+${labels.length - 10} more`]
+    : labels;
+const sendModeMap = { 1: "Immediately", 2: "Scheduled", 3: "Recurring" };
+const patientSelectionTypeMap = {
+  targetRecipients: "TargetRecipients",
+  oneTimeBroadcast: "OneTimeBroadcast",
+  uploadFile: "UploadFile"
 };
 
 import "./style.scss";
@@ -30,7 +29,6 @@ import "./style.scss";
 export default function Footer({
   onBack,
   onCancel,
-  broadcastType = "immediate",
   disabled = false,
   editorRef,
   textEditorInstanceRef
@@ -43,10 +41,28 @@ export default function Footer({
     sendType,
     selectedModes,
     newTemplateName,
-    mailSubject
+    mailSubject,
+    selectedTemplateData,
+    categoryLabel,
+    priorityLabel,
+    scheduleEndDateTime,
+    frequency,
+    patientType,
+    appointmentType,
+    appointmentTypeLabels,
+    location,
+    locationLabels,
+    provider,
+    providerLabels,
+    patientStartDateTime,
+    patientEndDateTime,
+    includeOptOut
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
+  );
+  const { mutate: sendBroadcast, isPending: isSending } = usePost(
+    ENDPOINTS.broadcastSchedule.CREATE
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
@@ -143,9 +159,46 @@ export default function Footer({
     sendType !== "immediately" && isOffBusinessHours(scheduleStartDateTime);
 
   const handleConfirmBroadcast = () => {
-    toast.success("Broadcast confirmed and scheduled");
-    setIsConfirmModalOpen(false);
-    onCancel?.();
+    const payload = {
+      queueTextFlag: selectedModes.includes("TEXT"),
+      queueEmailFlag: selectedModes.includes("Email"),
+      queueVoiceFlag: selectedModes.includes("Voice"),
+      category: categoryLabel,
+      priority: priorityLabel,
+      templateId: selectedTemplateData?.id ?? null,
+      patientSelectionType: patientSelectionTypeMap[patientType] ?? patientType,
+      ...(patientType === "targetRecipients" && {
+        targetRecipientCriteria: {
+          appointmentTypeIds: toArray(appointmentType),
+          locationIds: toArray(location),
+          providerIds: toArray(provider),
+          appointmentStartDateTime: patientStartDateTime
+            ? new Date(patientStartDateTime).toISOString()
+            : null,
+          appointmentEndDateTime: patientEndDateTime
+            ? new Date(patientEndDateTime).toISOString()
+            : null,
+          includeOptOutPatients: includeOptOut
+        }
+      }),
+      sendMode: sendModeMap[sendType] ?? "Immediately",
+      startDtTm: scheduleStartDateTime
+        ? new Date(scheduleStartDateTime).toISOString()
+        : new Date().toISOString(),
+      createdById: 9
+    };
+
+    sendBroadcast(payload, {
+      onSuccess: (res) => {
+        toast.success(
+          res?.message ||
+            res?.data?.message ||
+            "Broadcast confirmed and scheduled"
+        );
+        setIsConfirmModalOpen(false);
+        onCancel?.();
+      }
+    });
   };
 
   const handleCancelBroadcast = () => {
@@ -158,14 +211,26 @@ export default function Footer({
 
   const getModalTitle = () => {
     if (isOffBusiness) return "Send Now - Out of Business Hours Alert";
-    switch (broadcastType) {
-      case "recurring":
+    switch (sendType) {
+      case 3:
         return "Confirm Recurring Broadcast";
-      case "scheduled":
+      case 2:
         return "Confirm Scheduled Broadcast";
       default:
         return "Confirm Immediate Broadcast";
     }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "—";
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    }).format(new Date(date));
   };
 
   const renderConfirmBody = () => {
@@ -177,71 +242,55 @@ export default function Footer({
           <br />
           <br />
           Are you sure you want to{" "}
-          <span className="bold">
-            send this broadcast now to 428 Patients?
-          </span>{" "}
-          This message will be delivered immediately upon confirmation.
+          <span className="bold">send this broadcast now?</span> This message
+          will be delivered immediately upon confirmation.
         </p>
       );
     }
-    if (broadcastType === "immediate") {
-      return (
-        <p className="confirmBroadcastModalText">
-          Are you sure you want to send this broadcast now to{" "}
-          <span className="bold">428 Patients</span>?
-          <br />
-          <br />
-          This message will be delivered immediately upon confirmation.
-          <br />
-          <br />
-          Once confirmed, this action cannot be undone.
-        </p>
-      );
-    }
-    if (broadcastType === "recurring") {
+    if (sendType === 3) {
       return (
         <p className="confirmBroadcastModalText">
           Are you sure you want to start this recurring broadcast on{" "}
-          <span className="bold">26 Feb 2026 at 10:30 AM</span> for{" "}
-          <span className="bold">428 Patients</span>?
+          <span className="bold">{formatDate(scheduleStartDateTime)}</span>?
           <br />
           <br />
-          It will repeat every Tuesday until 30th April 2026.
+          It will repeat {frequency?.toLowerCase()}{" "}
+          {scheduleEndDateTime ? (
+            <>
+              until{" "}
+              <span className="bold">{formatDate(scheduleEndDateTime)}</span>
+            </>
+          ) : (
+            "with no end date"
+          )}
+          .
           <br />
           <br />
           Once confirmed, this action cannot be undone.
         </p>
       );
     }
-    if (broadcastType === "scheduled") {
+    if (sendType === 2) {
       return (
         <p className="confirmBroadcastModalText">
           Are you sure you want to schedule this broadcast for{" "}
-          <span className="bold">26 Feb 2026 at 10:30 AM</span> to{" "}
-          <span className="bold">428 Patients</span>?
+          <span className="bold">{formatDate(scheduleStartDateTime)}</span>?
           <br />
           <br />
           Once confirmed, this action cannot be undone.
         </p>
       );
     }
-    // default: "immediate-invalid"
     return (
-      <>
-        <p className="confirmBroadcastModalText">
-          <span className="bold">Out of 428 patients, 8 </span>
-          have invalid contact records and will be excluded. Do you wish to
-          proceed?
-        </p>
-        <div className="viewInvalidPatients">
-          <p>View Invalid Patients</p>
-          <img
-            src={externalLinkIcon}
-            alt="External link icon"
-            className="externalLinkIcon"
-          />
-        </div>
-      </>
+      <p className="confirmBroadcastModalText">
+        Are you sure you want to send this broadcast now?
+        <br />
+        <br />
+        This message will be delivered immediately upon confirmation.
+        <br />
+        <br />
+        Once confirmed, this action cannot be undone.
+      </p>
     );
   };
 
@@ -312,7 +361,8 @@ export default function Footer({
         isOpen={isConfirmModalOpen}
         onClose={handleCancelBroadcast}
         title={getModalTitle()}
-        confirmText="Confirm & Schedule"
+        confirmText={isSending ? "Scheduling…" : "Confirm & Schedule"}
+        confirmDisabled={isSending}
         cancelText="Back to Editing"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"
@@ -360,7 +410,7 @@ export default function Footer({
                 <div className="filterSection">
                   <p className="filterLabel">Total Patients</p>
                   <div className="filterValue">
-                    <p>428</p>
+                    <p>—</p>
                     <img
                       src={externalLinkIcon}
                       alt="External link icon"
@@ -373,18 +423,17 @@ export default function Footer({
                 <div className="filterSection">
                   <p className="filterLabel">Appointment Type</p>
                   <div className="filterValue">
-                    <p>BPC-A Blood Pressure Check</p>
-                    <ReusableToolTip
-                      content={buildTooltipItems(
-                        "BPC-A Blood Pressure Check",
-                        111
-                      )}
-                      position="top"
-                    >
-                      <div className="badge" style={{ cursor: "pointer" }}>
-                        +111
-                      </div>
-                    </ReusableToolTip>
+                    <p>{appointmentTypeLabels[0] || "—"}</p>
+                    {appointmentTypeLabels.length > 1 && (
+                      <ReusableToolTip
+                        content={buildTooltipContent(appointmentTypeLabels)}
+                        position="top"
+                      >
+                        <div className="badge" style={{ cursor: "pointer" }}>
+                          +{appointmentTypeLabels.length - 1}
+                        </div>
+                      </ReusableToolTip>
+                    )}
                   </div>
                 </div>
               </div>
@@ -394,18 +443,17 @@ export default function Footer({
                 <div className="filterSection">
                   <p className="filterLabel">Location</p>
                   <div className="filterValue">
-                    <p>
-                      Eastside Urgent Care, Riverbend Urgent Care, Greenwood
-                      Health Clinic, Maplewood Family Practice,
-                    </p>
-                    <ReusableToolTip
-                      content={buildTooltipItems("Eastside Urgent Care", 6)}
-                      position="top"
-                    >
-                      <div className="badge" style={{ cursor: "pointer" }}>
-                        +6
-                      </div>
-                    </ReusableToolTip>
+                    <p>{locationLabels[0] || "—"}</p>
+                    {locationLabels.length > 1 && (
+                      <ReusableToolTip
+                        content={buildTooltipContent(locationLabels)}
+                        position="top"
+                      >
+                        <div className="badge" style={{ cursor: "pointer" }}>
+                          +{locationLabels.length - 1}
+                        </div>
+                      </ReusableToolTip>
+                    )}
                   </div>
                 </div>
 
@@ -413,33 +461,17 @@ export default function Footer({
                 <div className="filterSection">
                   <p className="filterLabel">Provider</p>
                   <div className="filterValue">
-                    <p>Barbara Phillips, Olivia Smith</p>
-                    <ReusableToolTip
-                      content={buildTooltipItems("Barbara Phillips", 12)}
-                      position="top"
-                    >
-                      <div className="badge" style={{ cursor: "pointer" }}>
-                        +12
-                      </div>
-                    </ReusableToolTip>
-                  </div>
-                </div>
-              </div>
-
-              <div className="Section">
-                {/* Age */}
-                <div className="filterSection">
-                  <p className="filterLabel">Age</p>
-                  <div className="filterValue">
-                    <p>Greater than 45 years 0 months</p>
-                  </div>
-                </div>
-
-                {/* Gender */}
-                <div className="filterSection">
-                  <p className="filterLabel">Gender</p>
-                  <div className="filterValue">
-                    <p>All</p>
+                    <p>{providerLabels[0] || "—"}</p>
+                    {providerLabels.length > 1 && (
+                      <ReusableToolTip
+                        content={buildTooltipContent(providerLabels)}
+                        position="top"
+                      >
+                        <div className="badge" style={{ cursor: "pointer" }}>
+                          +{providerLabels.length - 1}
+                        </div>
+                      </ReusableToolTip>
+                    )}
                   </div>
                 </div>
               </div>
@@ -449,7 +481,11 @@ export default function Footer({
                 <div className="filterSection">
                   <p className="filterLabel">Appointment Start Date / Time</p>
                   <div className="filterValue">
-                    <p>2/15/2026, 9:45:00 AM</p>
+                    <p>
+                      {patientStartDateTime
+                        ? new Date(patientStartDateTime).toLocaleString()
+                        : "—"}
+                    </p>
                   </div>
                 </div>
 
@@ -457,7 +493,11 @@ export default function Footer({
                 <div className="filterSection">
                   <p className="filterLabel">Appointment End Date / Time</p>
                   <div className="filterValue">
-                    <p>2/15/2026, 9:45:00 AM</p>
+                    <p>
+                      {patientEndDateTime
+                        ? new Date(patientEndDateTime).toLocaleString()
+                        : "—"}
+                    </p>
                   </div>
                 </div>
               </div>

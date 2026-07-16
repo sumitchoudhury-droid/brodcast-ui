@@ -9,6 +9,9 @@ export const ENDPOINTS = {
     UPLOAD: "/Image/ImageUpload",
     ATTACHMENT_UPLOAD: "/Image/AttachmentUpload"
   },
+  broadcastSchedule: {
+    CREATE: "/aggregate/broadcast-schedules"
+  },
   broadcastConfig: {
     COMMUNICATION_MODES: "/aggregate/broadcast-config/communication-modes",
     PRIORITIES: "/aggregate/broadcast-config/priorities",
