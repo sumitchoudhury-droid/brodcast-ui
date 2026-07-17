@@ -17,7 +17,7 @@ const buildTooltipContent = (labels) =>
   labels.length > 10
     ? [...labels.slice(0, 10), `+${labels.length - 10} more`]
     : labels;
-const sendModeMap = { 1: "Immediately", 2: "Scheduled", 3: "Recurring" };
+const sendModeMap = { 1: "Immediately", 2: "NotifyLater", 3: "Recurring" };
 const patientSelectionTypeMap = {
   targetRecipients: "TargetRecipients",
   oneTimeBroadcast: "OneTimeBroadcast",
@@ -56,7 +56,11 @@ export default function Footer({
     providerLabels,
     patientStartDateTime,
     patientEndDateTime,
-    includeOptOut
+    includeOptOut,
+    ageFilter,
+    ageYear,
+    ageMonth,
+    gender
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
@@ -178,7 +182,11 @@ export default function Footer({
           appointmentEndDateTime: patientEndDateTime
             ? new Date(patientEndDateTime).toISOString()
             : null,
-          includeOptOutPatients: includeOptOut
+          includeOptOutPatients: includeOptOut,
+          ageCriteriaId: ageFilter || null,
+          ageYears: ageYear ? Number(ageYear) : null,
+          ageMonths: ageMonth ? Number(ageMonth) : null,
+          genderId: gender || null
         }
       }),
       sendMode: sendModeMap[sendType] ?? "Immediately",

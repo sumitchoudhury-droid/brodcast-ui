@@ -8,9 +8,12 @@ import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reusableMultiSelectDropdown";
 import ReusableModal from "../../../../reusableComponents/reusableModal";
 import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
+import { usePost } from "../../../../hooks/usePost";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import { useBroadcastForm } from "../../broadcastFormContext";
+
+const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
 function TargetRecipients({
   // Dropdown props
@@ -118,6 +121,10 @@ function TargetRecipients({
   const { setAppointmentTypeLabels, setLocationLabels, setProviderLabels } =
     useBroadcastForm();
 
+  const { mutate: searchPatients, isPending: isSearching } = usePost(
+    ENDPOINTS.patients.SEARCH
+  );
+
   const getLabels = (ids, options) =>
     (Array.isArray(ids) ? ids : ids ? [ids] : [])
       .map((id) => options.find((o) => o.value === id)?.label)
@@ -146,9 +153,35 @@ function TargetRecipients({
     const hasStartDateTime = Array.isArray(startDateTime)
       ? startDateTime.length > 0
       : !!startDateTime;
-    if (hasStartDateTime && endDateTime) {
-      onSearch();
-    }
+    if (!hasStartDateTime || !endDateTime) return;
+
+    const body = {
+      appointmentTypeIds: toArray(appointmentType),
+      locationIds: toArray(location),
+      providerIds: toArray(provider),
+      ageCriteriaId: ageFilter || null,
+      ageYears: ageYear ? Number(ageYear) : null,
+      ageMonths: ageMonth ? Number(ageMonth) : null,
+      genderId: gender && gender !== "all" ? gender : null,
+      modalityId: Array.isArray(modality)
+        ? (modality[0] ?? null)
+        : modality || null,
+      appointmentStartDateTime: startDateTime
+        ? new Date(startDateTime).toISOString()
+        : null,
+      appointmentEndDateTime: endDateTime
+        ? new Date(endDateTime).toISOString()
+        : null,
+      includeOptOutPatients: includeOptOut
+    };
+
+    searchPatients(body, {
+      onSuccess: (res) => {
+        const patients = res?.data?.data?.patients ?? [];
+        const totalCount = res?.data?.data?.totalCount ?? 0;
+        onSearch(patients, totalCount);
+      }
+    });
   };
   return (
     <>
@@ -233,13 +266,17 @@ function TargetRecipients({
               {ageError && <p className="ageErrorText">{ageError}</p>}
             </div>
             <div className="ageInput">
-              <ReusableInput
-                placeholder="Enter Month"
-                numbersOnly={true}
+              <ReusableDropDown
+                greenIcon={false}
+                placeholder="Month"
+                options={Array.from({ length: 11 }, (_, i) => ({
+                  value: i + 1,
+                  label: String(i + 1)
+                }))}
                 value={ageMonth}
-                onChange={(e) => {
-                  setAgeMonth(e.target.value);
-                  if (e.target.value) setAgeError("");
+                onChange={(val) => {
+                  setAgeMonth(val);
+                  if (val) setAgeError("");
                 }}
               />
             </div>
@@ -306,9 +343,10 @@ function TargetRecipients({
 
       <div className="searchButtonContainer">
         <ReusableButton
-          label="Search"
+          label={isSearching ? "Searching…" : "Search"}
           variant="primary"
           onClick={handleSearch}
+          disabled={isSearching}
         />
       </div>
 

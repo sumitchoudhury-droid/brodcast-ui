@@ -77,6 +77,7 @@ const transformSchedule = (s) => ({
   },
   broadcastStatus: s.broadcastStatus ?? "",
   patientSelectionType: s.patientSelectionType ?? "",
+  sendMode: s.sendMode ?? "Immediately",
   isDisabled: false
 });
 
@@ -353,41 +354,10 @@ function BroadCastTableContainer({
   // selectedRowsCount will be defined after selectedBroadcasts
 
   const handleConfirmStopScheduleBulk = () => {
-    const hasIdNine = selectedBroadcasts.some((b) => b.id === "9");
-
-    if (hasIdNine) {
-      toast.error(
-        "Failed to Stop Broadcasts",
-        `The ${selectedRowsCount} selected broadcasts could not be stopped. Please try again.`
-      );
-    } else {
-      const selectedIds = new Set(selectedBroadcasts.map((b) => b.id));
-      setData((prevData) =>
-        prevData.map((item) =>
-          selectedIds.has(item.id)
-            ? {
-                ...item,
-                broadcastStatus: "Cancelled",
-                isDisabled: true
-              }
-            : item
-        )
-      );
-
-      toast.success(
-        "Broadcasts Stopped Successfully",
-        `All ${selectedRowsCount} scheduled broadcasts have been successfully stopped.`
-      );
-
-      setRowSelection({});
-      setAllSelectedItems([]);
-      setFetchAllEnabled(false);
-    }
-
+    setRowSelection({});
+    setAllSelectedItems([]);
     setShowStopScheduleBulk(false);
-    if (setBulkCancelOpen) {
-      setBulkCancelOpen(false);
-    }
+    if (setBulkCancelOpen) setBulkCancelOpen(false);
   };
 
   const handleCloseStopScheduleBulk = () => {
@@ -431,8 +401,6 @@ function BroadCastTableContainer({
   }, [rowSelection, filteredData]);
 
   const selectedBroadcasts = allSelectedItems;
-
-  const selectedRowsCount = selectedBroadcasts.length;
 
   // Sync selectedBroadcasts back to parent component
   useEffect(() => {
@@ -1114,7 +1082,9 @@ function BroadCastTableContainer({
               <tr
                 key={row.id}
                 className={`${row.original.broadcastStatus === "Failed" ? "row-error" : ""} ${
-                  row.original.isDisabled ? "row-disabled" : ""
+                  row.original.broadcastStatus === "Cancelled"
+                    ? "row-disabled"
+                    : ""
                 } ${activeMenuId === row.original.id ? "row-active-menu" : ""} ${
                   highlightFirstRow && rowIndex === 0 ? "row-highlight" : ""
                 }`}
@@ -1163,88 +1133,7 @@ function BroadCastTableContainer({
           isOpen={!!selectedCancelRow}
           onClose={() => setSelectedCancelRow(null)}
           broadcastData={selectedCancelRow}
-          onConfirm={(cancelData) => {
-            const formattedDate = ((dateTimeStr) => {
-              if (!dateTimeStr) return "26 Feb 2026 at 10:30 AM";
-              try {
-                const dateObj = new Date(dateTimeStr);
-                if (isNaN(dateObj.getTime())) return dateTimeStr;
-                const months = [
-                  "Jan",
-                  "Feb",
-                  "Mar",
-                  "Apr",
-                  "May",
-                  "Jun",
-                  "Jul",
-                  "Aug",
-                  "Sep",
-                  "Oct",
-                  "Nov",
-                  "Dec"
-                ];
-                const day = dateObj.getDate();
-                const month = months[dateObj.getMonth()];
-                const year = dateObj.getFullYear();
-                let hours = dateObj.getHours();
-                const minutes = String(dateObj.getMinutes()).padStart(2, "0");
-                const ampm = hours >= 12 ? "PM" : "AM";
-                hours = hours % 12;
-                hours = hours ? hours : 12;
-                return `${day} ${month} ${year} at ${hours}:${minutes} ${ampm}`;
-              } catch {
-                return dateTimeStr;
-              }
-            })(selectedCancelRow.scheduledDateTime);
-
-            const patientCount =
-              selectedCancelRow.messageStatus?.total || "428";
-
-            const { selectedOccurrence, selectedDates, selectedModes } =
-              cancelData || {};
-
-            let occurrenceText = "";
-            if (selectedOccurrence === "this") {
-              occurrenceText = "this occurrence only";
-            } else if (selectedOccurrence === "specific") {
-              occurrenceText =
-                selectedDates?.length > 0
-                  ? `specific occurrence(s): ${selectedDates.join(", ")}`
-                  : "a specific upcoming occurrence";
-            } else if (selectedOccurrence === "all") {
-              occurrenceText = "this and all future occurrences";
-            }
-
-            const modesText =
-              selectedModes?.length > 0
-                ? selectedModes.join(", ")
-                : "all modes";
-
-            // If it's the specific Row ID 9, simulate cancellation failure
-            if (selectedCancelRow.id === "9") {
-              toast.error(
-                "Failed to Cancel Schedule",
-                `Could not cancel ${occurrenceText} via ${modesText} for the broadcast scheduled at ${formattedDate} to ${patientCount} patients. Please try again.`
-              );
-            } else {
-              // Simulate success and update local state to "Cancelled"
-              setData((prevData) =>
-                prevData.map((item) =>
-                  item.id === selectedCancelRow.id
-                    ? {
-                        ...item,
-                        broadcastStatus: "Cancelled",
-                        isDisabled: true
-                      }
-                    : item
-                )
-              );
-
-              toast.success(
-                "Schedule Cancelled Successfully",
-                `Cancelled ${occurrenceText} via ${modesText} for the broadcast scheduled at ${formattedDate} to ${patientCount} patients.`
-              );
-            }
+          onConfirm={() => {
             setSelectedCancelRow(null);
           }}
         />

@@ -11,7 +11,12 @@ export const ENDPOINTS = {
   },
   broadcastSchedule: {
     GET_ALL: "/aggregate/broadcast-schedules",
-    CREATE: "/aggregate/broadcast-schedules"
+    CREATE: "/aggregate/broadcast-schedules",
+    CANCEL: (id) => `/aggregate/broadcast-schedules/${id}/cancel`,
+    BULK_CANCEL: "/aggregate/broadcast-schedules/bulk-cancel"
+  },
+  patients: {
+    SEARCH: "/aggregate/patients/search"
   },
   broadcastConfig: {
     COMMUNICATION_MODES: "/aggregate/broadcast-config/communication-modes",

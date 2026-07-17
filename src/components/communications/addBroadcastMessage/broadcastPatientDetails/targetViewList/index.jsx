@@ -8,7 +8,32 @@ import ResuablePagination from "../../../../../reusableComponents/resuablePagina
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 import searchGreenIcon from "../../../../../assets/boardCastTableIcons/searchGreen.svg";
 
-import { mockTargetPatients, mockOptOutPatients } from "./mockPatientData";
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+const mapPatient = (p, i) => ({
+  id: i,
+  firstName: p.firstName ?? "",
+  lastName: p.lastName ?? "",
+  dob: p.dateOfBirth ? formatDate(p.dateOfBirth) : "—",
+  appointmentDateTime: formatDate(p.appointmentDateTime),
+  phone: p.phoneNumber ?? "—",
+  email: p.emailAddress ?? "—",
+  isOptedOut: !!(p.isOptedOutEmail || p.isOptedOutSms)
+});
 
 const SortIcon = ({ columnKey, sortConfig }) => {
   const isActive = sortConfig.key === columnKey;
@@ -272,10 +297,14 @@ const exportToExcel = (patients, fileName) => {
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 };
 
-const TargetViewList = ({ isOpen, onClose, includeOptOut }) => {
+const TargetViewList = ({ isOpen, onClose, includeOptOut, patients = [] }) => {
   const [activeTab, setActiveTab] = useState("patientsFound");
 
   if (!isOpen) return null;
+
+  const mappedPatients = patients.map(mapPatient);
+  const regularPatients = mappedPatients.filter((p) => !p.isOptedOut);
+  const optOutPatients = mappedPatients.filter((p) => p.isOptedOut);
 
   return ReactDOM.createPortal(
     <div className="targetViewListOverlay" onClick={onClose}>
@@ -291,19 +320,19 @@ const TargetViewList = ({ isOpen, onClose, includeOptOut }) => {
                 className={`tab ${activeTab === "patientsFound" ? "tabActive" : ""}`}
                 onClick={() => setActiveTab("patientsFound")}
               >
-                Patients Found <span>({mockTargetPatients.length})</span>
+                Patients Found <span>({regularPatients.length})</span>
               </button>
               <button
                 className={`tab ${activeTab === "optOutPatients" ? "tabActive" : ""}`}
                 onClick={() => setActiveTab("optOutPatients")}
               >
-                Opt Out Patients <span>({mockOptOutPatients.length})</span>
+                Opt Out Patients <span>({optOutPatients.length})</span>
               </button>
             </div>
           ) : (
             <div className="headerTitle">
               <h2>
-                Patients List <span>({mockTargetPatients.length})</span>
+                Patients List <span>({mappedPatients.length})</span>
               </h2>
             </div>
           )}
@@ -317,7 +346,11 @@ const TargetViewList = ({ isOpen, onClose, includeOptOut }) => {
                 const isOptOut =
                   includeOptOut && activeTab === "optOutPatients";
                 exportToExcel(
-                  isOptOut ? mockOptOutPatients : mockTargetPatients,
+                  isOptOut
+                    ? optOutPatients
+                    : includeOptOut
+                      ? regularPatients
+                      : mappedPatients,
                   isOptOut ? "Opt_Out_Patients" : "Patients_Found"
                 );
               }}
@@ -331,12 +364,12 @@ const TargetViewList = ({ isOpen, onClose, includeOptOut }) => {
         {/* Content + Footer via PatientTable */}
         {includeOptOut ? (
           activeTab === "patientsFound" ? (
-            <PatientTable key="patientsFound" patients={mockTargetPatients} />
+            <PatientTable key="patientsFound" patients={regularPatients} />
           ) : (
-            <PatientTable key="optOutPatients" patients={mockOptOutPatients} />
+            <PatientTable key="optOutPatients" patients={optOutPatients} />
           )
         ) : (
-          <PatientTable key="all" patients={mockTargetPatients} />
+          <PatientTable key="all" patients={mappedPatients} />
         )}
       </div>
     </div>,

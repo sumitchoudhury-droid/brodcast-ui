@@ -1,6 +1,10 @@
 import { memo, useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import ReusableRightDrawer from "../../../../reusableComponents/reusabeleRightDrawer/index";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
+import { usePost } from "../../../../hooks/usePost";
+import { useToast } from "../../../../hooks/useToast";
+import { ENDPOINTS } from "../../../../api/endpoints.js";
 import "./style.scss";
 
 const RenderSortIcon = ({ columnKey, sortConfig }) => {
@@ -36,6 +40,12 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
   onConfirm,
   selectedBroadcasts = []
 }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: bulkCancel, isPending: isCancelling } = usePost(
+    ENDPOINTS.broadcastSchedule.BULK_CANCEL
+  );
+
   const count = selectedBroadcasts.length;
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
@@ -84,8 +94,24 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
           <ReusableButton variant="primary" onClick={onClose} label="Cancel" />
           <ReusableButton
             variant="secondary"
-            onClick={onConfirm}
-            label="Confirm"
+            disabled={isCancelling}
+            onClick={() => {
+              const scheduleIds = selectedBroadcasts.map((b) => Number(b.id));
+              bulkCancel(scheduleIds, {
+                onSuccess: (res) => {
+                  toast.success(
+                    res?.message ||
+                      res?.data?.message ||
+                      "Bulk cancel completed"
+                  );
+                  queryClient.invalidateQueries({
+                    queryKey: ["broadcast-schedules"]
+                  });
+                  onConfirm();
+                }
+              });
+            }}
+            label={isCancelling ? "Cancelling…" : "Confirm"}
           />
         </div>
       }
@@ -93,7 +119,10 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
       <div className="drawerContentBody">
         <p className="confirmText">
           Are you sure you want to{" "}
-          <strong>stop these {count} broadcasts?</strong>
+          <strong>
+            stop {count > 1 ? "these" : "this"} {count}{" "}
+            {count > 1 ? "broadcasts" : "broadcast"}?
+          </strong>
         </p>
 
         <div className="tableWrapper">

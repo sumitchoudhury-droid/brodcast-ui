@@ -13,10 +13,7 @@ import TargetRecipients from "./targetRecipients";
 import TargetViewList from "./targetViewList";
 import OneTimeViewList from "./oneTimeViewList";
 import UploadFileViewList from "./uploadFileViewList";
-import {
-  mockTargetPatients,
-  mockOptOutPatients
-} from "./targetViewList/mockPatientData";
+import { mockTargetPatients } from "./targetViewList/mockPatientData";
 import { mockUploadPatients } from "./uploadFileViewList/mockUploadPatients";
 
 const exportToExcel = (patients, sheetName, fileName) => {
@@ -28,7 +25,8 @@ const exportToExcel = (patients, sheetName, fileName) => {
       appointmentDateTime,
       phone,
       email,
-      reason
+      reason,
+      group
     }) => {
       const row = {
         "First Name": firstName,
@@ -39,6 +37,7 @@ const exportToExcel = (patients, sheetName, fileName) => {
         Email: email
       };
       if (reason !== undefined) row["Reason"] = reason === "-" ? "" : reason;
+      if (group !== undefined) row["Group"] = group;
       return row;
     }
   );
@@ -48,7 +47,46 @@ const exportToExcel = (patients, sheetName, fileName) => {
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 };
 
-const buildExportData = (patientType, includeOptOut) => {
+const mapApiPatient = (p) => ({
+  firstName: p.firstName ?? "",
+  lastName: p.lastName ?? "",
+  dob: p.dateOfBirth
+    ? new Date(p.dateOfBirth).toLocaleDateString("en-US")
+    : "—",
+  appointmentDateTime: p.appointmentDateTime
+    ? new Date(p.appointmentDateTime).toLocaleString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+      })
+    : "—",
+  phone: p.phoneNumber ?? "—",
+  email: p.emailAddress ?? "—"
+});
+
+const buildExportData = (patientType, includeOptOut, searchPatients = []) => {
+  if (patientType === "targetRecipients") {
+    if (includeOptOut) {
+      const combined = searchPatients.map((p) => ({
+        ...mapApiPatient(p),
+        group:
+          p.isOptedOutEmail || p.isOptedOutSms ? "Opt Out" : "Patients Found"
+      }));
+      return {
+        data: combined,
+        sheet: "Patients",
+        file: "Target_Recipients_Patients"
+      };
+    }
+    return {
+      data: searchPatients.map(mapApiPatient),
+      sheet: "Patients",
+      file: "Target_Recipients_Patients"
+    };
+  }
   if (patientType === "uploadFile") {
     return {
       data: mockUploadPatients,
@@ -58,20 +96,9 @@ const buildExportData = (patientType, includeOptOut) => {
   }
   if (patientType === "oneTimeBroadcast") {
     return {
-      data: mockTargetPatients,
+      data: searchPatients.map(mapApiPatient),
       sheet: "Patients",
       file: "One_Time_Broadcast_Patients"
-    };
-  }
-  if (includeOptOut) {
-    const combined = [
-      ...mockTargetPatients.map((p) => ({ ...p, _group: "Patients Found" })),
-      ...mockOptOutPatients.map((p) => ({ ...p, _group: "Opt Out" }))
-    ];
-    return {
-      data: combined,
-      sheet: "Patients",
-      file: "Target_Recipients_Patients"
     };
   }
   return {
@@ -135,10 +162,14 @@ function BroadcastPatientDetails({
   const [showViewList, setShowViewList] = useState(false);
   const [showOneTimeViewList, setShowOneTimeViewList] = useState(false);
   const [showUploadViewList, setShowUploadViewList] = useState(false);
+  const [searchPatients, setSearchPatients] = useState([]);
+  const [searchTotalCount, setSearchTotalCount] = useState(0);
 
   const handlePatientTypeChange = (newType) => {
     setPatientType(newType);
     setPatientsFoundForType(null);
+    setSearchPatients([]);
+    setSearchTotalCount(0);
 
     if (newType !== "targetRecipients") {
       setAppointmentType("");
@@ -209,7 +240,11 @@ function BroadcastPatientDetails({
             setStartDateTime={setBroadcastStartDate}
             endDateTime={broadcastEndDate}
             setEndDateTime={setBroadcastEndDate}
-            onSearch={() => setPatientsFoundForType("oneTimeBroadcast")}
+            onSearch={(patients, totalCount) => {
+              setSearchPatients(patients);
+              setSearchTotalCount(totalCount);
+              setPatientsFoundForType("oneTimeBroadcast");
+            }}
           />
         )}
 
@@ -239,7 +274,11 @@ function BroadcastPatientDetails({
             setEndDateTime={setEndDateTime}
             includeOptOut={includeOptOut}
             setIncludeOptOut={setIncludeOptOut}
-            onSearch={() => setPatientsFoundForType("targetRecipients")}
+            onSearch={(patients, totalCount) => {
+              setSearchPatients(patients);
+              setSearchTotalCount(totalCount);
+              setPatientsFoundForType("targetRecipients");
+            }}
           />
         )}
         {showPatientsFound && (
@@ -254,7 +293,8 @@ function BroadcastPatientDetails({
                   onClick={() => {
                     const { data, sheet, file } = buildExportData(
                       patientType,
-                      includeOptOut
+                      includeOptOut,
+                      searchPatients
                     );
                     exportToExcel(data, sheet, file);
                   }}
@@ -281,17 +321,29 @@ function BroadcastPatientDetails({
                     <>
                       <div className="patientsFound">
                         <p className="patientName">Patients Found</p>
-                        <p className="patientCount">2731</p>
+                        <p className="patientCount">
+                          {
+                            searchPatients.filter(
+                              (p) => !(p.isOptedOutEmail || p.isOptedOutSms)
+                            ).length
+                          }
+                        </p>
                       </div>
                       <div className="patientsFound">
                         <p className="patientName">Opt Out Patients</p>
-                        <p className="patientCount">7</p>
+                        <p className="patientCount">
+                          {
+                            searchPatients.filter(
+                              (p) => p.isOptedOutEmail || p.isOptedOutSms
+                            ).length
+                          }
+                        </p>
                       </div>
                     </>
                   ) : (
                     <div className="patientsFound">
                       <p className="patientName">Total Patients</p>
-                      <p className="patientCount">2731</p>
+                      <p className="patientCount">{searchTotalCount}</p>
                     </div>
                   )}
                 </>
@@ -317,7 +369,7 @@ function BroadcastPatientDetails({
               {patientType === "oneTimeBroadcast" && (
                 <div className="patientsFound">
                   <p className="patientName">Patients Found</p>
-                  <p className="patientCount">2731</p>
+                  <p className="patientCount">{searchTotalCount}</p>
                 </div>
               )}
             </div>
@@ -329,11 +381,13 @@ function BroadcastPatientDetails({
         isOpen={showViewList}
         onClose={() => setShowViewList(false)}
         includeOptOut={includeOptOut}
+        patients={searchPatients}
       />
 
       <OneTimeViewList
         isOpen={showOneTimeViewList}
         onClose={() => setShowOneTimeViewList(false)}
+        patients={searchPatients}
       />
 
       <UploadFileViewList
