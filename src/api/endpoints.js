@@ -11,7 +11,8 @@ export const ENDPOINTS = {
   },
   broadcastSchedule: {
     GET_ALL: "/aggregate/broadcast-schedules",
-    CREATE: "/aggregate/broadcast-schedules"
+    CREATE: "/aggregate/broadcast-schedules",
+    CANCEL: (id) => `/aggregate/broadcast-schedules/${id}/cancel`
   },
   broadcastConfig: {
     COMMUNICATION_MODES: "/aggregate/broadcast-config/communication-modes",

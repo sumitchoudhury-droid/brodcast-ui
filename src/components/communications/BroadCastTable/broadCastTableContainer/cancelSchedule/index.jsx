@@ -1,5 +1,9 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePut } from "../../../../../hooks/usePut";
+import { useToast } from "../../../../../hooks/useToast";
+import { ENDPOINTS } from "../../../../../api/endpoints.js";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 
 // Message Status Icons
@@ -174,6 +178,14 @@ const formatScheduleDateTime = (dateTimeStr) => {
 };
 
 export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: cancelBroadcast, isPending: isCancelling } = usePut(
+    broadcastData?.id
+      ? ENDPOINTS.broadcastSchedule.CANCEL(broadcastData.id)
+      : ""
+  );
+
   const modesList = useMemo(() => {
     return getModesList(broadcastData?.mode);
   }, [broadcastData]);
@@ -206,7 +218,7 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
   }, [broadcastData]);
 
   const patientCount = useMemo(() => {
-    return broadcastData?.messageStatus?.total || "428";
+    return broadcastData?.messageStatus?.total || "-";
   }, [broadcastData]);
 
   // Resolve Badge Icon and color class for Broadcast Status
@@ -233,7 +245,45 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
 
   if (!isOpen) return null;
 
-  const patientType = "uploadFile";
+  const selectionTypeMap = {
+    UploadFile: "uploadFile",
+    TargetRecipients: "targetRecipients",
+    OneTimeBroadcast: "oneTimeBroadcast"
+  };
+  const patientType =
+    selectionTypeMap[broadcastData?.patientSelectionType] ?? "";
+
+  const formatModeList = (modes) => {
+    if (modes.length === 0) return "all";
+    const lower = modes.map((m) => m.toLowerCase());
+    if (lower.length === 1) return lower[0];
+    if (lower.length === 2) return `${lower[0]} and ${lower[1]}`;
+    return lower.slice(0, -1).join(", ") + `, and ${lower[lower.length - 1]}`;
+  };
+
+  const selectedDateLabels = dateOptions
+    .filter((opt) => dateFilter.includes(opt.value))
+    .map((opt) => opt.label);
+
+  const isRecurring = broadcastData?.sendMode === "Recurring";
+  const modesPhrase = `${formatModeList(modesList)} messages`;
+
+  const disclaimerText = (() => {
+    if (selectedOccurrence === "this") {
+      return `All scheduled ${modesPhrase} for ${formattedDate} will be cancelled.${isRecurring ? " Future occurrences will continue as scheduled." : ""}`;
+    }
+    if (selectedOccurrence === "specific") {
+      const dateStr =
+        selectedDateLabels.length > 0
+          ? selectedDateLabels.join(" and ")
+          : "the selected dates";
+      return `All scheduled ${modesPhrase} for ${dateStr} will be cancelled. Other occurrences will continue as scheduled.`;
+    }
+    if (selectedOccurrence === "all") {
+      return `All scheduled ${modesPhrase} for this and all future occurrences will be cancelled. This action cannot be undone.`;
+    }
+    return "";
+  })();
 
   return ReactDOM.createPortal(
     <div className="cancelScheduleOverlay" onClick={onClose}>
@@ -270,10 +320,14 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
                   <span>{broadcastData?.broadcastStatus || "Completed"}</span>
                 </div>
               </div>
-              <p>Monthly on 2nd Monday, until Jul 30, 2026</p>
-              <p>
-                <span>Next Occurrence:</span> 9 Feb 2026 10:30 AM
-              </p>
+              {broadcastData?.sendMode === "Recurring" && (
+                <>
+                  <p>Monthly on 2nd Monday, until Jul 30, 2026</p>
+                  <p>
+                    <span>Next Occurrence:</span> 9 Feb 2026 10:30 AM
+                  </p>
+                </>
+              )}
             </div>
             {patientType === "uploadFile" && (
               <div className="excelCon">
@@ -300,77 +354,80 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
           </div>
 
           <div className="cancelCard">
-            <div className="cancelCardDetail">
-              <h4>Cancel by Occurrence</h4>
+            {broadcastData?.sendMode === "Recurring" && (
+              <div className="cancelCardDetail">
+                <h4>Cancel by Occurrence</h4>
 
-              <div
-                className={`occurrenceSelector${selectedOccurrence === "this" ? " selected" : ""}`}
-                onClick={() => setSelectedOccurrence("this")}
-              >
-                <img
-                  src={
-                    selectedOccurrence === "this"
-                      ? checkedRadioIcon
-                      : uncheckedRadioIcon
-                  }
-                  alt="radioIcon"
-                  className="radioIcon"
-                />
-                <div className="occurrenceDetails">
-                  <p>Only this occurrence (9 Feb 2026)</p>
-                  <span>Future occurrences will continue as scheduled.</span>
+                <div
+                  className={`occurrenceSelector${selectedOccurrence === "this" ? " selected" : ""}`}
+                  onClick={() => setSelectedOccurrence("this")}
+                >
+                  <img
+                    src={
+                      selectedOccurrence === "this"
+                        ? checkedRadioIcon
+                        : uncheckedRadioIcon
+                    }
+                    alt="radioIcon"
+                    className="radioIcon"
+                  />
+                  <div className="occurrenceDetails">
+                    <p>Only this occurrence (9 Feb 2026)</p>
+                    <span>Future occurrences will continue as scheduled.</span>
+                  </div>
+                </div>
+
+                <div
+                  className={`occurrenceSelector${selectedOccurrence === "specific" ? " selected" : ""}`}
+                  onClick={() => setSelectedOccurrence("specific")}
+                >
+                  <img
+                    src={
+                      selectedOccurrence === "specific"
+                        ? checkedRadioIcon
+                        : uncheckedRadioIcon
+                    }
+                    alt="radioIcon"
+                    className="radioIcon"
+                  />
+                  <div className="occurrenceDetails">
+                    <p>A specific upcoming occurrence</p>
+                    <span>
+                      Pick any future date in the series to skip. Others
+                      continue.
+                    </span>
+                    {selectedOccurrence === "specific" && (
+                      <ReusableMulti
+                        greenIcon={false}
+                        placeholder="Select Filter"
+                        options={dateOptions}
+                        value={dateFilter}
+                        onChange={(val) => setDateFilter(val)}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className={`occurrenceSelector${selectedOccurrence === "all" ? " selected" : ""}`}
+                  onClick={() => setSelectedOccurrence("all")}
+                >
+                  <img
+                    src={
+                      selectedOccurrence === "all"
+                        ? checkedRadioIcon
+                        : uncheckedRadioIcon
+                    }
+                    alt="radioIcon"
+                    className="radioIcon"
+                  />
+                  <div className="occurrenceDetails">
+                    <p>This and all future occurrences</p>
+                    <span>Ends the entire series. Cannot be restarted.</span>
+                  </div>
                 </div>
               </div>
-
-              <div
-                className={`occurrenceSelector${selectedOccurrence === "specific" ? " selected" : ""}`}
-                onClick={() => setSelectedOccurrence("specific")}
-              >
-                <img
-                  src={
-                    selectedOccurrence === "specific"
-                      ? checkedRadioIcon
-                      : uncheckedRadioIcon
-                  }
-                  alt="radioIcon"
-                  className="radioIcon"
-                />
-                <div className="occurrenceDetails">
-                  <p>A specific upcoming occurrence</p>
-                  <span>
-                    Pick any future date in the series to skip. Others continue.
-                  </span>
-                  {selectedOccurrence === "specific" && (
-                    <ReusableMulti
-                      greenIcon={false}
-                      placeholder="Select Filter"
-                      options={dateOptions}
-                      value={dateFilter}
-                      onChange={(val) => setDateFilter(val)}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div
-                className={`occurrenceSelector${selectedOccurrence === "all" ? " selected" : ""}`}
-                onClick={() => setSelectedOccurrence("all")}
-              >
-                <img
-                  src={
-                    selectedOccurrence === "all"
-                      ? checkedRadioIcon
-                      : uncheckedRadioIcon
-                  }
-                  alt="radioIcon"
-                  className="radioIcon"
-                />
-                <div className="occurrenceDetails">
-                  <p>This and all future occurrences</p>
-                  <span>Ends the entire series. Cannot be restarted.</span>
-                </div>
-              </div>
-            </div>
+            )}
 
             <div className="cancelCardDetail">
               <h4>Cancel by Mode</h4>
@@ -439,11 +496,7 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
             </div>
           </div>
 
-          <p className="disclaimerPara">
-            All scheduled text, email, and voice messages for 9 Mar 2026 and 6
-            Apr 2026 will be cancelled. Future monthly occurrences will continue
-            as scheduled.
-          </p>
+          {disclaimerText && <p className="disclaimerPara">{disclaimerText}</p>}
         </div>
 
         {/* Footer */}
@@ -452,7 +505,8 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
           <ReusableButton
             variant="secondary"
             disabled={
-              selectedOccurrence === "specific" && dateFilter.length === 0
+              isCancelling ||
+              (selectedOccurrence === "specific" && dateFilter.length === 0)
             }
             onClick={() => {
               const activeModes = Object.keys(selectedModes).filter(
@@ -461,13 +515,34 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
               const selectedDateLabels = dateOptions
                 .filter((opt) => dateFilter.includes(opt.value))
                 .map((opt) => opt.label);
-              onConfirm({
-                selectedOccurrence,
-                selectedDates: selectedDateLabels,
-                selectedModes: activeModes
+
+              const body = {
+                cancelType: selectedOccurrence,
+                cancelModes: activeModes,
+                ...(selectedOccurrence === "specific" && {
+                  scheduleIds: dateFilter
+                })
+              };
+
+              cancelBroadcast(body, {
+                onSuccess: (res) => {
+                  toast.success(
+                    res?.message ||
+                      res?.data?.message ||
+                      "Schedule cancelled successfully"
+                  );
+                  queryClient.invalidateQueries({
+                    queryKey: ["broadcast-schedules"]
+                  });
+                  onConfirm({
+                    selectedOccurrence,
+                    selectedDates: selectedDateLabels,
+                    selectedModes: activeModes
+                  });
+                }
               });
             }}
-            label="Confirm"
+            label={isCancelling ? "Cancelling…" : "Confirm"}
           />
         </div>
       </div>

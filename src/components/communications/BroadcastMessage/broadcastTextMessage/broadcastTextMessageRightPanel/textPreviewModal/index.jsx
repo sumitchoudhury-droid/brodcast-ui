@@ -53,6 +53,25 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
       padding: 0;
       margin: 0;
     }
+    .text-editor-container {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .text-editor-content {
+      padding: 10px 16px;
+      font-family: Inter, sans-serif;
+      font-size: 16px;
+      color: #181D25;
+      min-height: 40px;
+    }
+    .text-signature-section,
+    .text-form-section {
+      padding: 10px 16px;
+      font-family: Inter, sans-serif;
+      font-size: 16px;
+      color: #181D25;
+    }
     ${
       isSavedTemplate
         ? `

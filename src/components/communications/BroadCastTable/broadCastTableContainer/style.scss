@@ -203,9 +203,20 @@
     }
 
     &.row-disabled {
+      background-color: #f8fafc;
+      opacity: 0.75;
+      pointer-events: none;
+
       td {
         color: #94a3b8;
       }
+
+      td:first-child {
+        box-shadow:
+          inset 4px 0 0 0 #94a3b8,
+          4px 0 8px -4px rgba(0, 0, 0, 0.08);
+      }
+
       .count-pill {
         padding: 5px;
         color: variable.$color-black-6;

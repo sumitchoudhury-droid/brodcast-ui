@@ -233,13 +233,17 @@ function TargetRecipients({
               {ageError && <p className="ageErrorText">{ageError}</p>}
             </div>
             <div className="ageInput">
-              <ReusableInput
-                placeholder="Enter Month"
-                numbersOnly={true}
+              <ReusableDropDown
+                greenIcon={false}
+                placeholder="Month"
+                options={Array.from({ length: 11 }, (_, i) => ({
+                  value: i + 1,
+                  label: String(i + 1)
+                }))}
                 value={ageMonth}
-                onChange={(e) => {
-                  setAgeMonth(e.target.value);
-                  if (e.target.value) setAgeError("");
+                onChange={(val) => {
+                  setAgeMonth(val);
+                  if (val) setAgeError("");
                 }}
               />
             </div>

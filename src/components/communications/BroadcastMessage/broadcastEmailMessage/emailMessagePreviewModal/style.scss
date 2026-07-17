@@ -191,7 +191,7 @@
 
     &.mobile {
       width: 375px;
-      height: 640px;
+      aspect-ratio: 9 / 16;
       max-height: 100%;
       margin: auto;
       display: flex;
