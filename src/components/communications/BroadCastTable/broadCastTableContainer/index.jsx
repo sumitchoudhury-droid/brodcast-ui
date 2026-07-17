@@ -354,41 +354,10 @@ function BroadCastTableContainer({
   // selectedRowsCount will be defined after selectedBroadcasts
 
   const handleConfirmStopScheduleBulk = () => {
-    const hasIdNine = selectedBroadcasts.some((b) => b.id === "9");
-
-    if (hasIdNine) {
-      toast.error(
-        "Failed to Stop Broadcasts",
-        `The ${selectedRowsCount} selected broadcasts could not be stopped. Please try again.`
-      );
-    } else {
-      const selectedIds = new Set(selectedBroadcasts.map((b) => b.id));
-      setData((prevData) =>
-        prevData.map((item) =>
-          selectedIds.has(item.id)
-            ? {
-                ...item,
-                broadcastStatus: "Cancelled",
-                isDisabled: true
-              }
-            : item
-        )
-      );
-
-      toast.success(
-        "Broadcasts Stopped Successfully",
-        `All ${selectedRowsCount} scheduled broadcasts have been successfully stopped.`
-      );
-
-      setRowSelection({});
-      setAllSelectedItems([]);
-      setFetchAllEnabled(false);
-    }
-
+    setRowSelection({});
+    setAllSelectedItems([]);
     setShowStopScheduleBulk(false);
-    if (setBulkCancelOpen) {
-      setBulkCancelOpen(false);
-    }
+    if (setBulkCancelOpen) setBulkCancelOpen(false);
   };
 
   const handleCloseStopScheduleBulk = () => {
@@ -432,8 +401,6 @@ function BroadCastTableContainer({
   }, [rowSelection, filteredData]);
 
   const selectedBroadcasts = allSelectedItems;
-
-  const selectedRowsCount = selectedBroadcasts.length;
 
   // Sync selectedBroadcasts back to parent component
   useEffect(() => {
