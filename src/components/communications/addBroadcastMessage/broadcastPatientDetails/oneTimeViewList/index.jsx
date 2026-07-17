@@ -8,7 +8,31 @@ import ResuablePagination from "../../../../../reusableComponents/resuablePagina
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 import searchGreenIcon from "../../../../../assets/boardCastTableIcons/searchGreen.svg";
 
-import { mockTargetPatients } from "../targetViewList/mockPatientData";
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+const mapPatient = (p, i) => ({
+  id: i,
+  firstName: p.firstName ?? "",
+  lastName: p.lastName ?? "",
+  dob: p.dateOfBirth ? formatDate(p.dateOfBirth) : "—",
+  appointmentDateTime: formatDate(p.appointmentDateTime),
+  phone: p.phoneNumber ?? "—",
+  email: p.emailAddress ?? "—"
+});
 
 const SortIcon = ({ columnKey, sortConfig }) => {
   const isActive = sortConfig.key === columnKey;
@@ -82,12 +106,14 @@ const exportToExcel = (patients, fileName) => {
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 };
 
-const OneTimeViewList = ({ isOpen, onClose }) => {
+const OneTimeViewList = ({ isOpen, onClose, patients = [] }) => {
   const [filters, setFilters] = useState(emptyFilters);
   const [showSearch, setShowSearch] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const mappedPatients = useMemo(() => patients.map(mapPatient), [patients]);
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -103,7 +129,7 @@ const OneTimeViewList = ({ isOpen, onClose }) => {
   };
 
   const filteredPatients = useMemo(() => {
-    return mockTargetPatients.filter((patient) =>
+    return mappedPatients.filter((patient) =>
       Object.entries(filters).every(([field, query]) => {
         if (!query) return true;
         const val = patient[field];
@@ -112,7 +138,7 @@ const OneTimeViewList = ({ isOpen, onClose }) => {
         );
       })
     );
-  }, [filters]);
+  }, [mappedPatients, filters]);
 
   const sortedPatients = useMemo(() => {
     if (!sortConfig.key) return filteredPatients;
@@ -142,7 +168,7 @@ const OneTimeViewList = ({ isOpen, onClose }) => {
         <div className="drawerHeader">
           <div className="headerTitle">
             <h2>
-              Patients List <span>({mockTargetPatients.length})</span>
+              Patients List <span>({mappedPatients.length})</span>
             </h2>
           </div>
           <div className="headerRight">

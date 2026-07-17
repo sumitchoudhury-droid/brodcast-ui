@@ -14,6 +14,9 @@ export const ENDPOINTS = {
     CREATE: "/aggregate/broadcast-schedules",
     CANCEL: (id) => `/aggregate/broadcast-schedules/${id}/cancel`
   },
+  patients: {
+    SEARCH: "/aggregate/patients/search"
+  },
   broadcastConfig: {
     COMMUNICATION_MODES: "/aggregate/broadcast-config/communication-modes",
     PRIORITIES: "/aggregate/broadcast-config/priorities",
