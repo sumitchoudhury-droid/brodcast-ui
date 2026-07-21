@@ -661,7 +661,18 @@ const BroadcastTextMessageEditor = ({
           const contentComp = wrapper?.find(".text-editor-content")[0];
           const el = contentComp?.getEl();
           const containerEl = el?.closest(".text-editor-container");
-          if (containerEl) return serializeContainer(containerEl);
+
+          // Styles applied via activeComp.addStyle() land in GrapesJS's
+          // CSSComposer as class-based rules injected into the canvas
+          // iframe's <head>. Body-only serialization would drop them and
+          // leave orphan gjs-comp-* classes on the elements, so we prepend
+          // the compiled CSS as an inline <style> tag.
+          const compiledCss = editor.getCss ? editor.getCss() || "" : "";
+          const stylePrefix = compiledCss
+            ? `<style>${compiledCss}</style>`
+            : "";
+
+          if (containerEl) return stylePrefix + serializeContainer(containerEl);
 
           // Saved template: read from the live canvas DOM so that all style
           // changes applied via el.style.xxx are captured in the output
@@ -682,10 +693,10 @@ const BroadcastTextMessageEditor = ({
               if (node.getAttribute("class") === "")
                 node.removeAttribute("class");
             });
-            return clone.innerHTML;
+            return stylePrefix + clone.innerHTML;
           }
 
-          return editor.getHtml();
+          return stylePrefix + editor.getHtml();
         },
         setDevice: (device) => editor.setDevice(device),
         insertAtCursor: (text) => {

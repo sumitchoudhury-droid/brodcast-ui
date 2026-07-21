@@ -66,6 +66,11 @@ export default function Footer({
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
   );
+  const { mutate: branchTemplate, isPending: isBranching } = usePost(
+    selectedTemplateData?.id
+      ? ENDPOINTS.templates.BRANCH(selectedTemplateData.id)
+      : ""
+  );
   const { mutate: sendBroadcast, isPending: isSending } = usePost(
     ENDPOINTS.broadcastSchedule.CREATE
   );
@@ -142,12 +147,71 @@ export default function Footer({
     };
 
     saveTemplate(body, {
-      onSuccess: () => {
-        toast.success("Template saved successfully");
+      onSuccess: (res) => {
+        toast.success(res?.message || res?.data?.message);
         queryClient.invalidateQueries({ queryKey: ["templates"] });
         setIsModalOpen(false);
         setTemplateName("");
         setChecked(false);
+      }
+    });
+  };
+
+  const handleSaveBranch = () => {
+    if (!selectedTemplateData?.id) return;
+
+    const mailBody = editorRef?.current?.getHtml?.() || "";
+    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+
+    const channels = selectedModes
+      .map((mode) => {
+        const lowerMode = mode.toLowerCase();
+        if (lowerMode === "email") {
+          return {
+            methodType: "Mail",
+            templateBody: mailBody,
+            subjectLine: mailSubject || null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        if (lowerMode === "text") {
+          return {
+            methodType: "SMS",
+            templateBody: smsBody,
+            subjectLine: null,
+            smsStandardText: smsBody,
+            attachments: []
+          };
+        }
+        if (lowerMode === "voice") {
+          return {
+            methodType: "Voice",
+            templateBody: "",
+            subjectLine: null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    const body = {
+      name: newTemplateName || selectedTemplateData?.name || "",
+      templateBody: mailBody || smsBody,
+      subjectLine: mailSubject || null,
+      smsStandardText: smsBody || null,
+      messageTempLibId: null,
+      channels
+    };
+
+    branchTemplate(body, {
+      onSuccess: (res) => {
+        toast.success(
+          res?.message || res?.data?.message || "Template saved successfully"
+        );
+        queryClient.invalidateQueries({ queryKey: ["templates"] });
       }
     });
   };
@@ -324,10 +388,10 @@ export default function Footer({
           />
           {selectedEmailTemplateType !== "blank" && (
             <ReusableButton
-              label="Save"
+              label={isBranching ? "Saving…" : "Save"}
               variant="secondary"
-              onClick={() => {}}
-              disabled={disabled || !hasChanges}
+              onClick={handleSaveBranch}
+              disabled={disabled || !hasChanges || isBranching}
             />
           )}
         </div>

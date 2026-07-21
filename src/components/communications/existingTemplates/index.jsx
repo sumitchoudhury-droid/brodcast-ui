@@ -204,24 +204,33 @@ function ExistingTemplates({
     }
   };
 
-  // Strip GrapesJS editor attributes so the content renders cleanly
+  // Strip GrapesJS editor attributes so the content renders cleanly.
+  // Preserve `id` and any embedded <style> tags — GrapesJS's compiled CSS
+  // (prepended to templateBody at save time) uses component IDs as selectors,
+  // so stripping them would drop all styling in the preview.
   const cleanGjsHtml = (raw) => {
     if (!raw) return "";
     const parser = new DOMParser();
     const doc = parser.parseFromString(raw, "text/html");
     doc.querySelectorAll("*").forEach((el) => {
+      if (el.tagName === "STYLE") return;
       el.removeAttribute("data-gjs-highlightable");
       el.removeAttribute("data-gjs-type");
       el.removeAttribute("data-placeholder");
       el.removeAttribute("contenteditable");
       el.removeAttribute("draggable");
-      el.removeAttribute("id");
       ["gjs-selected", "gjs-hovered", "gjs-editable", "is-empty"].forEach(
         (cls) => el.classList.remove(cls)
       );
       if (el.getAttribute("class") === "") el.removeAttribute("class");
     });
-    return doc.body.innerHTML;
+    // Merge any <style> tags that ended up in <head> back into body output,
+    // so srcDoc-based iframe previews always receive the styles alongside
+    // the markup they target.
+    const headStyles = Array.from(doc.head.querySelectorAll("style"))
+      .map((s) => s.outerHTML)
+      .join("");
+    return headStyles + doc.body.innerHTML;
   };
 
   const mailPreviewHtml = useMemo(
