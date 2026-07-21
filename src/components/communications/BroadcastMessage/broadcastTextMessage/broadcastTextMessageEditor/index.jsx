@@ -17,10 +17,15 @@ import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkMod
 const BroadcastTextMessageEditor = ({
   onContentChange,
   onReady,
+  onDirty,
   initialTemplate
 }) => {
   const containerRef = useRef(null);
   const editorRef = useRef(null);
+  const onDirtyRef = useRef(onDirty);
+  useEffect(() => {
+    onDirtyRef.current = onDirty;
+  }, [onDirty]);
 
   const [charCount, setCharCount] = useState(0);
   const charCountRef = useRef(0);
@@ -120,6 +125,13 @@ const BroadcastTextMessageEditor = ({
     // Track which bodies have listeners
     const attachedBodies = new WeakSet();
 
+    // Dirty tracking — gate fires until initial load reconcilers settle
+    const canFireDirty = { current: false };
+    const hasFiredDirty = { current: false };
+    setTimeout(() => {
+      canFireDirty.current = true;
+    }, 500);
+
     // Persist the last known cursor range so click-to-insert can restore it
     const savedRange = { current: null };
     // Track the last component that had RTE active (needed for template structures)
@@ -208,6 +220,16 @@ const BroadcastTextMessageEditor = ({
           onContentChange(html, plainText.length === 0);
         }
       }
+    };
+
+    // Fire dirty only for real user edits. Firing it from updateContent
+    // marked the editor dirty whenever GrapesJS emitted component:update
+    // for internal state (e.g. selection status), which enabled Save on
+    // plain content selection.
+    const fireDirtyIfActive = () => {
+      if (!canFireDirty.current || hasFiredDirty.current) return;
+      hasFiredDirty.current = true;
+      onDirtyRef.current?.();
     };
 
     editor.on("load", () => {
@@ -346,6 +368,7 @@ const BroadcastTextMessageEditor = ({
       const win = editor.Canvas.getWindow();
       if (doc) {
         doc.addEventListener("input", updateContent);
+        doc.addEventListener("input", fireDirtyIfActive);
 
         const CHAR_LIMIT = 160;
         const isContentEditable = (el) =>
@@ -621,6 +644,15 @@ const BroadcastTextMessageEditor = ({
     editor.on("rte:exec", updateContent);
     editor.on("update", updateContent);
 
+    // Narrow dirty-fire triggers: real content, style, attribute edits, add/remove,
+    // and RTE commands. component:update alone fires on selection status changes.
+    editor.on("component:update:content", fireDirtyIfActive);
+    editor.on("component:update:style", fireDirtyIfActive);
+    editor.on("component:update:attributes", fireDirtyIfActive);
+    editor.on("component:add", fireDirtyIfActive);
+    editor.on("component:remove", fireDirtyIfActive);
+    editor.on("rte:exec", fireDirtyIfActive);
+
     if (onReady) {
       onReady({
         editor,
@@ -629,7 +661,18 @@ const BroadcastTextMessageEditor = ({
           const contentComp = wrapper?.find(".text-editor-content")[0];
           const el = contentComp?.getEl();
           const containerEl = el?.closest(".text-editor-container");
-          if (containerEl) return serializeContainer(containerEl);
+
+          // Styles applied via activeComp.addStyle() land in GrapesJS's
+          // CSSComposer as class-based rules injected into the canvas
+          // iframe's <head>. Body-only serialization would drop them and
+          // leave orphan gjs-comp-* classes on the elements, so we prepend
+          // the compiled CSS as an inline <style> tag.
+          const compiledCss = editor.getCss ? editor.getCss() || "" : "";
+          const stylePrefix = compiledCss
+            ? `<style>${compiledCss}</style>`
+            : "";
+
+          if (containerEl) return stylePrefix + serializeContainer(containerEl);
 
           // Saved template: read from the live canvas DOM so that all style
           // changes applied via el.style.xxx are captured in the output
@@ -650,10 +693,10 @@ const BroadcastTextMessageEditor = ({
               if (node.getAttribute("class") === "")
                 node.removeAttribute("class");
             });
-            return clone.innerHTML;
+            return stylePrefix + clone.innerHTML;
           }
 
-          return editor.getHtml();
+          return stylePrefix + editor.getHtml();
         },
         setDevice: (device) => editor.setDevice(device),
         insertAtCursor: (text) => {

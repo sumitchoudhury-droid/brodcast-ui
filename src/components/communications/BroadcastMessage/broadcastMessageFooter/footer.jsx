@@ -10,7 +10,7 @@ import { useBroadcastForm } from "../../broadcastFormContext";
 import { usePost } from "../../../../hooks/usePost";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
-import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
+// import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 const buildTooltipContent = (labels) =>
@@ -30,6 +30,7 @@ export default function Footer({
   onBack,
   onCancel,
   disabled = false,
+  hasChanges = false,
   editorRef,
   textEditorInstanceRef
 }) {
@@ -64,6 +65,11 @@ export default function Footer({
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
+  );
+  const { mutate: branchTemplate, isPending: isBranching } = usePost(
+    selectedTemplateData?.id
+      ? ENDPOINTS.templates.BRANCH(selectedTemplateData.id)
+      : ""
   );
   const { mutate: sendBroadcast, isPending: isSending } = usePost(
     ENDPOINTS.broadcastSchedule.CREATE
@@ -134,17 +140,78 @@ export default function Footer({
       subjectLine: mailSubject || null,
       smsStandardText: smsBody || null,
       messageTempLibId: null,
-      actionItemTypeId: 0,
+      actionItemTypeId: 1,
+      actionItemTypeName: "Appointment Reminder",
+      createdBy: "admin@example.com",
       channels
     };
 
     saveTemplate(body, {
-      onSuccess: () => {
-        toast.success("Template saved successfully");
+      onSuccess: (res) => {
+        toast.success(res?.message || res?.data?.message);
         queryClient.invalidateQueries({ queryKey: ["templates"] });
         setIsModalOpen(false);
         setTemplateName("");
         setChecked(false);
+      }
+    });
+  };
+
+  const handleSaveBranch = () => {
+    if (!selectedTemplateData?.id) return;
+
+    const mailBody = editorRef?.current?.getHtml?.() || "";
+    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+
+    const channels = selectedModes
+      .map((mode) => {
+        const lowerMode = mode.toLowerCase();
+        if (lowerMode === "email") {
+          return {
+            methodType: "Mail",
+            templateBody: mailBody,
+            subjectLine: mailSubject || null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        if (lowerMode === "text") {
+          return {
+            methodType: "SMS",
+            templateBody: smsBody,
+            subjectLine: null,
+            smsStandardText: smsBody,
+            attachments: []
+          };
+        }
+        if (lowerMode === "voice") {
+          return {
+            methodType: "Voice",
+            templateBody: "",
+            subjectLine: null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    const body = {
+      name: newTemplateName || selectedTemplateData?.name || "",
+      templateBody: mailBody || smsBody,
+      subjectLine: mailSubject || null,
+      smsStandardText: smsBody || null,
+      messageTempLibId: null,
+      channels
+    };
+
+    branchTemplate(body, {
+      onSuccess: (res) => {
+        toast.success(
+          res?.message || res?.data?.message || "Template saved successfully"
+        );
+        queryClient.invalidateQueries({ queryKey: ["templates"] });
       }
     });
   };
@@ -319,6 +386,14 @@ export default function Footer({
             onClick={handleSaveTemplate}
             disabled={disabled}
           />
+          {selectedEmailTemplateType !== "blank" && (
+            <ReusableButton
+              label={isBranching ? "Saving…" : "Save"}
+              variant="secondary"
+              onClick={handleSaveBranch}
+              disabled={disabled || !hasChanges || isBranching}
+            />
+          )}
         </div>
 
         <div className="buttonBlock">
@@ -419,11 +494,11 @@ export default function Footer({
                   <p className="filterLabel">Total Patients</p>
                   <div className="filterValue">
                     <p>—</p>
-                    <img
+                    {/* <img
                       src={externalLinkIcon}
                       alt="External link icon"
                       className="externalLinkIcon"
-                    />
+                    /> */}
                   </div>
                 </div>
 

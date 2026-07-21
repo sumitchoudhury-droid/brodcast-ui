@@ -14,6 +14,7 @@ import { ReusableModal } from "../../../../../../reusableComponents/reusableModa
 import { ReusableUpload } from "../../../../../../reusableComponents/reusableUpload";
 import { useToast } from "../../../../../../hooks/useToast";
 import { ReusableInput } from "../../../../../../reusableComponents/reusableInput";
+import { ReusableButton } from "../../../../../../reusableComponents/resuableButton";
 import { useBroadcastForm } from "../../../../broadcastFormContext";
 
 export default function SignatureSection({ editorRef, isEditorEmpty }) {
@@ -406,6 +407,16 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     setExpandedForm(null);
   };
 
+  const handleClearAll = () => {
+    editorRef?.current?.clearAll?.();
+    setSignature("");
+    setSelectedForms([]);
+    setPendingForms([]);
+    setFormSearch("");
+    setShowFormsDropdown(false);
+    setExpandedForm(null);
+  };
+
   const handleFormsCancel = () => {
     setPendingForms([...selectedForms]);
     setShowFormsDropdown(false);
@@ -589,6 +600,13 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
           />
           <p>Import Template</p>
         </div>
+
+        <ReusableButton
+          label="Clear All"
+          onClick={handleClearAll}
+          className="clearAllBtn"
+          disabled={isEditorEmpty}
+        />
       </div>
 
       {/* ── Form preview modal ───────────────────────────────────────────── */}

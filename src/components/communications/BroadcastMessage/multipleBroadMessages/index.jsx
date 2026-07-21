@@ -16,6 +16,7 @@ function MultipleBroadMessages({
   onTextEmptyChange,
   onVoiceEmptyChange,
   onTextEditorReady,
+  onDirtyChange,
   selectedTemplate
 }) {
   const renderEditor = (mode) => {
@@ -26,6 +27,7 @@ function MultipleBroadMessages({
             selectedTemplate={selectedTemplate}
             onEmptyChange={onTextEmptyChange}
             onEditorReady={onTextEditorReady}
+            onDirtyChange={onDirtyChange}
           />
         );
       case "email":
@@ -37,6 +39,7 @@ function MultipleBroadMessages({
             setShowPlaceholders={setShowPlaceholders}
             isEditorEmpty={isEditorEmpty}
             setIsEditorEmpty={setIsEditorEmpty}
+            onDirtyChange={onDirtyChange}
             selectedTemplate={selectedTemplate}
           />
         );

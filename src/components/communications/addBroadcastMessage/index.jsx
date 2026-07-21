@@ -114,7 +114,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     (showRadioRow
       ? selectedTemplateType === "newTemplate"
         ? !!newTemplateName.trim()
-        : !!existingTemplateValues
+        : !!existingTemplateValues || !!selectedTemplateData
       : selectedEmailTemplateType === "blank"
         ? !!newTemplateName.trim()
         : !!selectedTemplateData);

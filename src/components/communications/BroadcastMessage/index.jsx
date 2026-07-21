@@ -39,6 +39,8 @@ function BroadcastMessageInner({ handleCancel }) {
   const handleTextEditorReady = useCallback((instance) => {
     textEditorInstanceRef.current = instance;
   }, []);
+  const [hasChanges, setHasChanges] = useState(false);
+  const handleDirtyChange = useCallback(() => setHasChanges(true), []);
   const [emptyMap, setEmptyMap] = useState({
     email: true,
     text: true,
@@ -100,6 +102,7 @@ function BroadcastMessageInner({ handleCancel }) {
           onTextEmptyChange={setTextEmpty}
           onVoiceEmptyChange={setVoiceEmpty}
           onTextEditorReady={handleTextEditorReady}
+          onDirtyChange={handleDirtyChange}
           selectedTemplate={selectedTemplate}
         />
       );
@@ -114,6 +117,7 @@ function BroadcastMessageInner({ handleCancel }) {
           setShowPlaceholders={setShowPlaceholders}
           isEditorEmpty={emptyMap.email}
           setIsEditorEmpty={setEmailEmpty}
+          onDirtyChange={handleDirtyChange}
           selectedTemplate={selectedTemplate}
         />
       );
@@ -125,6 +129,7 @@ function BroadcastMessageInner({ handleCancel }) {
           selectedTemplate={selectedTemplate}
           onEmptyChange={setTextEmpty}
           onEditorReady={handleTextEditorReady}
+          onDirtyChange={handleDirtyChange}
         />
       );
     }
@@ -193,6 +198,7 @@ function BroadcastMessageInner({ handleCancel }) {
               onBack={handleBack}
               onCancel={handleCancel}
               disabled={hasEmptyEditor}
+              hasChanges={hasChanges}
               editorRef={editorRef}
               textEditorInstanceRef={textEditorInstanceRef}
             />

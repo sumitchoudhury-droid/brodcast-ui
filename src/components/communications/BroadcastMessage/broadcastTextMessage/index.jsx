@@ -7,7 +7,8 @@ import BroadcastTextMessageEditor from "./broadcastTextMessageEditor/index";
 function BroadcastTextMessage({
   selectedTemplate,
   onEmptyChange,
-  onEditorReady
+  onEditorReady,
+  onDirtyChange
 }) {
   const [isEditorEmpty, setIsEditorEmpty] = useState(true);
   const [editorInstance, setEditorInstance] = useState(null);
@@ -35,6 +36,7 @@ function BroadcastTextMessage({
       <BroadcastTextMessageEditor
         onContentChange={handleContentChange}
         onReady={handleEditorReady}
+        onDirty={onDirtyChange}
         initialTemplate={selectedTemplate?.textTemplate}
       />
       <BroadcastTextMessageRightPanel
