@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import mjml2html from "mjml-browser";
 import "./style.scss";
 
 // Icons
@@ -9,10 +10,48 @@ import desktopIcon from "../../../../../assets/previewSection/desktopIcon.svg";
 import playIcon from "../../../../../assets/voiceTextIcons/playIcon.svg";
 import pausedIcon from "../../../../../assets/voiceTextIcons/pausedIcon.svg";
 
-// Raw HTML templates
+// Raw HTML templates — fallbacks used when the template fetch hasn't
+// resolved yet or the row has no messageTempLibId
 import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?raw";
 import textTemplate from "../../../existingTemplates/htmlTemplates/textMessage.html?raw";
 import voiceTemplate from "../../../existingTemplates/htmlTemplates/voiceMessage.html?raw";
+
+// Compile MJML → HTML for email preview. Falls back to the raw string on
+// failure or when the input isn't MJML.
+const compileMjml = (raw) => {
+  if (!raw || !raw.trimStart().startsWith("<mjml")) return raw;
+  try {
+    const { html, errors } = mjml2html(raw, { validationLevel: "skip" });
+    if (errors?.length) return raw;
+    return html;
+  } catch {
+    return raw;
+  }
+};
+
+// Strip GrapesJS editor attributes so SMS/voice HTML renders cleanly while
+// preserving id-based CSS (GrapesJS' compiled styles reference them).
+const cleanGjsHtml = (raw) => {
+  if (!raw) return "";
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(raw, "text/html");
+  doc.querySelectorAll("*").forEach((el) => {
+    if (el.tagName === "STYLE") return;
+    el.removeAttribute("data-gjs-highlightable");
+    el.removeAttribute("data-gjs-type");
+    el.removeAttribute("data-placeholder");
+    el.removeAttribute("contenteditable");
+    el.removeAttribute("draggable");
+    ["gjs-selected", "gjs-hovered", "gjs-editable", "is-empty"].forEach((cls) =>
+      el.classList.remove(cls)
+    );
+    if (el.getAttribute("class") === "") el.removeAttribute("class");
+  });
+  const headStyles = Array.from(doc.head.querySelectorAll("style"))
+    .map((s) => s.outerHTML)
+    .join("");
+  return headStyles + doc.body.innerHTML;
+};
 
 // Reusable Phone Frame Component
 const PhoneMockup = ({ children }) => (
@@ -146,8 +185,32 @@ const formatTime = (seconds) => {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 };
 
-function Message({ broadcastData }) {
+function Message({ broadcastData, template }) {
   const { mode = "Text" } = broadcastData || {};
+
+  // Resolve per-channel bodies from the fetched template. Each channel
+  // stores its content under `templateBody`; the raw HTML imports serve
+  // as fallbacks so previews stay populated while the fetch is pending.
+  const getChannelBody = (methodType) =>
+    template?.channels?.find((c) => c.methodType === methodType)?.templateBody;
+
+  const emailBody = useMemo(() => {
+    const raw = getChannelBody("Mail");
+    return raw ? compileMjml(raw) : emailTemplate;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template]);
+
+  const smsBody = useMemo(() => {
+    const raw = getChannelBody("SMS");
+    return raw ? cleanGjsHtml(raw) : textTemplate;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template]);
+
+  const voiceBody = useMemo(() => {
+    const raw = getChannelBody("Voice");
+    return raw || voiceTemplate;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template]);
 
   const lowerMode = (mode || "").toLowerCase();
   const showText = lowerMode.includes("text");
@@ -182,8 +245,8 @@ function Message({ broadcastData }) {
 
   // Extract paragraphs as an array of strings
   const displayVoiceParagraphs = useMemo(() => {
-    let content = voiceTemplate;
-    const bodyMatch = voiceTemplate.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    let content = voiceBody;
+    const bodyMatch = voiceBody.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
     if (bodyMatch) {
       content = bodyMatch[1];
     }
@@ -206,8 +269,16 @@ function Message({ broadcastData }) {
         paragraphs.push(pText);
       }
     }
+    // Fallback: if no <p> tags (SMS-like content), split on line breaks
+    if (paragraphs.length === 0) {
+      const plain = content
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (plain) paragraphs.push(plain);
+    }
     return paragraphs;
-  }, []);
+  }, [voiceBody]);
 
   // Joined text with single space for SpeechSynthesis boundary mapping
   const displayVoiceText = useMemo(() => {
@@ -228,7 +299,7 @@ function Message({ broadcastData }) {
 
     window.speechSynthesis.cancel();
 
-    const spokenText = getSpeechText(voiceTemplate);
+    const spokenText = getSpeechText(voiceBody);
     const ratio = fromTime / totalDuration;
     const charIndex = Math.min(
       Math.floor(spokenText.length * ratio),
@@ -475,7 +546,9 @@ function Message({ broadcastData }) {
                 <div
                   className="smsBubble"
                   dangerouslySetInnerHTML={{
-                    __html: cleanHtmlForSms(textTemplate)
+                    __html: smsBody.startsWith("<style>")
+                      ? smsBody
+                      : cleanHtmlForSms(smsBody)
                   }}
                 />
               </div>
@@ -499,7 +572,7 @@ function Message({ broadcastData }) {
                 {/* Desktop Email Body frame */}
                 <div className="emailDesktopBodyFrame">
                   <iframe
-                    srcDoc={emailTemplate}
+                    srcDoc={emailBody}
                     title="Desktop Email Preview"
                     className="emailPreviewIframe desktopFrame"
                   />
@@ -510,7 +583,7 @@ function Message({ broadcastData }) {
                 <PhoneMockup>
                   <div className="emailMobileBodyFrame">
                     <iframe
-                      srcDoc={emailTemplate}
+                      srcDoc={emailBody}
                       title="Mobile Email Preview"
                       className="emailPreviewIframe mobileFrame"
                     />

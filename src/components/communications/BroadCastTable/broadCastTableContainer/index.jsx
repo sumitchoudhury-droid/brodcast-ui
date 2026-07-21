@@ -57,6 +57,7 @@ const formatScheduleDate = (isoStr) => {
 const transformSchedule = (s) => ({
   id: String(s.scheduleId),
   scheduleIds: s.scheduleIds ?? [],
+  messageTempLibId: s.messageTempLibId ?? null,
   mode: s.mode ?? "",
   template: s.templateName ?? "",
   appointmentType: s.appointmentTypeNames?.[0] ?? "",

@@ -7,10 +7,20 @@ import "./style.scss";
 import Details from "./details";
 import Message from "./message";
 import ReProcessBroadCast from "../reprocessBroadcast";
+import { useGet } from "../../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../../api/endpoints.js";
 
 function TableBoardCastDetails({ isOpen, onClose, broadcastData }) {
   const [activeTab, setActiveTab] = useState("details");
   const [isReprocessOpen, setIsReprocessOpen] = useState(false);
+
+  const templateId = broadcastData?.messageTempLibId;
+  const { data: templateResponse, isLoading: isTemplateLoading } = useGet(
+    ["template", templateId],
+    templateId ? ENDPOINTS.templates.GET_BY_ID(templateId) : "",
+    null,
+    { enabled: isOpen && activeTab === "message" && !!templateId }
+  );
 
   if (!broadcastData) return null;
 
@@ -60,7 +70,7 @@ function TableBoardCastDetails({ isOpen, onClose, broadcastData }) {
       <ReusableRightDrawer
         isOpen={isOpen}
         onClose={onClose}
-        width="800px"
+        width="650px"
         showCloseBtn={false}
         title={renderCustomHeader()}
         className="tableBoardCastDetailsDrawer"
@@ -78,7 +88,11 @@ function TableBoardCastDetails({ isOpen, onClose, broadcastData }) {
           {activeTab === "details" ? (
             <Details broadcastData={broadcastData} />
           ) : (
-            <Message broadcastData={broadcastData} />
+            <Message
+              broadcastData={broadcastData}
+              template={templateResponse?.data}
+              isTemplateLoading={isTemplateLoading}
+            />
           )}
         </div>
       </ReusableRightDrawer>
