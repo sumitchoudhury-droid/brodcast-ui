@@ -30,6 +30,7 @@ export default function Footer({
   onBack,
   onCancel,
   disabled = false,
+  hasChanges = false,
   editorRef,
   textEditorInstanceRef
 }) {
@@ -134,7 +135,9 @@ export default function Footer({
       subjectLine: mailSubject || null,
       smsStandardText: smsBody || null,
       messageTempLibId: null,
-      actionItemTypeId: 0,
+      actionItemTypeId: 1,
+      actionItemTypeName: "Appointment Reminder",
+      createdBy: "admin@example.com",
       channels
     };
 
@@ -324,7 +327,7 @@ export default function Footer({
               label="Save"
               variant="secondary"
               onClick={() => {}}
-              disabled={disabled}
+              disabled={disabled || !hasChanges}
             />
           )}
         </div>

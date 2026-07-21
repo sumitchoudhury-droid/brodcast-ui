@@ -11,6 +11,7 @@ export const BroadcastEmailMessage = ({
   setShowPlaceholders,
   isEditorEmpty,
   setIsEditorEmpty,
+  onDirtyChange,
   selectedTemplate
 }) => {
   return (
@@ -35,6 +36,7 @@ export const BroadcastEmailMessage = ({
         <Editor
           editorRef={editorRef}
           setIsEditorEmpty={setIsEditorEmpty}
+          onDirtyChange={onDirtyChange}
           initialTemplate={selectedTemplate?.emailTemplate}
         />
       </div>

@@ -385,6 +385,7 @@ export default function Editor({
   editorRef,
   onReady,
   setIsEditorEmpty,
+  onDirtyChange,
   initialTemplate
 }) {
   const toast = useToast();
@@ -1421,6 +1422,15 @@ export default function Editor({
     const pendingFixups = [];
     let fixupScheduled = false;
 
+    // ── Dirty tracking ────────────────────────────────────────────────────
+    const suppressDirty = { current: true };
+    const hasFiredDirty = { current: false };
+    const fireDirty = () => {
+      if (suppressDirty.current || hasFiredDirty.current) return;
+      hasFiredDirty.current = true;
+      onDirtyChange?.();
+    };
+
     // ── Frame placeholder reconciler (debounced) ──────────────────────────
     const isReconciling = { current: false };
     let reconcileTimer = null;
@@ -1921,6 +1931,9 @@ export default function Editor({
           fixupScheduled = true;
           setTimeout(processPendingFixups, 0);
         }
+        // Real user-driven content additions mark the editor dirty; the
+        // suppressDirty flag still covers the initial template load window.
+        if (!isEnsuringSig.current) fireDirty();
       }
     });
 
@@ -1932,6 +1945,7 @@ export default function Editor({
         // Don't re-trigger sig reconcile when the sig itself is being removed
         if (dt !== "signature-section") {
           scheduleSignatureReconcile();
+          if (!isEnsuringSig.current && !isUnwrapping.current) fireDirty();
         }
       }
 
@@ -1960,6 +1974,29 @@ export default function Editor({
       scheduleReconcile();
     });
 
+    // Fire dirty only for real user edits. component:update also fires when
+    // GrapesJS flips internal component state (e.g. status = "selected"),
+    // which previously caused the Save button to enable on plain selection.
+    const isInternalUpdate = () =>
+      isReconciling.current ||
+      isUnwrapping.current ||
+      suppressPaddingOverride.current ||
+      suppressSigReconcile.current ||
+      isEnsuringSig.current;
+
+    editor.on("component:update:content", () => {
+      if (isInternalUpdate()) return;
+      fireDirty();
+    });
+    editor.on("component:update:style", () => {
+      if (isInternalUpdate()) return;
+      fireDirty();
+    });
+    editor.on("component:update:attributes", () => {
+      if (isInternalUpdate()) return;
+      fireDirty();
+    });
+
     registerBlocks(editor, initialTemplate);
     suppressPaddingOverride.current = true;
     suppressSigReconcile.current = true;
@@ -1968,6 +2005,9 @@ export default function Editor({
       suppressPaddingOverride.current = false;
       suppressSigReconcile.current = false;
     }, 0);
+    setTimeout(() => {
+      suppressDirty.current = false;
+    }, 500);
 
     // ── Restrict nested block drops to column-frame / row-frame only ────────────
     // Any block may be dropped at the top level (direct child of mj-body), which
