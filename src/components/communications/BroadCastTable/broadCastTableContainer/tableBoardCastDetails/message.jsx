@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import mjml2html from "mjml-browser";
+import SkeletonLoader from "../../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 import "./style.scss";
 
 // Icons
@@ -185,7 +186,7 @@ const formatTime = (seconds) => {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 };
 
-function Message({ broadcastData, template }) {
+function Message({ broadcastData, template, isTemplateLoading }) {
   const { mode = "Text" } = broadcastData || {};
 
   // Resolve per-channel bodies from the fetched template. Each channel
@@ -543,14 +544,29 @@ function Message({ broadcastData, template }) {
                 </div>
               </div>
               <div className="smsScreenContent">
-                <div
-                  className="smsBubble"
-                  dangerouslySetInnerHTML={{
-                    __html: smsBody.startsWith("<style>")
-                      ? smsBody
-                      : cleanHtmlForSms(smsBody)
-                  }}
-                />
+                {isTemplateLoading ? (
+                  <div
+                    className="smsBubble"
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px"
+                    }}
+                  >
+                    <SkeletonLoader width="80%" height="12px" />
+                    <SkeletonLoader width="95%" height="12px" />
+                    <SkeletonLoader width="60%" height="12px" />
+                  </div>
+                ) : (
+                  <div
+                    className="smsBubble"
+                    dangerouslySetInnerHTML={{
+                      __html: smsBody.startsWith("<style>")
+                        ? smsBody
+                        : cleanHtmlForSms(smsBody)
+                    }}
+                  />
+                )}
               </div>
             </PhoneMockup>
           </div>
@@ -571,22 +587,55 @@ function Message({ broadcastData, template }) {
                 </div>
                 {/* Desktop Email Body frame */}
                 <div className="emailDesktopBodyFrame">
-                  <iframe
-                    srcDoc={emailBody}
-                    title="Desktop Email Preview"
-                    className="emailPreviewIframe desktopFrame"
-                  />
+                  {isTemplateLoading ? (
+                    <div
+                      style={{
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px"
+                      }}
+                    >
+                      <SkeletonLoader width="100%" height="180px" />
+                      <SkeletonLoader width="80%" height="14px" />
+                      <SkeletonLoader width="95%" height="14px" />
+                      <SkeletonLoader width="60%" height="14px" />
+                      <SkeletonLoader width="120px" height="36px" />
+                    </div>
+                  ) : (
+                    <iframe
+                      srcDoc={emailBody}
+                      title="Desktop Email Preview"
+                      className="emailPreviewIframe desktopFrame"
+                    />
+                  )}
                 </div>
               </div>
             ) : (
               <div className="centeredMockupWrapper">
                 <PhoneMockup>
                   <div className="emailMobileBodyFrame">
-                    <iframe
-                      srcDoc={emailBody}
-                      title="Mobile Email Preview"
-                      className="emailPreviewIframe mobileFrame"
-                    />
+                    {isTemplateLoading ? (
+                      <div
+                        style={{
+                          padding: "16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "10px"
+                        }}
+                      >
+                        <SkeletonLoader width="100%" height="140px" />
+                        <SkeletonLoader width="80%" height="12px" />
+                        <SkeletonLoader width="95%" height="12px" />
+                        <SkeletonLoader width="60%" height="12px" />
+                      </div>
+                    ) : (
+                      <iframe
+                        srcDoc={emailBody}
+                        title="Mobile Email Preview"
+                        className="emailPreviewIframe mobileFrame"
+                      />
+                    )}
                   </div>
                 </PhoneMockup>
               </div>
@@ -598,38 +647,53 @@ function Message({ broadcastData, template }) {
         {activeChannel === "voice" && (
           <div className="voicePreviewContainer">
             <div className="voiceScriptContent">
-              {(() => {
-                let cumulativeLength = 0;
-                const highlightIdx = getHighlightCharIndex();
-                return displayVoiceParagraphs.map((para, index) => {
-                  const paraLength = para.length;
-                  const paraStart = cumulativeLength;
-                  const paraEnd = paraStart + paraLength;
+              {isTemplateLoading ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px"
+                  }}
+                >
+                  <SkeletonLoader width="90%" height="14px" />
+                  <SkeletonLoader width="80%" height="14px" />
+                  <SkeletonLoader width="95%" height="14px" />
+                  <SkeletonLoader width="70%" height="14px" />
+                </div>
+              ) : (
+                (() => {
+                  let cumulativeLength = 0;
+                  const highlightIdx = getHighlightCharIndex();
+                  return displayVoiceParagraphs.map((para, index) => {
+                    const paraLength = para.length;
+                    const paraStart = cumulativeLength;
+                    const paraEnd = paraStart + paraLength;
 
-                  // Update cumulative length for next paragraph (accounting for join space)
-                  cumulativeLength = paraEnd + 1;
+                    // Update cumulative length for next paragraph (accounting for join space)
+                    cumulativeLength = paraEnd + 1;
 
-                  let readPart = "";
-                  let unreadPart = "";
+                    let readPart = "";
+                    let unreadPart = "";
 
-                  if (highlightIdx <= paraStart) {
-                    unreadPart = para;
-                  } else if (highlightIdx >= paraEnd) {
-                    readPart = para;
-                  } else {
-                    const splitPoint = highlightIdx - paraStart;
-                    readPart = para.slice(0, splitPoint);
-                    unreadPart = para.slice(splitPoint);
-                  }
+                    if (highlightIdx <= paraStart) {
+                      unreadPart = para;
+                    } else if (highlightIdx >= paraEnd) {
+                      readPart = para;
+                    } else {
+                      const splitPoint = highlightIdx - paraStart;
+                      readPart = para.slice(0, splitPoint);
+                      unreadPart = para.slice(splitPoint);
+                    }
 
-                  return (
-                    <p key={index} className="voiceScriptPara">
-                      <span className="readText">{readPart}</span>
-                      <span className="unreadText">{unreadPart}</span>
-                    </p>
-                  );
-                });
-              })()}
+                    return (
+                      <p key={index} className="voiceScriptPara">
+                        <span className="readText">{readPart}</span>
+                        <span className="unreadText">{unreadPart}</span>
+                      </p>
+                    );
+                  });
+                })()
+              )}
             </div>
 
             <div className="voicePlayerSection">
