@@ -10,7 +10,7 @@ import { useBroadcastForm } from "../../broadcastFormContext";
 import { usePost } from "../../../../hooks/usePost";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
-import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
+// import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 const buildTooltipContent = (labels) =>
@@ -319,6 +319,14 @@ export default function Footer({
             onClick={handleSaveTemplate}
             disabled={disabled}
           />
+          {selectedEmailTemplateType !== "blank" && (
+            <ReusableButton
+              label="Save"
+              variant="secondary"
+              onClick={() => {}}
+              disabled={disabled}
+            />
+          )}
         </div>
 
         <div className="buttonBlock">
@@ -419,11 +427,11 @@ export default function Footer({
                   <p className="filterLabel">Total Patients</p>
                   <div className="filterValue">
                     <p>—</p>
-                    <img
+                    {/* <img
                       src={externalLinkIcon}
                       alt="External link icon"
                       className="externalLinkIcon"
-                    />
+                    /> */}
                   </div>
                 </div>
 

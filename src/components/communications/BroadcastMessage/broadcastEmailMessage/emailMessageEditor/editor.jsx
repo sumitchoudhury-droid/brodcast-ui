@@ -2762,6 +2762,19 @@ export default function Editor({
               suppressPaddingOverride.current = false;
             }, 200);
           }
+        },
+        clearAll: () => {
+          suppressSigReconcile.current = true;
+          suppressPaddingOverride.current = true;
+          isHtmlTemplate.current = false;
+          try {
+            editor.setComponents(EMPTY_TEMPLATE);
+          } finally {
+            setTimeout(() => {
+              suppressSigReconcile.current = false;
+              suppressPaddingOverride.current = false;
+            }, 200);
+          }
         }
       };
     }
