@@ -12,7 +12,8 @@ import {
   addDays,
   isWithinInterval,
   isAfter,
-  subWeeks
+  subWeeks,
+  subYears
 } from "date-fns";
 import dateRangeIcon from "../../assets/boardCastTableIcons/dateRange.svg";
 import arrowLeftIcon from "../../assets/boardCastTableIcons/arrowLeftIcon.svg";
@@ -112,6 +113,16 @@ export default function ReusableDateRangePicker({
         const today = new Date();
         return {
           start: startOfMonth(subMonths(today, 2)),
+          end: endOfMonth(today)
+        };
+      }
+    },
+    {
+      label: "Last 1 Year",
+      getDates: () => {
+        const today = new Date();
+        return {
+          start: startOfMonth(subYears(today, 1)),
           end: endOfMonth(today)
         };
       }
