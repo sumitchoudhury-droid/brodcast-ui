@@ -17,7 +17,7 @@ export const mockFailedPatients = [
     email: "bob.gonzalez@gmail.com",
     phone: "(555) 045-6789",
     reason: "-",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p3",
@@ -47,7 +47,7 @@ export const mockFailedPatients = [
     email: "ethan.davis@outlook.com",
     phone: "(555) 181-9201",
     reason: "-",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p6",
@@ -77,7 +77,7 @@ export const mockFailedPatients = [
     email: "hannah.taylor@mail.com",
     phone: "(555) 181-9201",
     reason: "Invalid Email",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p9",
@@ -107,7 +107,7 @@ export const mockFailedPatients = [
     email: "mike.ross@gmail.com",
     phone: "(555) 181-9201",
     reason: "-",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p12",
@@ -137,7 +137,7 @@ export const mockFailedPatients = [
     email: "alex.garcia@outlook.com",
     phone: "-",
     reason: "Invalid Number",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p15",
@@ -167,7 +167,7 @@ export const mockFailedPatients = [
     email: "charlotte.w@mail.com",
     phone: "(555) 345-678",
     reason: "Invalid Number",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p18",
@@ -197,7 +197,7 @@ export const mockFailedPatients = [
     email: "lucas.taylor@outlook.com",
     phone: "-",
     reason: "Invalid Number",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p21",
@@ -227,7 +227,7 @@ export const mockFailedPatients = [
     email: "evelyn.j@mail.com",
     phone: "(555) 789-0123",
     reason: "-",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p24",
@@ -257,7 +257,7 @@ export const mockFailedPatients = [
     email: "logan.perez@outlook.com",
     phone: "(555) 987-0123",
     reason: "Network outages",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p27",
@@ -287,7 +287,7 @@ export const mockFailedPatients = [
     email: "elizabeth.h@mail.com",
     phone: "(555) 345-0987",
     reason: "-",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p30",
@@ -317,7 +317,7 @@ export const mockFailedPatients = [
     email: "henry.r@outlook.com",
     phone: "(555) 678-3456",
     reason: "Network outages",
-    notificationMethod: "Text"
+    notificationMethod: "SMS"
   },
   {
     id: "p33",

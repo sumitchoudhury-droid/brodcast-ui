@@ -85,7 +85,7 @@ export const BroadcastDetails = ({
 
           <div className="broadcastDetailsContentRowValue">
             {isLoadingModes
-              ? Array.from({ length: 2 }).map((_, i) => (
+              ? Array.from({ length: 3 }).map((_, i) => (
                   <SkeletonLoader
                     key={i}
                     width="80px"

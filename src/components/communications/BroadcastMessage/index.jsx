@@ -43,7 +43,7 @@ function BroadcastMessageInner({ handleCancel }) {
   const handleDirtyChange = useCallback(() => setHasChanges(true), []);
   const [emptyMap, setEmptyMap] = useState({
     email: true,
-    text: true,
+    sms: true,
     voice: true
   });
   const [showPlaceholders, setShowPlaceholders] = useState(false);
@@ -57,7 +57,7 @@ function BroadcastMessageInner({ handleCancel }) {
     []
   );
   const setTextEmpty = useCallback(
-    (isEmpty) => setEmptyMap((prev) => ({ ...prev, text: isEmpty })),
+    (isEmpty) => setEmptyMap((prev) => ({ ...prev, sms: isEmpty })),
     []
   );
   const setVoiceEmpty = useCallback(
@@ -80,10 +80,10 @@ function BroadcastMessageInner({ handleCancel }) {
   const heading =
     selectedModes.length > 1
       ? "Add Broadcast Message"
-      : lowerModes.includes("email")
+      : lowerModes.includes("mail")
         ? "Add Email Message for Broadcast"
-        : lowerModes.includes("text")
-          ? "Add Text Message for Broadcast"
+        : lowerModes.includes("sms")
+          ? "Add SMS Message for Broadcast"
           : "Add Voice Message for Broadcast";
 
   const renderBuilder = () => {
@@ -108,7 +108,7 @@ function BroadcastMessageInner({ handleCancel }) {
       );
     }
 
-    if (lowerModes.includes("email")) {
+    if (lowerModes.includes("mail")) {
       return (
         <BroadcastEmailMessage
           editorRef={editorRef}
@@ -123,7 +123,7 @@ function BroadcastMessageInner({ handleCancel }) {
       );
     }
 
-    if (lowerModes.includes("text")) {
+    if (lowerModes.includes("sms")) {
       return (
         <BroadcastTextMessage
           selectedTemplate={selectedTemplate}

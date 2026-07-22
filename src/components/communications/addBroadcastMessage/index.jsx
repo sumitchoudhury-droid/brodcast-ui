@@ -89,7 +89,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
   const [showHighPriorityModal, setShowHighPriorityModal] = useState(false);
   const [pendingTemplateData, setPendingTemplateData] = useState(null);
 
-  const hasEmailMode = selectedModes.some((m) => m.toLowerCase() === "email");
+  const hasEmailMode = selectedModes.some((m) => m.toLowerCase() === "mail");
   const showRadioRow = !hasEmailMode && selectedModes.length > 0;
 
   const isFormValid =
@@ -210,13 +210,18 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
               (showRadioRow && selectedTemplateType === "newTemplate") ||
               (!showRadioRow && selectedEmailTemplateType === "blank")
             ) {
+              const modeToTemplateKey = {
+                mail: "emailTemplate",
+                sms: "textTemplate",
+                voice: "voiceTemplate"
+              };
               finalTemplateData = {
                 title: newTemplateName,
                 ...Object.fromEntries(
-                  selectedModes.map((name) => [
-                    `${name.toLowerCase()}Template`,
-                    ""
-                  ])
+                  selectedModes
+                    .map((name) => modeToTemplateKey[name.toLowerCase()])
+                    .filter(Boolean)
+                    .map((key) => [key, ""])
                 )
               };
             }

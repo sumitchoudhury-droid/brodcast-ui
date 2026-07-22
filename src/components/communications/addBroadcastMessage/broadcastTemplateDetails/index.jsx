@@ -13,7 +13,7 @@ import defaultTemplateSs from "../../../../assets/existingTemplate/defaultTempla
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
 
 const actionIcons = [
-  { src: messageIcon, mode: "Text" },
+  { src: messageIcon, mode: "SMS" },
   { src: mailIcon, mode: "Mail" },
   { src: phoneIcon, mode: "Voice" }
 ];
@@ -28,7 +28,7 @@ function BroadcastTemplateDetails({
   selectedTemplateData
 }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [initialModeTab, setInitialModeTab] = useState("Text");
+  const [initialModeTab, setInitialModeTab] = useState("SMS");
 
   return (
     <div className="broadcastTemplateDetails">

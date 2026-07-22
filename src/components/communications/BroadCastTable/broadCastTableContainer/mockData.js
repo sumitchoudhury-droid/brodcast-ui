@@ -282,7 +282,7 @@ const generateMockData = () => {
     }
   ];
 
-  const modes = ["Text, Mail", "Text, Mail, Voice", "Mail", "Text", "Voice"];
+  const modes = ["SMS, Mail", "SMS, Mail, Voice", "Mail", "SMS", "Voice"];
   const templates = [
     "Account Statement",
     "Camp Schedule",

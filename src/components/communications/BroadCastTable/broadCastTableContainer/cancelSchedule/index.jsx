@@ -42,7 +42,7 @@ const getModesList = (modeStr) => {
     .filter((m) => m && m !== "...");
 
   if (modeStr.includes("...")) {
-    const allPossible = ["Text", "Mail", "Voice"];
+    const allPossible = ["SMS", "Mail", "Voice"];
     allPossible.forEach((p) => {
       if (!list.some((item) => item.toLowerCase() === p.toLowerCase())) {
         list.push(p);
