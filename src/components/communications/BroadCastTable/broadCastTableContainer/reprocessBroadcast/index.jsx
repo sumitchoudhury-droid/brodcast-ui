@@ -225,7 +225,7 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
     return {
       email: selectedPatients.filter((p) => p.notificationMethod === "Email")
         .length,
-      text: selectedPatients.filter((p) => p.notificationMethod === "Text")
+      text: selectedPatients.filter((p) => p.notificationMethod === "SMS")
         .length,
       voice: selectedPatients.filter((p) => p.notificationMethod === "Voice")
         .length,

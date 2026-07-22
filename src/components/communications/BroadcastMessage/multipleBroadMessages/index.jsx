@@ -21,7 +21,7 @@ function MultipleBroadMessages({
 }) {
   const renderEditor = (mode) => {
     switch (mode.toLowerCase()) {
-      case "text":
+      case "sms":
         return (
           <BroadcastTextMessage
             selectedTemplate={selectedTemplate}
@@ -30,7 +30,7 @@ function MultipleBroadMessages({
             onDirtyChange={onDirtyChange}
           />
         );
-      case "email":
+      case "mail":
         return (
           <BroadcastEmailMessage
             editorRef={editorRef}

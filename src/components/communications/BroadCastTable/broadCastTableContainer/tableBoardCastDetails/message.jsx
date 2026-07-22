@@ -187,7 +187,7 @@ const formatTime = (seconds) => {
 };
 
 function Message({ broadcastData, template, isTemplateLoading }) {
-  const { mode = "Text" } = broadcastData || {};
+  const { mode = "SMS" } = broadcastData || {};
 
   // Resolve per-channel bodies from the fetched template. Each channel
   // stores its content under `templateBody`; the raw HTML imports serve
@@ -214,19 +214,19 @@ function Message({ broadcastData, template, isTemplateLoading }) {
   }, [template]);
 
   const lowerMode = (mode || "").toLowerCase();
-  const showText = lowerMode.includes("text");
+  const showSms = lowerMode.includes("sms");
   const showMail = lowerMode.includes("mail") || lowerMode.includes("email");
   const showVoice = lowerMode.includes("voice") || lowerMode.includes("...");
-  const activeChannelsCount = [showText, showMail, showVoice].filter(
+  const activeChannelsCount = [showSms, showMail, showVoice].filter(
     Boolean
   ).length;
 
   // Infer initial channel tab based on broadcast data mode
   const getInitialTab = () => {
-    if (showText) return "text";
+    if (showSms) return "sms";
     if (showMail) return "mail";
     if (showVoice) return "voice";
-    return "text";
+    return "sms";
   };
 
   const [activeChannel, setActiveChannel] = useState(getInitialTab());
@@ -445,13 +445,13 @@ function Message({ broadcastData, template, isTemplateLoading }) {
         >
           {activeChannelsCount > 1 && (
             <div className="channelTabChips">
-              {showText && (
+              {showSms && (
                 <button
-                  className={`tabChip ${activeChannel === "text" ? "active" : ""}`}
-                  onClick={() => setActiveChannel("text")}
+                  className={`tabChip ${activeChannel === "sms" ? "active" : ""}`}
+                  onClick={() => setActiveChannel("sms")}
                 >
-                  <img src={textIcon} alt="Text" className="tabChipIcon" />
-                  Text
+                  <img src={textIcon} alt="SMS" className="tabChipIcon" />
+                  SMS
                 </button>
               )}
               {showMail && (
@@ -512,8 +512,8 @@ function Message({ broadcastData, template, isTemplateLoading }) {
 
       {/* Main Preview Container */}
       <div className="channelPreviewArea">
-        {/* TEXT CHANNEL PREVIEW */}
-        {activeChannel === "text" && (
+        {/* SMS CHANNEL PREVIEW */}
+        {activeChannel === "sms" && (
           <div className="centeredMockupWrapper">
             <PhoneMockup>
               <div className="smsPreviewHeader">

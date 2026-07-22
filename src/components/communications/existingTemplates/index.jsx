@@ -16,13 +16,13 @@ import { ENDPOINTS } from "../../../api/endpoints.js";
 import { useToast } from "../../../hooks/useToast";
 import SkeletonLoader from "../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
-const modeNameToMethodType = { Email: "Mail", TEXT: "SMS", Voice: "Voice" };
+const modeNameToMethodType = { Mail: "Mail", SMS: "SMS", Voice: "Voice" };
 
 function ExistingTemplates({
   isOpen,
   onClose,
   onSelectTemplate,
-  initialModeTab = "Text",
+  initialModeTab = "SMS",
   selectedModes = []
 }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,7 +87,7 @@ function ExistingTemplates({
 
   const methodTypeToMode = (methodType) => {
     if (methodType === "Mail") return "mail";
-    if (methodType === "SMS") return "text";
+    if (methodType === "SMS") return "sms";
     if (methodType === "Voice") return "voice";
     return methodType.toLowerCase();
   };
@@ -454,7 +454,7 @@ function ExistingTemplates({
   const renderModeIcons = (modes) => {
     return (
       <div className="templateModeIcons">
-        {modes.includes("text") && <img src={textIcon} alt="text" />}
+        {modes.includes("sms") && <img src={textIcon} alt="sms" />}
         {modes.includes("mail") && <img src={emailIcon} alt="mail" />}
         {modes.includes("voice") && <img src={voiceIcon} alt="voice" />}
       </div>
@@ -661,7 +661,7 @@ function ExistingTemplates({
               <div className="rightPanelTop">
                 <div className="modeTabsContainer">
                   <div className="modeTabs">
-                    {["Text", "Mail", "Voice"]
+                    {["SMS", "Mail", "Voice"]
                       .filter((mode) =>
                         effectiveSelectedTemplate.modes.includes(
                           mode.toLowerCase()

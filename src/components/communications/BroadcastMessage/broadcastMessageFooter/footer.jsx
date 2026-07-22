@@ -103,7 +103,7 @@ export default function Footer({
     const channels = selectedModes
       .map((mode) => {
         const lowerMode = mode.toLowerCase();
-        if (lowerMode === "email") {
+        if (lowerMode === "mail") {
           return {
             methodType: "Mail",
             templateBody: mailBody,
@@ -112,7 +112,7 @@ export default function Footer({
             attachments: []
           };
         }
-        if (lowerMode === "text") {
+        if (lowerMode === "sms") {
           return {
             methodType: "SMS",
             templateBody: smsBody,
@@ -166,7 +166,7 @@ export default function Footer({
     const channels = selectedModes
       .map((mode) => {
         const lowerMode = mode.toLowerCase();
-        if (lowerMode === "email") {
+        if (lowerMode === "mail") {
           return {
             methodType: "Mail",
             templateBody: mailBody,
@@ -175,7 +175,7 @@ export default function Footer({
             attachments: []
           };
         }
-        if (lowerMode === "text") {
+        if (lowerMode === "sms") {
           return {
             methodType: "SMS",
             templateBody: smsBody,
@@ -231,8 +231,8 @@ export default function Footer({
 
   const handleConfirmBroadcast = () => {
     const payload = {
-      queueTextFlag: selectedModes.includes("TEXT"),
-      queueEmailFlag: selectedModes.includes("Email"),
+      queueTextFlag: selectedModes.includes("SMS"),
+      queueEmailFlag: selectedModes.includes("Mail"),
       queueVoiceFlag: selectedModes.includes("Voice"),
       category: categoryLabel,
       priority: priorityLabel,

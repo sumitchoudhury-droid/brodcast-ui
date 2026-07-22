@@ -27,7 +27,7 @@ const getModesList = (modeStr) => {
     .filter((m) => m && m !== "...");
 
   if (modeStr.includes("...")) {
-    const allPossible = ["Text", "Mail", "Voice"];
+    const allPossible = ["SMS", "Mail", "Voice"];
     allPossible.forEach((p) => {
       if (!list.some((item) => item.toLowerCase() === p.toLowerCase())) {
         list.push(p);
@@ -128,7 +128,7 @@ const getModeSpecificStatus = (messageStatus, modesList) => {
 
 export default function Details({ broadcastData }) {
   const {
-    mode = "Text",
+    mode = "SMS",
     template = "Weekly",
     hasError = false,
     broadcastStatus = "",
@@ -402,8 +402,8 @@ export default function Details({ broadcastData }) {
                 Only Mail and Voice messages are cancelled for the selected
                 occurrences.
               </span>{" "}
-              Text messages will still be sent, and all three modes will
-              continue as scheduled for subsequent occurrences.
+              SMS messages will still be sent, and all three modes will continue
+              as scheduled for subsequent occurrences.
             </p>
           </div>
 
@@ -414,14 +414,14 @@ export default function Details({ broadcastData }) {
                 <p className="dateP">2 Mar 2026, 10:30 AM</p>
               </div>
               <p>
-                Mail and Voice messages were cancelled for this occurrence. Text
+                Mail and Voice messages were cancelled for this occurrence. SMS
                 messages will be sent as scheduled.
               </p>
             </div>
             <div className="right">
               {[
                 { icon: emailIcon, label: "Mail" },
-                { icon: textIcon, label: "Text" },
+                { icon: textIcon, label: "SMS" },
                 { icon: voiceIcon, label: "Voice" }
               ].map(({ icon, label }) => (
                 <div key={label} className="modeCard">
