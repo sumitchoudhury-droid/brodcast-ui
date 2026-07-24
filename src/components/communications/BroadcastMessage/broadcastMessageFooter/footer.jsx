@@ -231,9 +231,7 @@ export default function Footer({
 
   const handleConfirmBroadcast = () => {
     const payload = {
-      queueTextFlag: selectedModes.includes("SMS"),
-      queueEmailFlag: selectedModes.includes("Mail"),
-      queueVoiceFlag: selectedModes.includes("Voice"),
+      channels: selectedModes,
       category: categoryLabel,
       priority: priorityLabel,
       templateId: selectedTemplateData?.id ?? null,
