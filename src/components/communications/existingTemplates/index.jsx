@@ -95,6 +95,7 @@ function ExistingTemplates({
   const templates = (templatesData?.data || []).map((t) => ({
     id: t.id,
     title: t.name,
+    templateType: t.templateType,
     modes: t.channels.map((c) => methodTypeToMode(c.methodType)),
     channels: t.channels,
     image: null

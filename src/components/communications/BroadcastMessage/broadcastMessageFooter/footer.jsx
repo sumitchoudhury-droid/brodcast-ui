@@ -61,7 +61,8 @@ export default function Footer({
     ageFilter,
     ageYear,
     ageMonth,
-    gender
+    gender,
+    modality
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
@@ -235,6 +236,7 @@ export default function Footer({
       category: categoryLabel,
       priority: priorityLabel,
       templateId: selectedTemplateData?.id ?? null,
+      templateType: selectedTemplateData?.templateType ?? null,
       patientSelectionType: patientSelectionTypeMap[patientType] ?? patientType,
       ...(patientType === "targetRecipients" && {
         targetRecipientCriteria: {
@@ -251,7 +253,8 @@ export default function Footer({
           ageCriteriaId: ageFilter || null,
           ageYears: ageYear ? Number(ageYear) : null,
           ageMonths: ageMonth ? Number(ageMonth) : null,
-          genderId: gender || null
+          genderId: gender || null,
+          modalityId: modality || null
         }
       }),
       sendMode: sendModeMap[sendType] ?? "Immediately",
