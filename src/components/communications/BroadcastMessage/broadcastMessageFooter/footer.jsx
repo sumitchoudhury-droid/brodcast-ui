@@ -235,6 +235,7 @@ export default function Footer({
       category: categoryLabel,
       priority: priorityLabel,
       templateId: selectedTemplateData?.id ?? null,
+      templateType: selectedTemplateData?.templateType ?? null,
       patientSelectionType: patientSelectionTypeMap[patientType] ?? patientType,
       ...(patientType === "targetRecipients" && {
         targetRecipientCriteria: {
