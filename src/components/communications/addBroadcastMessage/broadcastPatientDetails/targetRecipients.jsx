@@ -114,7 +114,7 @@ function TargetRecipients({
   }));
 
   const modalityOptions = (modalitiesData?.data ?? []).map((m) => ({
-    value: m.kioskCatalogId,
+    value: m.catalogDataId,
     label: m.catalogDec.trim()
   }));
 
@@ -293,16 +293,13 @@ function TargetRecipients({
           />
         </div>
         <div className="formGroup">
-          <ReusableMultiSelectDropdown
+          <ReusableDropDown
             label="Modality"
             greenIcon={false}
             placeholder="Select Modality"
             options={modalityOptions}
-            value={
-              Array.isArray(modality) ? modality : modality ? [modality] : []
-            }
+            value={modality}
             onChange={(val) => setModality(val)}
-            searchPlaceholder="Search Modality"
           />
         </div>
       </div>
