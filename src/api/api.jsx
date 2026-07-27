@@ -4,6 +4,7 @@ let _toast = null;
 export const setToast = (toast) => {
   _toast = toast;
 };
+export const getToast = () => _toast;
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -28,6 +29,10 @@ export const queryClient = new QueryClient({
 export const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
   "https://cademo.hacheckinasyst.com:20029/api/v1";
+
+export const IMAGE_BASE_URL =
+  import.meta.env.VITE_IMAGE_API_BASE_URL ??
+  "https://cademo.hacheckinasyst.com:20029/image-api/api/v1";
 
 export const COMMON_HEADERS = {
   TenantId: "Common",

@@ -1,15 +1,17 @@
 const IMAGE_UPLOAD_APP_KEY = JSON.stringify({
   AuthorizedAccessToken:
-    "bearer 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",
+    "bearer 8FfsSluu3xzOTpWpaqUQtySpnNnW5Ezf8lv9UBcHi/menW6KIYyj34wY8GKyoHPigFNr2yZ3lhdmwdku89/s1Hebe2sXVwBX33tUdb8Z2rK7tamMdA2+385F5zNgvd1R9JuQs9W1eEHhqWieDO0NrplQcZuh5Q4ed+L7t6eD3wo8s6tfz3AhD7+hN4lLb+yPfwG+tsDIEH2bk4ZvvE3oNdA1t2J6BO1B+W1IcX/eqvQZ2RJpzsCzJ2lWxraHuiW5j4yM74QiO1hA2RDbi11Jnc6sPWGosnxTcVCPkx4HWs0wGJ08KkIeEyglqpTMpwoGMq6cK7EaFzS9TBDx/Sh6bpCd1VUMaD2oLkEKB6kxgJ5d2ADTJATc8qREh5WMyRuRJoAEBhCtRtd8QkkfTDsywmXdo8T71aCX+8iJW0HP2qi18vIeUwLhgumsNUJSL6VL11lCsWqGDjZQSgN1OPQ5xesgg3EBxW10kB6BdOxrck+EVVYowi0QjGbYQ/FqsxiUWBfP156hArBrKLaNRDHVGmUFB6R7145EDCoMrImRmcRZyd0j7ZXWmECGEEczpB8FrAoRt+UFqicDW1EdsQQRov8lnkDHnvoxK9wM6jN/SlFI+IZX20PSYU5TuInIl8LeTjqeCPffid7duIK6cxN6f2xfQ9wXkMG7EA2KucFi5jhK7GgvZJvqxoRZ45Cx3KE7YSIR+qZj5+4IYWgchHh+p9bxqM8q/Sg3Xwz03B3TKb93f/vSzBIUC4NpvWaPx4junF5ZuB6vXO7MFRJtGuVToXXS2qQHePWuIbyCHuxqMtq3Q0qdEHzCG6N9xqvZG0hlvWS8Y4FSc/SiDDaNQZi/ReZGub4nCjub0YKP1dnk61tpftPdzbmiSrw22F2GdbvCH4ysRy4CZfZahGFH6rnpoH29+cJ2MwWIJ0g1mPNdmtl0RyNHnw9l7BDQQzPFuBHVjYVVJxOscfZuVepLo4GytIiHq2wnTJklJf8rXHqsVFAzJ89slSp6xx3wbKsBm15JFpRAyvmDr7gf3dPb+BAF7u7QjGer21JoXkUnth/f8oTmob+UUL2eEOjfBn6vJ+xcIfSGoODK8qrG3oZAEv4IB/gfwD9Mchs7jNkgHrxDl/q4Lcc7WEUTbIBdksiHHnssKqwu/jU2azzOoG+ykzzeGHLBvEWpB3VT6epeXlWPstgz2LmehI0x0J8t1Z9c4IEnaVJgcPoAb6ctz1d93sDadDeJnir6Y9vKq1pC9l0oxMWxSRD+F3L6mNcxAQazIxO7+j5jUP4m1bDA6EIlai1OkjVv43VDq/Y12awlbnRhtduWPZVU4OEffltXUEqLZEfvz6WygbAMmfcKZL/e/CbyCLm2JUUWxU8mGny64ASWw/OLJvomHa8aOD9zv+yA2L4YoU4S/8P7nyCWDOV+o5haJ+VUcLQztagJekD6lr+ENZBBt8b/v+kX76OKyF++i3PHShgmhABF/wk+w3X1NJS5Gf7j2ZbYwd2PdwzqwU1mmywAI4ULqTKi6dZ15Hry3x6Pe0Bw1ngy7WH2JJU5lr04AFnTd2+o9vkadmoaSqTpHlOaOo2soHWHOBCpD5MK22a5T5d49LSZ8wR3X2jXi/pZk/H64kAg2SEtXlS0ZLDZ/m9Xx1UeiK6SV3hvG3reFzSUYrC+2twX4rXqKf9lunp4zlYN+xkw041Qy88T8dCLdDTpEMWh8nTXH8VAjFvgmDre8kMtFCeUIp+kCH/PtGGHfy7U+hA3q4H0zqjahUfwtAMqQDJ3Lu/KVNhCYHUspInhrT9vwscerXN8ekfEIVlj9eelFNPxtAZTJKtLJb0yruhcayx/cAvgDZ3Nckyd3tXlhpVZPKg0eDyjyYKrD/CvbgmvpZCVnTVAIw49zAcr2hzrPC9R+TY8u31FkUWdb1MxLgXWJAFTvC7NKcxRax3E9nH+AsQChdAqmlCk2KyPzg1TNDwWi40MGcNIOELTHdkBbgAgH4hjv/zK14Xo9gdoBxrKXZmUetX3LBZfZA2Vmcoh1vDWXlwQCLNo+YcMUSI0v8H2v7mvD0v/lUUHOjxS/PSFjSzit7ZQu+9hkECyg0Vrt+Nuodb4zDzqQ4peBsBlgs9nld8VyIV3ZHG1mCGMjg==",
   ClientId: "9e3a16cf-1e10-44e5-a16b-7eef8ed4729f",
   TenantId: "V824QA",
-  ExpiryTime: "/Date(1784034946841)/"
+  ExpiryTime: "/Date(1785130910624)/"
 });
 
 export const uploadImageToServer = async (file) => {
   if (!file) return null;
-  const { BASE_URL, COMMON_HEADERS } = await import("../api/api.jsx");
+  const { IMAGE_BASE_URL, COMMON_HEADERS, getToast } =
+    await import("../api/api.jsx");
   const { ENDPOINTS } = await import("../api/endpoints.js");
+  const toast = getToast();
 
   const formData = new FormData();
   formData.append("file", file);
@@ -17,29 +19,39 @@ export const uploadImageToServer = async (file) => {
   formData.append("orgId", "100");
 
   try {
-    const res = await fetch(`${BASE_URL}${ENDPOINTS.images.UPLOAD}`, {
+    const res = await fetch(`${IMAGE_BASE_URL}${ENDPOINTS.images.UPLOAD}`, {
       method: "POST",
       headers: {
         TenantId: COMMON_HEADERS.TenantId,
-        OrgId: COMMON_HEADERS.OrganizationId,
+        OrgId: COMMON_HEADERS.OrgId,
         Appkey: IMAGE_UPLOAD_APP_KEY
       },
       body: formData
     });
-    if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
-    const json = await res.json();
-    if (json?.success && json?.publicUrl) return json.publicUrl;
-    throw new Error(json?.message || "Upload failed");
+    const json = await res.json().catch(() => null);
+    if (res.ok && json?.success && json?.publicUrl) {
+      toast?.success("Success", json?.message || "Image uploaded successfully");
+      return json.publicUrl;
+    }
+    throw new Error(
+      json?.error ||
+        json?.ErrorMessage ||
+        json?.message ||
+        `Upload failed: ${res.statusText}`
+    );
   } catch (err) {
     console.error("[ImageUpload] Error:", err);
+    toast?.error("Upload failed", err.message);
     return null;
   }
 };
 
 export const uploadAttachmentToServer = async (file) => {
   if (!file) return null;
-  const { BASE_URL, COMMON_HEADERS } = await import("../api/api.jsx");
+  const { IMAGE_BASE_URL, COMMON_HEADERS, getToast } =
+    await import("../api/api.jsx");
   const { ENDPOINTS } = await import("../api/endpoints.js");
+  const toast = getToast();
 
   const formData = new FormData();
   formData.append("file", file);
@@ -48,23 +60,34 @@ export const uploadAttachmentToServer = async (file) => {
 
   try {
     const res = await fetch(
-      `${BASE_URL}${ENDPOINTS.images.ATTACHMENT_UPLOAD}`,
+      `${IMAGE_BASE_URL}${ENDPOINTS.images.ATTACHMENT_UPLOAD}`,
       {
         method: "POST",
         headers: {
           TenantId: COMMON_HEADERS.TenantId,
-          OrgId: COMMON_HEADERS.OrganizationId,
+          OrgId: COMMON_HEADERS.OrgId,
           Appkey: IMAGE_UPLOAD_APP_KEY
         },
         body: formData
       }
     );
-    if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`);
-    const json = await res.json();
-    if (json?.success && json?.publicUrl) return json.publicUrl;
-    throw new Error(json?.message || "Upload failed");
+    const json = await res.json().catch(() => null);
+    if (res.ok && json?.success && json?.publicUrl) {
+      toast?.success(
+        "Success",
+        json?.message || "Attachment uploaded successfully"
+      );
+      return json.publicUrl;
+    }
+    throw new Error(
+      json?.error ||
+        json?.ErrorMessage ||
+        json?.message ||
+        `Upload failed: ${res.statusText}`
+    );
   } catch (err) {
     console.error("[AttachmentUpload] Error:", err);
+    toast?.error("Upload failed", err.message);
     return null;
   }
 };
