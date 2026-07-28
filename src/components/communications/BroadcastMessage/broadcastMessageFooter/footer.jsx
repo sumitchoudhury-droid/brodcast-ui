@@ -200,6 +200,7 @@ export default function Footer({
 
     const body = {
       name: newTemplateName || selectedTemplateData?.name || "",
+      templateType: "OVERRIDE",
       templateBody: mailBody || smsBody,
       subjectLine: mailSubject || null,
       smsStandardText: smsBody || null,
