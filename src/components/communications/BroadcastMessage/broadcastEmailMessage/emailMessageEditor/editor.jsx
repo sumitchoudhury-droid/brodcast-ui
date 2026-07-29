@@ -579,19 +579,19 @@ export default function Editor({
             ? buildCardHtml(files[i + 1], uploadedAttachments[i + 1])
             : null;
 
-        const leftCol = `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+        const leftCol = `<mj-column width="50%" vertical-align="top" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px">
           <mj-text padding="0px" width="100%">
             <div class="attachment-item">${leftCard}</div>
           </mj-text>
         </mj-column>`;
 
         const rightCol = rightCard
-          ? `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+          ? `<mj-column width="50%" vertical-align="top" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px">
               <mj-text padding="0px" width="100%">
                 <div class="attachment-item">${rightCard}</div>
               </mj-text>
             </mj-column>`
-          : `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+          : `<mj-column width="50%" vertical-align="top" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px">
               <mj-text padding="0px" width="100%"><div>&nbsp;</div></mj-text>
             </mj-column>`;
 
