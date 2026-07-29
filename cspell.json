@@ -59,7 +59,8 @@
     "ondemand",
     "Appkey",
     "appt",
-    "undercount"
+    "undercount",
+    "inlines"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

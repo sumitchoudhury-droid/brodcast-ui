@@ -5,6 +5,7 @@ import {
   uploadImageToServer,
   uploadBase64ToServer
 } from "../../../../../utils/uploadUtils";
+import { prepareHtmlForEmail } from "../../../../../utils/prepareHtmlForEmail";
 
 import "./style.scss";
 import PreviewModal from "../emailMessagePreviewModal/previewModal";
@@ -352,18 +353,6 @@ function clearInternalStyles(html, doc, styles = []) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// minifyHTML
-// ─────────────────────────────────────────────────────────────────────────────
-function minifyHTML(html) {
-  if (!html) return "";
-  return html
-    .replace(/<!--[\s\S]*?-->/g, "") // Remove HTML comments (incl. MSO conditionals)
-    .replace(/\s+/g, " ") // Collapse whitespace
-    .replace(/>\s+</g, "><") // Remove whitespace between tags
-    .trim();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // normalizeHtmlForPreview
 // The canvas HTML produced by getCompiledHtmlFromCanvas already has any
 // div[data-type] elements moved out of their table wrappers (done at the source
@@ -384,85 +373,6 @@ function normalizeHtmlForPreview(rawHtml) {
   } catch {
     return rawHtml;
   }
-}
-
-// prepareHtmlForEmail
-// Strips GrapesJS canvas editor artifacts (style blocks, data-gjs-* attributes,
-// scripts) that are injected into the canvas iframe but are NOT part of the
-// actual email HTML.  This typically saves 20-40 KB before the EmailJS check.
-// ─────────────────────────────────────────────────────────────────────────────
-function prepareHtmlForEmail(rawHtml) {
-  if (!rawHtml) return "";
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(rawHtml, "text/html");
-
-  // 1. Remove editor-only styles/selectors from preserved stylesheets
-  const styles = doc.querySelectorAll("style");
-  styles.forEach((styleTag) => {
-    let content = styleTag.textContent;
-
-    // Check if it is a GrapesJS/editor stylesheet
-    const isEditorStyle =
-      /\.gjs-|#gjs-|\bsp-container\b|\.CodeMirror|pointer-events\s*:\s*none|\[data-gjs-type\]/.test(
-        content
-      );
-    const hasMediaQuery = /@media\s/i.test(content);
-
-    if (isEditorStyle) {
-      if (!hasMediaQuery) {
-        // Drop pure-editor style blocks completely
-        styleTag.remove();
-      } else {
-        // If it has media queries (like canvasCss), we keep it but clean up the editor-only padding rules
-        content = content.replace(
-          /\[data-type="row-frame-column"\]:not\(\[data-is-empty="true"\]\)(?:,\s*\[data-type="column-frame-column"\]:not\(\[data-is-empty="true"\]\))?\s*\{\s*padding-bottom\s*:\s*20px\s*!important;?\s*\}/gi,
-          ""
-        );
-        content = content.replace(
-          /\[data-type="column-frame-column"\]:not\(\[data-is-empty="true"\]\)\s*\{\s*padding-bottom\s*:\s*20px\s*!important;?\s*\}/gi,
-          ""
-        );
-        styleTag.textContent = content;
-      }
-    }
-  });
-
-  // 2. Remove inline padding-bottom on elements that are row-frame-column or column-frame-column
-  const frameElements = doc.querySelectorAll(
-    '[data-type="row-frame-column"], [data-type="column-frame-column"]'
-  );
-  frameElements.forEach((el) => {
-    if (el.style.paddingBottom) {
-      el.style.paddingBottom = "";
-    }
-    const styleAttr = el.getAttribute("style");
-    if (styleAttr) {
-      const cleanStyle = styleAttr
-        .replace(/padding-bottom\s*:\s*[^;]+;?/gi, "")
-        .trim();
-      el.setAttribute("style", cleanStyle);
-    }
-  });
-
-  let html = doc.documentElement.outerHTML;
-
-  // Remove <script> tags – not valid in email bodies
-  html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
-
-  // Remove GrapesJS component data attributes (data-gjs-*)
-  html = html.replace(/\s+data-gjs-[a-zA-Z0-9-]+(?:="[^"]*"|='[^']*')?/g, "");
-
-  // Remove other editor-specific attributes (keep data-type — needed for column layout CSS)
-  html = html.replace(/\s+data-is-empty(?:="[^"]*"|='[^']*')?/g, "");
-  html = html.replace(/\s+data-column-count(?:="[^"]*"|='[^']*')?/g, "");
-  html = html.replace(/\s+data-manual-width(?:="[^"]*"|='[^']*')?/g, "");
-
-  // Remove selection/hover classes that might be in the HTML
-  html = html.replace(/\s*gjs-selected\b/g, "");
-  html = html.replace(/\s*gjs-hovered\b/g, "");
-
-  return minifyHTML(html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

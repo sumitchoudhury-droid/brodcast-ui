@@ -10,6 +10,7 @@ import { useBroadcastForm } from "../../broadcastFormContext";
 import { usePost } from "../../../../hooks/usePost";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
+import { prepareHtmlForEmail } from "../../../../utils/prepareHtmlForEmail";
 // import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
@@ -98,7 +99,11 @@ export default function Footer({
       return;
     }
 
-    const mailBody = editorRef?.current?.getHtml?.() || "";
+    const rawMailBody =
+      editorRef?.current?.getCompiledHtml?.() ||
+      editorRef?.current?.getHtml?.() ||
+      "";
+    const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
     const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
     const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
@@ -148,6 +153,8 @@ export default function Footer({
       channels
     };
 
+    console.log("Before saveTemplate");
+
     saveTemplate(body, {
       onSuccess: (res) => {
         toast.success(res?.message || res?.data?.message);
@@ -157,12 +164,18 @@ export default function Footer({
         setChecked(false);
       }
     });
+
+    console.log("After saveTemplate");
   };
 
   const handleSaveBranch = () => {
     if (!selectedTemplateData?.id) return;
 
-    const mailBody = editorRef?.current?.getHtml?.() || "";
+    const rawMailBody =
+      editorRef?.current?.getCompiledHtml?.() ||
+      editorRef?.current?.getHtml?.() ||
+      "";
+    const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
     const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
     const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
