@@ -31,6 +31,7 @@ const EMPTY_TEMPLATE = `
 <mjml>
   <mj-head>
     <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></mj-font>
+    <mj-font name="Roboto" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"></mj-font>
   </mj-head>
   <mj-body width="600px" background-color="transparent" padding="0px" margin="0px">
 
@@ -40,7 +41,7 @@ const EMPTY_TEMPLATE = `
 
 const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="16px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height="20px">
+    <mj-text padding="16px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Arial" line-height="20px">
       Add Signature
     </mj-text>
   </mj-column>
@@ -48,7 +49,7 @@ const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="s
 
 // const UNSUBSCRIBE_SECTION_HTML = `<mj-section full-width="full-width" data-type="unsubscribe-section" padding="0px" margin="0px" width="100%" background-color="transparent">
 //   <mj-column padding="0px" margin="0px" width="100%">
-//     <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Inter" line-height="20px" align="center">
+//     <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Arial" line-height="20px" align="center">
 //       Click here to unsubscribe: <a href="https://mh.care/stop" style="color:#929FB1; text-decoration:underline;">https://mh.care/stop</a>
 //     </mj-text>
 //   </mj-column>
@@ -939,8 +940,8 @@ export default function Editor({
       showDevices: false,
       panels: { defaults: [] },
       canvasCss: `
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; font-family: Arial, sans-serif; }
                 body {
                   min-height: 100%;
                   word-break: break-word;
@@ -1309,16 +1310,16 @@ export default function Editor({
               "padding-left": "0px",
               margin: "0px",
               width: "100%",
-              "font-family": "Inter"
+              "font-family": "Arial"
             }
           : typeName === "mj-section"
             ? {
                 padding: "20px",
                 margin: "0px",
                 width: "100%",
-                "font-family": "Inter"
+                "font-family": "Arial"
               }
-            : { "font-family": "Inter" };
+            : { "font-family": "Arial" };
 
         editor.Components.addType(typeName, {
           model: {
@@ -2787,6 +2788,21 @@ export default function Editor({
         if (style["vertical-align"])
           attributes["vertical-align"] = style["vertical-align"];
 
+        // Typography — MJML reads these as attributes to produce the inline
+        // style in the compiled email. Without syncing, changes made via the
+        // style manager only touch the model style and get ignored on render.
+        if (style["font-family"])
+          attributes["font-family"] = style["font-family"];
+        if (style["font-size"]) attributes["font-size"] = style["font-size"];
+        if (style["font-weight"])
+          attributes["font-weight"] = style["font-weight"];
+        if (style["font-style"]) attributes["font-style"] = style["font-style"];
+        if (style["color"]) attributes["color"] = style["color"];
+        if (style["line-height"])
+          attributes["line-height"] = style["line-height"];
+        if (style["letter-spacing"])
+          attributes["letter-spacing"] = style["letter-spacing"];
+
         if (Object.keys(attributes).length > 0) {
           const currentAttrs = comp.getAttributes();
           const toUpdate = {};
@@ -3345,13 +3361,13 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("heading", {
       label: "Heading",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; font-family: Inter, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;">Title goes here</div>`
+      content: `<div style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;">Title goes here</div>`
     });
 
     bm.add("paragraph", {
       label: "Paragraph",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; font-family: Inter, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;">Paragraph Text</div>`
+      content: `<div style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;">Paragraph Text</div>`
     });
 
     bm.add("image", {
@@ -3375,7 +3391,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "Button",
       category: "Content",
       content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
-        <a href="#" style="display: inline-block; background-color: #295E3F; color: #ffffff; border-radius: 8px; padding: 10px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 20px;">
+        <a href="#" style="display: inline-block; background-color: #295E3F; color: #ffffff; border-radius: 8px; padding: 10px 20px; font-family: Arial, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 20px;">
           Click Here
         </a>
       </div>`
@@ -3407,7 +3423,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "Header Banner",
       category: "Components",
       content: `<div style="padding: 20px; background-color: #2f6f4e; text-align: center; width: 100%; box-sizing: border-box;">
-        <div style="font-family: Inter, sans-serif; color: #ffffff; font-size: 24px; font-weight: bold;">Your Header Here</div>
+        <div style="font-family: Arial, sans-serif; color: #ffffff; font-size: 24px; font-weight: bold;">Your Header Here</div>
       </div>`
     });
 
@@ -3415,7 +3431,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "Text Block",
       category: "Components",
       content: `<div style="padding: 20px; background-color: transparent; text-align: left; width: 100%; box-sizing: border-box;">
-        <div style="font-family: Inter, sans-serif; font-size: 14px; color: #555555; line-height: 1.6;">Add your content here. This is a paragraph of text.</div>
+        <div style="font-family: Arial, sans-serif; font-size: 14px; color: #555555; line-height: 1.6;">Add your content here. This is a paragraph of text.</div>
       </div>`
     });
 
@@ -3423,7 +3439,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "CTA Button",
       category: "Components",
       content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
-        <a href="#" style="display: block; background-color: #2f6f4e; color: #ffffff; border-radius: 6px; padding: 10px 20px; font-family: Inter, sans-serif; font-size: 14px; text-decoration: none;">Click Here</a>
+        <a href="#" style="display: block; background-color: #2f6f4e; color: #ffffff; border-radius: 6px; padding: 10px 20px; font-family: Arial, sans-serif; font-size: 14px; text-decoration: none;">Click Here</a>
       </div>`
     });
 
@@ -3443,7 +3459,7 @@ function registerBlocks(editor, initialTemplate) {
             <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter;">Add Image</span>
           </div>
         </div>
-        <div style="font-family: Inter, sans-serif; font-size: 14px; color: #555555; line-height: 1.6; padding-top: 10px;">Add Image.</div>
+        <div style="font-family: Arial, sans-serif; font-size: 14px; color: #555555; line-height: 1.6; padding-top: 10px;">Add Image.</div>
       </div>`
     });
   } else {
@@ -3470,7 +3486,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
+          <mj-text font-family="Arial" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
             Title goes here
           </mj-text>
         </mj-column>
@@ -3482,7 +3498,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
+          <mj-text font-family="Arial" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
             Paragraph Text
           </mj-text>
         </mj-column>
@@ -3515,7 +3531,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
+          <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Arial" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>
@@ -3558,7 +3574,7 @@ function registerBlocks(editor, initialTemplate) {
       content: `
         <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
           <mj-column padding="0px" margin="0px" width="100%">
-            <mj-text font-family="Inter" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
+            <mj-text font-family="Arial" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
               Your Header Here
             </mj-text>
           </mj-column>
@@ -3571,7 +3587,7 @@ function registerBlocks(editor, initialTemplate) {
       content: `
         <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
           <mj-column padding="0px" margin="0px" width="100%">
-            <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+            <mj-text font-family="Arial" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
               Add your content here. This is a paragraph of text.
             </mj-text>
           </mj-column>
@@ -3584,7 +3600,7 @@ function registerBlocks(editor, initialTemplate) {
       content: `
         <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
           <mj-column padding="0px" margin="0px" width="100%">
-            <mj-button font-family="Inter" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
+            <mj-button font-family="Arial" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
               Click Here
             </mj-button>
           </mj-column>
@@ -3598,7 +3614,7 @@ function registerBlocks(editor, initialTemplate) {
         <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
           <mj-column padding="0px" margin="0px" width="100%">
             <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center"></mj-image>
-            <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+            <mj-text font-family="Arial" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
               Add Image.
             </mj-text>
           </mj-column>

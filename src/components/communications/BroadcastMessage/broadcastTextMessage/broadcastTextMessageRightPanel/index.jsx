@@ -32,7 +32,7 @@ export default function BroadcastTextMessageRightPanel({
   const [phoneNumber, setPhoneNumber] = useState("");
   const [textColor, setTextColor] = useState("#000000");
   const [typography, setTypography] = useState({
-    fontFamily: "Inter",
+    fontFamily: "Arial",
     fontWeight: "400",
     fontSize: "14",
     textAlign: "left"

@@ -222,6 +222,13 @@ function focusFirstListCell(editor) {
 // ─────────────────────────────────────────────────────────────────────────────
 function buildListHtml({ tag, lines, color, fontSize, fontFamily }) {
   const isOrdered = tag === "ol";
+  const safeFontFamily =
+    typeof fontFamily === "string" &&
+    /\s/.test(fontFamily) &&
+    !/^["']/.test(fontFamily)
+      ? `"${fontFamily}"`
+      : fontFamily;
+  fontFamily = safeFontFamily;
 
   const rows = lines
     .map((line, i) => {
@@ -666,7 +673,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
 
   const [textColor, setTextColor] = useState("#000000");
   const [typography, setTypography] = useState({
-    fontFamily: "Inter",
+    fontFamily: "Arial",
     fontWeight: "400",
     fontSize: "14",
     textAlign: "left"
@@ -947,7 +954,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           fontFamily:
             style["font-family"]?.replace(/['"]/g, "") ||
             computedStyle["font-family"]?.replace(/['"]/g, "") ||
-            "Inter",
+            "Arial",
           fontWeight:
             style["font-weight"] || computedStyle["font-weight"] || "400",
           fontSize: currentFontSize,
@@ -1622,7 +1629,18 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           : key === "fontSize"
             ? "font-size"
             : "text-align";
-    const cssValue = key === "fontSize" ? `${value}px` : value;
+    let cssValue = key === "fontSize" ? `${value}px` : value;
+    // Quote multi-word font-family values (e.g. "Times New Roman") so CSS
+    // parsers and email clients treat the value as a single identifier
+    // rather than three separate ones.
+    if (
+      cssKey === "font-family" &&
+      typeof cssValue === "string" &&
+      /\s/.test(cssValue) &&
+      !/^["']/.test(cssValue)
+    ) {
+      cssValue = `"${cssValue}"`;
+    }
 
     if (key === "textAlign") {
       const applyTextAlignRecursive = (comp, align) => {
