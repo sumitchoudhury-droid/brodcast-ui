@@ -100,6 +100,7 @@ export default function Footer({
 
     const mailBody = editorRef?.current?.getHtml?.() || "";
     const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+    const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
     const channels = selectedModes
       .map((mode) => {
@@ -110,7 +111,7 @@ export default function Footer({
             templateBody: mailBody,
             subjectLine: mailSubject || null,
             smsStandardText: null,
-            attachments: []
+            attachments: mailAttachments
           };
         }
         if (lowerMode === "sms") {
@@ -163,6 +164,7 @@ export default function Footer({
 
     const mailBody = editorRef?.current?.getHtml?.() || "";
     const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+    const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
     const channels = selectedModes
       .map((mode) => {
@@ -173,7 +175,7 @@ export default function Footer({
             templateBody: mailBody,
             subjectLine: mailSubject || null,
             smsStandardText: null,
-            attachments: []
+            attachments: mailAttachments
           };
         }
         if (lowerMode === "sms") {
@@ -200,6 +202,7 @@ export default function Footer({
 
     const body = {
       name: newTemplateName || selectedTemplateData?.name || "",
+      templateType: "OVERRIDE",
       templateBody: mailBody || smsBody,
       subjectLine: mailSubject || null,
       smsStandardText: smsBody || null,
