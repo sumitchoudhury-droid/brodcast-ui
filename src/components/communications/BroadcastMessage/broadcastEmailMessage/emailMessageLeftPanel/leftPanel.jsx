@@ -110,11 +110,22 @@ export default function LeftPanel({
           id: t.id,
           img: null,
           name: t.name,
+          templateType: t.templateType,
           html: mailChannel.templateBody,
           subject: mailChannel.subjectLine
         };
       });
   }, [templatesData]);
+
+  const libraryTemplates = useMemo(
+    () => apiSavedTemplates.filter((t) => t.templateType === "ENTERPRISE"),
+    [apiSavedTemplates]
+  );
+
+  const savedTemplates = useMemo(
+    () => apiSavedTemplates.filter((t) => t.templateType === "NEW"),
+    [apiSavedTemplates]
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
@@ -424,7 +435,7 @@ export default function LeftPanel({
                     </div>
                   );
                 }
-                const filtered = apiSavedTemplates.filter((o) =>
+                const filtered = libraryTemplates.filter((o) =>
                   o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
                 );
                 return (
@@ -472,7 +483,7 @@ export default function LeftPanel({
                     </div>
                   );
                 }
-                const filtered = apiSavedTemplates.filter((o) =>
+                const filtered = savedTemplates.filter((o) =>
                   o.name.toLowerCase().includes(debouncedQuery.toLowerCase())
                 );
                 return (
