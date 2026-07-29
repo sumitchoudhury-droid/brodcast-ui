@@ -62,7 +62,7 @@ export const TextFontStyleContainer = ({
     setShowColorPopover((prev) => !prev);
   };
 
-  const fontFamilies = ["Inter", "Roboto", "Arial", "Times New Roman"];
+  const fontFamilies = ["Arial", "Inter", "Roboto", "Times New Roman"];
   const fontWeights = [
     { label: "Regular", value: "400" },
     { label: "Medium", value: "500" },

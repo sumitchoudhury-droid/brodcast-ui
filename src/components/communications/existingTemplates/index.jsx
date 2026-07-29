@@ -305,6 +305,12 @@ function ExistingTemplates({
 
   const currentTimeMs = (progress / 100) * (duration || 0);
 
+  // SMS previews only render in the mobile phone mockup — no desktop view
+  // is meaningful for a text message, so force mobile whenever SMS is active
+  // (derived at render time so we don't fight the user's stored preference
+  // for Mail/Voice tabs).
+  const effectiveViewMode = activeModeTab === "SMS" ? "mobile" : viewMode;
+
   // Stop speech when tab changes away from Voice or template changes
   useEffect(() => {
     if (activeModeTab !== "Voice") {
@@ -622,7 +628,7 @@ function ExistingTemplates({
                 </div>
                 <div className="viewMode">
                   <div
-                    className={`modeIcon ${viewMode === "mobile" ? "active" : ""}`}
+                    className={`modeIcon ${effectiveViewMode === "mobile" ? "active" : ""}`}
                     onClick={() => setViewMode("mobile")}
                   >
                     <svg
@@ -643,7 +649,7 @@ function ExistingTemplates({
                   </div>
                   {activeModeTab !== "SMS" && (
                     <div
-                      className={`modeIcon ${viewMode === "desktop" ? "active" : ""}`}
+                      className={`modeIcon ${effectiveViewMode === "desktop" ? "active" : ""}`}
                       onClick={() => setViewMode("desktop")}
                     >
                       <svg
@@ -683,7 +689,7 @@ function ExistingTemplates({
                   <div className="previewTag">
                     <p>Preview</p>
                   </div>
-                  {viewMode === "mobile" ? (
+                  {effectiveViewMode === "mobile" ? (
                     <div className="mobilePhoneMockup">
                       <div className="phoneNotch" />
                       <div className="phoneStatusBar">

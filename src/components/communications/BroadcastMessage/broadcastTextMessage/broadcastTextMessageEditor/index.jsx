@@ -114,7 +114,7 @@ const BroadcastTextMessageEditor = ({
             padding-top: 10px !important;
             color: #475467 !important;
             font-size: 14px !important;
-            font-family: Inter, sans-serif !important;
+            font-family: Arial, sans-serif !important;
             display: block !important;
           }
         `
@@ -317,7 +317,7 @@ const BroadcastTextMessageEditor = ({
                 "data-placeholder":
                   "Start typing or drag and drop a placeholder from left panel.",
                 style:
-                  "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
+                  "padding: 10px 16px; font-family: Arial, sans-serif; font-size: 16px; outline: none; color: #181D25; min-height: 40px;"
               },
               content: "",
               editable: true,
@@ -334,7 +334,7 @@ const BroadcastTextMessageEditor = ({
             //   attributes: {
             //     class: "unsubscribe-footer",
             //     style:
-            //       "padding: 10px 16px; color: #475467; font-size: 14px;  font-family: Inter, sans-serif;"
+            //       "padding: 10px 16px; color: #475467; font-size: 14px;  font-family: Arial, sans-serif;"
             //   },
             //   content: `TXT Stop Optout`,
             //   editable: true,
@@ -973,7 +973,7 @@ const BroadcastTextMessageEditor = ({
                 attributes: {
                   class: "text-signature-section",
                   style:
-                    "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+                    "padding: 10px 16px; font-family: Arial, sans-serif; font-size: 16px; outline: none; color: #181D25;"
                 },
                 content: selectedValue,
                 editable: true,
@@ -1019,7 +1019,7 @@ const BroadcastTextMessageEditor = ({
             (c) => c.getAttributes?.()?.["data-form-value"] === text
           );
 
-          const linkHtml = `Kindly review and submit the form at the link below.<br><a href="${url}" target="_blank" style="color: #1570EF; text-decoration: underline; font-family: Inter, sans-serif; font-size: 16px;">${url}</a>`;
+          const linkHtml = `Kindly review and submit the form at the link below.<br><a href="${url}" target="_blank" style="color: #1570EF; text-decoration: underline; font-family: Arial, sans-serif; font-size: 16px;">${url}</a>`;
 
           if (formComp) {
             if (!url) {
@@ -1040,7 +1040,7 @@ const BroadcastTextMessageEditor = ({
                   class: "text-form-section",
                   "data-form-value": text,
                   style:
-                    "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+                    "padding: 10px 16px; font-family: Arial, sans-serif; font-size: 16px; outline: none; color: #181D25;"
                 },
                 content: linkHtml,
                 editable: true,
@@ -1084,7 +1084,7 @@ const BroadcastTextMessageEditor = ({
             type: "text",
             attributes: {
               style:
-                "padding: 10px 16px; font-family: Inter, sans-serif; font-size: 16px; outline: none; color: #181D25;"
+                "padding: 10px 16px; font-family: Arial, sans-serif; font-size: 16px; outline: none; color: #181D25;"
             },
             content: html,
             editable: true,

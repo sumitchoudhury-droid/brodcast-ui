@@ -30,23 +30,18 @@ import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkMod
 const EMPTY_TEMPLATE = `
 <mjml>
   <mj-head>
-    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-    <mj-attributes>
-      <mj-all font-family="Inter, sans-serif" />
-      <mj-text padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
-      <mj-image padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
-      <mj-button padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" />
-    </mj-attributes>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></mj-font>
+    <mj-font name="Roboto" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"></mj-font>
   </mj-head>
   <mj-body width="600px" background-color="transparent" padding="0px" margin="0px">
- 
+
   </mj-body>
 </mjml>
 `.trim();
 
 const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
-    <mj-text padding="16px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Inter" line-height="20px">
+    <mj-text padding="16px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Arial" line-height="20px">
       Add Signature
     </mj-text>
   </mj-column>
@@ -54,7 +49,7 @@ const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="s
 
 // const UNSUBSCRIBE_SECTION_HTML = `<mj-section full-width="full-width" data-type="unsubscribe-section" padding="0px" margin="0px" width="100%" background-color="transparent">
 //   <mj-column padding="0px" margin="0px" width="100%">
-//     <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Inter" line-height="20px" align="center">
+//     <mj-text padding="20px" margin="0px" color="#929FB1" font-size="14px" font-weight="400" font-family="Arial" line-height="20px" align="center">
 //       Click here to unsubscribe: <a href="https://mh.care/stop" style="color:#929FB1; text-decoration:underline;">https://mh.care/stop</a>
 //     </mj-text>
 //   </mj-column>
@@ -360,7 +355,7 @@ function reconcileFramePlaceholders(editor, isReconciling) {
 
     // Rebalance mj-column widths inside every column-frame-section
     // so blocks are displayed side-by-side with equal width.
-    // FORCE EQUAL only if column count changed.
+    // Always enforce equal widths (auto-equal is the current design).
     frameCols.forEach((col) => {
       const attrs = col.getAttributes() || {};
       if (attrs["data-type"] !== "column-frame-section") return;
@@ -373,15 +368,16 @@ function reconcileFramePlaceholders(editor, isReconciling) {
       const n = columns.length;
       if (n === 0) return;
 
-      const lastN = parseInt(attrs["data-column-count"] || "0", 10);
-      if (n !== lastN) {
-        // Enforce equal widths and reset manual tags
-        const equalWidth = `${(100 / n).toFixed(4)}%`;
-        columns.forEach((c) => {
-          c.addAttributes({
-            width: equalWidth,
-            "data-manual-width": "false"
-          });
+      const equalWidth = `${(100 / n).toFixed(4)}%`;
+      columns.forEach((c) => {
+        const currentAttrs = c.getAttributes() || {};
+        const needsWidth = currentAttrs["width"] !== equalWidth;
+        const needsVAlign = !currentAttrs["vertical-align"];
+        if (needsWidth || needsVAlign) {
+          const toSet = {};
+          if (needsWidth) toSet.width = equalWidth;
+          if (needsVAlign) toSet["vertical-align"] = "top";
+          c.addAttributes(toSet);
           // Each mj-column renders independently via grapesjs-mjml's
           // getTemplateFromMjml. addAttributes updates the model but the
           // view only picks up the new width when render() is called on
@@ -390,7 +386,11 @@ function reconcileFramePlaceholders(editor, isReconciling) {
           if (view && typeof view.render === "function") {
             view.render();
           }
-        });
+        }
+      });
+
+      const lastN = parseInt(attrs["data-column-count"] || "0", 10);
+      if (n !== lastN) {
         col.addAttributes({ "data-column-count": n.toString() });
       }
     });
@@ -580,19 +580,19 @@ export default function Editor({
             ? buildCardHtml(files[i + 1], uploadedAttachments[i + 1])
             : null;
 
-        const leftCol = `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+        const leftCol = `<mj-column width="50%" vertical-align="top" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px">
           <mj-text padding="0px" width="100%">
             <div class="attachment-item">${leftCard}</div>
           </mj-text>
         </mj-column>`;
 
         const rightCol = rightCard
-          ? `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+          ? `<mj-column width="50%" vertical-align="top" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px">
               <mj-text padding="0px" width="100%">
                 <div class="attachment-item">${rightCard}</div>
               </mj-text>
             </mj-column>`
-          : `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+          : `<mj-column width="50%" vertical-align="top" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px">
               <mj-text padding="0px" width="100%"><div>&nbsp;</div></mj-text>
             </mj-column>`;
 
@@ -730,7 +730,7 @@ export default function Editor({
                 const added = column
                   .components()
                   .add(
-                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                    `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center"></mj-image>`,
                     { at: index }
                   );
                 const newComp = Array.isArray(added) ? added[0] : added;
@@ -741,7 +741,7 @@ export default function Editor({
             } else {
               // Fallback: append to column if placeholder not found
               column.append(
-                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+                `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center"></mj-image>`
               );
             }
             editor.trigger("component:update", column);
@@ -778,7 +778,7 @@ export default function Editor({
                   const added = col
                     .components()
                     .add(
-                      `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`,
+                      `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center"></mj-image>`,
                       { at: index }
                     );
                   const newComp = Array.isArray(added) ? added[0] : added;
@@ -790,7 +790,7 @@ export default function Editor({
                 // Fallback: replace whole column only if individual component look-up fails
                 col.components().reset();
                 const added = col.append(
-                  `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center" />`
+                  `<mj-image src="${dataUrl}" padding="0px" margin="0px" width="${widthAttr}" height="${heightAttr}" align="center"></mj-image>`
                 );
                 const newComp = Array.isArray(added) ? added[0] : added;
                 if (newComp) editor.select(newComp);
@@ -940,8 +940,8 @@ export default function Editor({
       showDevices: false,
       panels: { defaults: [] },
       canvasCss: `
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+                html, body { margin: 0; min-height: 100%; width: 100%; overflow-x: hidden; font-family: Arial, sans-serif; }
                 body {
                   min-height: 100%;
                   word-break: break-word;
@@ -1166,12 +1166,15 @@ export default function Editor({
                    section's <td>. Using flexbox here avoids inline-block
                    whitespace-gap issues that would push the second column down.
                    The column's own render sets max-width from its width attribute,
-                   so flex children still respect the calculated equal widths. */
+                   so flex children still respect the calculated equal widths.
+                   NOTE: MJML's compiled output uses inline display:inline-block
+                   on each column div, which is what actually renders in email
+                   clients — the flex here is a canvas-only visual aid. */
                 [data-type="column-frame-section"] > table > tbody > tr > td {
                   display: flex !important;
                   flex-direction: row !important;
                   flex-wrap: nowrap !important;
-                  align-items: flex-start !important;
+                  align-items: stretch !important;
                 }
 
                 /* Hide drag indicator globally by default (e.g. for heading, paragraph, image, attachment) */
@@ -1307,16 +1310,16 @@ export default function Editor({
               "padding-left": "0px",
               margin: "0px",
               width: "100%",
-              "font-family": "Inter"
+              "font-family": "Arial"
             }
           : typeName === "mj-section"
             ? {
                 padding: "20px",
                 margin: "0px",
                 width: "100%",
-                "font-family": "Inter"
+                "font-family": "Arial"
               }
-            : { "font-family": "Inter" };
+            : { "font-family": "Arial" };
 
         editor.Components.addType(typeName, {
           model: {
@@ -1448,12 +1451,20 @@ export default function Editor({
           if (isFrame) {
             const isColumnFrame =
               comp.getAttributes?.()?.["data-type"] === "column-frame-section";
+            const extraFrameAttrs = isColumnFrame
+              ? {
+                  "text-align":
+                    comp.getAttributes()?.["text-align"] || "center",
+                  "vertical-align":
+                    comp.getAttributes()?.["vertical-align"] || "top"
+                }
+              : {};
             comp.addAttributes({
               padding: "20px",
               margin: "0px",
-              "data-gjs-direction": isColumnFrame ? "v" : "h"
+              "data-gjs-direction": isColumnFrame ? "h" : "v",
+              ...extraFrameAttrs
             });
-            if (isColumnFrame) comp.set("direction", "v");
           }
         }
 
@@ -1702,17 +1713,21 @@ export default function Editor({
           // ── Case 2: mj-section inside another mj-section ─────────
           if (type === "mj-section" && parentType === "mj-section") {
             // EXEMPT: If it's a Column Frame, allow it to stay inside the section (useful for nesting)
-            // Wrap in mj-column so it participates in side-by-side balancing
+            // Wrap in mj-column at the SAME index so drop position is preserved
             if (
               component.getAttributes()?.["data-type"] ===
               "column-frame-section"
             ) {
+              const cloned = component.clone();
+              const idx = parent.components().indexOf(component);
+              component.remove();
               const newCol = parent
                 .components()
                 .add(
-                  `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`
+                  `<mj-column padding="0px" margin="0px" width="100%" vertical-align="top"></mj-column>`,
+                  { at: idx }
                 );
-              newCol.append(component);
+              newCol.append(cloned);
               return;
             }
 
@@ -1746,13 +1761,14 @@ export default function Editor({
             const newCol = parent
               .components()
               .add(
-                `<mj-column padding="0px" margin="0px" width="100%"></mj-column>`,
+                `<mj-column padding="0px" margin="0px" width="100%" vertical-align="top"></mj-column>`,
                 { at: idx }
               );
             newCol.addAttributes({
               padding: "0px",
               margin: "0px",
-              width: "100%"
+              width: "100%",
+              "vertical-align": "top"
             });
             newCol.append(cloned);
             return;
@@ -2767,6 +2783,26 @@ export default function Editor({
         if (style["border-radius"])
           attributes["border-radius"] = style["border-radius"];
 
+        // Alignment — critical for column layout in emails
+        if (style["text-align"]) attributes["text-align"] = style["text-align"];
+        if (style["vertical-align"])
+          attributes["vertical-align"] = style["vertical-align"];
+
+        // Typography — MJML reads these as attributes to produce the inline
+        // style in the compiled email. Without syncing, changes made via the
+        // style manager only touch the model style and get ignored on render.
+        if (style["font-family"])
+          attributes["font-family"] = style["font-family"];
+        if (style["font-size"]) attributes["font-size"] = style["font-size"];
+        if (style["font-weight"])
+          attributes["font-weight"] = style["font-weight"];
+        if (style["font-style"]) attributes["font-style"] = style["font-style"];
+        if (style["color"]) attributes["color"] = style["color"];
+        if (style["line-height"])
+          attributes["line-height"] = style["line-height"];
+        if (style["letter-spacing"])
+          attributes["letter-spacing"] = style["letter-spacing"];
+
         if (Object.keys(attributes).length > 0) {
           const currentAttrs = comp.getAttributes();
           const toUpdate = {};
@@ -3325,13 +3361,13 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("heading", {
       label: "Heading",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; font-family: Inter, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;">Title goes here</div>`
+      content: `<div style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;">Title goes here</div>`
     });
 
     bm.add("paragraph", {
       label: "Paragraph",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; font-family: Inter, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;">Paragraph Text</div>`
+      content: `<div style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;">Paragraph Text</div>`
     });
 
     bm.add("image", {
@@ -3355,7 +3391,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "Button",
       category: "Content",
       content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
-        <a href="#" style="display: inline-block; background-color: #295E3F; color: #ffffff; border-radius: 8px; padding: 10px 20px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 20px;">
+        <a href="#" style="display: inline-block; background-color: #295E3F; color: #ffffff; border-radius: 8px; padding: 10px 20px; font-family: Arial, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 20px;">
           Click Here
         </a>
       </div>`
@@ -3387,7 +3423,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "Header Banner",
       category: "Components",
       content: `<div style="padding: 20px; background-color: #2f6f4e; text-align: center; width: 100%; box-sizing: border-box;">
-        <div style="font-family: Inter, sans-serif; color: #ffffff; font-size: 24px; font-weight: bold;">Your Header Here</div>
+        <div style="font-family: Arial, sans-serif; color: #ffffff; font-size: 24px; font-weight: bold;">Your Header Here</div>
       </div>`
     });
 
@@ -3395,7 +3431,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "Text Block",
       category: "Components",
       content: `<div style="padding: 20px; background-color: transparent; text-align: left; width: 100%; box-sizing: border-box;">
-        <div style="font-family: Inter, sans-serif; font-size: 14px; color: #555555; line-height: 1.6;">Add your content here. This is a paragraph of text.</div>
+        <div style="font-family: Arial, sans-serif; font-size: 14px; color: #555555; line-height: 1.6;">Add your content here. This is a paragraph of text.</div>
       </div>`
     });
 
@@ -3403,7 +3439,7 @@ function registerBlocks(editor, initialTemplate) {
       label: "CTA Button",
       category: "Components",
       content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
-        <a href="#" style="display: block; background-color: #2f6f4e; color: #ffffff; border-radius: 6px; padding: 10px 20px; font-family: Inter, sans-serif; font-size: 14px; text-decoration: none;">Click Here</a>
+        <a href="#" style="display: block; background-color: #2f6f4e; color: #ffffff; border-radius: 6px; padding: 10px 20px; font-family: Arial, sans-serif; font-size: 14px; text-decoration: none;">Click Here</a>
       </div>`
     });
 
@@ -3423,7 +3459,7 @@ function registerBlocks(editor, initialTemplate) {
             <span style="font-size:14px;font-weight:500;color:#4D5761;font-family:Inter;">Add Image</span>
           </div>
         </div>
-        <div style="font-family: Inter, sans-serif; font-size: 14px; color: #555555; line-height: 1.6; padding-top: 10px;">Add Image.</div>
+        <div style="font-family: Arial, sans-serif; font-size: 14px; color: #555555; line-height: 1.6; padding-top: 10px;">Add Image.</div>
       </div>`
     });
   } else {
@@ -3440,7 +3476,7 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("column", {
       label: "Frame - Column",
       category: "Blocks",
-      content: `<mj-section data-type="column-frame-section" data-gjs-direction="v" data-is-empty="true" padding="20px" margin="0px" width="100%" background-color="transparent">
+      content: `<mj-section data-type="column-frame-section" data-gjs-direction="h" data-is-empty="true" padding="20px" margin="0px" width="100%" background-color="transparent" text-align="center" vertical-align="top">
       </mj-section>`
     });
 
@@ -3450,7 +3486,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Inter" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
+          <mj-text font-family="Arial" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
             Title goes here
           </mj-text>
         </mj-column>
@@ -3462,7 +3498,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
+          <mj-text font-family="Arial" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
             Paragraph Text
           </mj-text>
         </mj-column>
@@ -3495,7 +3531,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Inter" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
+          <mj-button background-color="#295E3F" color="#ffffff" border-radius="8px" padding="0px" margin="0px" width="fit-content" font-family="Arial" font-size="14px" font-weight="500" line-height="20px" align="center" text-decoration="none">
             Click Here
           </mj-button>
         </mj-column>
@@ -3507,7 +3543,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="16px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-divider border-color="#dddddd" border-width="1px" padding="0px" margin="0px" />
+          <mj-divider border-color="#dddddd" border-width="1px" padding="0px" margin="0px"></mj-divider>
         </mj-column>
       </mj-section>`
     });
@@ -3538,7 +3574,7 @@ function registerBlocks(editor, initialTemplate) {
       content: `
         <mj-section full-width="full-width" padding="0px" margin="0px" width="100%" background-color="#2f6f4e">
           <mj-column padding="0px" margin="0px" width="100%">
-            <mj-text font-family="Inter" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
+            <mj-text font-family="Arial" align="center" color="#ffffff" font-size="24px" font-weight="bold" padding="0px" margin="0px">
               Your Header Here
             </mj-text>
           </mj-column>
@@ -3551,7 +3587,7 @@ function registerBlocks(editor, initialTemplate) {
       content: `
         <mj-section full-width="full-width" background-color="transparent" padding="0px" margin="0px" width="100%">
           <mj-column padding="0px" margin="0px" width="100%">
-            <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+            <mj-text font-family="Arial" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
               Add your content here. This is a paragraph of text.
             </mj-text>
           </mj-column>
@@ -3564,7 +3600,7 @@ function registerBlocks(editor, initialTemplate) {
       content: `
         <mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
           <mj-column padding="0px" margin="0px" width="100%">
-            <mj-button font-family="Inter" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
+            <mj-button font-family="Arial" background-color="#2f6f4e" color="#ffffff" border-radius="6px" font-size="14px" width="100%" padding="0px" margin="0px" href="#" text-decoration="none">
               Click Here
             </mj-button>
           </mj-column>
@@ -3577,8 +3613,8 @@ function registerBlocks(editor, initialTemplate) {
       content: `
         <mj-section full-width="full-width" background-color="#000000" padding="0px" margin="0px" width="100%">
           <mj-column padding="0px" margin="0px" width="100%">
-            <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center" />
-            <mj-text font-family="Inter" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
+            <mj-image src="${uploadImage}" padding="0px" margin="0px" width="100%" align="center"></mj-image>
+            <mj-text font-family="Arial" font-size="14px" color="#555555" line-height="1.6" padding="0px" margin="0px">
               Add Image.
             </mj-text>
           </mj-column>
