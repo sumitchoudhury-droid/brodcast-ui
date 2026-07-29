@@ -144,6 +144,24 @@ function isInsideColumnFrame(comp) {
   return !!findNearestColumnFrame(comp);
 }
 
+// Check if a component sits inside the attachment block (mj-wrapper with
+// data-type="attachment-filled"). Used to exempt attachment mj-columns from
+// the generic padding/width overrides so they keep their 50% pair layout.
+function isInsideAttachmentBlock(comp) {
+  let ancestor = comp?.parent?.();
+  while (ancestor) {
+    try {
+      if (ancestor.getAttributes?.()?.["data-type"] === "attachment-filled") {
+        return true;
+      }
+    } catch {
+      /* skip destroyed */
+    }
+    ancestor = ancestor.parent();
+  }
+  return false;
+}
+
 // Find the nearest column-frame ancestor
 function findNearestColumnFrame(comp) {
   let ancestor = comp.parent();
@@ -396,6 +414,7 @@ export default function Editor({
   const isUnwrapping = useRef(false);
   const imageTargetCompRef = useRef(null);
   const isHtmlTemplate = useRef(false);
+  const attachmentUrlsRef = useRef([]);
   isHtmlTemplate.current = !!(
     initialTemplate &&
     !initialTemplate.includes("<mjml>") &&
@@ -446,9 +465,13 @@ export default function Editor({
     }
     if (!targetComp) return;
 
-    const uploadedUrls = await Promise.all(
+    const uploadedAttachments = await Promise.all(
       files.map((file) => uploadAttachmentToServer(file))
     );
+
+    uploadedAttachments.forEach((att) => {
+      if (att?.publicUrl) attachmentUrlsRef.current.push(att);
+    });
 
     const docIcon = `data:image/svg+xml;utf8,${encodeURIComponent(
       '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F2F4F7"/><path d="M12 12V28H28V18L22 12H12Z" fill="white" stroke="#2563EB" stroke-width="2"/><path d="M22 12V18H28" stroke="#2563EB" stroke-width="2"/><text x="13" y="24" fill="#2563EB" font-family="Arial" font-size="5" font-weight="bold">DOC</text></svg>'
@@ -457,42 +480,74 @@ export default function Editor({
       '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="white" stroke="#D0D5DD"/><path d="M16 8L8 16M8 8L16 16" stroke="#667085" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     )}`;
 
-    const itemsHtml = files
-      .map((file, i) => {
-        const sizeInBytes = file.size;
-        const sizeDisplay =
-          sizeInBytes < 1024 * 1024
-            ? `${(sizeInBytes / 1024).toFixed(2)} KB`
-            : `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
-        const isDoc = /\.docx?$/i.test(file.name);
-        const icon = isDoc ? docIcon : pdfIcon;
-        const downloadUrl = uploadedUrls[i] || URL.createObjectURL(file);
-        const displayName =
-          file.name.length > 28
-            ? file.name.substring(0, 25) + "..."
-            : file.name;
-        return `<div class="attachment-item" style="flex:1; min-width:0; overflow:hidden;">
-          <div class="attachment-container" style="display:flex; gap:8px; flex-direction:column; width:100%; box-sizing:border-box; overflow:hidden;">
-            <div style="background-color:#ffffff; padding:10px; box-sizing:border-box; border:1px solid #EAEDF2; border-radius:8px; display:flex; align-items:center; width:100%; gap:10px;">
-              <img src="${icon}" width="40" height="40" style="display:block; flex-shrink:0;" />
-              <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
-                <p style="margin:0; padding:0; font-size:12px; font-weight:500; color:#181D25; font-family:Inter, sans-serif; line-height:18px; word-break:break-all; overflow:hidden;" title="${file.name}">${displayName}</p>
-                <p style="margin:0; padding:0; font-size:12px; color:#929FB1; font-weight:500; font-family:Inter, sans-serif; line-height:18px;">${sizeDisplay}</p>
-              </div>
-              <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" style="display:block; cursor:pointer; flex-shrink:0; margin-left:auto;" />
-            </div>
-            <div style="display:flex; align-items:center; gap:4px; width:100%; box-sizing:border-box; justify-content:center;">
-              <p style="margin:0; padding:0; font-size:12px; color:#404B5A; font-family:Inter, sans-serif; line-height:18px; flex-shrink:0;">Download using Link:</p>
-              <a href="${downloadUrl}" download="${file.name}" style="margin:0; padding:0; font-size:12px; color:#1570EF; text-decoration:none !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; cursor:pointer; display:block;">
-                ${downloadUrl}
-              </a>
-            </div>
-          </div>
-        </div>`;
-      })
-      .join("");
+    // Build a single attachment card as a nested <table> with only inline
+    // styles. No flex/grid/CSS variables — safe for Outlook, Gmail, Apple Mail,
+    // and every other email client. Kept identical between the HTML and MJML
+    // paths so both render the same after send.
+    const buildCardHtml = (file, uploadedAttachment) => {
+      const sizeInBytes = file.size;
+      const sizeDisplay =
+        sizeInBytes < 1024 * 1024
+          ? `${(sizeInBytes / 1024).toFixed(2)} KB`
+          : `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+      const isDoc = /\.docx?$/i.test(file.name);
+      const icon = isDoc ? docIcon : pdfIcon;
+      const downloadUrl =
+        uploadedAttachment?.publicUrl || URL.createObjectURL(file);
+      const displayName =
+        file.name.length > 28 ? file.name.substring(0, 25) + "..." : file.name;
+
+      return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="attachment-container" style="width:100%;border-collapse:collapse;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+        <tr>
+          <td style="padding:0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background-color:#ffffff;border:1px solid #EAEDF2;border-radius:8px;">
+              <tr>
+                <td width="40" valign="middle" style="width:40px;padding:10px 0 10px 10px;">
+                  <img src="${icon}" width="40" height="40" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />
+                </td>
+                <td valign="middle" style="padding:10px;word-break:break-all;overflow:hidden;">
+                  <p style="margin:0;padding:0;font-size:12px;font-weight:500;color:#181D25;font-family:Inter,sans-serif;line-height:18px;word-break:break-all;" title="${file.name}">${displayName}</p>
+                  <p style="margin:4px 0 0 0;padding:0;font-size:12px;color:#929FB1;font-weight:500;font-family:Inter,sans-serif;line-height:18px;">${sizeDisplay}</p>
+                </td>
+                <td width="34" valign="middle" align="right" style="width:34px;padding:10px 10px 10px 0;">
+                  <img src="${closeIconSvg}" class="remove-file-icon" width="24" height="24" alt="" style="display:block;cursor:pointer;border:0;outline:none;text-decoration:none;" />
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:8px 0 0 0;font-family:Inter,sans-serif;line-height:18px;">
+            <span style="font-size:12px;color:#404B5A;font-family:Inter,sans-serif;line-height:18px;">Download using Link:&nbsp;</span>
+            <a href="${downloadUrl}" download="${file.name}" style="font-size:12px;color:#1570EF;text-decoration:none;font-family:Inter,sans-serif;line-height:18px;word-break:break-all;">${downloadUrl}</a>
+          </td>
+        </tr>
+      </table>`;
+    };
 
     if (isHtmlTemplate.current) {
+      // HTML template: 2-per-row <table> layout. Each item is a <td class="attachment-item">
+      // so the existing remove-icon handler (which walks up to .attachment-item)
+      // continues to work.
+      const rows = [];
+      for (let i = 0; i < files.length; i += 2) {
+        const leftCard = buildCardHtml(files[i], uploadedAttachments[i]);
+        const rightCard =
+          i + 1 < files.length
+            ? buildCardHtml(files[i + 1], uploadedAttachments[i + 1])
+            : null;
+        const rightCell = rightCard
+          ? `<td class="attachment-item" valign="top" width="50%" style="width:50%;padding:8px;vertical-align:top;">${rightCard}</td>`
+          : `<td valign="top" width="50%" style="width:50%;padding:8px;vertical-align:top;">&nbsp;</td>`;
+        rows.push(
+          `<tr>
+            <td class="attachment-item" valign="top" width="50%" style="width:50%;padding:8px;vertical-align:top;">${leftCard}</td>
+            ${rightCell}
+          </tr>`
+        );
+      }
+      const tableHtml = `<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="attachment-items-wrapper" style="width:100%;border-collapse:collapse;table-layout:fixed;">${rows.join("")}</table>`;
+
       editor.select(null);
       isUnwrapping.current = true;
       try {
@@ -500,11 +555,9 @@ export default function Editor({
         targetComp.set("content", "");
         targetComp.addAttributes({
           "data-type": "attachment-filled",
-          style: "padding:0px; margin:0px; width:100%; box-sizing:border-box;"
+          style: "padding:20px 8px;margin:0px;width:100%;box-sizing:border-box;"
         });
-        targetComp.components(
-          `<div class="attachment-items-wrapper">${itemsHtml}</div>`
-        );
+        targetComp.components(tableHtml);
 
         const view = targetComp.getView?.();
         if (view && typeof view.render === "function") {
@@ -516,15 +569,42 @@ export default function Editor({
         isUnwrapping.current = false;
       }
     } else {
-      const sectionHtml = `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%" direction="ltr" text-align="left" data-type="attachment-filled">
-          <mj-column width="100%" vertical-align="top" padding="0px">
-            <mj-text padding="0px" width="100%">
-              <div class="attachment-items-wrapper">
-                ${itemsHtml}
-              </div>
-            </mj-text>
-          </mj-column>
-        </mj-section>`;
+      // MJML template: wrap pairs of cards in mj-column width="50%" so MJML
+      // emits proper responsive tables that stack on mobile in every email
+      // client. mj-wrapper marks the entire block as attachment-filled.
+      const mjSections = [];
+      for (let i = 0; i < files.length; i += 2) {
+        const leftCard = buildCardHtml(files[i], uploadedAttachments[i]);
+        const rightCard =
+          i + 1 < files.length
+            ? buildCardHtml(files[i + 1], uploadedAttachments[i + 1])
+            : null;
+
+        const leftCol = `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+          <mj-text padding="0px" width="100%">
+            <div class="attachment-item">${leftCard}</div>
+          </mj-text>
+        </mj-column>`;
+
+        const rightCol = rightCard
+          ? `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+              <mj-text padding="0px" width="100%">
+                <div class="attachment-item">${rightCard}</div>
+              </mj-text>
+            </mj-column>`
+          : `<mj-column width="50%" vertical-align="top" padding="8px" padding-top="8px" padding-right="8px" padding-bottom="8px" padding-left="8px">
+              <mj-text padding="0px" width="100%"><div>&nbsp;</div></mj-text>
+            </mj-column>`;
+
+        mjSections.push(
+          `<mj-section padding="0px" margin="0px" width="100%" direction="ltr" text-align="left">
+            ${leftCol}
+            ${rightCol}
+          </mj-section>`
+        );
+      }
+
+      const wrapperHtml = `<mj-wrapper padding="20px 8px" padding-top="20px" padding-right="8px" padding-bottom="20px" padding-left="8px" data-type="attachment-filled">${mjSections.join("")}</mj-wrapper>`;
 
       const parent = targetComp.parent();
       const idx = parent.components().indexOf(targetComp);
@@ -534,7 +614,7 @@ export default function Editor({
       isUnwrapping.current = true;
       try {
         targetComp.remove();
-        parent.components().add(sectionHtml, { at: idx });
+        parent.components().add(wrapperHtml, { at: idx });
         editor.trigger("component:update", parent);
       } finally {
         isUnwrapping.current = false;
@@ -866,26 +946,6 @@ export default function Editor({
                   min-height: 100%;
                   word-break: break-word;
                   overflow-wrap: break-word;
-                }
-                @media only screen and (max-width: 480px) {
-                  .attachment-container {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                  }
-                }
-                  .attachment-items-wrapper {
-                    padding:20px; 
-                    display:grid; 
-                    grid-template-columns: repeat(2, 1fr);
-                    gap:16px; 
-                    box-sizing:border-box; 
-                    width:100%; 
-                    overflow:hidden;
-                  }
-                @media only screen and (max-width: 480px) {
-                  .attachment-items-wrapper {
-                    grid-template-columns: repeat(1, 1fr) !important;
-                  }
                 }
                 // [data-gjs-type] { min-height: 20px; }
 
@@ -1399,8 +1459,13 @@ export default function Editor({
 
         if (type === "mj-column") {
           const parentDt = comp.parent()?.getAttributes?.()?.["data-type"];
-          // Column-frame columns are managed by reconcileFramePlaceholders.
-          if (parentDt !== "column-frame-section") {
+          // Attachment-block columns carry their own explicit width/padding
+          // (50% + 8px) to lay out attachment cards in a 2-per-row grid —
+          // skip the generic override so those values survive.
+          if (isInsideAttachmentBlock(comp)) {
+            // no-op
+          } else if (parentDt !== "column-frame-section") {
+            // Column-frame columns are managed by reconcileFramePlaceholders.
             comp.addAttributes({
               padding: "0px",
               margin: "0px",
@@ -2390,6 +2455,19 @@ export default function Editor({
           const attachmentItemEl = e.target.closest(".attachment-item");
           if (!attachmentItemEl) return;
 
+          // Drop the removed card's uploaded attachment from the tracked list
+          // so it isn't included in the CREATE /templates payload.
+          const removedLink = attachmentItemEl.querySelector(
+            'a[download][href^="http"]'
+          );
+          const removedUrl = removedLink?.getAttribute("href");
+          if (removedUrl) {
+            const idx = attachmentUrlsRef.current.findIndex(
+              (att) => att?.publicUrl === removedUrl
+            );
+            if (idx !== -1) attachmentUrlsRef.current.splice(idx, 1);
+          }
+
           // Find the matching GrapesJS component by DOM containment
           const allComps = [];
           const collectComps = (comp) => {
@@ -2423,35 +2501,76 @@ export default function Editor({
             mjSection = mjSection.parent();
           }
 
-          // Snapshot sibling count BEFORE removal — after removal the element is
-          // detached from the DOM so parentElement becomes null, causing the
-          // post-removal check to incorrectly report no items remaining.
-          const siblingCountBefore = attachmentItemEl.parentElement
-            ? attachmentItemEl.parentElement.querySelectorAll(
-                ".attachment-item"
-              ).length
-            : 0;
+          // Count all remaining .attachment-item elements from the entire
+          // attachment-filled container. The 2-per-row layout splits items
+          // into separate DOM parents (rows/columns), so a query on the
+          // item's parentElement alone would undercount.
+          const filledContainerEl = mjSection?.getView?.()?.el;
+          const siblingCountBefore = filledContainerEl
+            ? filledContainerEl.querySelectorAll(".attachment-item").length
+            : attachmentItemEl.parentElement
+              ? attachmentItemEl.parentElement.querySelectorAll(
+                  ".attachment-item"
+                ).length
+              : 0;
 
-          if (currentEl === attachmentItemEl) {
-            itemComp.remove();
-          } else {
-            // Remove from DOM and update parent component's innerHTML
-            const parentEl = attachmentItemEl.parentElement;
-            attachmentItemEl.remove();
-            if (parentEl) {
-              itemComp.set("content", currentEl.innerHTML);
-              const view = itemComp.getView?.();
-              if (view && typeof view.render === "function") {
-                view.render();
+          const hasItemsAfter = siblingCountBefore > 1;
+
+          if (hasItemsAfter) {
+            // Not the last item — clean up just this item plus any layout
+            // parents (mj-column / mj-section) it leaves empty.
+            if (isHtmlTemplate.current) {
+              // itemComp is the <td class="attachment-item"> — turn it into
+              // an empty spacer td so the 2-column table layout is preserved.
+              if (currentEl === attachmentItemEl) {
+                itemComp.set("classes", []);
+                itemComp.addAttributes({
+                  valign: "top",
+                  width: "50%",
+                  style: "width:50%;padding:8px;vertical-align:top;"
+                });
+                itemComp.components().reset();
+                itemComp.set("content", "&nbsp;");
+                const view = itemComp.getView?.();
+                if (view && typeof view.render === "function") view.render();
+                else editor.trigger("component:update", itemComp);
               } else {
-                editor.trigger("component:update", itemComp);
+                const parentEl = attachmentItemEl.parentElement;
+                attachmentItemEl.remove();
+                if (parentEl) {
+                  itemComp.set("content", currentEl.innerHTML);
+                  const view = itemComp.getView?.();
+                  if (view && typeof view.render === "function") view.render();
+                  else editor.trigger("component:update", itemComp);
+                }
+              }
+            } else {
+              // MJML: remove the item's mj-column. If its mj-section then
+              // has no mj-columns left, remove the section too.
+              let columnComp = itemComp;
+              while (columnComp && columnComp.get?.("type") !== "mj-column") {
+                columnComp = columnComp.parent();
+              }
+              const sectionComp = columnComp?.parent?.();
+
+              if (columnComp) {
+                columnComp.remove();
+              } else {
+                itemComp.remove();
+              }
+
+              if (sectionComp && sectionComp.get?.("type") === "mj-section") {
+                let remainingCols = 0;
+                sectionComp.components().each((c) => {
+                  if (c.get?.("type") === "mj-column") remainingCols++;
+                });
+                if (remainingCols === 0) sectionComp.remove();
               }
             }
+            return;
           }
 
-          const hasItems = siblingCountBefore > 1;
-
-          if (!hasItems && mjSection) {
+          if (mjSection) {
             if (isHtmlTemplate.current) {
               // Convert the existing td/div to an empty placeholder in-place
               mjSection.components().reset();
@@ -2775,6 +2894,7 @@ export default function Editor({
         setDevice: (device) => editor.setDevice(device),
         runCommand: (command, options) => editor.runCommand(command, options),
         getCompiledHtml: getCompiledHtmlFromCanvas,
+        getAttachments: () => [...attachmentUrlsRef.current],
         /**
          * Load a full MJML string into the editor, replacing all current
          * content. The signature-section reconciler is suppressed during the
@@ -2782,6 +2902,7 @@ export default function Editor({
          * accidentally inject a signature mid-parse.
          */
         loadTemplate: (templateString) => {
+          attachmentUrlsRef.current = [];
           suppressSigReconcile.current = true;
           suppressPaddingOverride.current = true;
           const isMjmlTemplate = !!(
@@ -2804,6 +2925,7 @@ export default function Editor({
           }
         },
         clearAll: () => {
+          attachmentUrlsRef.current = [];
           suppressSigReconcile.current = true;
           suppressPaddingOverride.current = true;
           isHtmlTemplate.current = false;

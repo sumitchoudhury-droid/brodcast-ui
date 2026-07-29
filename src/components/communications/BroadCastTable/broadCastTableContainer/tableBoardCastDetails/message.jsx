@@ -17,12 +17,25 @@ import emailTemplate from "../../../existingTemplates/htmlTemplates/email.html?r
 import textTemplate from "../../../existingTemplates/htmlTemplates/textMessage.html?raw";
 import voiceTemplate from "../../../existingTemplates/htmlTemplates/voiceMessage.html?raw";
 
-// Compile MJML → HTML for email preview. Falls back to the raw string on
-// failure or when the input isn't MJML.
+// Compile MJML → HTML exactly as a real send pipeline would. No editor-only
+// CSS injections — whatever this returns is what will land in the recipient's
+// inbox. Falls back to the raw string on failure or when the input isn't MJML.
 const compileMjml = (raw) => {
   if (!raw || !raw.trimStart().startsWith("<mjml")) return raw;
   try {
-    const { html, errors } = mjml2html(raw, { validationLevel: "skip" });
+    // Normalize mj-body width from percentage to 600px. mjml-browser
+    // interprets a percentage body width as ~100px which caps every column
+    // and image width. Real send pipelines feed the compiler a fixed pixel
+    // width (600px is the MJML default), so this normalization matches
+    // production behavior rather than diverging from it.
+    const normalized = raw.replace(
+      /(<mj-body\b[^>]*)\bwidth="[\d.]+%"/,
+      '$1width="600px"'
+    );
+
+    const { html, errors } = mjml2html(normalized, {
+      validationLevel: "skip"
+    });
     if (errors?.length) return raw;
     return html;
   } catch {

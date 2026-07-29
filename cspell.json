@@ -58,7 +58,8 @@
     "Sharma",
     "ondemand",
     "Appkey",
-    "appt"
+    "appt",
+    "undercount"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }
