@@ -68,6 +68,8 @@ export default function Footer({
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
   );
+  const { mutate: saveEnterpriseTemplate, isPending: isSavingEnterprise } =
+    usePost(ENDPOINTS.templates.CREATE_ENTERPRISE);
   const { mutate: branchTemplate, isPending: isBranching } = usePost(
     selectedTemplateData?.id
       ? ENDPOINTS.templates.BRANCH(selectedTemplateData.id)
@@ -150,12 +152,12 @@ export default function Footer({
       actionItemTypeId: 1,
       actionItemTypeName: "Appointment Reminder",
       createdBy: "admin@example.com",
-      channels
+      channels,
+      ...(checked ? { templateType: "ENTERPRISE" } : {})
     };
 
-    console.log("Before saveTemplate");
-
-    saveTemplate(body, {
+    const mutation = checked ? saveEnterpriseTemplate : saveTemplate;
+    mutation(body, {
       onSuccess: (res) => {
         toast.success(res?.message || res?.data?.message);
         queryClient.invalidateQueries({ queryKey: ["templates"] });
@@ -164,8 +166,6 @@ export default function Footer({
         setChecked(false);
       }
     });
-
-    console.log("After saveTemplate");
   };
 
   const handleSaveBranch = () => {
@@ -430,7 +430,7 @@ export default function Footer({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title="Save as New"
-        confirmText={isSaving ? "Saving…" : "Save"}
+        confirmText={isSaving || isSavingEnterprise ? "Saving…" : "Save"}
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"

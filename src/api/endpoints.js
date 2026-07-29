@@ -3,6 +3,7 @@ export const ENDPOINTS = {
     GET_ALL: "/templates/list",
     GET_BY_ID: (id) => `/templates/${id}`,
     CREATE: "/templates",
+    CREATE_ENTERPRISE: "/templates/enterprise",
     BRANCH: (id) => `/templates/${id}/branch`,
     DELETE_BY_ID: (id) => `/templates/${id}`
   },
