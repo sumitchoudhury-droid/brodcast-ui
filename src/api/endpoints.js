@@ -35,6 +35,7 @@ export const ENDPOINTS = {
     AGE_OPTIONS: "/aggregate/broadcast-config/age-options",
     GENDER_OPTIONS: "/aggregate/broadcast-config/gender-options",
     MODALITIES: "/aggregate/broadcast-config/modalities",
-    SCHEDULE_SEND_OPTIONS: "/aggregate/broadcast-config/schedule-send-options"
+    SCHEDULE_SEND_OPTIONS: "/aggregate/broadcast-config/schedule-send-options",
+    PLACEHOLDERS: "/aggregate/broadcast-config/placeholders"
   }
 };
