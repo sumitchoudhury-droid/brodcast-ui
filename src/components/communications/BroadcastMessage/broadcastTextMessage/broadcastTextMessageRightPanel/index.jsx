@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal/index";
+import { useToast } from "../../../../../hooks/useToast";
+import { usePost } from "../../../../../hooks/usePost";
+import { ENDPOINTS } from "../../../../../api/endpoints.js";
+import { useBroadcastForm } from "../../../broadcastFormContext";
+import { prepareHtmlForEmail } from "../../../../../utils/prepareHtmlForEmail";
 import { TextFontStyleContainer } from "./textFontstyleContainer/index";
 import { TextDeviceSwitcher } from "./textDeviceSwitch/index";
 import TextSignatureSection from "./textSignatureSection/index";
@@ -11,6 +16,30 @@ export default function BroadcastTextMessageRightPanel({
   isEditorEmpty,
   editorInstance
 }) {
+  const toast = useToast();
+  const {
+    selectedEmailTemplateType,
+    newTemplateName,
+    mailSubject,
+    selectedTemplateData,
+    selectedModes,
+    emailEditorRef,
+    isEmailEditorEmpty,
+    isSmsEditorEmpty
+  } = useBroadcastForm();
+  const { mutateAsync: saveTemplate, isPending: isSavingTemplate } = usePost(
+    ENDPOINTS.templates.CREATE
+  );
+  const { mutateAsync: sendTestSms, isPending: isSendingTest } = usePost(
+    ENDPOINTS.broadcastSchedule.SEND_TEST_SMS
+  );
+
+  const lowerModes = selectedModes.map((m) => m.toLowerCase());
+  const requiresMail = lowerModes.includes("mail");
+  const requiresSms = lowerModes.includes("sms");
+  const hasEmptyBroadcastEditor =
+    (requiresMail && isEmailEditorEmpty) || (requiresSms && isSmsEditorEmpty);
+
   const allowOnlyNumbers = (e) => {
     if (e.ctrlKey || e.metaKey) return;
     const allowed = new Set([
@@ -89,9 +118,107 @@ export default function BroadcastTextMessageRightPanel({
     }
   };
 
-  const handleSendTestMessage = () => {
-    console.log("Sending text message to:", phoneNumber);
-    setShowSendTextMessage(false);
+  const handleSendTestMessage = async () => {
+    if (!phoneNumber) {
+      toast.error(
+        "Invalid Phone Number",
+        "Please enter a valid phone number to send the test message."
+      );
+      return;
+    }
+    try {
+      let templateId = null;
+
+      if (selectedEmailTemplateType === "blank") {
+        const rawMailBody = requiresMail
+          ? emailEditorRef.current?.getCompiledHtml?.() ||
+            emailEditorRef.current?.getHtml?.() ||
+            ""
+          : "";
+        const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
+        const mailAttachments = requiresMail
+          ? emailEditorRef.current?.getAttachments?.() || []
+          : [];
+        const smsBody = requiresSms ? editorInstance?.getHtml?.() || "" : "";
+
+        const channels = [];
+        if (requiresMail) {
+          channels.push({
+            methodType: "Mail",
+            templateBody: mailBody,
+            subjectLine: mailSubject || null,
+            smsStandardText: null,
+            attachments: mailAttachments
+          });
+        }
+        if (requiresSms) {
+          channels.push({
+            methodType: "SMS",
+            templateBody: smsBody,
+            subjectLine: null,
+            smsStandardText: smsBody,
+            attachments: []
+          });
+        }
+
+        const templateBody = {
+          name: newTemplateName || "Untitled Template",
+          templateBody: mailBody || smsBody,
+          subjectLine: mailSubject || null,
+          smsStandardText: smsBody || null,
+          messageTempLibId: null,
+          actionItemTypeId: 1,
+          actionItemTypeName: "Appointment Reminder",
+          createdBy: "admin@example.com",
+          channels
+        };
+
+        const res = await saveTemplate(templateBody);
+        templateId = res?.data?.id ?? res?.data?.messageTemplateLibId;
+        if (!templateId) {
+          toast.error(
+            "Failed to Save Template",
+            "Could not retrieve template ID from the create-template response."
+          );
+          return;
+        }
+      } else {
+        templateId = selectedTemplateData?.id ?? null;
+        if (!templateId) {
+          toast.error(
+            "Missing Template",
+            "No template is selected to send the test message."
+          );
+          return;
+        }
+      }
+
+      const formattedPhone = phoneNumber.startsWith("+")
+        ? phoneNumber
+        : `+1${phoneNumber}`;
+
+      const res = await sendTestSms({
+        phoneNumber: formattedPhone,
+        templateId,
+        createdById: 9
+      });
+
+      toast.success(
+        res?.message ||
+          res?.data?.message ||
+          `A test message has been sent to ${formattedPhone} successfully!`
+      );
+
+      setShowSendTextMessage(false);
+      setPhoneNumber("");
+    } catch (err) {
+      console.error("Error sending test message:", err);
+      toast.error(
+        "Failed to Send Message",
+        err?.message ||
+          "An error occurred while sending the test message. Please try again."
+      );
+    }
   };
 
   const handlePreview = () => {
@@ -126,10 +253,10 @@ export default function BroadcastTextMessageRightPanel({
         <button
           className="sendTestBtn"
           onClick={() => setShowSendTextMessage(true)}
-          disabled={isEditorEmpty}
+          disabled={hasEmptyBroadcastEditor}
           style={{
-            cursor: isEditorEmpty ? "not-allowed" : "pointer",
-            opacity: isEditorEmpty ? 0.5 : 1
+            cursor: hasEmptyBroadcastEditor ? "not-allowed" : "pointer",
+            opacity: hasEmptyBroadcastEditor ? 0.5 : 1
           }}
         >
           <svg
@@ -154,11 +281,16 @@ export default function BroadcastTextMessageRightPanel({
         isOpen={showSendTextMessage}
         onClose={() => setShowSendTextMessage(false)}
         title="Send Text Message"
-        confirmText="Send"
+        confirmText={isSavingTemplate || isSendingTest ? "Sending…" : "Send"}
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"
-        confirmBtnDisabled={isEditorEmpty || !phoneNumber}
+        confirmBtnDisabled={
+          hasEmptyBroadcastEditor ||
+          !phoneNumber ||
+          isSavingTemplate ||
+          isSendingTest
+        }
         onConfirm={handleSendTestMessage}
         onCancel={() => setShowSendTextMessage(false)}
       >
