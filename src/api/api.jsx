@@ -44,7 +44,7 @@ export const IMAGE_BASE_URL =
 
 export const AUTH_BASE_URL =
   import.meta.env.VITE_AUTH_BASE_URL ??
-  "https://cademo.hacheckinasyst.com:20037";
+  "https://cademo.hacheckinasyst.com:20029/auth-api";
 
 const AUTH_CREDENTIALS = {
   client_id: "e585044a-0d11-4df1-b789-18a9b52a2728",
@@ -76,7 +76,8 @@ export async function fetchAuthToken() {
     body
   });
   const json = await handleResponse(res);
-  return json?.AuthorizedAccessToken;
+  const raw = json?.AuthorizedAccessToken;
+  return raw ? raw.replace(/^bearer\s+/i, "") : raw;
 }
 
 export async function introspectAuthToken(token) {

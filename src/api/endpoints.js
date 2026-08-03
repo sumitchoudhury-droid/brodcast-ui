@@ -36,6 +36,10 @@ export const ENDPOINTS = {
     GENDER_OPTIONS: "/aggregate/broadcast-config/gender-options",
     MODALITIES: "/aggregate/broadcast-config/modalities",
     SCHEDULE_SEND_OPTIONS: "/aggregate/broadcast-config/schedule-send-options",
-    PLACEHOLDERS: "/aggregate/broadcast-config/placeholders"
+    PLACEHOLDERS: "/aggregate/broadcast-config/placeholders",
+    TEMPLATE_CONFIGURATIONS:
+      "/aggregate/broadcast-config/template-configurations",
+    GET_TEMPLATE_CONFIGURATION: (id) =>
+      `/aggregate/broadcast-config/template-configurations/${id}`
   }
 };

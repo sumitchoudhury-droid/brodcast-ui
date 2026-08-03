@@ -1,11 +1,3 @@
-const IMAGE_UPLOAD_APP_KEY = JSON.stringify({
-  AuthorizedAccessToken:
-    "bearer 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",
-  ClientId: "9e3a16cf-1e10-44e5-a16b-7eef8ed4729f",
-  TenantId: "V824QA",
-  ExpiryTime: "/Date(1785322828084)/"
-});
-
 export const uploadImageToServer = async (file) => {
   if (!file) return null;
   const { IMAGE_BASE_URL, COMMON_HEADERS, getToast } =
@@ -24,7 +16,7 @@ export const uploadImageToServer = async (file) => {
       headers: {
         TenantId: COMMON_HEADERS.TenantId,
         OrgId: COMMON_HEADERS.OrgId,
-        Appkey: IMAGE_UPLOAD_APP_KEY
+        AppKey: COMMON_HEADERS.Appkey
       },
       body: formData
     });
@@ -66,7 +58,7 @@ export const uploadAttachmentToServer = async (file) => {
         headers: {
           TenantId: COMMON_HEADERS.TenantId,
           OrgId: COMMON_HEADERS.OrgId,
-          Appkey: IMAGE_UPLOAD_APP_KEY
+          AppKey: COMMON_HEADERS.Appkey
         },
         body: formData
       }

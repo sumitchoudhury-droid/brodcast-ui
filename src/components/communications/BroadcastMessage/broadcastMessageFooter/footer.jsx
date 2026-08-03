@@ -56,6 +56,7 @@ export default function Footer({
     locationLabels,
     provider,
     providerLabels,
+    broadcastStartDate,
     patientStartDateTime,
     patientEndDateTime,
     includeOptOut,
@@ -77,6 +78,9 @@ export default function Footer({
   );
   const { mutate: sendBroadcast, isPending: isSending } = usePost(
     ENDPOINTS.broadcastSchedule.CREATE
+  );
+  const { mutate: saveTemplateConfig } = usePost(
+    ENDPOINTS.broadcastConfig.TEMPLATE_CONFIGURATIONS
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
@@ -164,9 +168,52 @@ export default function Footer({
         setIsModalOpen(false);
         setTemplateName("");
         setChecked(false);
+
+        const templateId = res?.data?.messageTemplateLibId ?? res?.data?.id;
+        if (templateId) {
+          saveTemplateConfig(buildTemplateConfigPayload(templateId));
+        }
       }
     });
   };
+
+  const buildTemplateConfigPayload = (templateId) => ({
+    templateId,
+    category: categoryLabel,
+    priority: priorityLabel,
+    methodType: selectedModes.join(","),
+    patientSelection: patientSelectionTypeMap[patientType] ?? patientType,
+    appointmentTypeIds: toArray(appointmentType),
+    locationIds: toArray(location),
+    providerIds: toArray(provider),
+    ageCriteriaId: ageFilter || null,
+    ageYears: ageYear ? Number(ageYear) : null,
+    ageMonths: ageMonth ? Number(ageMonth) : null,
+    genderId: gender && gender !== "all" ? gender : null,
+    modalityIds: Array.isArray(modality)
+      ? modality.filter(Boolean)
+      : modality
+        ? [modality]
+        : [],
+    appointmentStartDateTime: patientStartDateTime
+      ? new Date(patientStartDateTime).toISOString()
+      : null,
+    appointmentEndDateTime: patientEndDateTime
+      ? new Date(patientEndDateTime).toISOString()
+      : null,
+    oneTimeBroadcastDate:
+      patientType === "oneTimeBroadcast" && broadcastStartDate
+        ? new Date(broadcastStartDate).toISOString()
+        : null,
+    includeOptOutPatients: includeOptOut,
+    scheduleType: sendModeMap[sendType] ?? "Immediately",
+    scheduleDateTime:
+      sendType !== 1 && scheduleStartDateTime
+        ? new Date(scheduleStartDateTime).toISOString()
+        : null,
+    recurrenceConfig: null,
+    createdById: 9
+  });
 
   const handleSaveBranch = () => {
     if (!selectedTemplateData?.id) return;
