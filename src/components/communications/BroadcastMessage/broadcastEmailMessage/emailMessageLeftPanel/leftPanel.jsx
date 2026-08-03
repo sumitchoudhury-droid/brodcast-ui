@@ -24,6 +24,7 @@ import {
   handleResponse
 } from "../../../../../api/api.jsx";
 import SkeletonLoader from "../../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
+import { EmojiSection } from "./emojiSection";
 
 const tabOptions = [
   { label: "Library", value: "library" },
@@ -396,6 +397,11 @@ export default function LeftPanel({
               </div>
             );
           })}
+
+          <div className="gjs-block-category">
+            <div className="gjs-title">Emojis</div>
+            <EmojiSection editorRef={editorRef} />
+          </div>
         </div>
 
         {/* ── Templates tab ── */}

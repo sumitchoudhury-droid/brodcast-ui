@@ -1,4 +1,8 @@
 export const ENDPOINTS = {
+  auth: {
+    TOKEN: "/connect/token",
+    INTROSPECT: "/connect/introspect"
+  },
   templates: {
     GET_ALL: "/templates/list",
     GET_BY_ID: (id) => `/templates/${id}`,
