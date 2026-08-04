@@ -605,6 +605,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
           label="Clear All"
           onClick={handleClearAll}
           className="clearAllBtn"
+          deleteImage={true}
           disabled={isEditorEmpty}
         />
       </div>

@@ -1,13 +1,27 @@
 import { useState } from "react";
 import searchIcon from "../../../../../assets/leftPanel/leftPanelSearch.svg";
 import placeholderIcon from "../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
-import { PLACEHOLDERS } from "../../../../../constants/placeholders";
+import { useBroadcastConfigGet } from "../../../../../hooks/useBroadcastConfigGet";
+import { ENDPOINTS } from "../../../../../api/endpoints.js";
+import { BROADCAST_CONFIG_HEADERS } from "../../../../../api/api.jsx";
 import "./style.scss";
 
 function BroadcastTextMessageLeftPanel({ editorInstance }) {
   const [search, setSearch] = useState("");
 
-  const filteredPlaceholders = PLACEHOLDERS.filter((item) =>
+  const { data: placeholdersData } = useBroadcastConfigGet(
+    ["placeholders"],
+    ENDPOINTS.broadcastConfig.PLACEHOLDERS,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const placeholders = (placeholdersData?.data ?? []).map((item) => ({
+    label: item.displayName,
+    value: item.placeHolder
+  }));
+
+  const filteredPlaceholders = placeholders.filter((item) =>
     `${item.label} ${item.value}`.toLowerCase().includes(search.toLowerCase())
   );
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { AddBroadcastMessage } from "../addBroadcastMessage";
 import { BroadcastEmailMessage } from "./broadcastEmailMessage";
 import BroadcastTextMessage from "./broadcastTextMessage";
@@ -27,43 +27,46 @@ function BroadcastMessageInner({ handleCancel }) {
   const [currentStep, setCurrentStep] = useState("setup");
   const [activeTab, setActiveTab] = useState(null);
   const [mountedModes, setMountedModes] = useState(() => new Set());
-  const { selectedModes, selectedTemplateData, setSelectedTemplateData } =
-    useBroadcastForm();
+  const {
+    selectedModes,
+    selectedTemplateData,
+    setSelectedTemplateData,
+    emailEditorRef,
+    smsEditorInstanceRef,
+    isEmailEditorEmpty,
+    setIsEmailEditorEmpty,
+    isSmsEditorEmpty,
+    setIsSmsEditorEmpty,
+    isVoiceEditorEmpty,
+    setIsVoiceEditorEmpty
+  } = useBroadcastForm();
 
   const [selectedLanguage, setSelectedLanguage] = useState(
     languageOptions[0].value
   );
 
-  const editorRef = useRef(null);
-  const textEditorInstanceRef = useRef(null);
-  const handleTextEditorReady = useCallback((instance) => {
-    textEditorInstanceRef.current = instance;
-  }, []);
+  const handleTextEditorReady = useCallback(
+    (instance) => {
+      smsEditorInstanceRef.current = instance;
+    },
+    [smsEditorInstanceRef]
+  );
   const [hasChanges, setHasChanges] = useState(false);
   const handleDirtyChange = useCallback(() => setHasChanges(true), []);
-  const [emptyMap, setEmptyMap] = useState({
-    email: true,
-    sms: true,
-    voice: true
-  });
   const [showPlaceholders, setShowPlaceholders] = useState(false);
 
+  const emptyMap = {
+    email: isEmailEditorEmpty,
+    sms: isSmsEditorEmpty,
+    voice: isVoiceEditorEmpty
+  };
   const hasEmptyEditor = selectedModes.some(
     (mode) => emptyMap[mode.toLowerCase()]
   );
 
-  const setEmailEmpty = useCallback(
-    (isEmpty) => setEmptyMap((prev) => ({ ...prev, email: isEmpty })),
-    []
-  );
-  const setTextEmpty = useCallback(
-    (isEmpty) => setEmptyMap((prev) => ({ ...prev, sms: isEmpty })),
-    []
-  );
-  const setVoiceEmpty = useCallback(
-    (isEmpty) => setEmptyMap((prev) => ({ ...prev, voice: isEmpty })),
-    []
-  );
+  const setEmailEmpty = setIsEmailEditorEmpty;
+  const setTextEmpty = setIsSmsEditorEmpty;
+  const setVoiceEmpty = setIsVoiceEditorEmpty;
 
   const handleLoadTemplate = (templateName) => {
     console.log("Load template:", templateName);
@@ -93,7 +96,7 @@ function BroadcastMessageInner({ handleCancel }) {
           selectedModes={selectedModes}
           activeTab={activeTab}
           mountedModes={mountedModes}
-          editorRef={editorRef}
+          editorRef={emailEditorRef}
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
@@ -111,7 +114,7 @@ function BroadcastMessageInner({ handleCancel }) {
     if (lowerModes.includes("mail")) {
       return (
         <BroadcastEmailMessage
-          editorRef={editorRef}
+          editorRef={emailEditorRef}
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
@@ -199,8 +202,8 @@ function BroadcastMessageInner({ handleCancel }) {
               onCancel={handleCancel}
               disabled={hasEmptyEditor}
               hasChanges={hasChanges}
-              editorRef={editorRef}
-              textEditorInstanceRef={textEditorInstanceRef}
+              editorRef={emailEditorRef}
+              textEditorInstanceRef={smsEditorInstanceRef}
             />
           </div>
         </div>

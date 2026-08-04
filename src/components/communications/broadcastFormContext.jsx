@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 
 const BroadcastFormContext = createContext(null);
 
@@ -50,6 +50,12 @@ export function BroadcastFormProvider({ children }) {
     useState("blank");
 
   const [mailSubject, setMailSubject] = useState("");
+
+  const emailEditorRef = useRef(null);
+  const smsEditorInstanceRef = useRef(null);
+  const [isEmailEditorEmpty, setIsEmailEditorEmpty] = useState(true);
+  const [isSmsEditorEmpty, setIsSmsEditorEmpty] = useState(true);
+  const [isVoiceEditorEmpty, setIsVoiceEditorEmpty] = useState(true);
 
   return (
     <BroadcastFormContext.Provider
@@ -127,7 +133,15 @@ export function BroadcastFormProvider({ children }) {
         selectedEmailTemplateType,
         setSelectedEmailTemplateType,
         mailSubject,
-        setMailSubject
+        setMailSubject,
+        emailEditorRef,
+        smsEditorInstanceRef,
+        isEmailEditorEmpty,
+        setIsEmailEditorEmpty,
+        isSmsEditorEmpty,
+        setIsSmsEditorEmpty,
+        isVoiceEditorEmpty,
+        setIsVoiceEditorEmpty
       }}
     >
       {children}

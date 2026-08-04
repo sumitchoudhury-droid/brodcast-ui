@@ -1,4 +1,8 @@
 export const ENDPOINTS = {
+  auth: {
+    TOKEN: "/connect/token",
+    INTROSPECT: "/connect/introspect"
+  },
   templates: {
     GET_ALL: "/templates/list",
     GET_BY_ID: (id) => `/templates/${id}`,
@@ -15,7 +19,10 @@ export const ENDPOINTS = {
     GET_ALL: "/aggregate/broadcast-schedules",
     CREATE: "/aggregate/broadcast-schedules",
     CANCEL: (id) => `/aggregate/broadcast-schedules/${id}/cancel`,
-    BULK_CANCEL: "/aggregate/broadcast-schedules/bulk-cancel"
+    BULK_CANCEL: "/aggregate/broadcast-schedules/bulk-cancel",
+    SEND_TEST_EMAIL: "/aggregate/broadcast-schedules/send-test-email",
+    SEND_TEST_SMS: "/aggregate/broadcast-schedules/send-test-sms",
+    UPLOAD_FILE_DETAILS: "/aggregate/broadcast-schedules/upload-file-details"
   },
   patients: {
     SEARCH: "/aggregate/patients/search"
@@ -31,6 +38,11 @@ export const ENDPOINTS = {
     AGE_OPTIONS: "/aggregate/broadcast-config/age-options",
     GENDER_OPTIONS: "/aggregate/broadcast-config/gender-options",
     MODALITIES: "/aggregate/broadcast-config/modalities",
-    SCHEDULE_SEND_OPTIONS: "/aggregate/broadcast-config/schedule-send-options"
+    SCHEDULE_SEND_OPTIONS: "/aggregate/broadcast-config/schedule-send-options",
+    PLACEHOLDERS: "/aggregate/broadcast-config/placeholders",
+    TEMPLATE_CONFIGURATIONS:
+      "/aggregate/broadcast-config/template-configurations",
+    GET_TEMPLATE_CONFIGURATION: (id) =>
+      `/aggregate/broadcast-config/template-configurations/${id}`
   }
 };

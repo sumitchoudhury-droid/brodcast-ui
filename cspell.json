@@ -60,7 +60,8 @@
     "Appkey",
     "appt",
     "undercount",
-    "inlines"
+    "inlines",
+    "pmsbcp"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

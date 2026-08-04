@@ -56,6 +56,7 @@ export default function Footer({
     locationLabels,
     provider,
     providerLabels,
+    broadcastStartDate,
     patientStartDateTime,
     patientEndDateTime,
     includeOptOut,
@@ -77,6 +78,9 @@ export default function Footer({
   );
   const { mutate: sendBroadcast, isPending: isSending } = usePost(
     ENDPOINTS.broadcastSchedule.CREATE
+  );
+  const { mutate: saveTemplateConfig } = usePost(
+    ENDPOINTS.broadcastConfig.TEMPLATE_CONFIGURATIONS
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
@@ -164,9 +168,52 @@ export default function Footer({
         setIsModalOpen(false);
         setTemplateName("");
         setChecked(false);
+
+        const templateId = res?.data?.messageTemplateLibId ?? res?.data?.id;
+        if (templateId) {
+          saveTemplateConfig(buildTemplateConfigPayload(templateId));
+        }
       }
     });
   };
+
+  const buildTemplateConfigPayload = (templateId) => ({
+    templateId,
+    category: categoryLabel,
+    priority: priorityLabel,
+    methodType: selectedModes.join(","),
+    patientSelection: patientSelectionTypeMap[patientType] ?? patientType,
+    appointmentTypeIds: toArray(appointmentType),
+    locationIds: toArray(location),
+    providerIds: toArray(provider),
+    ageCriteriaId: ageFilter || null,
+    ageYears: ageYear ? Number(ageYear) : null,
+    ageMonths: ageMonth ? Number(ageMonth) : null,
+    genderId: gender && gender !== "all" ? gender : null,
+    modalityIds: Array.isArray(modality)
+      ? modality.filter(Boolean)
+      : modality
+        ? [modality]
+        : [],
+    appointmentStartDateTime: patientStartDateTime
+      ? new Date(patientStartDateTime).toISOString()
+      : null,
+    appointmentEndDateTime: patientEndDateTime
+      ? new Date(patientEndDateTime).toISOString()
+      : null,
+    oneTimeBroadcastDate:
+      patientType === "oneTimeBroadcast" && broadcastStartDate
+        ? new Date(broadcastStartDate).toISOString()
+        : null,
+    includeOptOutPatients: includeOptOut,
+    scheduleType: sendModeMap[sendType] ?? "Immediately",
+    scheduleDateTime:
+      sendType !== 1 && scheduleStartDateTime
+        ? new Date(scheduleStartDateTime).toISOString()
+        : null,
+    recurrenceConfig: null,
+    createdById: 9
+  });
 
   const handleSaveBranch = () => {
     if (!selectedTemplateData?.id) return;
@@ -229,6 +276,11 @@ export default function Footer({
           res?.message || res?.data?.message || "Template saved successfully"
         );
         queryClient.invalidateQueries({ queryKey: ["templates"] });
+
+        const newTemplateId = res?.data?.newTemplateId;
+        if (newTemplateId) {
+          saveTemplateConfig(buildTemplateConfigPayload(newTemplateId));
+        }
       }
     });
   };
@@ -246,41 +298,41 @@ export default function Footer({
   const isOffBusiness =
     sendType !== "immediately" && isOffBusinessHours(scheduleStartDateTime);
 
-  const handleConfirmBroadcast = () => {
-    const payload = {
-      channels: selectedModes,
-      category: categoryLabel,
-      priority: priorityLabel,
-      templateId: selectedTemplateData?.id ?? null,
-      templateType: selectedTemplateData?.templateType ?? null,
-      patientSelectionType: patientSelectionTypeMap[patientType] ?? patientType,
-      ...(patientType === "targetRecipients" && {
-        targetRecipientCriteria: {
-          appointmentTypeIds: toArray(appointmentType),
-          locationIds: toArray(location),
-          providerIds: toArray(provider),
-          appointmentStartDateTime: patientStartDateTime
-            ? new Date(patientStartDateTime).toISOString()
-            : null,
-          appointmentEndDateTime: patientEndDateTime
-            ? new Date(patientEndDateTime).toISOString()
-            : null,
-          includeOptOutPatients: includeOptOut,
-          ageCriteriaId: ageFilter || null,
-          ageYears: ageYear ? Number(ageYear) : null,
-          ageMonths: ageMonth ? Number(ageMonth) : null,
-          genderId: gender || null,
-          modalityId: modality || null
-        }
-      }),
-      sendMode: sendModeMap[sendType] ?? "Immediately",
-      startDtTm: scheduleStartDateTime
-        ? new Date(scheduleStartDateTime).toISOString()
-        : new Date().toISOString(),
-      createdById: 9
-    };
+  const buildBroadcastPayload = (templateId) => ({
+    channels: selectedModes,
+    category: categoryLabel,
+    priority: priorityLabel,
+    templateId: templateId ?? null,
+    templateType: selectedTemplateData?.templateType ?? null,
+    patientSelectionType: patientSelectionTypeMap[patientType] ?? patientType,
+    ...(patientType === "targetRecipients" && {
+      targetRecipientCriteria: {
+        appointmentTypeIds: toArray(appointmentType),
+        locationIds: toArray(location),
+        providerIds: toArray(provider),
+        appointmentStartDateTime: patientStartDateTime
+          ? new Date(patientStartDateTime).toISOString()
+          : null,
+        appointmentEndDateTime: patientEndDateTime
+          ? new Date(patientEndDateTime).toISOString()
+          : null,
+        includeOptOutPatients: includeOptOut,
+        ageCriteriaId: ageFilter || null,
+        ageYears: ageYear ? Number(ageYear) : null,
+        ageMonths: ageMonth ? Number(ageMonth) : null,
+        genderId: gender || null,
+        modalityId: modality || null
+      }
+    }),
+    sendMode: sendModeMap[sendType] ?? "Immediately",
+    startDtTm: scheduleStartDateTime
+      ? new Date(scheduleStartDateTime).toISOString()
+      : new Date().toISOString(),
+    createdById: 9
+  });
 
-    sendBroadcast(payload, {
+  const runSendBroadcast = (templateId) => {
+    sendBroadcast(buildBroadcastPayload(templateId), {
       onSuccess: (res) => {
         toast.success(
           res?.message ||
@@ -291,6 +343,77 @@ export default function Footer({
         onCancel?.();
       }
     });
+  };
+
+  const handleConfirmBroadcast = () => {
+    if (selectedEmailTemplateType === "blank") {
+      const rawMailBody =
+        editorRef?.current?.getCompiledHtml?.() ||
+        editorRef?.current?.getHtml?.() ||
+        "";
+      const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
+      const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+      const mailAttachments = editorRef?.current?.getAttachments?.() || [];
+
+      const channels = selectedModes
+        .map((mode) => {
+          const lowerMode = mode.toLowerCase();
+          if (lowerMode === "mail") {
+            return {
+              methodType: "Mail",
+              templateBody: mailBody,
+              subjectLine: mailSubject || null,
+              smsStandardText: null,
+              attachments: mailAttachments
+            };
+          }
+          if (lowerMode === "sms") {
+            return {
+              methodType: "SMS",
+              templateBody: smsBody,
+              subjectLine: null,
+              smsStandardText: smsBody,
+              attachments: []
+            };
+          }
+          if (lowerMode === "voice") {
+            return {
+              methodType: "Voice",
+              templateBody: "",
+              subjectLine: null,
+              smsStandardText: null,
+              attachments: []
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      const templatePayload = {
+        name: newTemplateName || "",
+        templateBody: mailBody || smsBody,
+        subjectLine: mailSubject || null,
+        smsStandardText: smsBody || null,
+        messageTempLibId: null,
+        actionItemTypeId: 1,
+        actionItemTypeName: "Appointment Reminder",
+        createdBy: "admin@example.com",
+        channels
+      };
+
+      saveTemplate(templatePayload, {
+        onSuccess: (res) => {
+          queryClient.invalidateQueries({ queryKey: ["templates"] });
+          const templateId = res?.data?.id ?? res?.data?.messageTemplateLibId;
+          if (!templateId) return;
+          saveTemplateConfig(buildTemplateConfigPayload(templateId));
+          runSendBroadcast(templateId);
+        }
+      });
+      return;
+    }
+
+    runSendBroadcast(selectedTemplateData?.id ?? null);
   };
 
   const handleCancelBroadcast = () => {

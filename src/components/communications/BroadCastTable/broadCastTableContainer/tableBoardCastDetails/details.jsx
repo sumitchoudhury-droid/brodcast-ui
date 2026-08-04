@@ -1,3 +1,7 @@
+import * as XLSX from "xlsx";
+
+import { useGet } from "../../../../../hooks/useGet";
+import { ENDPOINTS } from "../../../../../api/endpoints";
 import circleAlert from "../../../../../assets/boardCastTableIcons/circleAlert.svg";
 import completedGreenIcon from "../../../../../assets/boardCastTableIcons/completedGreenIcon.svg";
 import failedRedIcon from "../../../../../assets/boardCastTableIcons/failedRedIcon.svg";
@@ -137,13 +141,53 @@ export default function Details({ broadcastData }) {
     appointmentTypeNames = [],
     locationNames = [],
     providerNames = [],
-    patientSelectionType = ""
+    patientSelectionType = "",
+    scheduleIds = []
   } = broadcastData || {};
 
   const isFailed = broadcastStatus.toLowerCase() === "failed" || hasError;
   const isCancelled = broadcastStatus.toLowerCase().includes("cancel");
 
   const showUploadFileLayout = patientSelectionType === "UploadFile";
+
+  const { data: uploadFileDetailsRes } = useGet(
+    ["uploadFileDetails", scheduleIds],
+    ENDPOINTS.broadcastSchedule.UPLOAD_FILE_DETAILS,
+    { notificationScheduleIds: scheduleIds },
+    { enabled: showUploadFileLayout && scheduleIds.length > 0 }
+  );
+
+  const uploadFileDetails =
+    uploadFileDetailsRes?.data?.data ?? uploadFileDetailsRes?.data ?? {};
+  const uploadedFile = uploadFileDetails?.files?.[0];
+  const uploadedPatients = uploadFileDetails?.patients ?? [];
+
+  const formatDateTime = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString();
+  };
+
+  const handleDownloadUploadedFile = () => {
+    if (!uploadedPatients.length) return;
+    const rows = uploadedPatients.map((p) => ({
+      "Patient ID": p.pmsbcpPatientId ?? "",
+      "First Name": p.firstName ?? "",
+      "Last Name": p.lastName ?? "",
+      "Date of Birth": p.dob ? new Date(p.dob).toLocaleDateString() : "",
+      "Primary Phone": p.primaryPhoneNo ?? "",
+      "Primary Email": p.primaryEmailId ?? ""
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Patients");
+    const fileName =
+      uploadedFile?.sourceFileName?.replace(/\.xlsx?$/i, "") ||
+      uploadedFile?.displayFileName?.replace(/\.xlsx?$/i, "") ||
+      "patients";
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
+  };
 
   // Resolve Broadcast Status Badge details
   const getBadgeDetails = (status) => {
@@ -269,11 +313,22 @@ export default function Details({ broadcastData }) {
                 <div className="fileLeft">
                   <img src={fileIcon} alt="File" className="fileIcon" />
                   <div className="fileTextDetails">
-                    <span className="fileName">Patients List.xlsx</span>
-                    <span className="fileSize">2.5 MB</span>
+                    <span className="fileName">
+                      {uploadedFile?.sourceFileName || "—"}
+                    </span>
+                    <span className="fileSize">
+                      {uploadedPatients.length
+                        ? `${uploadedPatients.length} patients`
+                        : ""}
+                    </span>
                   </div>
                 </div>
-                <button className="downloadBtn" title="Download File">
+                <button
+                  className="downloadBtn"
+                  title="Download File"
+                  onClick={handleDownloadUploadedFile}
+                  disabled={!uploadedPatients.length}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
@@ -297,7 +352,9 @@ export default function Details({ broadcastData }) {
           {/* File Created on */}
           <div className="detailRow">
             <div className="labelCol">File Created on</div>
-            <div className="valueCol">3/01/2026 04:32:00 PM</div>
+            <div className="valueCol">
+              {formatDateTime(uploadedFile?.fileUploadedDtTm)}
+            </div>
           </div>
         </>
       ) : (

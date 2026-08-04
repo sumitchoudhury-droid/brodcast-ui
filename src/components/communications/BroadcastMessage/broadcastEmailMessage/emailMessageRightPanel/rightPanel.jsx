@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import emailjs from "@emailjs/browser";
 import { useToast } from "../../../../../hooks/useToast";
-import {
-  uploadImageToServer,
-  uploadBase64ToServer
-} from "../../../../../utils/uploadUtils";
+import { usePost } from "../../../../../hooks/usePost";
+import { ENDPOINTS } from "../../../../../api/endpoints.js";
+import { useBroadcastForm } from "../../../broadcastFormContext";
+import { uploadImageToServer } from "../../../../../utils/uploadUtils";
 import { prepareHtmlForEmail } from "../../../../../utils/prepareHtmlForEmail";
 
 import "./style.scss";
@@ -643,12 +642,33 @@ const isImage = (comp) => {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function RightPanel({ editorRef, isEditorEmpty }) {
   const toast = useToast();
+  const {
+    selectedEmailTemplateType,
+    newTemplateName,
+    mailSubject,
+    selectedTemplateData,
+    selectedModes,
+    smsEditorInstanceRef,
+    isEmailEditorEmpty,
+    isSmsEditorEmpty
+  } = useBroadcastForm();
+  const { mutateAsync: saveTemplate, isPending: isSavingTemplate } = usePost(
+    ENDPOINTS.templates.CREATE
+  );
+  const { mutateAsync: sendTestEmail, isPending: isSendingTest } = usePost(
+    ENDPOINTS.broadcastSchedule.SEND_TEST_EMAIL
+  );
+
+  const lowerModes = selectedModes.map((m) => m.toLowerCase());
+  const requiresMail = lowerModes.includes("mail");
+  const requiresSms = lowerModes.includes("sms");
+  const hasEmptyBroadcastEditor =
+    (requiresMail && isEmailEditorEmpty) || (requiresSms && isSmsEditorEmpty);
 
   const [showPreview, setShowPreview] = useState(false);
   const [showSendTestMail, setShowSendTestMail] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [testEmail, setTestEmail] = useState("");
-  const [testSubject, setTestSubject] = useState("");
   const [selectedComp, setSelectedComp] = useState(null);
 
   const [bgColor, setBgColor] = useState("transparent");
@@ -2296,112 +2316,94 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
       return;
     }
     try {
-      const editor = editorRef.current?.getEditor();
-      if (!editor) return;
-      let html = editorRef.current?.getCompiledHtml?.() || "";
-      if (!html) {
-        const raw = editor.getHtml();
-        if (raw && !raw.includes("<mj-") && !raw.includes("<mjml")) html = raw;
-      }
-      if (!html) {
-        toast.error("Compile Error", "Could not compile MJML to HTML.");
-        return;
-      }
+      let templateId = null;
 
-      const serviceId = "service_ajst25q";
-      const templateId = "template_5x27f1d";
-      const publicKey = "tX62HCCPekA42gNY0";
+      if (selectedEmailTemplateType === "blank") {
+        const rawMailBody = requiresMail
+          ? editorRef.current?.getCompiledHtml?.() ||
+            editorRef.current?.getHtml?.() ||
+            ""
+          : "";
+        const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
+        const mailAttachments = requiresMail
+          ? editorRef.current?.getAttachments?.() || []
+          : [];
+        const smsBody = requiresSms
+          ? smsEditorInstanceRef.current?.getHtml?.() || ""
+          : "";
 
-      // ── Step 1: Strip GrapesJS canvas artifacts + minify ────────────────────
-      // This removes editor-only <style> blocks (.gjs-*, pointer-events, etc.)
-      // and <script> tags that inflate the canvas iframe HTML by 20-40 KB but
-      // are not part of the real email.
-      let minifiedHtml = prepareHtmlForEmail(html);
-      let payloadSizeKB = new Blob([minifiedHtml]).size / 1024;
-
-      console.log(
-        `[EmailJS] Size after stripping editor artifacts: ${payloadSizeKB.toFixed(2)} KB`
-      );
-
-      // ── Step 2: If still over limit, try hosting base64 images via Cloudinary ─
-      if (payloadSizeKB > 50) {
-        const base64SrcMatches = [
-          ...minifiedHtml.matchAll(/src="(data:image\/[^"]+)"/g)
-        ];
-        const base64BgMatches = [
-          ...minifiedHtml.matchAll(/url\(["']?(data:image\/[^)"']+)["']?\)/g)
-        ];
-        const hasBase64 =
-          base64SrcMatches.length > 0 || base64BgMatches.length > 0;
-
-        if (hasBase64) {
-          let processedHtml = minifiedHtml;
-          let idx = 0;
-
-          for (const [fullMatch, base64Url] of base64SrcMatches) {
-            const hostedUrl = await uploadBase64ToServer(
-              base64Url,
-              `email_img_${++idx}.jpg`
-            );
-            if (hostedUrl) {
-              processedHtml = processedHtml.replace(
-                fullMatch,
-                `src="${hostedUrl}"`
-              );
-            }
-          }
-
-          for (const [fullMatch, base64Url] of base64BgMatches) {
-            const hostedUrl = await uploadBase64ToServer(
-              base64Url,
-              `email_bg_${++idx}.jpg`
-            );
-            if (hostedUrl) {
-              processedHtml = processedHtml.replace(
-                fullMatch,
-                `url(${hostedUrl})`
-              );
-            }
-          }
-
-          minifiedHtml = processedHtml;
-          payloadSizeKB = new Blob([minifiedHtml]).size / 1024;
+        const channels = [];
+        if (requiresMail) {
+          channels.push({
+            methodType: "Mail",
+            templateBody: mailBody,
+            subjectLine: mailSubject || null,
+            smsStandardText: null,
+            attachments: mailAttachments
+          });
+        }
+        if (requiresSms) {
+          channels.push({
+            methodType: "SMS",
+            templateBody: smsBody,
+            subjectLine: null,
+            smsStandardText: smsBody,
+            attachments: []
+          });
         }
 
-        // Final size check after all optimisations
-        if (payloadSizeKB > 50) {
+        const templateBody = {
+          name: newTemplateName || "Untitled Template",
+          templateBody: mailBody || smsBody,
+          subjectLine: mailSubject || null,
+          smsStandardText: smsBody || null,
+          messageTempLibId: null,
+          actionItemTypeId: 1,
+          actionItemTypeName: "Appointment Reminder",
+          createdBy: "admin@example.com",
+          channels
+        };
+
+        const res = await saveTemplate(templateBody);
+        templateId = res?.data?.id ?? res?.data?.messageTemplateLibId;
+        if (!templateId) {
           toast.error(
-            "Email Too Large",
-            `The email (${payloadSizeKB.toFixed(2)} KB) exceeds EmailJS's 50 KB limit. Try reducing the number of sections or simplifying the content.`
+            "Failed to Save Template",
+            "Could not retrieve template ID from the create-template response."
+          );
+          return;
+        }
+      } else {
+        templateId = selectedTemplateData?.id ?? null;
+        if (!templateId) {
+          toast.error(
+            "Missing Template",
+            "No template is selected to send the test mail."
           );
           return;
         }
       }
 
-      const templateParams = {
-        to_email: testEmail,
-        subject: testSubject || "Test Broadcast Email",
-        html_content: minifiedHtml,
-        name: "Admin",
-        email: "admin@example.com"
-      };
-
-      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+      const res = await sendTestEmail({
+        emailAddress: testEmail,
+        templateId,
+        createdById: 9
+      });
 
       toast.success(
-        "Test Email Sent",
-        `A test email has been sent to ${testEmail} successfully!`
+        res?.message ||
+          res?.data?.message ||
+          `A test email has been sent to ${testEmail} successfully!`
       );
 
-      // Clear state and close modal
       setShowSendTestMail(false);
       setTestEmail("");
-      setTestSubject("");
     } catch (err) {
       console.error("Error sending test email:", err);
       toast.error(
         "Failed to Send Email",
-        "An error occurred while sending the test email. Please check your EmailJS configuration."
+        err?.message ||
+          "An error occurred while sending the test email. Please try again."
       );
     }
   };
@@ -2703,10 +2705,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         <button
           className="sendTestBtn"
           onClick={() => setShowSendTestMail(true)}
-          disabled={isEditorEmpty}
+          disabled={hasEmptyBroadcastEditor}
           style={{
-            cursor: isEditorEmpty ? "not-allowed" : "pointer",
-            opacity: isEditorEmpty ? 0.5 : 1
+            cursor: hasEmptyBroadcastEditor ? "not-allowed" : "pointer",
+            opacity: hasEmptyBroadcastEditor ? 0.5 : 1
           }}
         >
           <svg
@@ -2738,11 +2740,16 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         isOpen={showSendTestMail}
         onClose={() => setShowSendTestMail(false)}
         title="Send Test Mail"
-        confirmText="Send"
+        confirmText={isSavingTemplate || isSendingTest ? "Sending…" : "Send"}
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"
-        confirmBtnDisabled={isEditorEmpty || !testEmail}
+        confirmBtnDisabled={
+          hasEmptyBroadcastEditor ||
+          !testEmail ||
+          isSavingTemplate ||
+          isSendingTest
+        }
         onConfirm={handleSendTestMail}
         onCancel={() => setShowSendTestMail(false)}
       >
@@ -2762,21 +2769,6 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
               onChange={(e) => setTestEmail(e.target.value)}
             />
           </div>
-
-          {/* <div className="emailInputContainer" style={{ marginTop: "16px" }}>
-            <label htmlFor="subject" className="emailLabel">
-              Subject
-            </label>
-          </div>
-          <div className="emailInputWrapper">
-            <input
-              type="text"
-              placeholder="Enter subject (optional)"
-              className="emailInput"
-              value={testSubject}
-              onChange={(e) => setTestSubject(e.target.value)}
-            />
-          </div> */}
         </div>
       </ReusableModal>
     </div>
