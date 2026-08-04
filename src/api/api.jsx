@@ -84,6 +84,7 @@ export async function introspectAuthToken(token) {
   const body = new URLSearchParams({
     token,
     client_id: AUTH_CREDENTIALS.client_id,
+    client_secret: AUTH_CREDENTIALS.client_secret,
     tenant_id: AUTH_CREDENTIALS.tenant_id
   });
   const res = await fetch(`${AUTH_BASE_URL}${ENDPOINTS.auth.INTROSPECT}`, {
