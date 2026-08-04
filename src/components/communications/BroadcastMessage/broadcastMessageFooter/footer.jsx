@@ -276,6 +276,11 @@ export default function Footer({
           res?.message || res?.data?.message || "Template saved successfully"
         );
         queryClient.invalidateQueries({ queryKey: ["templates"] });
+
+        const newTemplateId = res?.data?.newTemplateId;
+        if (newTemplateId) {
+          saveTemplateConfig(buildTemplateConfigPayload(newTemplateId));
+        }
       }
     });
   };
