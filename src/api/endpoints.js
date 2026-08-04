@@ -21,7 +21,8 @@ export const ENDPOINTS = {
     CANCEL: (id) => `/aggregate/broadcast-schedules/${id}/cancel`,
     BULK_CANCEL: "/aggregate/broadcast-schedules/bulk-cancel",
     SEND_TEST_EMAIL: "/aggregate/broadcast-schedules/send-test-email",
-    SEND_TEST_SMS: "/aggregate/broadcast-schedules/send-test-sms"
+    SEND_TEST_SMS: "/aggregate/broadcast-schedules/send-test-sms",
+    UPLOAD_FILE_DETAILS: "/aggregate/broadcast-schedules/upload-file-details"
   },
   patients: {
     SEARCH: "/aggregate/patients/search"
