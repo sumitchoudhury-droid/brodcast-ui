@@ -222,6 +222,10 @@
         color: variable.$color-black-6;
         border-color: variable.$color-white-5;
       }
+
+      .tooltip-wrapper {
+        pointer-events: auto;
+      }
     }
 
     &.row-active-menu {

@@ -45,6 +45,8 @@ export default function Footer({
     newTemplateName,
     mailSubject,
     selectedTemplateData,
+    category,
+    priority,
     categoryLabel,
     priorityLabel,
     scheduleEndDateTime,
@@ -179,8 +181,12 @@ export default function Footer({
 
   const buildTemplateConfigPayload = (templateId) => ({
     templateId,
-    category: categoryLabel,
-    priority: priorityLabel,
+    category:
+      category !== undefined && category !== null && category !== "select"
+        ? String(category)
+        : "",
+    priority:
+      priority !== undefined && priority !== null ? String(priority) : "",
     methodType: selectedModes.join(","),
     patientSelection: patientSelectionTypeMap[patientType] ?? patientType,
     appointmentTypeIds: toArray(appointmentType),

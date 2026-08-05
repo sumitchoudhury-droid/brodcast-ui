@@ -93,9 +93,9 @@ export default function LeftPanel({
   const [isImporting, setIsImporting] = useState(false);
 
   const { data: templatesData, isLoading: isLoadingTemplates } = useGet(
-    ["templates", selectedTab],
+    ["templates", "Mail", selectedTab],
     ENDPOINTS.templates.GET_ALL,
-    { includeInactive: false },
+    { methodTypes: "Mail", includeInactive: false },
     { enabled: tab === "templates" }
   );
 

@@ -60,7 +60,7 @@ export const COMMON_HEADERS = {
 
 export const BROADCAST_CONFIG_HEADERS = {
   TenantId: "Common",
-  Org: "100"
+  OrgId: "100"
 };
 
 export async function fetchAuthToken() {
