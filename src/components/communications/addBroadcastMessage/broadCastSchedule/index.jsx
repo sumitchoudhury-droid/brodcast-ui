@@ -6,6 +6,7 @@ import ScheduleOptions from "./scheduleOptions";
 import "./style.scss";
 
 export const BroadCastSchedule = ({
+  patientType,
   sendType,
   setSendType,
   startDateTime,
@@ -23,6 +24,7 @@ export const BroadCastSchedule = ({
   const [repeatDay, setRepeatDay] = useState("1st day");
 
   const scheduleProps = {
+    patientType,
     sendType,
     setSendType,
     startDateTime,

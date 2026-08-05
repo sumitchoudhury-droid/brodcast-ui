@@ -172,6 +172,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
           setAgeError={setAgeError}
         />
         <BroadCastSchedule
+          patientType={patientType}
           sendType={sendType}
           setSendType={setSendType}
           startDateTime={scheduleStartDateTime}
