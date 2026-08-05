@@ -86,6 +86,8 @@ function ExistingTemplates({
 
   const {
     setSelectedModes,
+    setCategory,
+    setPriority,
     setCategoryLabel,
     setPriorityLabel,
     setSendType,
@@ -105,13 +107,53 @@ function ExistingTemplates({
     setIncludeOptOut
   } = useBroadcastForm();
 
+  const { data: categoriesData } = useGet(
+    ["categories"],
+    ENDPOINTS.broadcastConfig.CATEGORIES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
+  const { data: prioritiesData } = useGet(
+    ["priorities"],
+    ENDPOINTS.broadcastConfig.PRIORITIES,
+    null,
+    { headers: BROADCAST_CONFIG_HEADERS }
+  );
+
   const applyTemplateConfig = (data) => {
     if (!data) return;
     if (typeof data.methodType === "string") {
       setSelectedModes(data.methodType.split(",").filter(Boolean));
     }
-    if (data.category) setCategoryLabel(data.category);
-    if (data.priority) setPriorityLabel(data.priority);
+    if (
+      data.category !== null &&
+      data.category !== undefined &&
+      data.category !== ""
+    ) {
+      const categoryId = Number(data.category);
+      if (!Number.isNaN(categoryId)) {
+        setCategory(categoryId);
+        const match = (categoriesData?.data ?? []).find(
+          (c) => c.id === categoryId
+        );
+        if (match) setCategoryLabel(match.name);
+      }
+    }
+    if (
+      data.priority !== null &&
+      data.priority !== undefined &&
+      data.priority !== ""
+    ) {
+      const priorityId = Number(data.priority);
+      if (!Number.isNaN(priorityId)) {
+        setPriority(priorityId);
+        const match = (prioritiesData?.data ?? []).find(
+          (p) => p.id === priorityId
+        );
+        if (match) setPriorityLabel(match.displayText);
+      }
+    }
 
     const patientType = patientSelectionReverseMap[data.patientSelection];
     if (patientType) setPatientType(patientType);
@@ -121,7 +163,7 @@ function ExistingTemplates({
     setProvider(data.providerIds ?? []);
     setAgeFilter(data.ageCriteriaId ?? 0);
     setAgeYear(data.ageYears != null ? String(data.ageYears) : "");
-    setAgeMonth(data.ageMonths != null ? String(data.ageMonths) : "");
+    setAgeMonth(data.ageMonths ?? "");
     if (data.genderId != null) setGender(data.genderId);
     setModality(
       Array.isArray(data.modalityIds) && data.modalityIds.length > 0
