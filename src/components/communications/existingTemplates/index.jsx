@@ -13,27 +13,27 @@ import { useGet } from "../../../hooks/useGet";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   BASE_URL,
-  // BROADCAST_CONFIG_HEADERS,
+  BROADCAST_CONFIG_HEADERS,
   COMMON_HEADERS,
   handleResponse
 } from "../../../api/api.jsx";
 import { ENDPOINTS } from "../../../api/endpoints.js";
 import { useToast } from "../../../hooks/useToast";
-// import { useBroadcastForm } from "../broadcastFormContext";
+import { useBroadcastForm } from "../broadcastFormContext";
 import SkeletonLoader from "../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 
 const modeNameToMethodType = { Mail: "Mail", SMS: "SMS", Voice: "Voice" };
 
-// const scheduleTypeToSendType = {
-//   Immediately: 1,
-//   NotifyLater: 2,
-//   Recurring: 3
-// };
-// const patientSelectionReverseMap = {
-//   TargetRecipients: "targetRecipients",
-//   OneTimeBroadcast: "oneTimeBroadcast",
-//   UploadFile: "uploadFile"
-// };
+const scheduleTypeToSendType = {
+  Immediately: 1,
+  NotifyLater: 2,
+  Recurring: 3
+};
+const patientSelectionReverseMap = {
+  TargetRecipients: "targetRecipients",
+  OneTimeBroadcast: "oneTimeBroadcast",
+  UploadFile: "uploadFile"
+};
 
 function ExistingTemplates({
   isOpen,
@@ -84,80 +84,83 @@ function ExistingTemplates({
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  // const {
-  //   setSelectedModes,
-  //   setCategoryLabel,
-  //   setPriorityLabel,
-  //   setSendType,
-  //   setScheduleStartDateTime,
-  //   setPatientType,
-  //   setBroadcastStartDate,
-  //   setPatientStartDateTime,
-  //   setPatientEndDateTime,
-  //   setAgeFilter,
-  //   setAgeYear,
-  //   setAgeMonth,
-  //   setAppointmentType,
-  //   setLocation,
-  //   setProvider,
-  //   setGender,
-  //   setModality,
-  //   setIncludeOptOut
-  // } = useBroadcastForm();
+  const {
+    setSelectedModes,
+    setCategoryLabel,
+    setPriorityLabel,
+    setSendType,
+    setScheduleStartDateTime,
+    setPatientType,
+    setBroadcastStartDate,
+    setPatientStartDateTime,
+    setPatientEndDateTime,
+    setAgeFilter,
+    setAgeYear,
+    setAgeMonth,
+    setAppointmentType,
+    setLocation,
+    setProvider,
+    setGender,
+    setModality,
+    setIncludeOptOut
+  } = useBroadcastForm();
 
-  // const applyTemplateConfig = (data) => {
-  //   if (!data) return;
-  //   if (typeof data.methodType === "string") {
-  //     setSelectedModes(data.methodType.split(",").filter(Boolean));
-  //   }
-  //   if (data.category) setCategoryLabel(data.category);
-  //   if (data.priority) setPriorityLabel(data.priority);
+  const applyTemplateConfig = (data) => {
+    if (!data) return;
+    if (typeof data.methodType === "string") {
+      setSelectedModes(data.methodType.split(",").filter(Boolean));
+    }
+    if (data.category) setCategoryLabel(data.category);
+    if (data.priority) setPriorityLabel(data.priority);
 
-  //   const patientType = patientSelectionReverseMap[data.patientSelection];
-  //   if (patientType) setPatientType(patientType);
+    const patientType = patientSelectionReverseMap[data.patientSelection];
+    if (patientType) setPatientType(patientType);
 
-  //   setAppointmentType(data.appointmentTypeIds ?? []);
-  //   setLocation(data.locationIds ?? []);
-  //   setProvider(data.providerIds ?? []);
-  //   setAgeFilter(data.ageCriteriaId ?? 0);
-  //   setAgeYear(data.ageYears != null ? String(data.ageYears) : "");
-  //   setAgeMonth(data.ageMonths != null ? String(data.ageMonths) : "");
-  //   if (data.genderId != null) setGender(data.genderId);
-  //   setModality(
-  //     Array.isArray(data.modalityIds) && data.modalityIds.length > 0
-  //       ? data.modalityIds[0]
-  //       : ""
-  //   );
-  //   if (data.appointmentStartDateTime) {
-  //     setPatientStartDateTime(new Date(data.appointmentStartDateTime));
-  //   }
-  //   setPatientEndDateTime(
-  //     data.appointmentEndDateTime ? new Date(data.appointmentEndDateTime) : null
-  //   );
-  //   if (data.oneTimeBroadcastDate) {
-  //     setBroadcastStartDate(new Date(data.oneTimeBroadcastDate));
-  //   }
-  //   setIncludeOptOut(!!data.includeOptOutPatients);
+    setAppointmentType(data.appointmentTypeIds ?? []);
+    setLocation(data.locationIds ?? []);
+    setProvider(data.providerIds ?? []);
+    setAgeFilter(data.ageCriteriaId ?? 0);
+    setAgeYear(data.ageYears != null ? String(data.ageYears) : "");
+    setAgeMonth(data.ageMonths != null ? String(data.ageMonths) : "");
+    if (data.genderId != null) setGender(data.genderId);
+    setModality(
+      Array.isArray(data.modalityIds) && data.modalityIds.length > 0
+        ? data.modalityIds[0]
+        : ""
+    );
+    if (data.appointmentStartDateTime) {
+      setPatientStartDateTime(new Date(data.appointmentStartDateTime));
+    }
+    setPatientEndDateTime(
+      data.appointmentEndDateTime ? new Date(data.appointmentEndDateTime) : null
+    );
+    if (data.oneTimeBroadcastDate) {
+      setBroadcastStartDate(new Date(data.oneTimeBroadcastDate));
+    }
+    setIncludeOptOut(!!data.includeOptOutPatients);
 
-  //   const sendType = scheduleTypeToSendType[data.scheduleType];
-  //   if (sendType) setSendType(sendType);
-  //   if (data.scheduleDateTime) {
-  //     setScheduleStartDateTime(new Date(data.scheduleDateTime));
-  //   }
-  // };
+    const sendType = scheduleTypeToSendType[data.scheduleType];
+    if (sendType) setSendType(sendType);
+    if (data.scheduleDateTime) {
+      setScheduleStartDateTime(new Date(data.scheduleDateTime));
+    }
+  };
 
-  // const { mutate: fetchTemplateConfig } = useMutation({
-  //   mutationFn: async (templateId) => {
-  //     const res = await fetch(
-  //       `${BASE_URL}${ENDPOINTS.broadcastConfig.GET_TEMPLATE_CONFIGURATION(templateId)}`,
-  //       {
-  //         method: "GET",
-  //         headers: { "Content-Type": "application/json", ...BROADCAST_CONFIG_HEADERS }
-  //       }
-  //     );
-  //     return handleResponse(res);
-  //   }
-  // });
+  const { mutate: fetchTemplateConfig } = useMutation({
+    mutationFn: async (templateId) => {
+      const res = await fetch(
+        `${BASE_URL}${ENDPOINTS.broadcastConfig.GET_TEMPLATE_CONFIGURATION(templateId)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...BROADCAST_CONFIG_HEADERS
+          }
+        }
+      );
+      return handleResponse(res);
+    }
+  });
 
   const { mutate: deleteTemplate } = useMutation({
     mutationFn: async (id) => {
@@ -201,21 +204,21 @@ function ExistingTemplates({
   const effectiveSelectedTemplate = selectedTemplate ?? templates[0] ?? null;
 
   const handleSelectTemplate = () => {
-    // const finish = () => {
-    if (onSelectTemplate) onSelectTemplate(effectiveSelectedTemplate);
-    onClose();
-    // };
-    // if (effectiveSelectedTemplate?.id) {
-    //   fetchTemplateConfig(effectiveSelectedTemplate.id, {
-    //     onSuccess: (res) => {
-    //       applyTemplateConfig(res?.data);
-    //       finish();
-    //     },
-    //     onError: () => finish()
-    //   });
-    //   return;
-    // }
-    // finish();
+    const finish = () => {
+      if (onSelectTemplate) onSelectTemplate(effectiveSelectedTemplate);
+      onClose();
+    };
+    if (effectiveSelectedTemplate?.id) {
+      fetchTemplateConfig(effectiveSelectedTemplate.id, {
+        onSuccess: (res) => {
+          applyTemplateConfig(res?.data);
+          finish();
+        },
+        onError: () => finish()
+      });
+      return;
+    }
+    finish();
   };
 
   const getChannelBody = (methodType) =>

@@ -11,7 +11,7 @@ export function ReusableRadioButton({
 }) {
   return (
     <label
-      className={`reusableRadio ${checked ? "is-checked" : ""} ${className}`}
+      className={`reusableRadio ${checked ? "is-checked" : ""} ${disabled ? "is-disabled" : ""} ${className}`}
     >
       <input
         type="radio"

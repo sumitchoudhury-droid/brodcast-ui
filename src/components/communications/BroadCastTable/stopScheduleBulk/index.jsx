@@ -96,8 +96,22 @@ export const StopScheduleBulk = memo(function StopScheduleBulk({
             variant="secondary"
             disabled={isCancelling}
             onClick={() => {
-              const scheduleIds = selectedBroadcasts.map((b) => Number(b.id));
-              bulkCancel(scheduleIds, {
+              const scheduleIds = selectedBroadcasts
+                .flatMap((b) =>
+                  Array.isArray(b.scheduleIds) && b.scheduleIds.length
+                    ? b.scheduleIds
+                    : [b.id]
+                )
+                .map(Number)
+                .filter((n) => !Number.isNaN(n));
+
+              const payload = {
+                scheduleIds: scheduleIds,
+                cancelledById: 9,
+                modifiedDateTime: new Date().toISOString()
+              };
+
+              bulkCancel(payload, {
                 onSuccess: (res) => {
                   toast.success(
                     res?.message ||

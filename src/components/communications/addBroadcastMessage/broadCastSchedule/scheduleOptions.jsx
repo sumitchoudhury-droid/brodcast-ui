@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown/index";
 import ReusableDateTime from "../../../../reusableComponents/reusableDate&TimePicker/index";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput/index";
@@ -7,6 +8,7 @@ import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 
 function ScheduleOptions({
+  patientType,
   sendType,
   setSendType,
   startDateTime,
@@ -32,6 +34,12 @@ function ScheduleOptions({
   );
 
   const sendOptions = sendOptionsData?.data ?? [];
+
+  useEffect(() => {
+    if (patientType === "oneTimeBroadcast" && sendType === 3) {
+      setSendType(1);
+    }
+  }, [patientType, sendType, setSendType]);
 
   const frequencyOptions = [
     { label: "Daily", value: "Daily" },
@@ -97,6 +105,10 @@ function ScheduleOptions({
                 name="send"
                 checked={sendType === option.id}
                 onChange={setSendType}
+                disabled={
+                  patientType === "oneTimeBroadcast" &&
+                  option.name === "Recurring"
+                }
               />
             ))}
           </div>
