@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
+import * as XLSX from "xlsx";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePut } from "../../../../../hooks/usePut";
+import { usePost } from "../../../../../hooks/usePost";
+import { useGet } from "../../../../../hooks/useGet";
 import { useToast } from "../../../../../hooks/useToast";
 import { ENDPOINTS } from "../../../../../api/endpoints.js";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
@@ -180,10 +182,8 @@ const formatScheduleDateTime = (dateTimeStr) => {
 export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
   const toast = useToast();
   const queryClient = useQueryClient();
-  const { mutate: cancelBroadcast, isPending: isCancelling } = usePut(
-    broadcastData?.id
-      ? ENDPOINTS.broadcastSchedule.CANCEL(broadcastData.id)
-      : ""
+  const { mutate: cancelBroadcast, isPending: isCancelling } = usePost(
+    ENDPOINTS.broadcastSchedule.BULK_CANCEL
   );
 
   const modesList = useMemo(() => {
@@ -243,8 +243,6 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
 
   const statusDetails = getStatusDetails(broadcastData?.broadcastStatus);
 
-  if (!isOpen) return null;
-
   const selectionTypeMap = {
     UploadFile: "uploadFile",
     TargetRecipients: "targetRecipients",
@@ -252,6 +250,44 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
   };
   const patientType =
     selectionTypeMap[broadcastData?.patientSelectionType] ?? "";
+
+  const scheduleIds = broadcastData?.scheduleIds ?? [];
+
+  const { data: uploadFileDetailsRes } = useGet(
+    ["uploadFileDetails", scheduleIds],
+    ENDPOINTS.broadcastSchedule.UPLOAD_FILE_DETAILS,
+    { notificationScheduleIds: scheduleIds },
+    {
+      enabled: isOpen && patientType === "uploadFile" && scheduleIds.length > 0
+    }
+  );
+
+  const uploadFileDetails =
+    uploadFileDetailsRes?.data?.data ?? uploadFileDetailsRes?.data ?? {};
+  const uploadedFile = uploadFileDetails?.files?.[0];
+  const uploadedPatients = uploadFileDetails?.patients ?? [];
+
+  const handleDownloadUploadedFile = () => {
+    if (!uploadedPatients.length) return;
+    const rows = uploadedPatients.map((p) => ({
+      "Patient ID": p.pmsbcpPatientId ?? "",
+      "First Name": p.firstName ?? "",
+      "Last Name": p.lastName ?? "",
+      "Date of Birth": p.dob ? new Date(p.dob).toLocaleDateString() : "",
+      "Primary Phone": p.primaryPhoneNo ?? "",
+      "Primary Email": p.primaryEmailId ?? ""
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Patients");
+    const fileName =
+      uploadedFile?.sourceFileName?.replace(/\.xlsx?$/i, "") ||
+      uploadedFile?.displayFileName?.replace(/\.xlsx?$/i, "") ||
+      "patients";
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
+  };
+
+  if (!isOpen) return null;
 
   const formatModeList = (modes) => {
     if (modes.length === 0) return "all";
@@ -334,20 +370,24 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
                 <div className="details">
                   <img src={xlsIcon} alt="xlsIcon" className="xlsIcon" />
                   <div className="xlsDetails">
-                    <p>Patients List.xlsx</p>
-                    <span>2.5 MB</span>
+                    <p>{uploadedFile?.sourceFileName || "—"}</p>
+                    <span>
+                      {uploadedPatients.length
+                        ? `${uploadedPatients.length} patients`
+                        : ""}
+                    </span>
                   </div>
                 </div>
                 <img
                   src={downloadIcon2}
                   alt="downloadIcon2"
                   className="downloadIcon"
-                  onClick={() => {
-                    const link = document.createElement("a");
-                    link.href = "/sampleFiles/Broadcast PatientList.xlsx";
-                    link.download = "Broadcast PatientList.xlsx";
-                    link.click();
-                  }}
+                  onClick={handleDownloadUploadedFile}
+                  style={
+                    !uploadedPatients.length
+                      ? { opacity: 0.5, cursor: "not-allowed" }
+                      : undefined
+                  }
                 />
               </div>
             )}
@@ -516,12 +556,15 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
                 .filter((opt) => dateFilter.includes(opt.value))
                 .map((opt) => opt.label);
 
+              const rowScheduleIds = broadcastData?.scheduleIds ?? [];
+              const selectedScheduleIds = rowScheduleIds.filter(
+                (_, i) => selectedModes[modesList[i]]
+              );
+
               const body = {
-                cancelType: selectedOccurrence,
-                cancelModes: activeModes,
-                ...(selectedOccurrence === "specific" && {
-                  scheduleIds: dateFilter
-                })
+                scheduleIds: selectedScheduleIds,
+                cancelledById: 9,
+                modifiedDateTime: new Date().toISOString().slice(0, 19)
               };
 
               cancelBroadcast(body, {
