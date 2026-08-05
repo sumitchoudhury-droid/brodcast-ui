@@ -15,6 +15,14 @@ import { useBroadcastForm } from "../../broadcastFormContext";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
+const toLocalIsoString = (value) => {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
 function TargetRecipients({
   // Dropdown props
   appointmentType,
@@ -166,19 +174,15 @@ function TargetRecipients({
       modalityId: Array.isArray(modality)
         ? (modality[0] ?? null)
         : modality || null,
-      appointmentStartDateTime: startDateTime
-        ? new Date(startDateTime).toISOString()
-        : null,
-      appointmentEndDateTime: endDateTime
-        ? new Date(endDateTime).toISOString()
-        : null,
+      appointmentStartDateTime: toLocalIsoString(startDateTime),
+      appointmentEndDateTime: toLocalIsoString(endDateTime),
       includeOptOutPatients: includeOptOut
     };
 
     searchPatients(body, {
       onSuccess: (res) => {
-        const patients = res?.data?.data?.patients ?? [];
-        const totalCount = res?.data?.data?.totalCount ?? 0;
+        const patients = res?.data?.patients ?? [];
+        const totalCount = res?.data?.totalCount ?? 0;
         onSearch(patients, totalCount);
       }
     });
