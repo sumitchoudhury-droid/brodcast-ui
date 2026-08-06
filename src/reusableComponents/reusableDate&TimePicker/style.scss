@@ -148,6 +148,18 @@
     color: variable.$color-black-4;
     text-align: center;
     flex: 1;
+
+    &.clickable {
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.15s;
+
+      &:hover {
+        background-color: variable.$color-white-1;
+        color: variable.$primary-color;
+      }
+    }
   }
 
   .navBtn {
@@ -231,6 +243,54 @@
     &.today {
       color: variable.$primary-color;
       font-weight: 700;
+    }
+  }
+}
+
+// ─────────────────────────────────────────
+// Year picker grid
+// ─────────────────────────────────────────
+.yearsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  flex: 1;
+  padding: 8px 4px;
+
+  .yearCell {
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    @include variable.font-style($fs: 13px, $fw: 500);
+    color: variable.$color-black-6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background 0.15s,
+      color 0.15s;
+
+    &:hover:not(.selected):not(.disabledYear) {
+      background-color: variable.$color-white-1;
+      color: variable.$primary-color;
+    }
+
+    &.selected {
+      background-color: variable.$primary-color !important;
+      color: #fff !important;
+      font-weight: 600;
+    }
+
+    &.today {
+      color: variable.$primary-color;
+      font-weight: 700;
+    }
+
+    &.disabledYear {
+      color: variable.$color-white-12;
+      cursor: not-allowed;
+      pointer-events: none;
     }
   }
 }
