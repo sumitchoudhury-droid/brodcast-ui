@@ -432,9 +432,11 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     <>
       <div className="signatureSectionContainer">
         <ReusableInput
-          placeholder="Enter Mail Subject"
+          // label="Mail Subject"
+          placeholder="Enter Mail Subject (Required)"
           value={mailSubject}
           onChange={(e) => setMailSubject(e.target.value)}
+          // required={true}
         />
         <ReusableDropDown
           options={SignatureOptions}
