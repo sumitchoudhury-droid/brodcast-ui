@@ -60,6 +60,7 @@ const transformSchedule = (s) => ({
   messageTempLibId: s.messageTempLibId ?? null,
   mode: s.mode ?? "",
   template: s.templateName ?? "",
+  category: s.category ?? "",
   appointmentType: s.appointmentTypeNames?.[0] ?? "",
   appointmentTypeNames: s.appointmentTypeNames ?? [],
   appointmentCount: Math.max(0, (s.appointmentTypeNames?.length ?? 0) - 1),
@@ -110,6 +111,7 @@ const SORT_FIELD_MAP = {
   scheduledDateTime: "scheduleDateTime",
   mode: "mode",
   template: "templateName",
+  category: "category",
   appointmentType: "appointmentType",
   location: "location",
   provider: "provider",
@@ -132,6 +134,7 @@ const buildTooltipContent = (names) =>
 
 const DEFAULT_ORDER = [
   "mode",
+  "category",
   "template",
   "appointmentType",
   "location",
@@ -144,6 +147,7 @@ const DEFAULT_ORDER = [
 const DEFAULT_VISIBILITY = {
   mode: true,
   template: true,
+  category: true,
   appointmentType: true,
   location: true,
   provider: true,
@@ -215,6 +219,8 @@ const getPlaceholder = (columnId) => {
       return "Sea...";
     case "template":
       return "Search Template...";
+    case "category":
+      return "Search Category...";
     case "appointmentType":
       return "Search Appointment...";
     case "location":
@@ -272,6 +278,7 @@ function BroadCastTableContainer({
   const [filters, setFilters] = useState({
     mode: "",
     template: "",
+    category: "",
     appointmentType: "",
     location: "",
     provider: "",
@@ -527,6 +534,19 @@ function BroadCastTableContainer({
         ),
         cell: ({ row }) => {
           return highlightText(row.original.template, filters.template);
+        }
+      },
+      {
+        accessorKey: "category",
+        header: ({ column }) => (
+          <div className="header-content">
+            Category <RenderSortIcon isSorted={column.getIsSorted()} />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const value = row.original.category;
+          if (!value) return "-";
+          return highlightText(value, filters.category);
         }
       },
       {
@@ -1056,6 +1076,9 @@ function BroadCastTableContainer({
                 </td>
                 <td className="col-template">
                   <SkeletonLoader width="140px" height="14px" />
+                </td>
+                <td className="col-category">
+                  <SkeletonLoader width="120px" height="14px" />
                 </td>
                 <td className="col-appointmentType">
                   <SkeletonLoader width="120px" height="14px" />
