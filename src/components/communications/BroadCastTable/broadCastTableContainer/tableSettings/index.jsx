@@ -6,6 +6,7 @@ import "./style.scss";
 const COLUMN_LABELS = {
   mode: "Mode",
   template: "Template",
+  category: "Category",
   appointmentType: "Appointment Type",
   location: "Location",
   provider: "Provider",
