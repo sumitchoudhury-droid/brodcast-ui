@@ -41,109 +41,50 @@ const getModesList = (modeStr) => {
   return list;
 };
 
-const getModeSpecificStatus = (messageStatus, modesList) => {
-  if (!messageStatus) return {};
+const formatCount = (val) => {
+  if (val === undefined || val === null) return "-";
+  return typeof val === "number" ? val.toLocaleString("en-US") : String(val);
+};
 
-  if (messageStatus.modes) {
-    return messageStatus.modes;
-  }
+// Per-mode counts now come as flat fields on broadcastData (emailEligibleCount,
+// smsSuccessCount, etc.). Extract them for the requested mode.
+const getModeCounts = (modeName, data) => {
+  const key = modeName?.toLowerCase();
+  const prefix =
+    key === "mail" || key === "email"
+      ? "email"
+      : key === "sms"
+        ? "sms"
+        : key === "voice"
+          ? "voice"
+          : null;
 
-  const parseVal = (val) => {
-    if (!val || val === "-") return 0;
-    return parseInt(String(val).replace(/,/g, ""), 10) || 0;
+  if (!prefix) return {};
+
+  return {
+    total: formatCount(data[`${prefix}EligibleCount`]),
+    delivered: formatCount(data[`${prefix}SuccessCount`]),
+    failed: formatCount(data[`${prefix}FailedCount`]),
+    pending: formatCount(data[`${prefix}PendingCount`]),
+    cancelled: formatCount(data[`${prefix}CancelledCount`])
   };
-
-  const totalVal = parseVal(messageStatus.total);
-  const deliveredVal = parseVal(messageStatus.delivered);
-  const failedVal = parseVal(messageStatus.failed);
-  const pendingVal = parseVal(messageStatus.pending);
-
-  const numModes = modesList.length;
-  if (numModes <= 1) {
-    const singleMode = modesList[0] || "Message";
-    return {
-      [singleMode]: {
-        total: messageStatus.total || "-",
-        delivered: messageStatus.delivered || "-",
-        failed: messageStatus.failed || "-",
-        pending: messageStatus.pending || "-"
-      }
-    };
-  }
-
-  const modeCounts = {};
-  let totalAllocated = 0;
-  let deliveredAllocated = 0;
-  let failedAllocated = 0;
-  let pendingAllocated = 0;
-
-  modesList.forEach((m, idx) => {
-    let fraction = 1 / numModes;
-    if (numModes === 2) {
-      fraction = idx === 0 ? 0.6 : 0.4;
-    } else if (numModes === 3) {
-      fraction = idx === 0 ? 0.5 : idx === 1 ? 0.3 : 0.2;
-    }
-
-    const mTotal =
-      idx === numModes - 1
-        ? totalVal - totalAllocated
-        : Math.round(totalVal * fraction);
-    const mDelivered =
-      idx === numModes - 1
-        ? deliveredVal - deliveredAllocated
-        : Math.round(deliveredVal * fraction);
-    const mFailed =
-      idx === numModes - 1
-        ? failedVal - failedAllocated
-        : Math.round(failedVal * fraction);
-    const mPending =
-      idx === numModes - 1
-        ? pendingVal - pendingAllocated
-        : Math.round(pendingVal * fraction);
-
-    totalAllocated += mTotal;
-    deliveredAllocated += mDelivered;
-    failedAllocated += mFailed;
-    pendingAllocated += mPending;
-
-    const formatVal = (val, originalStr) => {
-      if (
-        originalStr === "-" ||
-        originalStr === undefined ||
-        originalStr === null
-      ) {
-        return "-";
-      }
-      if (val === 0) return "0";
-      return val.toLocaleString("en-US");
-    };
-
-    modeCounts[m] = {
-      total: formatVal(mTotal, messageStatus.total),
-      delivered: formatVal(mDelivered, messageStatus.delivered),
-      failed: formatVal(mFailed, messageStatus.failed),
-      pending: formatVal(mPending, messageStatus.pending)
-    };
-  });
-
-  return modeCounts;
 };
 
 export default function Details({ broadcastData }) {
+  const data = broadcastData || {};
   const {
     mode = "SMS",
     template = "Weekly",
     hasError = false,
     broadcastStatus = "",
     scheduledDateTime = "",
-    messageStatus = {},
+    sendType = "",
     appointmentTypeNames = [],
     locationNames = [],
     providerNames = [],
     patientSelectionType = "",
     scheduleIds = []
-  } = broadcastData || {};
+  } = data;
 
   const isFailed = broadcastStatus.toLowerCase() === "failed" || hasError;
   const isCancelled = broadcastStatus.toLowerCase().includes("cancel");
@@ -221,14 +162,14 @@ export default function Details({ broadcastData }) {
 
   const { colorClass, iconSrc } = getBadgeDetails(broadcastStatus);
 
-  // Derive schedule type & repeat details based on broadcastStatus
-  const isRecurring =
-    broadcastStatus.toLowerCase().includes("daily") ||
-    broadcastStatus.toLowerCase().includes("weekly") ||
-    broadcastStatus.toLowerCase().includes("monthly") ||
-    broadcastStatus.toLowerCase().includes("running") ||
-    broadcastStatus.toLowerCase() === "in-progress";
-  const scheduleType = isRecurring ? "Recurring" : "One-time";
+  // Schedule type comes from sendType (Immediately / NotifyLater / Recurring).
+  const sendTypeLabelMap = {
+    Immediately: "Immediately",
+    NotifyLater: "Scheduled",
+    Recurring: "Recurring"
+  };
+  const isRecurring = sendType === "Recurring";
+  const scheduleType = sendTypeLabelMap[sendType] || sendType || "—";
 
   const getRepeatText = (status) => {
     const lowerStatus = status.toLowerCase();
@@ -241,7 +182,6 @@ export default function Details({ broadcastData }) {
   const repeatText = getRepeatText(broadcastStatus);
 
   const modesList = getModesList(mode);
-  const modeSpecificCounts = getModeSpecificStatus(messageStatus, modesList);
 
   return (
     <div className="tabContentDetails">
@@ -526,7 +466,10 @@ export default function Details({ broadcastData }) {
         <div className="labelCol">Message Status</div>
         <div className="valueCol messageStatusList">
           {modesList.map((modeName) => {
-            const counts = modeSpecificCounts[modeName] || {};
+            const counts = getModeCounts(modeName, data);
+            const trailingCount = isCancelled
+              ? counts.cancelled
+              : counts.pending;
             return (
               <div key={modeName} className="modeStatusGroup">
                 <div className="modeStatusHeader">{modeName}</div>
@@ -552,7 +495,7 @@ export default function Details({ broadcastData }) {
                     ) : (
                       <img src={pendingYellowIcon} alt="Pending" />
                     )}
-                    <div className="statusValue">{counts.pending || "-"}</div>
+                    <div className="statusValue">{trailingCount || "-"}</div>
                   </div>
                 </div>
               </div>
