@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./style.scss";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown";
 import { ReusableDateTime } from "../../../../reusableComponents/reusableDate&TimePicker";
@@ -137,6 +137,32 @@ function TargetRecipients({
     (Array.isArray(ids) ? ids : ids ? [ids] : [])
       .map((id) => options.find((o) => o.value === id)?.label)
       .filter(Boolean);
+
+  // Backfill labels when IDs come from a saved template. onChange only fires
+  // on user interaction, so template-seeded IDs would otherwise never resolve
+  // to labels for the confirm-broadcast summary.
+  useEffect(() => {
+    if (appointmentTypeOptions.length > 0) {
+      setAppointmentTypeLabels(
+        getLabels(appointmentType, appointmentTypeOptions)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apptTypesData, appointmentType]);
+
+  useEffect(() => {
+    if (locationOptions.length > 0) {
+      setLocationLabels(getLabels(location, locationOptions));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationsData, location]);
+
+  useEffect(() => {
+    if (providerOptions.length > 0) {
+      setProviderLabels(getLabels(provider, providerOptions));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providersData, provider]);
 
   const [showOptOutModal, setShowOptOutModal] = useState(false);
 

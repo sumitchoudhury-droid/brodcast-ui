@@ -90,7 +90,22 @@ export default function Footer({
   const [checked, setChecked] = useState(false);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false); // Added for collapsible section
 
+  const isMailMode = selectedModes.some((m) => m?.toLowerCase() === "mail");
+
+  const validateMailSubject = () => {
+    if (!isMailMode) return true;
+    if (!mailSubject || !mailSubject.trim()) {
+      toast.error(
+        "Email subject required",
+        "Please enter an email subject before proceeding."
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleSaveTemplate = () => {
+    if (!validateMailSubject()) return;
     setTemplateName(newTemplateName || "");
     setIsModalOpen(true);
   };
@@ -222,6 +237,7 @@ export default function Footer({
   });
 
   const handleSaveBranch = () => {
+    if (!validateMailSubject()) return;
     if (!selectedTemplateData?.id) return;
 
     const rawMailBody =
@@ -292,6 +308,7 @@ export default function Footer({
   };
 
   const handleSendClick = () => {
+    if (!validateMailSubject()) return;
     setIsConfirmModalOpen(true);
   };
 
