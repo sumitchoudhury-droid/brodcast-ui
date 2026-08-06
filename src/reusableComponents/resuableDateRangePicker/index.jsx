@@ -13,7 +13,9 @@ import {
   isWithinInterval,
   isAfter,
   subWeeks,
-  subYears
+  subYears,
+  setYear,
+  getYear
 } from "date-fns";
 import dateRangeIcon from "../../assets/boardCastTableIcons/dateRange.svg";
 import arrowLeftIcon from "../../assets/boardCastTableIcons/arrowLeftIcon.svg";
@@ -38,6 +40,14 @@ export default function ReusableDateRangePicker({
   const [endDate, setEndDate] = useState(initialEndDate);
   const [hoverDate, setHoverDate] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [showLeftYearPicker, setShowLeftYearPicker] = useState(false);
+  const [showRightYearPicker, setShowRightYearPicker] = useState(false);
+  const [leftYearRangeStart, setLeftYearRangeStart] = useState(
+    Math.floor(getYear(new Date()) / 12) * 12
+  );
+  const [rightYearRangeStart, setRightYearRangeStart] = useState(
+    Math.floor(getYear(new Date()) / 12) * 12
+  );
   const containerRef = useRef(null);
 
   const [prevStart, setPrevStart] = useState(initialStartDate);
@@ -174,7 +184,20 @@ export default function ReusableDateRangePicker({
   };
 
   const renderHeader = (month, isLeft) => {
+    const showYearPicker = isLeft ? showLeftYearPicker : showRightYearPicker;
+    const yearRangeStart = isLeft ? leftYearRangeStart : rightYearRangeStart;
+    const setYearRangeStart = isLeft
+      ? setLeftYearRangeStart
+      : setRightYearRangeStart;
+    const setShowYearPicker = isLeft
+      ? setShowLeftYearPicker
+      : setShowRightYearPicker;
+
     const handlePrev = () => {
+      if (showYearPicker) {
+        setYearRangeStart(yearRangeStart - 12);
+        return;
+      }
       if (isLeft) {
         setLeftMonth(subMonths(leftMonth, 1));
       } else {
@@ -183,11 +206,20 @@ export default function ReusableDateRangePicker({
     };
 
     const handleNext = () => {
+      if (showYearPicker) {
+        setYearRangeStart(yearRangeStart + 12);
+        return;
+      }
       if (isLeft) {
         setLeftMonth(addMonths(leftMonth, 1));
       } else {
         setRightMonth(addMonths(rightMonth, 1));
       }
+    };
+
+    const handleMonthClick = () => {
+      setYearRangeStart(Math.floor(getYear(month) / 12) * 12);
+      setShowYearPicker(!showYearPicker);
     };
 
     return (
@@ -199,7 +231,11 @@ export default function ReusableDateRangePicker({
             style={{ width: "16px", height: "16px" }}
           />
         </button>
-        <div className="currentMonth">{format(month, "MMMM yyyy")}</div>
+        <div className="currentMonth clickable" onClick={handleMonthClick}>
+          {showYearPicker
+            ? `${yearRangeStart} - ${yearRangeStart + 11}`
+            : format(month, "MMMM yyyy")}
+        </div>
         <button className="arrowBtn" onClick={handleNext}>
           <img
             src={arrowRightIcon}
@@ -207,6 +243,48 @@ export default function ReusableDateRangePicker({
             style={{ width: "16px", height: "16px" }}
           />
         </button>
+      </div>
+    );
+  };
+
+  const renderYears = (month, isLeft) => {
+    const yearRangeStart = isLeft ? leftYearRangeStart : rightYearRangeStart;
+    const setShowYearPicker = isLeft
+      ? setShowLeftYearPicker
+      : setShowRightYearPicker;
+    const currentYear = getYear(month);
+    const todayYear = getYear(new Date());
+
+    const handleYearSelect = (year) => {
+      const newMonth = setYear(month, year);
+      if (isLeft) {
+        setLeftMonth(newMonth);
+      } else {
+        setRightMonth(newMonth);
+      }
+      setShowYearPicker(false);
+    };
+
+    return (
+      <div className="yearsGrid">
+        {Array.from({ length: 12 }, (_, i) => yearRangeStart + i).map(
+          (year) => {
+            const isSelectedYear = currentYear === year;
+            const isCurrentYear = todayYear === year;
+            return (
+              <button
+                key={year}
+                type="button"
+                className={`yearCell ${isSelectedYear ? "selected" : ""} ${
+                  isCurrentYear && !isSelectedYear ? "today" : ""
+                }`}
+                onClick={() => handleYearSelect(year)}
+              >
+                {year}
+              </button>
+            );
+          }
+        )}
       </div>
     );
   };
@@ -316,13 +394,25 @@ export default function ReusableDateRangePicker({
             <div className="calendarsContainer">
               <div className="calendar">
                 {renderHeader(leftMonth, true)}
-                {renderDays()}
-                {renderCells(leftMonth)}
+                {showLeftYearPicker ? (
+                  renderYears(leftMonth, true)
+                ) : (
+                  <>
+                    {renderDays()}
+                    {renderCells(leftMonth)}
+                  </>
+                )}
               </div>
               <div className="calendar">
                 {renderHeader(rightMonth, false)}
-                {renderDays()}
-                {renderCells(rightMonth)}
+                {showRightYearPicker ? (
+                  renderYears(rightMonth, false)
+                ) : (
+                  <>
+                    {renderDays()}
+                    {renderCells(rightMonth)}
+                  </>
+                )}
               </div>
             </div>
           </div>
