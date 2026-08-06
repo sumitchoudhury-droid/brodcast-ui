@@ -20,7 +20,9 @@ import {
   getHours,
   getMinutes,
   isBefore,
-  startOfDay
+  startOfDay,
+  setYear,
+  getYear
 } from "date-fns";
 import "./style.scss";
 
@@ -64,6 +66,10 @@ export function ReusableDateTime({
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState(selected || minDate || new Date());
   const [tempDate, setTempDate] = useState(selected || minDate || new Date());
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [yearRangeStart, setYearRangeStart] = useState(
+    Math.floor(getYear(selected || minDate || new Date()) / 12) * 12
+  );
   const containerRef = useRef(null);
   const hourListRef = useRef(null);
   const minuteListRef = useRef(null);
@@ -126,6 +132,7 @@ export function ReusableDateTime({
   const handleToggle = () => {
     if (!disabled) {
       setIsOpen(!isOpen);
+      setShowYearPicker(false);
       if (!isOpen && selected) {
         setTempDate(selected);
         setViewDate(selected);
@@ -136,6 +143,19 @@ export function ReusableDateTime({
 
   const handlePrevMonth = () => setViewDate(subMonths(viewDate, 1));
   const handleNextMonth = () => setViewDate(addMonths(viewDate, 1));
+
+  const handleMonthDisplayClick = () => {
+    setYearRangeStart(Math.floor(getYear(viewDate) / 12) * 12);
+    setShowYearPicker((prev) => !prev);
+  };
+
+  const handleYearSelect = (year) => {
+    setViewDate(setYear(viewDate, year));
+    setShowYearPicker(false);
+  };
+
+  const handlePrevYearRange = () => setYearRangeStart((prev) => prev - 12);
+  const handleNextYearRange = () => setYearRangeStart((prev) => prev + 12);
 
   const handleDateSelect = (date) => {
     if (minDate && isBefore(startOfDay(date), startOfDay(minDate))) return;
@@ -240,7 +260,9 @@ export function ReusableDateTime({
                 <div className="customDatePickerHeader">
                   <button
                     type="button"
-                    onClick={handlePrevMonth}
+                    onClick={
+                      showYearPicker ? handlePrevYearRange : handlePrevMonth
+                    }
                     className="navBtn"
                   >
                     <img
@@ -249,12 +271,19 @@ export function ReusableDateTime({
                       style={{ width: "16px", height: "16px" }}
                     />
                   </button>
-                  <span className="monthDisplay">
-                    {format(viewDate, "MMMM yyyy")}
+                  <span
+                    className="monthDisplay clickable"
+                    onClick={handleMonthDisplayClick}
+                  >
+                    {showYearPicker
+                      ? `${yearRangeStart} - ${yearRangeStart + 11}`
+                      : format(viewDate, "MMMM yyyy")}
                   </span>
                   <button
                     type="button"
-                    onClick={handleNextMonth}
+                    onClick={
+                      showYearPicker ? handleNextYearRange : handleNextMonth
+                    }
                     className="navBtn"
                   >
                     <img
@@ -265,36 +294,69 @@ export function ReusableDateTime({
                   </button>
                 </div>
 
-                <div className="weekDaysRow">
-                  {weekDays.map((day, i) => (
-                    <div key={`${day}-${i}`} className="weekDay">
-                      {day}
+                {showYearPicker ? (
+                  <div className="yearsGrid">
+                    {Array.from(
+                      { length: 12 },
+                      (_, i) => yearRangeStart + i
+                    ).map((year) => {
+                      const isSelectedYear = getYear(tempDate) === year;
+                      const isCurrentYear = getYear(new Date()) === year;
+                      const isBeforeMin = minDate && year < getYear(minDate);
+                      return (
+                        <button
+                          key={year}
+                          type="button"
+                          className={`yearCell
+                              ${isSelectedYear ? "selected" : ""}
+                              ${isCurrentYear && !isSelectedYear ? "today" : ""}
+                              ${isBeforeMin ? "disabledYear" : ""}
+                            `}
+                          onClick={() => !isBeforeMin && handleYearSelect(year)}
+                          disabled={isBeforeMin}
+                        >
+                          {year}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <>
+                    <div className="weekDaysRow">
+                      {weekDays.map((day, i) => (
+                        <div key={`${day}-${i}`} className="weekDay">
+                          {day}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
 
-                <div className="daysGrid">
-                  {days.map((day, idx) => {
-                    const isBeforeMin =
-                      minDate && isBefore(startOfDay(day), startOfDay(minDate));
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={`dayCell
-                          ${!isSameMonth(day, viewDate) ? "outsideMonth" : ""}
-                          ${isSameDay(day, tempDate) ? "selected" : ""}
-                          ${isToday(day) && !isSameDay(day, tempDate) ? "today" : ""}
-                          ${isBeforeMin ? "disabledDay" : ""}
-                        `}
-                        onClick={() => !isBeforeMin && handleDateSelect(day)}
-                        disabled={isBeforeMin}
-                      >
-                        {format(day, "d")}
-                      </button>
-                    );
-                  })}
-                </div>
+                    <div className="daysGrid">
+                      {days.map((day, idx) => {
+                        const isBeforeMin =
+                          minDate &&
+                          isBefore(startOfDay(day), startOfDay(minDate));
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            className={`dayCell
+                              ${!isSameMonth(day, viewDate) ? "outsideMonth" : ""}
+                              ${isSameDay(day, tempDate) ? "selected" : ""}
+                              ${isToday(day) && !isSameDay(day, tempDate) ? "today" : ""}
+                              ${isBeforeMin ? "disabledDay" : ""}
+                            `}
+                            onClick={() =>
+                              !isBeforeMin && handleDateSelect(day)
+                            }
+                            disabled={isBeforeMin}
+                          >
+                            {format(day, "d")}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* ── Time ── */}
