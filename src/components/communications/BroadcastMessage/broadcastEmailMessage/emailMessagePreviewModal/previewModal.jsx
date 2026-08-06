@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from "react";
 
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
 
-import deleteIcon from "../../../../../assets/commonIcons/deleteIcon.svg";
-import menuIcon from "../../../../../assets/commonIcons/menuIcon.svg";
-import trashIcon from "../../../../../assets/commonIcons/trashIcon.svg";
-import backIcon from "../../../../../assets/commonIcons/backIcon.svg";
+// import deleteIcon from "../../../../../assets/commonIcons/deleteIcon.svg";
+// import menuIcon from "../../../../../assets/commonIcons/menuIcon.svg";
+// import trashIcon from "../../../../../assets/commonIcons/trashIcon.svg";
+// import backIcon from "../../../../../assets/commonIcons/backIcon.svg";
 
 import "./style.scss";
 
@@ -200,7 +200,7 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
           }
         >
           {/* Email Header Info - Only for Desktop */}
-          {selectedDevice === "Desktop" && (
+          {/* {selectedDevice === "Desktop" && (
             <div className="emailHeaderInfo">
               <div className="avatar">MH</div>
               <div className="emailDetails">
@@ -211,7 +211,7 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                 <p className="to">To: patient@email.com</p>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Device Frame */}
           <div className={`deviceFrame ${selectedDevice.toLowerCase()}`}>
@@ -227,7 +227,7 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                 </div>
               </>
             )}
-            {selectedDevice === "Mobile" && (
+            {/* {selectedDevice === "Mobile" && (
               <>
                 <div className="mobileHeader">
                   <img
@@ -254,7 +254,7 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
                   </div>
                 </div>
               </>
-            )}
+            )} */}
             <div
               className={`iframeWrapper ${selectedDevice === "Mobile" ? "mobile-scroll" : "desktop-scroll"}`}
             >

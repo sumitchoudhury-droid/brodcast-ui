@@ -105,9 +105,7 @@ export function ReusableUpload({
 
               <div style={{ gap: "4px" }}>
                 <p className="fileName">{file.name}</p>
-                <p className="fileSize">
-                  {(file.size / (1024 * 1024)).toFixed(1)} MB
-                </p>
+                <p className="fileSize">{(file.size / 1024).toFixed(1)} KB</p>
               </div>
             </div>
             <img

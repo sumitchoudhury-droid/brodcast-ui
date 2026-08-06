@@ -75,7 +75,8 @@ const transformSchedule = (s) => ({
     total: s.eligibleCount ?? 0,
     delivered: s.successCount ?? 0,
     failed: s.failedCount ?? 0,
-    pending: s.pendingCount ?? 0
+    pending: s.pendingCount ?? 0,
+    cancelled: s.cancelledCount ?? 0
   },
   eligibleCount: s.eligibleCount ?? 0,
   successCount: s.successCount ?? 0,
@@ -676,7 +677,7 @@ function BroadCastTableContainer({
           </div>
         ),
         cell: ({ row }) => {
-          const { total, delivered, failed, pending } =
+          const { total, delivered, failed, pending, cancelled } =
             row.original.messageStatus;
           const isCancelled = row.original.broadcastStatus === "Cancelled";
           return (
@@ -717,7 +718,7 @@ function BroadCastTableContainer({
                       style={{ cursor: "pointer" }}
                     >
                       <img src={cancelIcon} alt="cancelled" />{" "}
-                      <span>{pending}</span>
+                      <span>{cancelled}</span>
                     </div>
                   </ReusableToolTip>
                 ) : (

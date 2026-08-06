@@ -257,8 +257,8 @@ export default function Details({ broadcastData }) {
                       {uploadedFile?.sourceFileName || "—"}
                     </span>
                     <span className="fileSize">
-                      {uploadedPatients.length
-                        ? `${uploadedPatients.length} patients`
+                      {uploadedFile?.fileSize
+                        ? `${(uploadedFile.fileSize / 1024).toFixed(1)} KB`
                         : ""}
                     </span>
                   </div>

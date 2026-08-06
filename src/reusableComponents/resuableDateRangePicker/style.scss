@@ -58,7 +58,7 @@
   display: flex;
   flex: 1;
   overflow: hidden;
-  gap: 45px;
+  gap: 20px;
 }
 
 .sidebar {
@@ -97,6 +97,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 250px;
 }
 
 .calendarHeader {
@@ -108,6 +109,18 @@
   .currentMonth {
     @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
     color: variable.$color-black-6;
+
+    &.clickable {
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.15s;
+
+      &:hover {
+        background-color: variable.$color-white-1;
+        color: variable.$primary-color;
+      }
+    }
   }
 
   .arrowBtn {
@@ -212,14 +225,54 @@
     }
   }
 
-  &.startDate:not(.empty) {
-  }
+  // &.startDate:not(.empty) {
+  // }
 
-  &.endDate:not(.empty) {
-  }
+  // &.endDate:not(.empty) {
+  // }
 
   &.startEndDate:not(.empty) {
     background: transparent;
+  }
+}
+
+.yearsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  flex: 1;
+  padding: 8px 4px;
+
+  .yearCell {
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 12px 0;
+    @include variable.font-style($fs: 13px, $fw: 500);
+    color: variable.$color-black-6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background 0.15s,
+      color 0.15s;
+
+    &:hover:not(.selected) {
+      background-color: variable.$color-white-1;
+      color: variable.$primary-color;
+    }
+
+    &.selected {
+      background-color: variable.$primary-color !important;
+      color: variable.$color-white-0 !important;
+      font-weight: 600;
+    }
+
+    &.today {
+      color: variable.$primary-color;
+      font-weight: 700;
+    }
   }
 }
 

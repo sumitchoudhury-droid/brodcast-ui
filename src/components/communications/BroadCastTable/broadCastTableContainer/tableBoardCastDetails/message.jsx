@@ -529,7 +529,7 @@ function Message({ broadcastData, template, isTemplateLoading }) {
         {activeChannel === "sms" && (
           <div className="centeredMockupWrapper">
             <PhoneMockup>
-              <div className="smsPreviewHeader">
+              {/* <div className="smsPreviewHeader">
                 <button className="backBtn" disabled>
                   <svg
                     viewBox="0 0 24 24"
@@ -555,7 +555,7 @@ function Message({ broadcastData, template, isTemplateLoading }) {
                     MHCARE <span className="chevron">&gt;</span>
                   </span>
                 </div>
-              </div>
+              </div> */}
               <div className="smsScreenContent">
                 {isTemplateLoading ? (
                   <div
@@ -591,13 +591,13 @@ function Message({ broadcastData, template, isTemplateLoading }) {
             {viewMode === "desktop" ? (
               <div className="desktopMailWrapper">
                 {/* Desktop Sender details Header */}
-                <div className="senderHeaderDetails">
+                {/* <div className="senderHeaderDetails">
                   <div className="senderAvatar">MH</div>
                   <div className="senderInfo">
                     <div className="mailSubject">Payment Reminder</div>
                     <div className="mailSender">Manipal Hospitals</div>
                   </div>
-                </div>
+                </div> */}
                 {/* Desktop Email Body frame */}
                 <div className="emailDesktopBodyFrame">
                   {isTemplateLoading ? (

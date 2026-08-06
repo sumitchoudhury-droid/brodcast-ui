@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { ReusableButton } from "../../../../../../reusableComponents/resuableButton";
-import deleteIcon from "../../../../../../assets/commonIcons/deleteIcon.svg";
-import menuIcon from "../../../../../../assets/commonIcons/menuIcon.svg";
-import trashIcon from "../../../../../../assets/commonIcons/trashIcon.svg";
-import backIcon from "../../../../../../assets/commonIcons/backIcon.svg";
+// import deleteIcon from "../../../../../../assets/commonIcons/deleteIcon.svg";
+// import menuIcon from "../../../../../../assets/commonIcons/menuIcon.svg";
+// import trashIcon from "../../../../../../assets/commonIcons/trashIcon.svg";
+// import backIcon from "../../../../../../assets/commonIcons/backIcon.svg";
 import "./style.scss";
 
 const TextPreviewModal = ({ isOpen, onClose, html }) => {
@@ -208,7 +208,7 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
                     <span>🔋</span>
                   </div>
                 </div>
-                <div className="mobileHeader">
+                {/* <div className="mobileHeader">
                   <img
                     src={backIcon}
                     alt="back"
@@ -231,7 +231,7 @@ const TextPreviewModal = ({ isOpen, onClose, html }) => {
                       style={{ height: "15px", width: "15px" }}
                     />
                   </div>
-                </div>
+                </div> */}
               </>
             )}
             <div
