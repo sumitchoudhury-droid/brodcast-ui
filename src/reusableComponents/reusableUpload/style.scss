@@ -82,7 +82,7 @@
 /* ---------- FILE CARD ---------- */
 
 .fileCard {
-  width: 100%;
+  // width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -118,4 +118,5 @@
   background: transparent;
   width: 36px;
   height: 36px;
+  cursor: pointer;
 }
