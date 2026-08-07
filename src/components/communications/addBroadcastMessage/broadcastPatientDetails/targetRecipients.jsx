@@ -126,8 +126,20 @@ function TargetRecipients({
     label: m.catalogDec.trim()
   }));
 
-  const { setAppointmentTypeLabels, setLocationLabels, setProviderLabels } =
-    useBroadcastForm();
+  const {
+    setAppointmentTypeLabels,
+    setLocationLabels,
+    setProviderLabels,
+    categoryLabel
+  } = useBroadcastForm();
+
+  const isRecall = categoryLabel === "Recall";
+  const startDateLabel = isRecall
+    ? "Recall Start Date / Time"
+    : "Appointment Start Date / Time";
+  const endDateLabel = isRecall
+    ? "Recall End Date / Time"
+    : "Appointment End Date / Time";
 
   const { mutate: searchPatients, isPending: isSearching } = usePost(
     ENDPOINTS.patients.SEARCH
@@ -337,7 +349,7 @@ function TargetRecipients({
       <div className="dateAndTimeContainer">
         <div className="dateContainer">
           <ReusableDateTime
-            label="Appointment Start Date / Time"
+            label={startDateLabel}
             required={true}
             selected={startDateTime}
             onChange={(date) => {
@@ -351,7 +363,7 @@ function TargetRecipients({
         </div>
         <div className="dateContainer">
           <ReusableDateTime
-            label={"Appointment End Date / Time"}
+            label={endDateLabel}
             required={true}
             selected={endDateTime}
             onChange={(date) => setEndDateTime(date)}

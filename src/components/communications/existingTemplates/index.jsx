@@ -822,6 +822,7 @@ function ExistingTemplates({
             )}
 
             <div className="previewArea">
+              <div className="previewLabel">PREVIEW</div>
               {!effectiveSelectedTemplate ? (
                 <div className="previewPlaceholder">
                   <div className="placeholderIcon">
@@ -834,9 +835,9 @@ function ExistingTemplates({
                 </div>
               ) : (
                 <div className="templatePreviewContent">
-                  <div className="previewTag">
+                  {/* <div className="previewTag">
                     <p>Preview</p>
-                  </div>
+                  </div> */}
                   {effectiveViewMode === "mobile" ? (
                     <div className="mobilePhoneMockup">
                       <div className="phoneNotch" />

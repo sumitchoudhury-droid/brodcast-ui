@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import uploadImage from "../../assets/commonIcons/uploadImage.svg";
 import greenCrossIcon from "../../assets/commonIcons/greenCrossIcon.svg";
-import fileIcon from "../../assets/commonIcons/fileIcon.svg";
+// import imgfileIcon from "../../assets/commonIcons/fileIcon.svg";
+import xlsfileIcon from "../../assets/commonIcons/xlsIcon.svg";
 import "./style.scss";
 
 export function ReusableUpload({
@@ -100,7 +101,7 @@ export function ReusableUpload({
           <div className="fileCard">
             <div className="fileLeft">
               <div className="fileIcon">
-                <img src={fileIcon} alt="fileIcon" />
+                <img src={xlsfileIcon} alt="fileIcon" />
               </div>
 
               <div style={{ gap: "4px" }}>
