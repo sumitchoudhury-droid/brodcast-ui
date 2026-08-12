@@ -104,7 +104,8 @@ function ExistingTemplates({
     setProvider,
     setGender,
     setModality,
-    setIncludeOptOut
+    setIncludeOptOut,
+    setMailSubject
   } = useBroadcastForm();
 
   const { data: categoriesData } = useGet(
@@ -246,6 +247,11 @@ function ExistingTemplates({
   const effectiveSelectedTemplate = selectedTemplate ?? templates[0] ?? null;
 
   const handleSelectTemplate = () => {
+    const mailChannel = effectiveSelectedTemplate?.channels?.find(
+      (c) => c.methodType === "Mail"
+    );
+    setMailSubject(mailChannel?.subjectLine ?? "");
+
     const finish = () => {
       if (onSelectTemplate) onSelectTemplate(effectiveSelectedTemplate);
       onClose();
@@ -822,7 +828,9 @@ function ExistingTemplates({
             )}
 
             <div className="previewArea">
-              <div className="previewLabel">PREVIEW</div>
+              {templates.length > 0 && (
+                <div className="previewLabel">PREVIEW</div>
+              )}
               {!effectiveSelectedTemplate ? (
                 <div className="previewPlaceholder">
                   <div className="placeholderIcon">

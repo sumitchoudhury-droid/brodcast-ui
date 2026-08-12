@@ -61,7 +61,9 @@
     "appt",
     "undercount",
     "inlines",
-    "pmsbcp"
+    "pmsbcp",
+    "imgfile",
+    "xlsfile"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

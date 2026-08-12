@@ -18,7 +18,8 @@ import { ReusableButton } from "../../../../../../reusableComponents/resuableBut
 import { useBroadcastForm } from "../../../../broadcastFormContext";
 
 export default function SignatureSection({ editorRef, isEditorEmpty }) {
-  const { mailSubject, setMailSubject } = useBroadcastForm();
+  const { mailSubject, setMailSubject, mailSubjectError, setMailSubjectError } =
+    useBroadcastForm();
   const [signature, setSignature] = useState("");
   const [showFormsDropdown, setShowFormsDropdown] = useState(false);
   const [selectedForms, setSelectedForms] = useState([]);
@@ -435,7 +436,17 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
           // label="Mail Subject"
           placeholder="Enter Mail Subject (Required)"
           value={mailSubject}
-          onChange={(e) => setMailSubject(e.target.value)}
+          onChange={(e) => {
+            setMailSubject(e.target.value);
+            if (mailSubjectError && e.target.value.trim()) {
+              setMailSubjectError(false);
+            }
+          }}
+          Containerstyle={
+            mailSubjectError && !mailSubject?.trim()
+              ? "mailSubjectErrorBorder"
+              : ""
+          }
           // required={true}
         />
         <ReusableDropDown
