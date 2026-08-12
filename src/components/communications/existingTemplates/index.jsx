@@ -822,7 +822,9 @@ function ExistingTemplates({
             )}
 
             <div className="previewArea">
-              <div className="previewLabel">PREVIEW</div>
+              {templates.length > 0 && (
+                <div className="previewLabel">PREVIEW</div>
+              )}
               {!effectiveSelectedTemplate ? (
                 <div className="previewPlaceholder">
                   <div className="placeholderIcon">
