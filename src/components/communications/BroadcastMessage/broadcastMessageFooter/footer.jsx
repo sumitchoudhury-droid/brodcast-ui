@@ -66,7 +66,8 @@ export default function Footer({
     ageYear,
     ageMonth,
     gender,
-    modality
+    modality,
+    setMailSubjectError
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
@@ -95,12 +96,10 @@ export default function Footer({
   const validateMailSubject = () => {
     if (!isMailMode) return true;
     if (!mailSubject || !mailSubject.trim()) {
-      toast.error(
-        "Email subject required",
-        "Please enter an email subject before proceeding."
-      );
+      setMailSubjectError(true);
       return false;
     }
+    setMailSubjectError(false);
     return true;
   };
 

@@ -70,6 +70,7 @@ const FIELD_ACTIONS = {
   newTemplateName: broadcastFormActions.setNewTemplateName,
   selectedEmailTemplateType: broadcastFormActions.setSelectedEmailTemplateType,
   mailSubject: broadcastFormActions.setMailSubject,
+  mailSubjectError: broadcastFormActions.setMailSubjectError,
   isEmailEditorEmpty: broadcastFormActions.setIsEmailEditorEmpty,
   isSmsEditorEmpty: broadcastFormActions.setIsSmsEditorEmpty,
   isVoiceEditorEmpty: broadcastFormActions.setIsVoiceEditorEmpty

@@ -44,6 +44,7 @@ const initialState = {
   selectedEmailTemplateType: "blank",
 
   mailSubject: "",
+  mailSubjectError: false,
 
   isEmailEditorEmpty: true,
   isSmsEditorEmpty: true,
@@ -106,6 +107,7 @@ const broadcastFormSlice = createSlice({
     setNewTemplateName: makeSetter("newTemplateName"),
     setSelectedEmailTemplateType: makeSetter("selectedEmailTemplateType"),
     setMailSubject: makeSetter("mailSubject"),
+    setMailSubjectError: makeSetter("mailSubjectError"),
     setIsEmailEditorEmpty: makeSetter("isEmailEditorEmpty"),
     setIsSmsEditorEmpty: makeSetter("isSmsEditorEmpty"),
     setIsVoiceEditorEmpty: makeSetter("isVoiceEditorEmpty")

@@ -104,7 +104,8 @@ function ExistingTemplates({
     setProvider,
     setGender,
     setModality,
-    setIncludeOptOut
+    setIncludeOptOut,
+    setMailSubject
   } = useBroadcastForm();
 
   const { data: categoriesData } = useGet(
@@ -246,6 +247,11 @@ function ExistingTemplates({
   const effectiveSelectedTemplate = selectedTemplate ?? templates[0] ?? null;
 
   const handleSelectTemplate = () => {
+    const mailChannel = effectiveSelectedTemplate?.channels?.find(
+      (c) => c.methodType === "Mail"
+    );
+    setMailSubject(mailChannel?.subjectLine ?? "");
+
     const finish = () => {
       if (onSelectTemplate) onSelectTemplate(effectiveSelectedTemplate);
       onClose();
