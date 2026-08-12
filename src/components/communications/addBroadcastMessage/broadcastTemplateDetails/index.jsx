@@ -55,8 +55,9 @@ function BroadcastTemplateDetails({
               <p>Blank Template</p>
             </div>
             <div
-              className={`templateOption ${selectedTemplate === "existing" ? "active" : ""}`}
+              className={`templateOption ${selectedTemplate === "existing" ? "active" : ""} ${selectedModes.length === 0 ? "disabled" : ""}`}
               onClick={() => {
+                if (selectedModes.length === 0) return;
                 setSelectedTemplate("existing");
                 setIsDrawerOpen(true);
               }}

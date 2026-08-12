@@ -96,6 +96,11 @@
             width: 200px;
           }
 
+          &.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+
           .iconWrapper {
             width: 100%;
             position: absolute;
