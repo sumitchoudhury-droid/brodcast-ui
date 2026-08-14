@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ReactDOM from "react-dom";
 import * as XLSX from "xlsx";
 import "./style.scss";
@@ -7,60 +7,26 @@ import { ReusableCheckbox } from "../../../../../reusableComponents/reusableChec
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
 import ResuablePagination from "../../../../../reusableComponents/resuablePagination/index.jsx";
 import { useToast } from "../../../../../hooks/useToast";
+import { useBroadcastForm } from "../../../broadcastFormContext";
+import {
+  computeReason,
+  isError,
+  isPhoneInvalid,
+  isEmailInvalid,
+  formatPhone,
+  parseUploadedFileToPatients
+} from "../uploadFileUtils";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 import circleCross from "../../../../../assets/commonIcons/circleCross.svg";
 import circleChecked from "../../../../../assets/commonIcons/circleChecked.svg";
 import editIcon from "../../../../../assets/boardCastTableIcons/editIcon.svg";
 import searchGreenIcon from "../../../../../assets/boardCastTableIcons/searchGreen.svg";
 
-import { mockUploadPatients } from "./mockUploadPatients";
-
-const isEmailInvalid = (email) => {
-  if (!email || email === "-") return true;
-  return !email.includes("@") || !email.includes(".");
-};
-
-const isPhoneInvalid = (phone) => {
-  if (!phone || phone === "-") return true;
-  const digits = phone.replace(/\D/g, "");
-  return digits.length !== 10;
-};
-
-const computeReason = (patient) => {
-  const missing = [];
-  if (
-    !patient.firstName ||
-    !patient.firstName.trim() ||
-    patient.firstName === "-"
-  )
-    missing.push("First Name");
-  if (!patient.lastName || !patient.lastName.trim() || patient.lastName === "-")
-    missing.push("Last Name");
-  if (
-    !patient.dob ||
-    patient.dob === "-" ||
-    patient.dob.replace(/\D/g, "").length < 8
-  )
-    missing.push("DOB");
-  if (isPhoneInvalid(patient.phone)) missing.push("Phone");
-  if (isEmailInvalid(patient.email)) missing.push("Email");
-  return missing.length > 0 ? `Missing: ${missing.join(", ")}` : "-";
-};
-
-const isError = (patient) => patient.reason && patient.reason !== "-";
-
 const formatDob = (value) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
   if (digits.length <= 2) return digits;
   if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-};
-
-const formatPhone = (value) => {
-  const digits = value.replace(/\D/g, "").slice(0, 10);
-  if (digits.length <= 3) return digits.length ? `(${digits}` : "";
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 };
 
 const SortIcon = ({ columnKey, sortConfig }) => {
@@ -112,18 +78,22 @@ const emptyFilters = {
   lastName: "",
   dob: "",
   phone: "",
-  email: ""
+  email: "",
+  balanceAmount: ""
 };
 
 const exportToExcel = (patients, fileName) => {
   const rows = patients.map(
-    ({ firstName, lastName, dob, phone, email, reason }) => ({
-      "First Name": firstName,
-      "Last Name": lastName,
-      "Date of Birth": dob,
-      "Phone Number": phone,
+    ({ firstName, lastName, dob, phone, email, balanceAmount }) => ({
+      "Patient First Name": firstName,
+      "Patient Last Name": lastName,
+      "Date of Birth (MM/DD/YYYY)": dob,
+      "Mobile Number": phone,
       Email: email,
-      Reason: reason === "-" ? "" : reason
+      "Balance Amount ($)":
+        balanceAmount === null || balanceAmount === undefined
+          ? ""
+          : balanceAmount
     })
   );
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -134,12 +104,22 @@ const exportToExcel = (patients, fileName) => {
 
 const UploadFileViewList = ({ isOpen, onClose }) => {
   const toast = useToast();
-  const [patients, setPatients] = useState(() =>
-    JSON.parse(JSON.stringify(mockUploadPatients)).map((p) => ({
-      ...p,
-      reason: computeReason(p)
-    }))
-  );
+  const { uploadedFile } = useBroadcastForm();
+  const [patients, setPatients] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    parseUploadedFileToPatients(uploadedFile)
+      .then((rows) => {
+        if (!cancelled) setPatients(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setPatients([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uploadedFile]);
   const [editPatients, setEditPatients] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAddingRow, setIsAddingRow] = useState(false);
@@ -251,6 +231,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
       dob: "",
       phone: "",
       email: "",
+      balanceAmount: null,
       reason: "-"
     });
     setIsAddingRow(false);
@@ -263,6 +244,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
       dob: "",
       phone: "",
       email: "",
+      balanceAmount: null,
       reason: "-"
     });
     setIsAddingRow(false);
@@ -288,11 +270,21 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
 
   const sortedPatients = useMemo(() => {
     if (!sortConfig.key) return filteredPatients;
+    const dir = sortConfig.direction === "asc" ? 1 : -1;
     return [...filteredPatients].sort((a, b) => {
-      const aVal = String(a[sortConfig.key] || "").toLowerCase();
-      const bVal = String(b[sortConfig.key] || "").toLowerCase();
-      if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-      if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+      const aRaw = a[sortConfig.key];
+      const bRaw = b[sortConfig.key];
+      if (sortConfig.key === "balanceAmount") {
+        const aNum = aRaw == null || aRaw === "" ? -Infinity : Number(aRaw);
+        const bNum = bRaw == null || bRaw === "" ? -Infinity : Number(bRaw);
+        if (aNum < bNum) return -1 * dir;
+        if (aNum > bNum) return 1 * dir;
+        return 0;
+      }
+      const aVal = String(aRaw || "").toLowerCase();
+      const bVal = String(bRaw || "").toLowerCase();
+      if (aVal < bVal) return -1 * dir;
+      if (aVal > bVal) return 1 * dir;
       return 0;
     });
   }, [filteredPatients, sortConfig]);
@@ -456,6 +448,15 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                       <SortIcon columnKey="email" sortConfig={sortConfig} />
                     </div>
                   </th>
+                  <th onClick={() => handleSort("balanceAmount")}>
+                    <div className="headerCell">
+                      Balance Amount{" "}
+                      <SortIcon
+                        columnKey="balanceAmount"
+                        sortConfig={sortConfig}
+                      />
+                    </div>
+                  </th>
                   <th>
                     <img
                       src={searchGreenIcon}
@@ -471,22 +472,27 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                 {showSearch && (
                   <tr className="search-filters-row">
                     {!isEditMode && <th></th>}
-                    {["firstName", "lastName", "dob", "phone", "email"].map(
-                      (field) => (
-                        <th key={field}>
-                          <div className="search-input-wrapper">
-                            <input
-                              type="text"
-                              placeholder="Search..."
-                              value={filters[field]}
-                              onChange={(e) =>
-                                handleFilterChange(field, e.target.value)
-                              }
-                            />
-                          </div>
-                        </th>
-                      )
-                    )}
+                    {[
+                      "firstName",
+                      "lastName",
+                      "dob",
+                      "phone",
+                      "email",
+                      "balanceAmount"
+                    ].map((field) => (
+                      <th key={field}>
+                        <div className="search-input-wrapper">
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={filters[field]}
+                            onChange={(e) =>
+                              handleFilterChange(field, e.target.value)
+                            }
+                          />
+                        </div>
+                      </th>
+                    ))}
                     <th></th>
                   </tr>
                 )}
@@ -562,6 +568,24 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                             value={newPatient.email}
                             onChange={(e) =>
                               handleNewPatientChange("email", e.target.value)
+                            }
+                            className="editInput"
+                          />
+                        </td>
+                        <td className="editableCell">
+                          <input
+                            type="text"
+                            placeholder="Balance Amount"
+                            value={
+                              newPatient.balanceAmount == null
+                                ? ""
+                                : newPatient.balanceAmount
+                            }
+                            onChange={(e) =>
+                              handleNewPatientChange(
+                                "balanceAmount",
+                                e.target.value
+                              )
                             }
                             className="editInput"
                           />
@@ -653,6 +677,33 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                           highlightText(patient.email, filters.email)
                         )}
                       </td>
+                      <td className={isEditMode ? "editableCell" : ""}>
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            value={
+                              patient.balanceAmount == null
+                                ? ""
+                                : patient.balanceAmount
+                            }
+                            onChange={(e) =>
+                              handleCellEdit(
+                                patient.id,
+                                "balanceAmount",
+                                e.target.value === "" ? null : e.target.value
+                              )
+                            }
+                            className="editInput"
+                          />
+                        ) : patient.balanceAmount == null ? (
+                          "-"
+                        ) : (
+                          highlightText(
+                            String(patient.balanceAmount),
+                            filters.balanceAmount
+                          )
+                        )}
+                      </td>
                       <td></td>
                     </tr>
                   );
@@ -660,7 +711,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                 {paginatedPatients.length === 0 && (
                   <tr>
                     <td
-                      colSpan={isEditMode ? "6" : "7"}
+                      colSpan={isEditMode ? "7" : "8"}
                       style={{
                         textAlign: "center",
                         padding: "24px",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import * as XLSX from "xlsx";
 
 import { ReusableButton } from "../../../../reusableComponents/resuableButton";
 import { ReusableInput } from "../../../../reusableComponents/reusableInput/index";
@@ -67,6 +68,7 @@ export default function Footer({
     ageMonth,
     gender,
     modality,
+    uploadedFile,
     setMailSubjectError
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
@@ -82,6 +84,10 @@ export default function Footer({
   const { mutate: sendBroadcast, isPending: isSending } = usePost(
     ENDPOINTS.broadcastSchedule.CREATE
   );
+  const {
+    mutate: sendCustomRecipientsBroadcast,
+    isPending: isSendingCustomRecipients
+  } = usePost(ENDPOINTS.broadcastSchedule.CUSTOM_RECIPIENTS_UPLOAD);
   const { mutate: saveTemplateConfig } = usePost(
     ENDPOINTS.broadcastConfig.TEMPLATE_CONFIGURATIONS
   );
@@ -367,7 +373,189 @@ export default function Footer({
     });
   };
 
+  const toIsoDateOnly = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "number") {
+      const parsed = XLSX.SSF.parse_date_code(value);
+      if (!parsed) return null;
+      const y = String(parsed.y).padStart(4, "0");
+      const m = String(parsed.m).padStart(2, "0");
+      const d = String(parsed.d).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    const str = String(value).trim();
+    const parts = str.split("/");
+    if (parts.length === 3) {
+      const [mm, dd, yyyy] = parts;
+      return `${yyyy.padStart(4, "0")}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    }
+    return str;
+  };
+
+  const parseUploadedRecipients = (file) =>
+    new Promise((resolve, reject) => {
+      if (!file) {
+        resolve([]);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(new Uint8Array(e.target.result), {
+            type: "array"
+          });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+          const recipients = rows.map((r) => {
+            const balance = r["Balance Amount ($)"];
+            return {
+              firstName: r["Patient First Name"] ?? "",
+              lastName: r["Patient Last Name"] ?? "",
+              dateOfBirth: toIsoDateOnly(r["Date of Birth (MM/DD/YYYY)"]),
+              phoneNumber:
+                r["Mobile Number"] !== undefined && r["Mobile Number"] !== ""
+                  ? String(r["Mobile Number"])
+                  : "",
+              emailAddress: r["Email"] ?? "",
+              balanceAmount:
+                balance === "" || balance === null || balance === undefined
+                  ? null
+                  : Number(balance),
+              isOptedOutEmail: false,
+              isOptedOutSms: false
+            };
+          });
+          resolve(recipients);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+
+  const buildChannelsFromEditors = () => {
+    const rawMailBody =
+      editorRef?.current?.getCompiledHtml?.() ||
+      editorRef?.current?.getHtml?.() ||
+      "";
+    const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
+    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+    const mailAttachments = editorRef?.current?.getAttachments?.() || [];
+
+    return selectedModes
+      .map((mode) => {
+        const lowerMode = mode.toLowerCase();
+        if (lowerMode === "mail") {
+          return {
+            methodType: "Mail",
+            subjectLine: mailSubject || null,
+            templateBody: mailBody,
+            smsStandardText: null,
+            attachments: mailAttachments
+          };
+        }
+        if (lowerMode === "sms") {
+          return {
+            methodType: "SMS",
+            templateBody: smsBody,
+            subjectLine: null,
+            smsStandardText: smsBody,
+            attachments: []
+          };
+        }
+        if (lowerMode === "voice") {
+          return {
+            methodType: "Voice",
+            templateBody: "",
+            subjectLine: null,
+            smsStandardText: null,
+            attachments: []
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
+  const buildCustomRecipientsPayload = ({
+    templateId,
+    newTemplate,
+    recipients,
+    fileName
+  }) => ({
+    fileName,
+    patientSelectionType: patientSelectionTypeMap[patientType] ?? patientType,
+    channels: selectedModes,
+    category: categoryLabel,
+    priority: priorityLabel,
+    templateId: templateId ?? 0,
+    ...(newTemplate ? { newTemplate } : {}),
+    sendMode: sendModeMap[sendType] ?? "Immediately",
+    startDtTm: scheduleStartDateTime
+      ? new Date(scheduleStartDateTime).toISOString()
+      : new Date().toISOString(),
+    createdById: 9,
+    broadcastSource: "Balance Payment Reminder",
+    recipients
+  });
+
+  const runSendCustomRecipientsBroadcast = async () => {
+    let recipients = [];
+    try {
+      recipients = await parseUploadedRecipients(uploadedFile);
+    } catch {
+      toast.error("Failed to read uploaded file");
+      return;
+    }
+
+    const isBlank = selectedEmailTemplateType === "blank";
+    const newTemplate = isBlank
+      ? {
+          name: newTemplateName || "",
+          description: newTemplateName || "",
+          channels: buildChannelsFromEditors(),
+          actionItemTypeId: 0,
+          actionItemTypeName: "Broadcast",
+          messageTempLibId: null
+        }
+      : null;
+    const templateId = isBlank ? 0 : (selectedTemplateData?.id ?? 0);
+
+    const payload = buildCustomRecipientsPayload({
+      templateId,
+      newTemplate,
+      recipients,
+      fileName: uploadedFile?.name ?? ""
+    });
+
+    sendCustomRecipientsBroadcast(payload, {
+      onSuccess: (res) => {
+        toast.success(
+          res?.message ||
+            res?.data?.message ||
+            "Broadcast confirmed and scheduled"
+        );
+        const createdTemplateId =
+          res?.data?.templateId ??
+          res?.data?.newTemplateId ??
+          res?.data?.id ??
+          res?.data?.messageTemplateLibId ??
+          (isBlank ? null : selectedTemplateData?.id);
+        if (createdTemplateId) {
+          saveTemplateConfig(buildTemplateConfigPayload(createdTemplateId));
+        }
+        setIsConfirmModalOpen(false);
+        onCancel?.();
+      }
+    });
+  };
+
   const handleConfirmBroadcast = () => {
+    if (patientType === "uploadFile") {
+      runSendCustomRecipientsBroadcast();
+      return;
+    }
     if (selectedEmailTemplateType === "blank") {
       const rawMailBody =
         editorRef?.current?.getCompiledHtml?.() ||
@@ -606,8 +794,12 @@ export default function Footer({
         isOpen={isConfirmModalOpen}
         onClose={handleCancelBroadcast}
         title={getModalTitle()}
-        confirmText={isSending ? "Scheduling…" : "Confirm & Schedule"}
-        confirmDisabled={isSending}
+        confirmText={
+          isSending || isSendingCustomRecipients
+            ? "Scheduling…"
+            : "Confirm & Schedule"
+        }
+        confirmDisabled={isSending || isSendingCustomRecipients}
         cancelText="Back to Editing"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"

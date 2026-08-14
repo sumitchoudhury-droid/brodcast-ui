@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { useBroadcastForm } from "../../broadcastFormContext";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
@@ -14,7 +14,7 @@ import TargetViewList from "./targetViewList";
 import OneTimeViewList from "./oneTimeViewList";
 import UploadFileViewList from "./uploadFileViewList";
 import { mockTargetPatients } from "./targetViewList/mockPatientData";
-import { mockUploadPatients } from "./uploadFileViewList/mockUploadPatients";
+import { isError, parseUploadedFileToPatients } from "./uploadFileUtils";
 
 const exportToExcel = (patients, sheetName, fileName) => {
   const rows = patients.map(
@@ -67,7 +67,12 @@ const mapApiPatient = (p) => ({
   email: p.emailAddress ?? "—"
 });
 
-const buildExportData = (patientType, includeOptOut, searchPatients = []) => {
+const buildExportData = (
+  patientType,
+  includeOptOut,
+  searchPatients = [],
+  uploadedPatients = []
+) => {
   if (patientType === "targetRecipients") {
     if (includeOptOut) {
       const combined = searchPatients.map((p) => ({
@@ -89,7 +94,7 @@ const buildExportData = (patientType, includeOptOut, searchPatients = []) => {
   }
   if (patientType === "uploadFile") {
     return {
-      data: mockUploadPatients,
+      data: uploadedPatients,
       sheet: "Patients",
       file: "Upload_File_Patients"
     };
@@ -143,7 +148,8 @@ function BroadcastPatientDetails({
     includeOptOut,
     setIncludeOptOut,
     patientsFoundForType,
-    setPatientsFoundForType
+    setPatientsFoundForType,
+    uploadedFile
   } = useBroadcastForm();
 
   const { data: patientTypesData } = useGet(
@@ -164,6 +170,25 @@ function BroadcastPatientDetails({
   const [showUploadViewList, setShowUploadViewList] = useState(false);
   const [searchPatients, setSearchPatients] = useState([]);
   const [searchTotalCount, setSearchTotalCount] = useState(0);
+  const [uploadedPatients, setUploadedPatients] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    parseUploadedFileToPatients(uploadedFile)
+      .then((rows) => {
+        if (!cancelled) setUploadedPatients(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setUploadedPatients([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uploadedFile]);
+
+  const uploadTotalCount = uploadedPatients.length;
+  const uploadErrorCount = uploadedPatients.filter(isError).length;
+  const uploadEligibleCount = uploadTotalCount - uploadErrorCount;
 
   const handlePatientTypeChange = (newType) => {
     setPatientType(newType);
@@ -294,7 +319,8 @@ function BroadcastPatientDetails({
                     const { data, sheet, file } = buildExportData(
                       patientType,
                       includeOptOut,
-                      searchPatients
+                      searchPatients,
+                      uploadedPatients
                     );
                     exportToExcel(data, sheet, file);
                   }}
@@ -353,15 +379,15 @@ function BroadcastPatientDetails({
                 <>
                   <div className="patientsFound">
                     <p className="patientName">Total Patients</p>
-                    <p className="patientCount">2731</p>
+                    <p className="patientCount">{uploadTotalCount}</p>
                   </div>
                   <div className="patientsFound">
                     <p className="patientName">Eligible Patients</p>
-                    <p className="patientCount">2700</p>
+                    <p className="patientCount">{uploadEligibleCount}</p>
                   </div>
                   <div className="patientsFound">
                     <p className="patientName">Error Patients</p>
-                    <p className="patientCount">31</p>
+                    <p className="patientCount">{uploadErrorCount}</p>
                   </div>
                 </>
               )}
