@@ -135,10 +135,10 @@ function TargetRecipients({
 
   const isRecall = categoryLabel === "Recall";
   const startDateLabel = isRecall
-    ? "Recall Start Date / Time"
+    ? "Recall Start Date"
     : "Appointment Start Date / Time";
   const endDateLabel = isRecall
-    ? "Recall End Date / Time"
+    ? "Recall End Date"
     : "Appointment End Date / Time";
 
   const { mutate: searchPatients, isPending: isSearching } = usePost(
@@ -359,6 +359,8 @@ function TargetRecipients({
               }
             }}
             className="leftOpening topDown"
+            showTimeSelect={!isRecall}
+            dateFormat={isRecall ? "MM/dd/yyyy" : "MM/dd/yyyy, h:mm aa"}
           />
         </div>
         <div className="dateContainer">
@@ -369,6 +371,8 @@ function TargetRecipients({
             onChange={(date) => setEndDateTime(date)}
             className="topDown"
             minDate={startDateTime}
+            showTimeSelect={!isRecall}
+            dateFormat={isRecall ? "MM/dd/yyyy" : "MM/dd/yyyy, h:mm aa"}
           />
         </div>
         <div className="toggleButtonContainer">
