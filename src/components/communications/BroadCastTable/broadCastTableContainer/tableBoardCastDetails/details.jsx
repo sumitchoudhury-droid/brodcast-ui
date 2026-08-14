@@ -7,7 +7,7 @@ import completedGreenIcon from "../../../../../assets/boardCastTableIcons/comple
 import failedRedIcon from "../../../../../assets/boardCastTableIcons/failedRedIcon.svg";
 import pendingYellowIcon from "../../../../../assets/boardCastTableIcons/pendingYellowIcon.svg";
 import broadcastIcon from "../../../../../assets/boardCastTableIcons/broadcastIcon.svg";
-import fileIcon from "../../../../../assets/commonIcons/fileIcon.svg";
+import xlsfileIcon from "../../../../../assets/commonIcons/xlsIcon.svg";
 
 import scheduledDailyIcon from "../../../../../assets/boardCastTableIcons/scheduledDailyIcon.svg";
 import completedIcon from "../../../../../assets/boardCastTableIcons/completedIcon.svg";
@@ -251,7 +251,7 @@ export default function Details({ broadcastData }) {
             <div className="valueCol">
               <div className="uploadedFileCard">
                 <div className="fileLeft">
-                  <img src={fileIcon} alt="File" className="fileIcon" />
+                  <img src={xlsfileIcon} alt="File" className="fileIcon" />
                   <div className="fileTextDetails">
                     <span className="fileName">
                       {uploadedFile?.sourceFileName || "—"}

@@ -8,11 +8,7 @@ export const setToast = (toast) => {
 export const getToast = () => _toast;
 
 let _authToken = null;
-let _authExpiresAt = null;
-let _refreshTimer = null;
-const AUTH_REFRESH_BUFFER_MS = 60_000;
 export const getAuthToken = () => _authToken;
-export const getAuthExpiresAt = () => _authExpiresAt;
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -96,33 +92,14 @@ export async function introspectAuthToken(token) {
   return { active: json?.active === true, exp: json?.exp ?? null };
 }
 
-function scheduleAuthRefresh() {
-  if (_refreshTimer) {
-    clearTimeout(_refreshTimer);
-    _refreshTimer = null;
-  }
-  if (!_authExpiresAt) return;
-  const delay = _authExpiresAt - Date.now() - AUTH_REFRESH_BUFFER_MS;
-  _refreshTimer = setTimeout(
-    () => {
-      initAuth().catch((err) =>
-        _toast?.error("Auth refresh failed", err.message)
-      );
-    },
-    Math.max(delay, 0)
-  );
-}
-
 export async function initAuth() {
   const token = await fetchAuthToken();
   if (!token) throw new Error("Failed to obtain access token");
-  const { active, exp } = await introspectAuthToken(token);
+  const { active } = await introspectAuthToken(token);
   if (!active) throw new Error("Access token is not active");
   _authToken = token;
-  _authExpiresAt = exp ? (exp > 1e12 ? exp : exp * 1000) : null;
   COMMON_HEADERS.Appkey = token;
   BROADCAST_CONFIG_HEADERS.Appkey = token;
-  scheduleAuthRefresh();
   return token;
 }
 

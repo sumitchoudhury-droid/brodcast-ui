@@ -63,7 +63,8 @@
     "inlines",
     "pmsbcp",
     "imgfile",
-    "xlsfile"
+    "xlsfile",
+    "defval"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }
