@@ -15,6 +15,12 @@ import { prepareHtmlForEmail } from "../../../../utils/prepareHtmlForEmail";
 // import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+// Preserve the wall-clock time the user picked — toISOString() would shift it to UTC
+const toLocalISOString = (date) => {
+  const d = new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
 const buildTooltipContent = (labels) =>
   labels.length > 10
     ? [...labels.slice(0, 10), `+${labels.length - 10} more`]
@@ -175,8 +181,8 @@ export default function Footer({
       subjectLine: mailSubject || null,
       smsStandardText: smsBody || null,
       messageTempLibId: null,
-      actionItemTypeId: 1,
-      actionItemTypeName: "Appointment Reminder",
+      actionItemTypeId: 0,
+      actionItemTypeName: "Broadcast Message Notification",
       createdBy: "admin@example.com",
       channels,
       ...(checked ? { templateType: "ENTERPRISE" } : {})
@@ -235,7 +241,7 @@ export default function Footer({
     scheduleType: sendModeMap[sendType] ?? "Immediately",
     scheduleDateTime:
       sendType !== 1 && scheduleStartDateTime
-        ? new Date(scheduleStartDateTime).toISOString()
+        ? toLocalISOString(scheduleStartDateTime)
         : null,
     recurrenceConfig: null,
     createdById: 9
@@ -353,9 +359,7 @@ export default function Footer({
       }
     }),
     sendMode: sendModeMap[sendType] ?? "Immediately",
-    startDtTm: scheduleStartDateTime
-      ? new Date(scheduleStartDateTime).toISOString()
-      : new Date().toISOString(),
+    startDtTm: toLocalISOString(scheduleStartDateTime ?? new Date()),
     createdById: 9
   });
 
@@ -605,8 +609,8 @@ export default function Footer({
         subjectLine: mailSubject || null,
         smsStandardText: smsBody || null,
         messageTempLibId: null,
-        actionItemTypeId: 1,
-        actionItemTypeName: "Appointment Reminder",
+        actionItemTypeId: 0,
+        actionItemTypeName: "Broadcast Message Notification",
         createdBy: "admin@example.com",
         channels
       };
@@ -614,7 +618,10 @@ export default function Footer({
       saveTemplate(templatePayload, {
         onSuccess: (res) => {
           queryClient.invalidateQueries({ queryKey: ["templates"] });
-          const templateId = res?.data?.id ?? res?.data?.messageTemplateLibId;
+          const templateId =
+            res?.data?.channels?.[0]?.legacyMessageTempLibId ??
+            res?.data?.id ??
+            res?.data?.messageTemplateLibId;
           if (!templateId) return;
           saveTemplateConfig(buildTemplateConfigPayload(templateId));
           runSendBroadcast(templateId);
@@ -623,7 +630,11 @@ export default function Footer({
       return;
     }
 
-    runSendBroadcast(selectedTemplateData?.id ?? null);
+    runSendBroadcast(
+      selectedTemplateData?.channels?.[0]?.legacyMessageTempLibId ??
+        selectedTemplateData?.id ??
+        null
+    );
   };
 
   const handleCancelBroadcast = () => {

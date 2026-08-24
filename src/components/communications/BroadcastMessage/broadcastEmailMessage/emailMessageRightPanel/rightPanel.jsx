@@ -2358,14 +2358,17 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           subjectLine: mailSubject || null,
           smsStandardText: smsBody || null,
           messageTempLibId: null,
-          actionItemTypeId: 1,
-          actionItemTypeName: "Appointment Reminder",
+          actionItemTypeId: 0,
+          actionItemTypeName: "Broadcast Message Notification",
           createdBy: "admin@example.com",
           channels
         };
 
         const res = await saveTemplate(templateBody);
-        templateId = res?.data?.id ?? res?.data?.messageTemplateLibId;
+        templateId =
+          res?.data?.channels?.[0]?.legacyMessageTempLibId ??
+          res?.data?.id ??
+          res?.data?.messageTemplateLibId;
         if (!templateId) {
           toast.error(
             "Failed to Save Template",
@@ -2374,7 +2377,10 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           return;
         }
       } else {
-        templateId = selectedTemplateData?.id ?? null;
+        templateId =
+          selectedTemplateData?.channels?.[0]?.legacyMessageTempLibId ??
+          selectedTemplateData?.id ??
+          null;
         if (!templateId) {
           toast.error(
             "Missing Template",
