@@ -21,7 +21,7 @@ export const tabs = [
   },
   {
     id: 6,
-    title: "Patient Communication"
+    title: "Broadcast Message"
   },
   {
     id: 7,

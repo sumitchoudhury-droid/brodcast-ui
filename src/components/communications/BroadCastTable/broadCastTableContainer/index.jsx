@@ -477,9 +477,11 @@ function BroadCastTableContainer({
         header: ({ table }) => {
           const allSelected =
             totalCount > 0 && allSelectedItems.length === totalCount;
+          const someSelected = !allSelected && allSelectedItems.length > 0;
           return (
             <ReusableCheckbox
               checked={allSelected || table.getIsAllRowsSelected()}
+              indeterminate={someSelected || table.getIsSomeRowsSelected()}
               onChange={() => {
                 if (allSelected) {
                   setAllSelectedItems([]);
