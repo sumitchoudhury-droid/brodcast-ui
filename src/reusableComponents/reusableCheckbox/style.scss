@@ -14,32 +14,16 @@
   display: none;
 }
 
-/* custom checkbox box */
-.customCheckbox {
+/* image-based checkbox icon */
+.checkboxIcon {
   width: 20px;
   height: 20px;
-  border: 1.5px solid variable.$color-white-10;
-  border-radius: 4px;
-  position: relative;
-  transition: all 0.2s ease;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
 }
 
-/* checked state */
-.checkboxInput:checked + .customCheckbox {
-  background-color: variable.$color-green-0;
-  border-color: variable.$color-green-0;
-}
-
-.checkboxInput:checked + .customCheckbox::after {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 1px;
-  width: 5px;
-  height: 10px;
-  border: solid variable.$color-white-0;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+.checkboxContainer:hover .checkboxIcon {
+  transform: scale(1.1);
 }
 
 .checkboxLabel {
@@ -50,6 +34,10 @@
 .disabled {
   opacity: 0.5;
   cursor: not-allowed;
+
+  .checkboxIcon {
+    pointer-events: none;
+  }
 }
 
 .checkboxError {

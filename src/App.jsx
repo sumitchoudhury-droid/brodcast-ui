@@ -1,16 +1,16 @@
 import { AppRoutes } from "./routes";
 import { ToastProvider } from "./hooks/useToast";
 import { QueryErrorHandler } from "./components/QueryErrorHandler";
-import { AuthBootstrap } from "./components/AuthBootstrap";
+// import { AuthBootstrap } from "./components/AuthBootstrap";
 import "./style/global.scss";
 
 function App() {
   return (
     <ToastProvider>
       <QueryErrorHandler />
-      <AuthBootstrap>
-        <AppRoutes />
-      </AuthBootstrap>
+      {/* <AuthBootstrap> */}
+      <AppRoutes />
+      {/* </AuthBootstrap> */}
     </ToastProvider>
   );
 }

@@ -256,8 +256,11 @@ function ExistingTemplates({
       if (onSelectTemplate) onSelectTemplate(effectiveSelectedTemplate);
       onClose();
     };
-    if (effectiveSelectedTemplate?.id) {
-      fetchTemplateConfig(effectiveSelectedTemplate.id, {
+    const configLookupId =
+      effectiveSelectedTemplate?.channels?.[0]?.legacyMessageTempLibId ??
+      effectiveSelectedTemplate?.id;
+    if (configLookupId) {
+      fetchTemplateConfig(configLookupId, {
         onSuccess: (res) => {
           applyTemplateConfig(res?.data);
           finish();
