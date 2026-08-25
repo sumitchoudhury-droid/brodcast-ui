@@ -5,6 +5,7 @@ import { ENDPOINTS } from "../../../../../api/endpoints.js";
 import { useBroadcastForm } from "../../../broadcastFormContext";
 import { uploadImageToServer } from "../../../../../utils/uploadUtils";
 import { prepareHtmlForEmail } from "../../../../../utils/prepareHtmlForEmail";
+import { htmlToSmsText } from "../../../../../utils/htmlToSmsText";
 
 import "./style.scss";
 import PreviewModal from "../emailMessagePreviewModal/previewModal";
@@ -2329,7 +2330,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           ? editorRef.current?.getAttachments?.() || []
           : [];
         const smsBody = requiresSms
-          ? smsEditorInstanceRef.current?.getHtml?.() || ""
+          ? htmlToSmsText(smsEditorInstanceRef.current?.getHtml?.() || "")
           : "";
 
         const channels = [];

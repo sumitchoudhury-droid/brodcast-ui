@@ -13,6 +13,8 @@ import subscriptIcon from "../../../../../assets/textStyleIcons/subscriptIcon.sv
 import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIcon.svg";
 import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
 import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkModal/index";
+import { smsSegmentInfo } from "../../../../../utils/smsSegmentInfo";
+import { htmlToSmsText } from "../../../../../utils/htmlToSmsText";
 
 const BroadcastTextMessageEditor = ({
   onContentChange,
@@ -27,8 +29,15 @@ const BroadcastTextMessageEditor = ({
     onDirtyRef.current = onDirty;
   }, [onDirty]);
 
-  const [charCount, setCharCount] = useState(0);
-  const charCountRef = useRef(0);
+  const initialSmsInfo = {
+    encoding: "GSM-7",
+    count: 0,
+    segments: 1,
+    perSegment: 160,
+    singleSegmentLimit: 160
+  };
+  const [smsInfo, setSmsInfo] = useState(initialSmsInfo);
+  const smsInfoRef = useRef(initialSmsInfo);
 
   // Link Modal state for toolbar Link icon
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -175,19 +184,16 @@ const BroadcastTextMessageEditor = ({
           .trim();
         const isEmpty = plainText.length === 0 && !hasSignature && !hasForm;
 
-        // Also count unsubscribe footer text
-        const footerComp = wrapper.find(".unsubscribe-footer")[0];
-        const footerEl = footerComp?.getEl();
-        const footerText = (
-          footerEl ? footerEl.innerText : footerComp?.get("content") || ""
-        )
-          .replace(/&nbsp;/g, " ")
-          .replace(/\u200B/g, "")
-          .trim();
-
-        const totalCount = plainText.length + footerText.length;
-        charCountRef.current = totalCount;
-        setCharCount(totalCount);
+        // Segment count uses the exact plain-text payload the SMS gateway
+        // will receive, so encoding flips (e.g. emoji → UCS-2) update the
+        // per-segment budget live.
+        const containerElForCount = el?.closest(".text-editor-container");
+        const smsPayload = htmlToSmsText(
+          containerElForCount ? containerElForCount.outerHTML : ""
+        );
+        const info = smsSegmentInfo(smsPayload);
+        smsInfoRef.current = info;
+        setSmsInfo(info);
 
         // Toggle a class for the placeholder via DOM only — model-level addClass/removeClass
         // triggers a GrapesJS re-render that resets the cursor position mid-typing
@@ -211,13 +217,10 @@ const BroadcastTextMessageEditor = ({
         // Saved template: no .text-editor-content — check canvas for any text content
         if (onContentChange) {
           const html = editor.getHtml();
-          const plainText = html
-            .replace(/<[^>]*>/g, "")
-            .replace(/&nbsp;/g, " ")
-            .trim();
-          charCountRef.current = plainText.length;
-          setCharCount(plainText.length);
-          onContentChange(html, plainText.length === 0);
+          const info = smsSegmentInfo(htmlToSmsText(html));
+          smsInfoRef.current = info;
+          setSmsInfo(info);
+          onContentChange(html, info.count === 0);
         }
       }
     };
@@ -370,7 +373,6 @@ const BroadcastTextMessageEditor = ({
         doc.addEventListener("input", updateContent);
         doc.addEventListener("input", fireDirtyIfActive);
 
-        const CHAR_LIMIT = 160;
         const isContentEditable = (el) =>
           el &&
           (el.classList.contains("text-editor-content") ||
@@ -392,17 +394,25 @@ const BroadcastTextMessageEditor = ({
             "Escape"
           ];
           if (nonPrintable.includes(e.key)) return;
-          if (charCountRef.current >= CHAR_LIMIT) e.preventDefault();
+          const info = smsInfoRef.current;
+          if (info.count >= info.singleSegmentLimit) e.preventDefault();
         });
 
         doc.addEventListener("paste", (e) => {
           if (!isContentEditable(doc.activeElement)) return;
-          const remaining = CHAR_LIMIT - charCountRef.current;
+          const info = smsInfoRef.current;
+          const pasted = e.clipboardData.getData("text/plain");
+          // If pasted text forces UCS-2 (any non-GSM char), fall back to the
+          // 70-char single-segment budget regardless of the current encoding.
+          const pastedForcesUnicode =
+            smsSegmentInfo(pasted).encoding === "UCS-2";
+          const limit =
+            info.encoding === "UCS-2" || pastedForcesUnicode ? 70 : 160;
+          const remaining = limit - info.count;
           if (remaining <= 0) {
             e.preventDefault();
             return;
           }
-          const pasted = e.clipboardData.getData("text/plain");
           if (pasted.length > remaining) {
             e.preventDefault();
             doc.execCommand("insertText", false, pasted.slice(0, remaining));
@@ -1444,8 +1454,13 @@ const BroadcastTextMessageEditor = ({
     <div className="BroadcastTextMessageEditor">
       <div className="editor-canvas" ref={containerRef}></div>
       <div className="char-count-display">
-        <span className={charCount >= 160 ? "at-limit" : ""}>
-          {charCount}/160
+        <span
+          className={
+            smsInfo.count >= smsInfo.singleSegmentLimit ? "at-limit" : ""
+          }
+        >
+          {smsInfo.count}/{smsInfo.singleSegmentLimit}
+          {smsInfo.segments > 1 && ` · ${smsInfo.segments} SMS`}
         </span>
       </div>
       <ReusableLinkModal

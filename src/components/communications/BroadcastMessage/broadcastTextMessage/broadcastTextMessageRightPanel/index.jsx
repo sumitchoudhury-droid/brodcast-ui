@@ -5,7 +5,8 @@ import { usePost } from "../../../../../hooks/usePost";
 import { ENDPOINTS } from "../../../../../api/endpoints.js";
 import { useBroadcastForm } from "../../../broadcastFormContext";
 import { prepareHtmlForEmail } from "../../../../../utils/prepareHtmlForEmail";
-import { TextFontStyleContainer } from "./textFontstyleContainer/index";
+import { htmlToSmsText } from "../../../../../utils/htmlToSmsText";
+// import { TextFontStyleContainer } from "./textFontstyleContainer/index";
 import { TextDeviceSwitcher } from "./textDeviceSwitch/index";
 import TextSignatureSection from "./textSignatureSection/index";
 import TextPreviewModal from "./textPreviewModal/index";
@@ -59,64 +60,64 @@ export default function BroadcastTextMessageRightPanel({
   const [showSendTextMessage, setShowSendTextMessage] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [textColor, setTextColor] = useState("#000000");
-  const [typography, setTypography] = useState({
-    fontFamily: "Arial",
-    fontWeight: "400",
-    fontSize: "14",
-    textAlign: "left"
-  });
-  const [activeFormats, setActiveFormats] = useState({});
+  // const [textColor, setTextColor] = useState("#000000");
+  // const [typography, setTypography] = useState({
+  //   fontFamily: "Arial",
+  //   fontWeight: "400",
+  //   fontSize: "14",
+  //   textAlign: "left"
+  // });
+  // const [activeFormats, setActiveFormats] = useState({});
 
-  const handleTypographyChange = (name, value) => {
-    setTypography((prev) => ({ ...prev, [name]: value }));
+  // const handleTypographyChange = (name, value) => {
+  //   setTypography((prev) => ({ ...prev, [name]: value }));
 
-    if (editorInstance) {
-      if (name === "textAlign") {
-        const cmdMap = {
-          left: "justifyLeft",
-          center: "justifyCenter",
-          right: "justifyRight",
-          justify: "justifyFull"
-        };
-        editorInstance.execCommand(cmdMap[value]);
-      } else if (name === "fontSize") {
-        editorInstance.execCommand("fontSize", value);
-      } else if (name === "fontFamily") {
-        editorInstance.execCommand("fontName", value);
-      } else if (name === "fontWeight") {
-        editorInstance.execCommand("fontWeight", value);
-      }
-    }
-  };
+  //   if (editorInstance) {
+  //     if (name === "textAlign") {
+  //       const cmdMap = {
+  //         left: "justifyLeft",
+  //         center: "justifyCenter",
+  //         right: "justifyRight",
+  //         justify: "justifyFull"
+  //       };
+  //       editorInstance.execCommand(cmdMap[value]);
+  //     } else if (name === "fontSize") {
+  //       editorInstance.execCommand("fontSize", value);
+  //     } else if (name === "fontFamily") {
+  //       editorInstance.execCommand("fontName", value);
+  //     } else if (name === "fontWeight") {
+  //       editorInstance.execCommand("fontWeight", value);
+  //     }
+  //   }
+  // };
 
-  const handleTextColorChange = (color) => {
-    setTextColor(color);
-    if (editorInstance) {
-      editorInstance.execCommand("foreColor", color);
-    }
-  };
+  // const handleTextColorChange = (color) => {
+  //   setTextColor(color);
+  //   if (editorInstance) {
+  //     editorInstance.execCommand("foreColor", color);
+  //   }
+  // };
 
-  const handleFormatToggle = (format) => {
-    setActiveFormats((prev) => ({ ...prev, [format]: !prev[format] }));
+  // const handleFormatToggle = (format) => {
+  //   setActiveFormats((prev) => ({ ...prev, [format]: !prev[format] }));
 
-    if (editorInstance) {
-      const cmdMap = {
-        bold: "bold",
-        italic: "italic",
-        underline: "underline",
-        strikethrough: "strikethrough",
-        unorderedList: "insertUnorderedList",
-        orderedList: "insertOrderedList",
-        superscript: "superscript",
-        subscript: "subscript",
-        uppercase: "uppercase" // Note: uppercase might need a custom command or just style application
-      };
-      if (cmdMap[format]) {
-        editorInstance.execCommand(cmdMap[format]);
-      }
-    }
-  };
+  //   if (editorInstance) {
+  //     const cmdMap = {
+  //       bold: "bold",
+  //       italic: "italic",
+  //       underline: "underline",
+  //       strikethrough: "strikethrough",
+  //       unorderedList: "insertUnorderedList",
+  //       orderedList: "insertOrderedList",
+  //       superscript: "superscript",
+  //       subscript: "subscript",
+  //       uppercase: "uppercase" // Note: uppercase might need a custom command or just style application
+  //     };
+  //     if (cmdMap[format]) {
+  //       editorInstance.execCommand(cmdMap[format]);
+  //     }
+  //   }
+  // };
 
   const handleSendTestMessage = async () => {
     if (!phoneNumber) {
@@ -139,7 +140,9 @@ export default function BroadcastTextMessageRightPanel({
         const mailAttachments = requiresMail
           ? emailEditorRef.current?.getAttachments?.() || []
           : [];
-        const smsBody = requiresSms ? editorInstance?.getHtml?.() || "" : "";
+        const smsBody = requiresSms
+          ? htmlToSmsText(editorInstance?.getHtml?.() || "")
+          : "";
 
         const channels = [];
         if (requiresMail) {
@@ -245,14 +248,14 @@ export default function BroadcastTextMessageRightPanel({
           isEditorEmpty={isEditorEmpty}
         />
 
-        <TextFontStyleContainer
+        {/* <TextFontStyleContainer
           typography={typography}
           handleTypographyChange={handleTypographyChange}
           textColor={textColor}
           handleTextColorChange={handleTextColorChange}
           activeFormats={activeFormats}
           onFormatToggle={handleFormatToggle}
-        />
+        /> */}
       </div>
 
       <div className="actionFooter">
