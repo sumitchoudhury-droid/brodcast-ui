@@ -184,7 +184,7 @@ export default function Footer({
       subjectLine: mailSubject || null,
       smsStandardText: smsBody || null,
       messageTempLibId: null,
-      actionItemTypeId: 0,
+      actionItemTypeId: 60,
       actionItemTypeName: "Broadcast Message Notification",
       createdBy: "admin@example.com",
       channels,
@@ -526,7 +526,7 @@ export default function Footer({
           name: newTemplateName || "",
           description: newTemplateName || "",
           channels: buildChannelsFromEditors(),
-          actionItemTypeId: 0,
+          actionItemTypeId: 60,
           actionItemTypeName: "Broadcast",
           messageTempLibId: null
         }
@@ -618,7 +618,7 @@ export default function Footer({
         subjectLine: mailSubject || null,
         smsStandardText: smsBody || null,
         messageTempLibId: null,
-        actionItemTypeId: 0,
+        actionItemTypeId: 60,
         actionItemTypeName: "Broadcast Message Notification",
         createdBy: "admin@example.com",
         channels

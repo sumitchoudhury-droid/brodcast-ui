@@ -170,7 +170,7 @@ export default function BroadcastTextMessageRightPanel({
           subjectLine: mailSubject || null,
           smsStandardText: smsBody || null,
           messageTempLibId: null,
-          actionItemTypeId: 0,
+          actionItemTypeId: 60,
           actionItemTypeName: "Broadcast Message Notification",
           createdBy: "admin@example.com",
           channels
@@ -202,12 +202,8 @@ export default function BroadcastTextMessageRightPanel({
         }
       }
 
-      const formattedPhone = phoneNumber.startsWith("+")
-        ? phoneNumber
-        : `+1${phoneNumber}`;
-
       const res = await sendTestSms({
-        phoneNumber: formattedPhone,
+        phoneNumber,
         templateId,
         createdById: 9
       });
@@ -215,7 +211,7 @@ export default function BroadcastTextMessageRightPanel({
       toast.success(
         res?.message ||
           res?.data?.message ||
-          `A test message has been sent to ${formattedPhone} successfully!`
+          `A test message has been sent to ${phoneNumber} successfully!`
       );
 
       setShowSendTextMessage(false);

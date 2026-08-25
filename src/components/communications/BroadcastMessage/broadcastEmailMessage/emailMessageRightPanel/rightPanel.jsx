@@ -2359,7 +2359,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
           subjectLine: mailSubject || null,
           smsStandardText: smsBody || null,
           messageTempLibId: null,
-          actionItemTypeId: 0,
+          actionItemTypeId: 60,
           actionItemTypeName: "Broadcast Message Notification",
           createdBy: "admin@example.com",
           channels
