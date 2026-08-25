@@ -12,6 +12,7 @@ import { usePost } from "../../../../hooks/usePost";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 import { prepareHtmlForEmail } from "../../../../utils/prepareHtmlForEmail";
+import { htmlToSmsText } from "../../../../utils/htmlToSmsText";
 // import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
@@ -138,7 +139,9 @@ export default function Footer({
       editorRef?.current?.getHtml?.() ||
       "";
     const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
-    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+    const smsBody = htmlToSmsText(
+      textEditorInstanceRef?.current?.getHtml?.() || ""
+    );
     const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
     const channels = selectedModes
@@ -256,7 +259,9 @@ export default function Footer({
       editorRef?.current?.getHtml?.() ||
       "";
     const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
-    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+    const smsBody = htmlToSmsText(
+      textEditorInstanceRef?.current?.getHtml?.() || ""
+    );
     const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
     const channels = selectedModes
@@ -444,7 +449,9 @@ export default function Footer({
       editorRef?.current?.getHtml?.() ||
       "";
     const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
-    const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+    const smsBody = htmlToSmsText(
+      textEditorInstanceRef?.current?.getHtml?.() || ""
+    );
     const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
     return selectedModes
@@ -566,7 +573,9 @@ export default function Footer({
         editorRef?.current?.getHtml?.() ||
         "";
       const mailBody = rawMailBody ? prepareHtmlForEmail(rawMailBody) : "";
-      const smsBody = textEditorInstanceRef?.current?.getHtml?.() || "";
+      const smsBody = htmlToSmsText(
+        textEditorInstanceRef?.current?.getHtml?.() || ""
+      );
       const mailAttachments = editorRef?.current?.getAttachments?.() || [];
 
       const channels = selectedModes
