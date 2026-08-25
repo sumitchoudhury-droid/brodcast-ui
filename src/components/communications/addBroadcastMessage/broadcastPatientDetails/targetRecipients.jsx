@@ -359,6 +359,7 @@ function TargetRecipients({
               }
             }}
             className="leftOpening topDown"
+            placeholder={isRecall ? "Select Date" : "Select Date & Time"}
             showTimeSelect={!isRecall}
             dateFormat={isRecall ? "MM/dd/yyyy" : "MM/dd/yyyy, h:mm aa"}
           />
@@ -372,6 +373,7 @@ function TargetRecipients({
             className="topDown"
             minDate={startDateTime}
             showTimeSelect={!isRecall}
+            placeholder={isRecall ? "Select Date" : "Select Date & Time"}
             dateFormat={isRecall ? "MM/dd/yyyy" : "MM/dd/yyyy, h:mm aa"}
           />
         </div>
