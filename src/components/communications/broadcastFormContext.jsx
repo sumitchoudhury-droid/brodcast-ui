@@ -43,6 +43,8 @@ const FIELD_ACTIONS = {
   frequency: broadcastFormActions.setFrequency,
   repeatType: broadcastFormActions.setRepeatType,
   repeatOn: broadcastFormActions.setRepeatOn,
+  frequencyToRemind: broadcastFormActions.setFrequencyToRemind,
+  intervalsToRemind: broadcastFormActions.setIntervalsToRemind,
   patientType: broadcastFormActions.setPatientType,
   uploadedFile: broadcastFormActions.setUploadedFile,
   broadcastStartDate: broadcastFormActions.setBroadcastStartDate,

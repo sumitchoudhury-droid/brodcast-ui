@@ -24,7 +24,11 @@ function ScheduleOptions({
   repeatOn,
   setRepeatOn,
   repeatDay,
-  setRepeatDay
+  setRepeatDay,
+  frequencyToRemind,
+  setFrequencyToRemind,
+  intervalsToRemind,
+  setIntervalsToRemind
 }) {
   const { data: sendOptionsData } = useGet(
     ["schedule-send-options"],
@@ -216,6 +220,35 @@ function ScheduleOptions({
               minDate={startDateTime}
             />
           </div>
+        )}
+
+        {sendType === 3 && (
+          <>
+            <div className="repeatEveryContainer">
+              <ReusableInput
+                label="Frequency to remind"
+                required
+                numbersOnly
+                value={frequencyToRemind}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d*$/.test(val)) setFrequencyToRemind(val);
+                }}
+              />
+            </div>
+            <div className="repeatEveryContainer">
+              <ReusableInput
+                label="No of intervals to remind"
+                required
+                numbersOnly
+                value={intervalsToRemind}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d*$/.test(val)) setIntervalsToRemind(val);
+                }}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>

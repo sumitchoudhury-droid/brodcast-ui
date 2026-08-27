@@ -18,7 +18,11 @@ export const BroadCastSchedule = ({
   repeatType,
   setRepeatType,
   repeatOn,
-  setRepeatOn
+  setRepeatOn,
+  frequencyToRemind,
+  setFrequencyToRemind,
+  intervalsToRemind,
+  setIntervalsToRemind
 }) => {
   const [repeatEvery, setRepeatEvery] = useState("1");
   const [repeatDay, setRepeatDay] = useState("1st day");
@@ -40,7 +44,11 @@ export const BroadCastSchedule = ({
     repeatOn,
     setRepeatOn,
     repeatDay,
-    setRepeatDay
+    setRepeatDay,
+    frequencyToRemind,
+    setFrequencyToRemind,
+    intervalsToRemind,
+    setIntervalsToRemind
   };
 
   const formatDate = (date) => {
