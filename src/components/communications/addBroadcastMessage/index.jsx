@@ -30,6 +30,10 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     setRepeatType,
     repeatOn,
     setRepeatOn,
+    frequencyToRemind,
+    setFrequencyToRemind,
+    intervalsToRemind,
+    setIntervalsToRemind,
     patientType,
     setPatientType,
     uploadedFile,
@@ -103,6 +107,9 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
       repeatType === "Week" &&
       repeatOn.length === 0
     ) &&
+    (sendType !== 3 ||
+      (!!String(frequencyToRemind).trim() &&
+        !!String(intervalsToRemind).trim())) &&
     (patientType !== "uploadFile" || !!uploadedFile) &&
     (patientType !== "oneTimeBroadcast" ||
       (!!broadcastStartDate && !!broadcastEndDate)) &&
@@ -185,6 +192,10 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
           setRepeatType={setRepeatType}
           repeatOn={repeatOn}
           setRepeatOn={setRepeatOn}
+          frequencyToRemind={frequencyToRemind}
+          setFrequencyToRemind={setFrequencyToRemind}
+          intervalsToRemind={intervalsToRemind}
+          setIntervalsToRemind={setIntervalsToRemind}
         />
       </div>
       <div className="addBroadcastMessageFooter">

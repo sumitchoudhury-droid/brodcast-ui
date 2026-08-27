@@ -13,6 +13,8 @@ const initialState = {
   frequency: "Daily",
   repeatType: "Week",
   repeatOn: [],
+  frequencyToRemind: "",
+  intervalsToRemind: "",
 
   patientType: "targetRecipients",
   uploadedFile: null,
@@ -80,6 +82,8 @@ const broadcastFormSlice = createSlice({
     setFrequency: makeSetter("frequency"),
     setRepeatType: makeSetter("repeatType"),
     setRepeatOn: makeSetter("repeatOn"),
+    setFrequencyToRemind: makeSetter("frequencyToRemind"),
+    setIntervalsToRemind: makeSetter("intervalsToRemind"),
     setPatientType: makeSetter("patientType"),
     setUploadedFile: makeSetter("uploadedFile"),
     setBroadcastStartDate: makeSetter("broadcastStartDate"),
