@@ -308,14 +308,13 @@ export default function Details({ broadcastData }) {
             </div>
           </div>
           <div className="listScrollBox">
-            <div className="gridList">
+            <ul className="gridList">
               {appointmentTypeNames.map((item, idx) => (
-                <div key={idx} className="listItem">
-                  <span className="bulletDot"></span>
+                <li key={idx} className="listItem">
                   <span className="itemText">{item}</span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
           {/* Location Scroll List */}
@@ -326,14 +325,13 @@ export default function Details({ broadcastData }) {
             </div>
           </div>
           <div className="listScrollBox">
-            <div className="gridList">
+            <ul className="gridList">
               {locationNames.map((item, idx) => (
-                <div key={idx} className="listItem">
-                  <span className="bulletDot"></span>
+                <li key={idx} className="listItem">
                   <span className="itemText">{item}</span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
           {/* Provider Scroll List */}
@@ -344,14 +342,13 @@ export default function Details({ broadcastData }) {
             </div>
           </div>
           <div className="listScrollBox">
-            <div className="gridList">
+            <ul className="gridList">
               {providerNames.map((item, idx) => (
-                <div key={idx} className="listItem">
-                  <span className="bulletDot"></span>
+                <li key={idx} className="listItem">
                   <span className="itemText">{item}</span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </>
       )}

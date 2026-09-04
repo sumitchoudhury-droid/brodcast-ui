@@ -403,25 +403,30 @@
       .gridList {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 0px 16px;
+        gap: 14px 16px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
 
         .listItem {
-          @include variable.d-flex($al: center, $g: 8px);
+          @include variable.d-flex($g: 8px);
 
-          .bulletDot {
+          &::before {
+            content: "";
             width: 5px;
             height: 5px;
             background-color: variable.$color-black-5;
             border-radius: 50%;
             flex-shrink: 0;
+            margin-top: 7px;
           }
 
           .itemText {
-            @include variable.font-style($fs: 12px, $fw: 400, $lh: 30px);
+            @include variable.font-style($fs: 12px, $fw: 400, $lh: 18px);
             color: variable.$color-black-6;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            // overflow: hidden;
+            // text-overflow: ellipsis;
+            // white-space: nowrap;
           }
         }
       }
