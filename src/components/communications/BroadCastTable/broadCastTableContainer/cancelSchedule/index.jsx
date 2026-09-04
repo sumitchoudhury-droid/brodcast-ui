@@ -335,7 +335,7 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
         {/* Content */}
         <div className="modalBody">
           <p className="confirmText">
-            Are you sure you want to stop this broadcast scheduled at{" "}
+            Are you sure you want to stop this broadcast scheduled on{" "}
             <span className="highlightText">{formattedDate}</span> to{" "}
             <span className="highlightText">{patientCount} Patients?</span>
           </p>
