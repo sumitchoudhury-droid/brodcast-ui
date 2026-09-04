@@ -15,7 +15,7 @@ const COLUMN_LABELS = {
   broadcastStatus: "Broadcast Status"
 };
 
-const MANDATORY_COLUMNS = ["mode", "template", "broadcastStatus"];
+const MANDATORY_COLUMNS = ["template", "broadcastStatus"];
 
 export default function TableSettings({
   columnOrder,
