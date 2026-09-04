@@ -7,7 +7,7 @@ import ResuableSearch from "../reusableSearch";
 
 import checkBox from "../../assets/mainScreen/checkBox.svg";
 import uncheckBox from "../../assets/mainScreen/uncheckBox.svg";
-import { ReusableButton } from "../resuableButton";
+// import { ReusableButton } from "../resuableButton";
 
 export const ReusableMultiSelectDropdown = ({
   label,
@@ -46,9 +46,12 @@ export const ReusableMultiSelectDropdown = ({
 
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (!isOpen) return;
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setTempSelectedValues(committedValues);
+        onChange?.(tempSelectedValues);
         setShowOnlySelected(false);
+        setSearchQuery("");
+        setDebouncedQuery("");
         setIsOpen(false);
       }
     };
@@ -57,7 +60,7 @@ export const ReusableMultiSelectDropdown = ({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [committedValues]);
+  }, [isOpen, tempSelectedValues, onChange]);
 
   const handleToggle = () => {
     if (!isOpen) {
@@ -87,19 +90,19 @@ export const ReusableMultiSelectDropdown = ({
     }
   };
 
-  const handleDone = () => {
-    onChange?.(tempSelectedValues);
-    setShowOnlySelected(false);
-    setSearchQuery("");
-    setIsOpen(false);
-  };
+  // const handleDone = () => {
+  //   onChange?.(tempSelectedValues);
+  //   setShowOnlySelected(false);
+  //   setSearchQuery("");
+  //   setIsOpen(false);
+  // };
 
-  const handleCancel = () => {
-    setTempSelectedValues(committedValues);
-    setShowOnlySelected(false);
-    setSearchQuery("");
-    setIsOpen(false);
-  };
+  // const handleCancel = () => {
+  //   setTempSelectedValues(committedValues);
+  //   setShowOnlySelected(false);
+  //   setSearchQuery("");
+  //   setIsOpen(false);
+  // };
 
   const displayValue =
     committedValues.length > 0
@@ -207,7 +210,7 @@ export const ReusableMultiSelectDropdown = ({
               ))}
             </div>
 
-            <div className="btnWrapper">
+            {/* <div className="btnWrapper">
               <ReusableButton
                 label="Cancel"
                 variant="primary"
@@ -218,7 +221,7 @@ export const ReusableMultiSelectDropdown = ({
                 variant="secondary"
                 onClick={handleDone}
               />
-            </div>
+            </div> */}
           </div>
         )}
       </div>

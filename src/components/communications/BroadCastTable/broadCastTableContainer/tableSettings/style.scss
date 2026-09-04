@@ -1,7 +1,12 @@
 @use "../../../../../style/variable.scss" as variable;
 
 .tableSettingsPopover {
-  @include variable.d-flex($fd: column, $jc: center, $al: center, $g: 16px);
+  @include variable.d-flex(
+    $fd: column,
+    $jc: flex-start,
+    $al: stretch,
+    $g: 16px
+  );
   position: absolute;
   right: 8px;
   height: 430px;
@@ -15,6 +20,7 @@
   .tableSettingsHeader {
     width: 100%;
     @include variable.d-flex($jc: flex-start);
+    flex-shrink: 0;
     h3 {
       color: variable.$color-black-8;
       @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
@@ -22,7 +28,10 @@
   }
 
   .tableSettingsList {
-    @include variable.d-flex($fd: column, $jc: center, $al: center);
+    @include variable.d-flex($fd: column, $jc: flex-start, $al: stretch);
+    flex: 1;
+    min-height: 0;
+    width: 100%;
     overflow-y: auto;
   }
 
@@ -79,6 +88,7 @@
       $g: 16px
     );
     width: 100%;
+    flex-shrink: 0;
     box-shadow: variable.$shadow-3;
 
     .reusable-btn {

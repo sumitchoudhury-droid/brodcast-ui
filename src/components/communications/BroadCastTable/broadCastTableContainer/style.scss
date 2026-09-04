@@ -71,6 +71,7 @@
     right: 0;
     top: 0;
     z-index: 4;
+    padding-left: 0;
     // width: 90px;
     min-width: 90px;
     // max-width: 90px;
@@ -136,7 +137,7 @@
 
   .col-template {
     // width: 170px;
-    min-width: 140px;
+    min-width: 120px;
     // max-width: 170px;
   }
 
@@ -152,13 +153,13 @@
 
   .col-location {
     // width: 216px;
-    min-width: 160px;
+    min-width: 130px;
     // max-width: 216px;
   }
 
   .col-provider {
     // width: 160px;
-    min-width: 160px;
+    min-width: 130px;
     // max-width: 160px;
   }
 
@@ -176,7 +177,8 @@
 
   .col-broadcastStatus {
     // width: 180px;
-    min-width: 180px;
+    min-width: 150px;
+    padding-right: 0;
     // max-width: 180px;
   }
 

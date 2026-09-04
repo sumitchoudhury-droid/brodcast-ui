@@ -48,10 +48,9 @@ const formatScheduleDate = (isoStr) => {
   const year = d.getFullYear();
   let hours = d.getHours();
   const minutes = String(d.getMinutes()).padStart(2, "0");
-  const seconds = String(d.getSeconds()).padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
-  return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  return `${month}/${day}/${year} ${hours}:${minutes} ${ampm}`;
 };
 
 const transformSchedule = (s) => ({
@@ -548,7 +547,7 @@ function BroadCastTableContainer({
         ),
         cell: ({ row }) => {
           const value = row.original.category;
-          if (!value) return "-";
+          if (!value) return "";
           return highlightText(value, filters.category);
         }
       },
@@ -562,7 +561,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const names = row.original.appointmentTypeNames ?? [];
           const first = names[0] ?? "";
-          if (!first) return "-";
+          if (!first) return "";
           return (
             <div className="text-with-pill">
               <span className="cell-text" title={first}>
@@ -592,7 +591,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const names = row.original.locationNames ?? [];
           const first = names[0] ?? "";
-          if (!first) return "-";
+          if (!first) return "";
           return (
             <div className="text-with-pill">
               <span className="cell-text" title={first}>
@@ -622,7 +621,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const names = row.original.providerNames ?? [];
           const first = names[0] ?? "";
-          if (!first) return "-";
+          if (!first) return "";
           return (
             <div className="text-with-pill">
               <span className="cell-text" title={first}>

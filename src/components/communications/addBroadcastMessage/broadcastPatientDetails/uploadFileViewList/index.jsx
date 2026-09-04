@@ -57,7 +57,7 @@ const SortIcon = ({ columnKey, sortConfig }) => {
 };
 
 const highlightText = (text, query) => {
-  if (!text) return "";
+  if (!text || text === "-") return "";
   if (!query) return text;
   const stringText = String(text);
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -82,14 +82,16 @@ const emptyFilters = {
   balanceAmount: ""
 };
 
+const cleanExportVal = (v) => (v == null || v === "-" ? "" : v);
+
 const exportToExcel = (patients, fileName) => {
   const rows = patients.map(
     ({ firstName, lastName, dob, phone, email, balanceAmount }) => ({
-      "Patient First Name": firstName,
-      "Patient Last Name": lastName,
-      "Date of Birth (MM/DD/YYYY)": dob,
-      "Mobile Number": phone,
-      Email: email,
+      "Patient First Name": cleanExportVal(firstName),
+      "Patient Last Name": cleanExportVal(lastName),
+      "Date of Birth (MM/DD/YYYY)": cleanExportVal(dob),
+      "Mobile Number": cleanExportVal(phone),
+      Email: cleanExportVal(email),
       "Balance Amount ($)":
         balanceAmount === null || balanceAmount === undefined
           ? ""
@@ -643,7 +645,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                         {isEditMode ? (
                           <input
                             type="text"
-                            value={patient.phone}
+                            value={patient.phone === "-" ? "" : patient.phone}
                             onChange={(e) =>
                               handleCellEdit(
                                 patient.id,
@@ -663,7 +665,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                         {isEditMode ? (
                           <input
                             type="text"
-                            value={patient.email}
+                            value={patient.email === "-" ? "" : patient.email}
                             onChange={(e) =>
                               handleCellEdit(
                                 patient.id,
@@ -696,7 +698,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                             className="editInput"
                           />
                         ) : patient.balanceAmount == null ? (
-                          "-"
+                          ""
                         ) : (
                           highlightText(
                             String(patient.balanceAmount),
