@@ -547,7 +547,7 @@ function BroadCastTableContainer({
         ),
         cell: ({ row }) => {
           const value = row.original.category;
-          if (!value) return "-";
+          if (!value) return "";
           return highlightText(value, filters.category);
         }
       },
@@ -561,7 +561,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const names = row.original.appointmentTypeNames ?? [];
           const first = names[0] ?? "";
-          if (!first) return "-";
+          if (!first) return "";
           return (
             <div className="text-with-pill">
               <span className="cell-text" title={first}>
@@ -591,7 +591,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const names = row.original.locationNames ?? [];
           const first = names[0] ?? "";
-          if (!first) return "-";
+          if (!first) return "";
           return (
             <div className="text-with-pill">
               <span className="cell-text" title={first}>
@@ -621,7 +621,7 @@ function BroadCastTableContainer({
         cell: ({ row }) => {
           const names = row.original.providerNames ?? [];
           const first = names[0] ?? "";
-          if (!first) return "-";
+          if (!first) return "";
           return (
             <div className="text-with-pill">
               <span className="cell-text" title={first}>

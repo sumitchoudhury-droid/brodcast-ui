@@ -15,9 +15,10 @@ import ConfirmReprocessModal from "./confirmReprocessModal";
 import "./style.scss";
 
 // Simple validation helpers
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isEmailInvalid = (email) => {
   if (!email || email === "-") return true;
-  return !email.includes("@") || !email.includes(".");
+  return !EMAIL_REGEX.test(email);
 };
 
 const isPhoneInvalid = (phone) => {
@@ -27,7 +28,7 @@ const isPhoneInvalid = (phone) => {
 };
 
 const highlightText = (text, query) => {
-  if (!text) return "";
+  if (!text || text === "-") return "";
   if (!query) return text;
 
   const stringText = String(text);
@@ -91,6 +92,13 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
 
   // Handle save edits
   const handleSaveEdits = () => {
+    if (hasEditFormatErrors) {
+      toast.error(
+        "Invalid Email",
+        "Email format is not correct. Please fix it before saving."
+      );
+      return;
+    }
     setPatients(editPatients);
     setIsEditMode(false);
     toast.success(
@@ -210,6 +218,10 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
       .filter((p) => selectedIds.has(p.id))
       .some((p) => isEmailInvalid(p.email) || isPhoneInvalid(p.phone));
   }, [patients, selectedIds]);
+
+  const hasEditFormatErrors = editPatients.some(
+    (p) => p.email && p.email !== "-" && !EMAIL_REGEX.test(p.email)
+  );
 
   const allPatientsValid = useMemo(() => {
     return patients.every(
@@ -528,7 +540,7 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                           {isEditMode ? (
                             <input
                               type="text"
-                              value={patient.email}
+                              value={patient.email === "-" ? "" : patient.email}
                               onChange={(e) =>
                                 handleCellEdit(
                                   patient.id,
@@ -548,12 +560,13 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                           {isEditMode ? (
                             <input
                               type="text"
-                              value={patient.phone}
+                              inputMode="numeric"
+                              value={patient.phone === "-" ? "" : patient.phone}
                               onChange={(e) =>
                                 handleCellEdit(
                                   patient.id,
                                   "phone",
-                                  e.target.value
+                                  e.target.value.replace(/\D/g, "").slice(0, 10)
                                 )
                               }
                               className="editInput"
