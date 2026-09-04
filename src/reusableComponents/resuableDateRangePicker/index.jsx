@@ -4,15 +4,12 @@ import {
   addMonths,
   subMonths,
   startOfMonth,
-  endOfMonth,
   startOfWeek,
-  endOfWeek,
   isSameMonth,
   isSameDay,
   addDays,
   isWithinInterval,
   isAfter,
-  subWeeks,
   subYears,
   setYear,
   getYear
@@ -89,70 +86,56 @@ export default function ReusableDateRangePicker({
       label: "This Week",
       getDates: () => {
         const today = new Date();
-        return { start: startOfWeek(today), end: endOfWeek(today) };
+        return { start: addDays(today, -7), end: today };
       }
     },
     {
       label: "Last 2 Weeks",
       getDates: () => {
         const today = new Date();
-        return {
-          start: subWeeks(startOfWeek(today), 1),
-          end: endOfWeek(today)
-        };
+        return { start: addDays(today, -14), end: today };
       }
     },
     {
       label: "Current Month",
       getDates: () => {
         const today = new Date();
-        return { start: startOfMonth(today), end: endOfMonth(today) };
+        return { start: startOfMonth(today), end: today };
       }
     },
     {
       label: "Previous Month",
       getDates: () => {
         const today = new Date();
-        const prev = subMonths(today, 1);
-        return { start: startOfMonth(prev), end: endOfMonth(prev) };
+        return { start: subMonths(today, 1), end: today };
       }
     },
     {
       label: "Last 3 Months",
       getDates: () => {
         const today = new Date();
-        return {
-          start: startOfMonth(subMonths(today, 2)),
-          end: endOfMonth(today)
-        };
+        return { start: subMonths(today, 3), end: today };
       }
     },
     {
       label: "Last 1 Year",
       getDates: () => {
         const today = new Date();
-        return {
-          start: startOfMonth(subYears(today, 1)),
-          end: endOfMonth(today)
-        };
+        return { start: subYears(today, 1), end: today };
       }
     },
     {
       label: "Next Week",
       getDates: () => {
         const today = new Date();
-        const nextW = addDays(today, 7);
-        return { start: startOfWeek(nextW), end: endOfWeek(nextW) };
+        return { start: today, end: addDays(today, 7) };
       }
     },
     {
       label: "Next 3 Months",
       getDates: () => {
         const today = new Date();
-        return {
-          start: startOfMonth(today),
-          end: endOfMonth(addMonths(today, 2))
-        };
+        return { start: today, end: addMonths(today, 3) };
       }
     }
   ];
