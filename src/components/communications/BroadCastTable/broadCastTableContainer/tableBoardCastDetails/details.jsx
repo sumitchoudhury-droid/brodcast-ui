@@ -107,7 +107,13 @@ export default function Details({ broadcastData }) {
     if (!value) return "—";
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleString();
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
   };
 
   const handleDownloadUploadedFile = () => {
@@ -373,7 +379,7 @@ export default function Details({ broadcastData }) {
       {/* Schedule Start Date/Time */}
       <div className="detailRow">
         <div className="labelCol">Schedule Start Date/Time</div>
-        <div className="valueCol">{scheduledDateTime}</div>
+        <div className="valueCol">{formatDateTime(scheduledDateTime)}</div>
       </div>
 
       {/* Schedule End Date */}

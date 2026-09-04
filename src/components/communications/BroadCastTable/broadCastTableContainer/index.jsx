@@ -48,10 +48,9 @@ const formatScheduleDate = (isoStr) => {
   const year = d.getFullYear();
   let hours = d.getHours();
   const minutes = String(d.getMinutes()).padStart(2, "0");
-  const seconds = String(d.getSeconds()).padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
-  return `${month}/${day}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  return `${month}/${day}/${year} ${hours}:${minutes} ${ampm}`;
 };
 
 const transformSchedule = (s) => ({
