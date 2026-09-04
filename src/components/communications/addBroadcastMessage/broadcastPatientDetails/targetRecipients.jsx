@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./style.scss";
 import { ReusableDropDown } from "../../../../reusableComponents/reusableDropDown";
 import { ReusableDateTime } from "../../../../reusableComponents/reusableDate&TimePicker";
@@ -175,6 +175,48 @@ function TargetRecipients({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providersData, provider]);
+
+  // Default to "all selected" when options first load and the field is still
+  // empty (i.e. user hasn't picked anything and no template preloaded values).
+  const apptDefaultedRef = useRef(false);
+  const locationDefaultedRef = useRef(false);
+  const providerDefaultedRef = useRef(false);
+
+  useEffect(() => {
+    if (apptDefaultedRef.current || appointmentTypeOptions.length === 0) return;
+    apptDefaultedRef.current = true;
+    const current = toArray(appointmentType);
+    if (current.length === 0) {
+      const allIds = appointmentTypeOptions.map((o) => o.value);
+      setAppointmentType(allIds);
+      setAppointmentTypeLabels(appointmentTypeOptions.map((o) => o.label));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentTypeOptions]);
+
+  useEffect(() => {
+    if (locationDefaultedRef.current || locationOptions.length === 0) return;
+    locationDefaultedRef.current = true;
+    const current = toArray(location);
+    if (current.length === 0) {
+      const allIds = locationOptions.map((o) => o.value);
+      setLocation(allIds);
+      setLocationLabels(locationOptions.map((o) => o.label));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationOptions]);
+
+  useEffect(() => {
+    if (providerDefaultedRef.current || providerOptions.length === 0) return;
+    providerDefaultedRef.current = true;
+    const current = toArray(provider);
+    if (current.length === 0) {
+      const allIds = providerOptions.map((o) => o.value);
+      setProvider(allIds);
+      setProviderLabels(providerOptions.map((o) => o.label));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerOptions]);
 
   const [showOptOutModal, setShowOptOutModal] = useState(false);
 
