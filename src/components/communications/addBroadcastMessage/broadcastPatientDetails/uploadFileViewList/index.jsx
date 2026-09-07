@@ -645,12 +645,13 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                         {isEditMode ? (
                           <input
                             type="text"
+                            inputMode="numeric"
                             value={patient.phone === "-" ? "" : patient.phone}
                             onChange={(e) =>
                               handleCellEdit(
                                 patient.id,
                                 "phone",
-                                e.target.value
+                                formatPhone(e.target.value)
                               )
                             }
                             className="editInput"

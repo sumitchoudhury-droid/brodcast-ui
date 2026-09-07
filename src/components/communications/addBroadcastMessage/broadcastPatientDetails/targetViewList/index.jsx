@@ -9,7 +9,7 @@ import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 import searchGreenIcon from "../../../../../assets/boardCastTableIcons/searchGreen.svg";
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return "—";
+  if (!dateStr) return "";
   try {
     return new Date(dateStr).toLocaleString("en-US", {
       month: "2-digit",
@@ -24,14 +24,21 @@ const formatDate = (dateStr) => {
   }
 };
 
+const formatPhone = (phone) => {
+  if (!phone) return "";
+  const digits = String(phone).replace(/\D/g, "").slice(0, 10);
+  if (digits.length !== 10) return phone;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
 const mapPatient = (p, i) => ({
   id: i,
   firstName: p.firstName ?? "",
   lastName: p.lastName ?? "",
-  dob: p.dateOfBirth ? formatDate(p.dateOfBirth) : "—",
+  dob: p.dateOfBirth ? formatDate(p.dateOfBirth) : "",
   appointmentDateTime: formatDate(p.appointmentDateTime),
-  phone: p.phoneNumber ?? "—",
-  email: p.emailAddress ?? "—",
+  phone: formatPhone(p.phoneNumber),
+  email: p.emailAddress ?? "",
   isOptedOut: !!(p.isOptedOutEmail || p.isOptedOutSms)
 });
 

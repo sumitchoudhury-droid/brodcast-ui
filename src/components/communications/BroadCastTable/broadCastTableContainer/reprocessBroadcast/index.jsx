@@ -27,6 +27,15 @@ const isPhoneInvalid = (phone) => {
   return digits.length !== 10;
 };
 
+const formatPhone = (phone) => {
+  if (!phone || phone === "-") return phone;
+  const digits = String(phone).replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
 const highlightText = (text, query) => {
   if (!text || text === "-") return "";
   if (!query) return text;
@@ -561,18 +570,27 @@ export function ReProcessBroadCast({ isOpen, onClose, onReprocess }) {
                             <input
                               type="text"
                               inputMode="numeric"
-                              value={patient.phone === "-" ? "" : patient.phone}
+                              value={
+                                patient.phone === "-"
+                                  ? ""
+                                  : formatPhone(patient.phone)
+                              }
                               onChange={(e) =>
                                 handleCellEdit(
                                   patient.id,
                                   "phone",
-                                  e.target.value.replace(/\D/g, "").slice(0, 10)
+                                  formatPhone(e.target.value)
                                 )
                               }
                               className="editInput"
                             />
                           ) : (
-                            highlightText(patient.phone, filters.phone)
+                            highlightText(
+                              patient.phone === "-"
+                                ? "-"
+                                : formatPhone(patient.phone),
+                              filters.phone
+                            )
                           )}
                         </td>
                         <td className="reasonCell">
