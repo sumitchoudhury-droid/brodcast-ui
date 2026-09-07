@@ -104,13 +104,16 @@ export const ReusableMultiSelectDropdown = ({
   //   setIsOpen(false);
   // };
 
-  const displayValue =
-    committedValues.length > 0
-      ? options
-          .filter((o) => committedValues.includes(o.value))
-          .map((o) => o.label)
-          .join(", ")
-      : null;
+  const displayValue = (() => {
+    if (committedValues.length === 0) return null;
+    const selectedLabels = options
+      .filter((o) => committedValues.includes(o.value))
+      .map((o) => o.label);
+    if (selectedLabels.length > 2) {
+      return `${selectedLabels.length} selected`;
+    }
+    return selectedLabels.join(", ");
+  })();
 
   const visibleOptions = options
     .filter((o) => !showOnlySelected || tempSelectedValues.includes(o.value))

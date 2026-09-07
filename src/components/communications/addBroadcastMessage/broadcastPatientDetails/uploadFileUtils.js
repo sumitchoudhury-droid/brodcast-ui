@@ -4,7 +4,8 @@ export const PHONE_REGEX = /^\+?\d{10,13}$/;
 
 export const isPhoneInvalid = (phone) => {
   if (!phone || phone === "-") return true;
-  return !PHONE_REGEX.test(String(phone).trim());
+  const digits = String(phone).replace(/\D/g, "");
+  return digits.length !== 10;
 };
 
 export const isEmailInvalid = (email) => {
@@ -40,12 +41,13 @@ export const computeReason = (patient) => {
 export const isError = (patient) => patient.reason && patient.reason !== "-";
 
 export const formatPhone = (value) => {
-  if (value === null || value === undefined || value === "") return "";
-  const str = String(value).trim();
-  const hasPlus = str.startsWith("+");
-  const digits = str.replace(/\D/g, "").slice(0, 13);
+  if (value === null || value === undefined || value === "" || value === "-")
+    return "";
+  const digits = String(value).replace(/\D/g, "").slice(0, 10);
   if (!digits) return "";
-  return `${hasPlus ? "+" : ""}${digits}`;
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 };
 
 export const toMmDdYyyy = (value) => {
