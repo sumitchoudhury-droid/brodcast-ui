@@ -667,6 +667,11 @@ const BroadcastTextMessageEditor = ({
       onReady({
         editor,
         getHtml: () => {
+          // After editor.destroy(), the internal DomComponents is nulled
+          // but getWrapper is still on the prototype — calling it throws.
+          // Parent Footer may invoke getHtml via a stale ref after unmount
+          // (e.g., mode toggled off, or during an async broadcast flow).
+          if (!editor?.DomComponents) return "";
           const wrapper = editor.getWrapper();
           const contentComp = wrapper?.find(".text-editor-content")[0];
           const el = contentComp?.getEl();

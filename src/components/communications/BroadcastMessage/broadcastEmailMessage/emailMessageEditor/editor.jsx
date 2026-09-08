@@ -289,9 +289,13 @@ function resolveDroppable(comp, isHtml) {
 
 // Scan every frame column and sync placeholder visibility via data-is-empty attribute
 function reconcileFramePlaceholders(editor, isReconciling) {
+  // After editor.destroy() the internal DomComponents is nulled but
+  // getWrapper is still on the prototype — calling it throws. This
+  // reconciler runs on a debounced setTimeout that can fire after unmount.
   if (
     isReconciling.current ||
     !editor ||
+    !editor.DomComponents ||
     typeof editor.getWrapper !== "function"
   )
     return;
@@ -1514,6 +1518,7 @@ export default function Editor({
       if (reconcileTimer) return;
       reconcileTimer = setTimeout(() => {
         reconcileTimer = null;
+        if (!editor?.DomComponents) return;
         reconcileFramePlaceholders(editor, isReconciling);
       }, 0);
     };
@@ -1533,6 +1538,7 @@ export default function Editor({
       sigTimer = setTimeout(() => {
         sigTimer = null;
         if (isEnsuringSig.current) return;
+        if (!editor?.DomComponents) return;
         isEnsuringSig.current = true;
         try {
           const wrapper = editor.getWrapper();
@@ -2983,6 +2989,8 @@ export default function Editor({
     return () => {
       const injected = document.querySelector("style[data-gjs-overlay]");
       if (injected) injected.remove();
+      if (reconcileTimer) clearTimeout(reconcileTimer);
+      if (sigTimer) clearTimeout(sigTimer);
       editor.destroy();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
