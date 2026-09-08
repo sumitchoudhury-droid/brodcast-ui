@@ -17,7 +17,6 @@ function BroadcastTextMessage({
     (html, isEmpty) => {
       setIsEditorEmpty(isEmpty);
       onEmptyChange?.(isEmpty);
-      console.log("Final HTML Content:", html);
     },
     [onEmptyChange]
   );
