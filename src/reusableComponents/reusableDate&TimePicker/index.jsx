@@ -1,4 +1,11 @@
-import { useState, useRef, useEffect, forwardRef, useMemo } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  forwardRef,
+  useMemo
+} from "react";
 import calendarIcon from "../../assets/boardCastTableIcons/calendar.svg";
 import clockIcon from "../../assets/boardCastTableIcons/clockIcon.svg";
 import chevronLeftIcon from "../../assets/boardCastTableIcons/chevronLeftIcon.svg";
@@ -70,6 +77,12 @@ export function ReusableDateTime({
   const [yearRangeStart, setYearRangeStart] = useState(
     Math.floor(getYear(selected || minDate || new Date()) / 12) * 12
   );
+  // "bottom" opens below the input; "top" opens above. The caller's className
+  // sets the preference (topDown → prefer top), but we flip on open if the
+  // preferred side lacks viewport room.
+  const [placement, setPlacement] = useState(
+    className.includes("topDown") ? "top" : "bottom"
+  );
   const containerRef = useRef(null);
   const hourListRef = useRef(null);
   const minuteListRef = useRef(null);
@@ -104,6 +117,22 @@ export function ReusableDateTime({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Popup is ~400px tall plus footer/margin — reserve 450 to leave a little
+  // breathing room when deciding which side has enough space.
+  useLayoutEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const popupHeight = 450;
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const prefersTop = className.includes("topDown");
+    if (prefersTop) {
+      setPlacement(spaceAbove >= popupHeight ? "top" : "bottom");
+    } else {
+      setPlacement(spaceBelow >= popupHeight ? "bottom" : "top");
+    }
+  }, [isOpen, className]);
 
   useEffect(() => {
     if (isOpen && showTimeSelect) {
@@ -253,7 +282,14 @@ export function ReusableDateTime({
         />
 
         {isOpen && (
-          <div className="customDatePickerPopup">
+          <div
+            className="customDatePickerPopup"
+            style={
+              placement === "top"
+                ? { top: "auto", bottom: "calc(100% + 8px)" }
+                : { top: "calc(100% + 8px)", bottom: "auto" }
+            }
+          >
             <div className="pickerContent">
               {/* ── Calendar ── */}
               <div className="calendarSection">
