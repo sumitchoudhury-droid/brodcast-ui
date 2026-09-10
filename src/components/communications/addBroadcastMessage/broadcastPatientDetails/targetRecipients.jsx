@@ -332,7 +332,12 @@ function TargetRecipients({
                 placeholder="Select Filter"
                 options={ageOptions}
                 value={ageFilter}
-                onChange={(val) => setAgeFilter(val)}
+                onChange={(val) => {
+                  setAgeFilter(val);
+                  setAgeError(
+                    val && !ageYear && !ageMonth ? "Enter Patient Age" : ""
+                  );
+                }}
               />
             </div>
             <div className="ageInput">
