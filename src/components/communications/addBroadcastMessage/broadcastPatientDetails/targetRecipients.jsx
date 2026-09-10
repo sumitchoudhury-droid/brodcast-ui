@@ -130,6 +130,12 @@ function TargetRecipients({
     setAppointmentTypeLabels,
     setLocationLabels,
     setProviderLabels,
+    setAllAppointmentTypeIds,
+    setAllLocationIds,
+    setAllProviderIds,
+    allAppointmentTypeIds,
+    allLocationIds,
+    allProviderIds,
     categoryLabel
   } = useBroadcastForm();
 
@@ -176,45 +182,31 @@ function TargetRecipients({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providersData, provider]);
 
-  // Default to "all selected" when options first load and the field is still
-  // empty (i.e. user hasn't picked anything and no template preloaded values).
-  const apptDefaultedRef = useRef(false);
-  const locationDefaultedRef = useRef(false);
-  const providerDefaultedRef = useRef(false);
+  // Cache the full ID list for each dropdown once its options load. Payload
+  // builders fall back to these when the user hasn't picked anything, so an
+  // empty UI selection still sends every value.
+  const apptCachedRef = useRef(false);
+  const locationCachedRef = useRef(false);
+  const providerCachedRef = useRef(false);
 
   useEffect(() => {
-    if (apptDefaultedRef.current || appointmentTypeOptions.length === 0) return;
-    apptDefaultedRef.current = true;
-    const current = toArray(appointmentType);
-    if (current.length === 0) {
-      const allIds = appointmentTypeOptions.map((o) => o.value);
-      setAppointmentType(allIds);
-      setAppointmentTypeLabels(appointmentTypeOptions.map((o) => o.label));
-    }
+    if (apptCachedRef.current || appointmentTypeOptions.length === 0) return;
+    apptCachedRef.current = true;
+    setAllAppointmentTypeIds(appointmentTypeOptions.map((o) => o.value));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentTypeOptions]);
 
   useEffect(() => {
-    if (locationDefaultedRef.current || locationOptions.length === 0) return;
-    locationDefaultedRef.current = true;
-    const current = toArray(location);
-    if (current.length === 0) {
-      const allIds = locationOptions.map((o) => o.value);
-      setLocation(allIds);
-      setLocationLabels(locationOptions.map((o) => o.label));
-    }
+    if (locationCachedRef.current || locationOptions.length === 0) return;
+    locationCachedRef.current = true;
+    setAllLocationIds(locationOptions.map((o) => o.value));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationOptions]);
 
   useEffect(() => {
-    if (providerDefaultedRef.current || providerOptions.length === 0) return;
-    providerDefaultedRef.current = true;
-    const current = toArray(provider);
-    if (current.length === 0) {
-      const allIds = providerOptions.map((o) => o.value);
-      setProvider(allIds);
-      setProviderLabels(providerOptions.map((o) => o.label));
-    }
+    if (providerCachedRef.current || providerOptions.length === 0) return;
+    providerCachedRef.current = true;
+    setAllProviderIds(providerOptions.map((o) => o.value));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerOptions]);
 
@@ -243,10 +235,16 @@ function TargetRecipients({
       : !!startDateTime;
     if (!hasStartDateTime || !endDateTime) return;
 
+    // Empty UI selection means "no filter" — send every option instead.
+    const effective = (selected, all) => {
+      const arr = toArray(selected);
+      return arr.length > 0 ? arr : all;
+    };
+
     const body = {
-      appointmentTypeIds: toArray(appointmentType),
-      locationIds: toArray(location),
-      providerIds: toArray(provider),
+      appointmentTypeIds: effective(appointmentType, allAppointmentTypeIds),
+      locationIds: effective(location, allLocationIds),
+      providerIds: effective(provider, allProviderIds),
       ageCriteriaId: ageFilter || null,
       ageYears: ageYear ? Number(ageYear) : null,
       ageMonths: ageMonth ? Number(ageMonth) : null,

@@ -16,6 +16,11 @@ import { htmlToSmsText } from "../../../../utils/htmlToSmsText";
 // import externalLinkIcon from "../../../../assets/commonIcons/externalLinkIcon.svg";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+// Empty UI selection means "no filter" — send every option instead.
+const effectiveIds = (selected, all) => {
+  const arr = toArray(selected);
+  return arr.length > 0 ? arr : all;
+};
 // Preserve the wall-clock time the user picked — toISOString() would shift it to UTC
 const toLocalISOString = (date) => {
   const d = new Date(date);
@@ -66,6 +71,9 @@ export default function Footer({
     locationLabels,
     provider,
     providerLabels,
+    allAppointmentTypeIds,
+    allLocationIds,
+    allProviderIds,
     broadcastStartDate,
     patientStartDateTime,
     patientEndDateTime,
@@ -218,9 +226,9 @@ export default function Footer({
       priority !== undefined && priority !== null ? String(priority) : "",
     methodType: selectedModes.join(","),
     patientSelection: patientSelectionTypeMap[patientType] ?? patientType,
-    appointmentTypeIds: toArray(appointmentType),
-    locationIds: toArray(location),
-    providerIds: toArray(provider),
+    appointmentTypeIds: effectiveIds(appointmentType, allAppointmentTypeIds),
+    locationIds: effectiveIds(location, allLocationIds),
+    providerIds: effectiveIds(provider, allProviderIds),
     ageCriteriaId: ageFilter || null,
     ageYears: ageYear ? Number(ageYear) : null,
     ageMonths: ageMonth ? Number(ageMonth) : null,
@@ -346,9 +354,12 @@ export default function Footer({
     patientSelectionType: patientSelectionTypeMap[patientType] ?? patientType,
     ...(patientType === "targetRecipients" && {
       targetRecipientCriteria: {
-        appointmentTypeIds: toArray(appointmentType),
-        locationIds: toArray(location),
-        providerIds: toArray(provider),
+        appointmentTypeIds: effectiveIds(
+          appointmentType,
+          allAppointmentTypeIds
+        ),
+        locationIds: effectiveIds(location, allLocationIds),
+        providerIds: effectiveIds(provider, allProviderIds),
         appointmentStartDateTime: patientStartDateTime
           ? new Date(patientStartDateTime).toISOString()
           : null,

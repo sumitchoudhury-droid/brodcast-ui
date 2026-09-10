@@ -33,6 +33,12 @@ const initialState = {
   locationLabels: [],
   provider: "",
   providerLabels: [],
+  // Full option-id lists cached once options load. Payload builders fall back
+  // to these when the user hasn't picked anything, so an empty UI selection
+  // still sends every value.
+  allAppointmentTypeIds: [],
+  allLocationIds: [],
+  allProviderIds: [],
   categoryLabel: "",
   priorityLabel: "",
   gender: 3,
@@ -100,6 +106,9 @@ const broadcastFormSlice = createSlice({
     setLocationLabels: makeSetter("locationLabels"),
     setProvider: makeSetter("provider"),
     setProviderLabels: makeSetter("providerLabels"),
+    setAllAppointmentTypeIds: makeSetter("allAppointmentTypeIds"),
+    setAllLocationIds: makeSetter("allLocationIds"),
+    setAllProviderIds: makeSetter("allProviderIds"),
     setCategoryLabel: makeSetter("categoryLabel"),
     setPriorityLabel: makeSetter("priorityLabel"),
     setGender: makeSetter("gender"),
