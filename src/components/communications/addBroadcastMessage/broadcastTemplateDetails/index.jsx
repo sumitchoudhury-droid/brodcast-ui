@@ -11,6 +11,7 @@ import phoneIcon from "../../../../assets/existingTemplate/phoneIcon.svg";
 import defaultTemplateSs from "../../../../assets/existingTemplate/defaultTemplateSs.svg";
 
 import { ReusableInput } from "../../../../reusableComponents/reusableInput";
+import ReusableToolTip from "../../../../reusableComponents/reusableToolTip/index.jsx";
 
 const actionIcons = [
   { src: messageIcon, mode: "SMS" },
@@ -81,11 +82,21 @@ function BroadcastTemplateDetails({
                 </div>
               )}
               {selectedTemplate === "existing" && selectedTemplateData ? (
-                <img
-                  src={selectedTemplateData?.image || defaultTemplateSs}
-                  alt="savedTemplate"
-                  className="savedTemplateSs"
-                />
+                <>
+                  <img
+                    src={selectedTemplateData?.image || defaultTemplateSs}
+                    alt="savedTemplate"
+                    className="savedTemplateSs"
+                  />
+                  <ReusableToolTip
+                    content={selectedTemplateData?.title}
+                    position="top"
+                  >
+                    <p className="savedTemplateTitle">
+                      {selectedTemplateData?.title}
+                    </p>
+                  </ReusableToolTip>
+                </>
               ) : (
                 <>
                   <div className="templateOptionIcon">
