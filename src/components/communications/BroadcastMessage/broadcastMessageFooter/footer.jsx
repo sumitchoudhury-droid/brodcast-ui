@@ -841,136 +841,138 @@ export default function Footer({
           {renderConfirmBody()}
 
           {/* Patient Filter Summary Section */}
-          <div className="patientFilterSummary">
-            <div
-              className="filterSummaryHeader"
-              onClick={toggleFilterExpansion}
-              role="button"
-              tabIndex={0}
-              onKeyPress={(e) => e.key === "Enter" && toggleFilterExpansion()}
-              aria-expanded={isFilterExpanded}
-            >
-              <p>Patient Filter Summary</p>
-              <svg
-                className={`chevronIcon ${isFilterExpanded ? "expanded" : ""}`}
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
+          {patientType !== "uploadFile" && (
+            <div className="patientFilterSummary">
+              <div
+                className="filterSummaryHeader"
+                onClick={toggleFilterExpansion}
+                role="button"
+                tabIndex={0}
+                onKeyPress={(e) => e.key === "Enter" && toggleFilterExpansion()}
+                aria-expanded={isFilterExpanded}
               >
-                <path
-                  d="M6 15L12 9L18 15"
-                  stroke="#606E80"
-                  strokeWidth="1.3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
+                <p>Patient Filter Summary</p>
+                <svg
+                  className={`chevronIcon ${isFilterExpanded ? "expanded" : ""}`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M6 15L12 9L18 15"
+                    stroke="#606E80"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
 
-            <div
-              className={`filterSummaryContent ${isFilterExpanded ? "expanded" : ""}`}
-            >
-              {/* Total Patients */}
-              <div className="Section">
-                <div className="filterSection">
-                  <p className="filterLabel">Total Patients</p>
-                  <div className="filterValue">
-                    <p>—</p>
-                    {/* <img
+              <div
+                className={`filterSummaryContent ${isFilterExpanded ? "expanded" : ""}`}
+              >
+                {/* Total Patients */}
+                <div className="Section">
+                  <div className="filterSection">
+                    <p className="filterLabel">Total Patients</p>
+                    <div className="filterValue">
+                      <p>—</p>
+                      {/* <img
                       src={externalLinkIcon}
                       alt="External link icon"
                       className="externalLinkIcon"
                     /> */}
+                    </div>
+                  </div>
+
+                  {/* Appointment Type */}
+                  <div className="filterSection">
+                    <p className="filterLabel">Appointment Type</p>
+                    <div className="filterValue">
+                      <p>{appointmentTypeLabels[0] || "—"}</p>
+                      {appointmentTypeLabels.length > 1 && (
+                        <ReusableToolTip
+                          content={buildTooltipContent(appointmentTypeLabels)}
+                          position="top"
+                        >
+                          <div className="badge" style={{ cursor: "pointer" }}>
+                            +{appointmentTypeLabels.length - 1}
+                          </div>
+                        </ReusableToolTip>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Appointment Type */}
-                <div className="filterSection">
-                  <p className="filterLabel">Appointment Type</p>
-                  <div className="filterValue">
-                    <p>{appointmentTypeLabels[0] || "—"}</p>
-                    {appointmentTypeLabels.length > 1 && (
-                      <ReusableToolTip
-                        content={buildTooltipContent(appointmentTypeLabels)}
-                        position="top"
-                      >
-                        <div className="badge" style={{ cursor: "pointer" }}>
-                          +{appointmentTypeLabels.length - 1}
-                        </div>
-                      </ReusableToolTip>
-                    )}
+                <div className="Section">
+                  {/* Location */}
+                  <div className="filterSection">
+                    <p className="filterLabel">Location</p>
+                    <div className="filterValue">
+                      <p>{locationLabels[0] || "—"}</p>
+                      {locationLabels.length > 1 && (
+                        <ReusableToolTip
+                          content={buildTooltipContent(locationLabels)}
+                          position="top"
+                        >
+                          <div className="badge" style={{ cursor: "pointer" }}>
+                            +{locationLabels.length - 1}
+                          </div>
+                        </ReusableToolTip>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="Section">
-                {/* Location */}
-                <div className="filterSection">
-                  <p className="filterLabel">Location</p>
-                  <div className="filterValue">
-                    <p>{locationLabels[0] || "—"}</p>
-                    {locationLabels.length > 1 && (
-                      <ReusableToolTip
-                        content={buildTooltipContent(locationLabels)}
-                        position="top"
-                      >
-                        <div className="badge" style={{ cursor: "pointer" }}>
-                          +{locationLabels.length - 1}
-                        </div>
-                      </ReusableToolTip>
-                    )}
-                  </div>
-                </div>
-
-                {/* Provider */}
-                <div className="filterSection">
-                  <p className="filterLabel">Provider</p>
-                  <div className="filterValue">
-                    <p>{providerLabels[0] || "—"}</p>
-                    {providerLabels.length > 1 && (
-                      <ReusableToolTip
-                        content={buildTooltipContent(providerLabels)}
-                        position="top"
-                      >
-                        <div className="badge" style={{ cursor: "pointer" }}>
-                          +{providerLabels.length - 1}
-                        </div>
-                      </ReusableToolTip>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="Section">
-                {/* Appointment Start Date/Time */}
-                <div className="filterSection">
-                  <p className="filterLabel">Appointment Start Date / Time</p>
-                  <div className="filterValue">
-                    <p>
-                      {patientStartDateTime
-                        ? new Date(patientStartDateTime).toLocaleString()
-                        : "—"}
-                    </p>
+                  {/* Provider */}
+                  <div className="filterSection">
+                    <p className="filterLabel">Provider</p>
+                    <div className="filterValue">
+                      <p>{providerLabels[0] || "—"}</p>
+                      {providerLabels.length > 1 && (
+                        <ReusableToolTip
+                          content={buildTooltipContent(providerLabels)}
+                          position="top"
+                        >
+                          <div className="badge" style={{ cursor: "pointer" }}>
+                            +{providerLabels.length - 1}
+                          </div>
+                        </ReusableToolTip>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Appointment End Date/Time */}
-                <div className="filterSection">
-                  <p className="filterLabel">Appointment End Date / Time</p>
-                  <div className="filterValue">
-                    <p>
-                      {patientEndDateTime
-                        ? new Date(patientEndDateTime).toLocaleString()
-                        : "—"}
-                    </p>
+                <div className="Section">
+                  {/* Appointment Start Date/Time */}
+                  <div className="filterSection">
+                    <p className="filterLabel">Appointment Start Date / Time</p>
+                    <div className="filterValue">
+                      <p>
+                        {patientStartDateTime
+                          ? new Date(patientStartDateTime).toLocaleString()
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Appointment End Date/Time */}
+                  <div className="filterSection">
+                    <p className="filterLabel">Appointment End Date / Time</p>
+                    <div className="filterValue">
+                      <p>
+                        {patientEndDateTime
+                          ? new Date(patientEndDateTime).toLocaleString()
+                          : "—"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </ReusableModal>
     </>
