@@ -29,7 +29,7 @@ import settingsIcon from "../../../../assets/boardCastTableIcons/tableSettings.s
 
 import CancelScheduleIcon from "../../../../assets/boardCastTableIcons/CancelScheduleIcon.svg";
 import ReportIcon from "../../../../assets/boardCastTableIcons/ReportIcon.svg";
-import ReprocessIcon from "../../../../assets/boardCastTableIcons/ReprocessIcon.svg";
+// import ReprocessIcon from "../../../../assets/boardCastTableIcons/ReprocessIcon.svg";
 
 import "./style.scss";
 import SkeletonLoader from "../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
@@ -178,7 +178,7 @@ const getMenuOptions = (status) => {
         action: "cancel",
         icon: CancelScheduleIcon
       },
-      { label: "Reprocess", action: "reprocess", icon: ReprocessIcon },
+      // { label: "Reprocess", action: "reprocess", icon: ReprocessIcon },
       { label: "Report", action: "report", icon: ReportIcon }
     ];
   } else if (lowerStatus.includes("cancel")) {
@@ -188,7 +188,7 @@ const getMenuOptions = (status) => {
     lowerStatus.includes("failed")
   ) {
     return [
-      { label: "Reprocess", action: "reprocess", icon: ReprocessIcon },
+      // { label: "Reprocess", action: "reprocess", icon: ReprocessIcon },
       { label: "Report", action: "report", icon: ReportIcon }
     ];
   }
