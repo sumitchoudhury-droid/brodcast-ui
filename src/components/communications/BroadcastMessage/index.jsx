@@ -7,21 +7,21 @@ import MultipleBroadMessages from "./multipleBroadMessages";
 
 import "./style.scss";
 
-import languageIcon from "../../../assets/mainScreen/languageIcon.svg";
+// import languageIcon from "../../../assets/mainScreen/languageIcon.svg";
 import Footer from "./broadcastMessageFooter/footer";
-import { ReusableDropDown } from "../../../reusableComponents/reusableDropDown";
+// import { ReusableDropDown } from "../../../reusableComponents/reusableDropDown";
 import {
   BroadcastFormProvider,
   useBroadcastForm
 } from "../broadcastFormContext";
 
-const languageOptions = [
-  { value: "english", label: "English" },
-  { value: "spanish", label: "Spanish" },
-  { value: "mandarin", label: "Mandarin" },
-  { value: "vietnamese", label: "Vietnamese" },
-  { value: "tagalog", label: "Tagalog" }
-];
+// const languageOptions = [
+//   { value: "english", label: "English" },
+//   { value: "spanish", label: "Spanish" },
+//   { value: "mandarin", label: "Mandarin" },
+//   { value: "vietnamese", label: "Vietnamese" },
+//   { value: "tagalog", label: "Tagalog" }
+// ];
 
 function BroadcastMessageInner({ handleCancel }) {
   const [currentStep, setCurrentStep] = useState("setup");
@@ -41,9 +41,9 @@ function BroadcastMessageInner({ handleCancel }) {
     setIsVoiceEditorEmpty
   } = useBroadcastForm();
 
-  const [selectedLanguage, setSelectedLanguage] = useState(
-    languageOptions[0].value
-  );
+  // const [selectedLanguage, setSelectedLanguage] = useState(
+  //   languageOptions[0].value
+  // );
 
   const handleTextEditorReady = useCallback(
     (instance) => {
@@ -183,13 +183,13 @@ function BroadcastMessageInner({ handleCancel }) {
               <h2 className="mainTitle">{heading}</h2>
             )}
 
-            <ReusableDropDown
+            {/* <ReusableDropDown
               options={languageOptions}
               value={selectedLanguage}
               onChange={setSelectedLanguage}
               valueImage={languageIcon}
               maxWidth="165px"
-            />
+            /> */}
           </div>
 
           {/* Builder */}

@@ -106,6 +106,9 @@ export const ReusableMultiSelectDropdown = ({
 
   const displayValue = (() => {
     if (committedValues.length === 0) return null;
+    if (options.length > 0 && committedValues.length === options.length) {
+      return "All selected";
+    }
     const selectedLabels = options
       .filter((o) => committedValues.includes(o.value))
       .map((o) => o.label);

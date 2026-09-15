@@ -14,8 +14,8 @@ export const BroadcastDetails = ({
   setSelectedModes,
   category,
   onCategoryChange,
-  priority,
-  setPriority
+  priority
+  // setPriority
 }) => {
   const { data: modesData, isLoading: isLoadingModes } = useGet(
     ["communication-modes"],
@@ -122,7 +122,7 @@ export const BroadcastDetails = ({
         </div>
 
         {/* Priority Dropdown */}
-        <div className="broadcastDetailsContentRow">
+        {/* <div className="broadcastDetailsContentRow">
           <ReusableDropDown
             label="Priority"
             greenIcon={false}
@@ -138,7 +138,7 @@ export const BroadcastDetails = ({
             required={true}
             info={true}
           />
-        </div>
+        </div> */}
       </div>
     </div>
   );

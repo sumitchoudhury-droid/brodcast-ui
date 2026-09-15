@@ -962,6 +962,16 @@ export default function Editor({
                   box-shadow: none !important;
                 }
 
+                /* Placeholder text for empty heading/paragraph blocks — disappears when user starts typing */
+                [data-placeholder]:empty::before,
+                [data-placeholder].is-empty::before {
+                  content: attr(data-placeholder);
+                  color: #98A2B3;
+                  pointer-events: none;
+                  display: inline;
+                  opacity: 1;
+                }
+
                 /* Override GrapesJS default empty component placeholder (black box with </> icon) */
                 [data-gjs-type="mj-image"].gjs-no-app {
                   background-image: none !important;
@@ -3369,13 +3379,13 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("heading", {
       label: "Heading",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;">Title goes here</div>`
+      content: `<div data-placeholder="Title goes here" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("paragraph", {
       label: "Paragraph",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;">Paragraph Text</div>`
+      content: `<div data-placeholder="Paragraph Text" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("image", {
@@ -3494,8 +3504,8 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Arial" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
-            Title goes here
+          <mj-text font-family="Arial" font-size="32px" font-weight="600" color="#404B5A" align="left" line-height="42px" padding="0px" margin="0px">
+            <div data-placeholder="Title goes here"></div>
           </mj-text>
         </mj-column>
       </mj-section>`
@@ -3506,8 +3516,8 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Arial" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
-            Paragraph Text
+          <mj-text font-family="Arial" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="left" line-height="22px" padding="0px" margin="0px">
+            <div data-placeholder="Paragraph Text"></div>
           </mj-text>
         </mj-column>
       </mj-section>`

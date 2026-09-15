@@ -98,7 +98,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
 
   const isFormValid =
     selectedModes.length > 0 &&
-    !!priority &&
+    // !!priority &&
     (sendType === "immediately" || !!scheduleStartDateTime) &&
     (sendType !== "recurring" || !!frequency) &&
     !(

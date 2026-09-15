@@ -9,11 +9,6 @@ import "./style.scss";
 export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
   const [search, setSearch] = useState("");
   const savedRangeRef = useRef(null);
-  const savedActiveElRef = useRef(null);
-  // Tracks whether the canvas iframe currently has focus. We must stop
-  // updating savedRangeRef the moment the iframe blurs, because GrapesJS
-  // deactivating the RTE fires selectionchange inside the canvas and resets
-  // the selection to position 0, which would corrupt the saved cursor position.
   const iframeHasFocusRef = useRef(false);
 
   const { data: placeholdersData } = useBroadcastConfigGet(
@@ -32,24 +27,21 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
     `${item.label} ${item.value}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Track the cursor position inside the canvas iframe, but only while the
-  // iframe has focus. Freeze the saved range the moment the iframe blurs so
-  // GrapesJS's post-blur DOM cleanup cannot overwrite the correct position.
+  // Track cursor position inside the canvas iframe while it has focus.
   useEffect(() => {
     const editor = editorRef?.current?.getEditor?.();
     if (!editor) return;
     const canvasWindow = editor.Canvas.getWindow();
     if (!canvasWindow) return;
+    const canvasDoc = canvasWindow.document;
 
     const saveRange = () => {
       if (!iframeHasFocusRef.current) return;
       const sel = canvasWindow.getSelection();
       if (sel && sel.rangeCount > 0) {
         savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-        savedActiveElRef.current = canvasWindow.document.activeElement;
       }
     };
-
     const onFocus = () => {
       iframeHasFocusRef.current = true;
     };
@@ -57,58 +49,322 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
       iframeHasFocusRef.current = false;
     };
 
-    canvasWindow.document.addEventListener("selectionchange", saveRange);
+    canvasDoc.addEventListener("selectionchange", saveRange);
     canvasWindow.addEventListener("focus", onFocus);
     canvasWindow.addEventListener("blur", onBlur);
 
     return () => {
-      canvasWindow.document.removeEventListener("selectionchange", saveRange);
+      canvasDoc.removeEventListener("selectionchange", saveRange);
       canvasWindow.removeEventListener("focus", onFocus);
       canvasWindow.removeEventListener("blur", onBlur);
     };
   }, [editorRef]);
 
+  // Resolve the concrete DOM element that a range's start position lives
+  // inside — a text node's parent, or the element itself. This is what we
+  // need to focus + force contentEditable on for execCommand to work.
+  const resolveTargetEl = (range) => {
+    const start = range?.startContainer;
+    if (!start) return null;
+    if (start.nodeType === 3) return start.parentElement;
+    if (start.nodeType === 1) return start;
+    return null;
+  };
+
+  // Walk up to find any mj-text / text component or contenteditable ancestor
+  // for owner-component lookup.
+  const findTextComponentAncestor = (node) => {
+    let current = node;
+    while (current) {
+      if (current.nodeType === 1) {
+        const gjsType = current.getAttribute?.("data-gjs-type");
+        if (gjsType === "text" || gjsType === "mj-text") return current;
+        if (current.isContentEditable) return current;
+      }
+      current = current.parentNode;
+    }
+    return null;
+  };
+
   const insertPlaceholder = (value) => {
     const editor = editorRef?.current?.getEditor?.();
     if (!editor) return;
     const canvasWindow = editor.Canvas.getWindow();
-    if (!canvasWindow) return;
+    const canvasDoc = editor.Canvas.getDocument();
+    if (!canvasWindow || !canvasDoc) return;
 
     const savedRange = savedRangeRef.current;
-    const el = savedActiveElRef.current;
-    if (!savedRange || !el) return;
+    if (
+      !savedRange ||
+      !canvasDoc.body.contains(savedRange.commonAncestorContainer)
+    ) {
+      return;
+    }
 
-    // GrapesJS removes contenteditable when it deactivates the RTE on blur.
-    // Force it back so execCommand can write into the element.
-    el.contentEditable = "true";
-    // Focus the iframe window first — execCommand operates on the focused document.
+    // The element the cursor lives in — force contenteditable there so
+    // execCommand("insertText") writes to the right place regardless of
+    // whether GrapesJS's RTE is currently active on it.
+    const targetEl = resolveTargetEl(savedRange);
+    if (!targetEl) return;
+
+    // Force contenteditable up the chain so focus lands on a valid editable
+    // element and inheritance is consistent.
+    const enabledEls = [];
+    let walk = targetEl;
+    while (walk && walk !== canvasDoc.body) {
+      if (
+        walk.nodeType === 1 &&
+        walk.getAttribute("contenteditable") !== "true"
+      ) {
+        walk.setAttribute("contenteditable", "true");
+        enabledEls.push(walk);
+      }
+      walk = walk.parentElement;
+    }
+
     canvasWindow.focus();
-    el.focus();
+    targetEl.focus?.();
 
-    // Restore the exact cursor position captured at mousedown.
+    // Restore the exact cursor position captured during drag. focus() often
+    // resets the selection, so we apply the saved range AFTER focus.
     const sel = canvasWindow.getSelection();
     if (sel) {
       sel.removeAllRanges();
       sel.addRange(savedRange);
     }
 
-    // execCommand handles text-node splitting and caret placement correctly
-    // for all cursor positions — avoids Range.insertNode's spec quirks around
-    // post-insertion range repositioning.
-    canvasWindow.document.execCommand("insertText", false, value);
-
-    // Sync the updated DOM back into the GrapesJS model immediately while
-    // contenteditable is still active. Without this, style changes applied
-    // from the right panel read the stale pre-insertion model content and
-    // write it back, erasing the placeholder.
-    const selected = editor.getSelected?.();
-    if (selected) {
+    // Try native execCommand first — it handles text-node splitting inside
+    // MJML-rendered content. Fall back to a direct Range.insertNode if the
+    // command reports failure (e.g. element wasn't actually focused).
+    let inserted = false;
+    try {
+      inserted = canvasDoc.execCommand("insertText", false, value);
+    } catch {
+      inserted = false;
+    }
+    if (!inserted) {
       try {
-        selected.set("content", el.innerHTML, { silent: true });
+        const workRange = savedRange.cloneRange();
+        workRange.deleteContents();
+        const textNode = canvasDoc.createTextNode(value);
+        workRange.insertNode(textNode);
+        workRange.setStartAfter(textNode);
+        workRange.collapse(true);
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(workRange);
+        }
       } catch {
         /* ignore */
       }
     }
+
+    // Snapshot the new caret position.
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+
+    // Restore original contenteditable state on the ancestors we changed.
+    enabledEls.forEach((el) => el.removeAttribute("contenteditable"));
+
+    // Sync GrapesJS model with the DOM so getHtml() reflects the insert.
+    const wrapper = editor.getWrapper?.();
+    const findOwnerComp = (el) => {
+      let cur = el;
+      while (cur && cur !== canvasDoc.body) {
+        const id = cur.getAttribute?.("id");
+        if (id && wrapper) {
+          const found = wrapper.find("#" + id);
+          if (found.length) return found[0];
+        }
+        cur = cur.parentElement;
+      }
+      return null;
+    };
+    const textComp = findTextComponentAncestor(targetEl);
+    const ownerComp =
+      findOwnerComp(textComp || targetEl) || editor.getSelected?.();
+    if (ownerComp && textComp) {
+      try {
+        ownerComp.set("content", textComp.innerHTML, { silent: true });
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      editor.trigger("component:update:content", ownerComp);
+      editor.trigger("update");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const startManualDrag = (value, startEvent) => {
+    const editor = editorRef?.current?.getEditor?.();
+    if (!editor) return;
+    const canvasWindow = editor.Canvas.getWindow();
+    const canvasDoc = editor.Canvas.getDocument();
+    const iframeEl = editor.Canvas.getFrameEl?.();
+    if (!canvasWindow || !canvasDoc || !iframeEl) return;
+
+    document.body.classList.add("placeholder-dragging");
+
+    // Ghost chip that follows the mouse.
+    const ghost = document.createElement("div");
+    ghost.textContent = value;
+    ghost.style.cssText = [
+      "position:fixed",
+      "left:0",
+      "top:0",
+      "transform:translate(12px, 12px)",
+      "padding:6px 10px",
+      "background:#1570EF",
+      "color:#fff",
+      "font-family:Inter, Arial, sans-serif",
+      "font-size:12px",
+      "font-weight:500",
+      "line-height:16px",
+      "border-radius:6px",
+      "box-shadow:0 4px 12px rgba(16,24,40,0.15)",
+      "pointer-events:none",
+      "z-index:2147483647",
+      "white-space:nowrap",
+      "opacity:0.95"
+    ].join(";");
+    document.body.appendChild(ghost);
+
+    // Custom caret indicator (blue vertical bar) drawn on the outer document.
+    const caret = document.createElement("div");
+    caret.style.cssText = [
+      "position:fixed",
+      "width:2px",
+      "height:20px",
+      "background:#1570EF",
+      "pointer-events:none",
+      "display:none",
+      "z-index:2147483647"
+    ].join(";");
+    document.body.appendChild(caret);
+
+    const positionGhost = (clientX, clientY) => {
+      ghost.style.left = `${clientX}px`;
+      ghost.style.top = `${clientY}px`;
+    };
+
+    const showCaretAtRange = (range, fallbackClientX, fallbackClientY) => {
+      const iframeRect = iframeEl.getBoundingClientRect();
+      let rect = range?.getBoundingClientRect?.();
+      if (!rect || (rect.width === 0 && rect.height === 0)) {
+        try {
+          const marker = canvasDoc.createElement("span");
+          marker.style.cssText = "display:inline-block;width:0;height:1em;";
+          const workRange = range.cloneRange();
+          workRange.insertNode(marker);
+          rect = marker.getBoundingClientRect();
+          const parent = marker.parentNode;
+          marker.remove();
+          if (parent) parent.normalize();
+        } catch {
+          /* ignore */
+        }
+      }
+      if (rect && (rect.height > 0 || rect.width > 0)) {
+        caret.style.left = `${iframeRect.left + rect.left}px`;
+        caret.style.top = `${iframeRect.top + rect.top}px`;
+        caret.style.height = `${rect.height || 20}px`;
+      } else {
+        caret.style.left = `${fallbackClientX}px`;
+        caret.style.top = `${fallbackClientY - 10}px`;
+        caret.style.height = `20px`;
+      }
+      caret.style.display = "block";
+    };
+
+    const hideCaret = () => {
+      caret.style.display = "none";
+    };
+
+    if (startEvent) positionGhost(startEvent.clientX, startEvent.clientY);
+
+    const handleMoveAtOuterCoords = (outerX, outerY) => {
+      positionGhost(outerX, outerY);
+
+      const iframeRect = iframeEl.getBoundingClientRect();
+      if (
+        outerX < iframeRect.left ||
+        outerX > iframeRect.right ||
+        outerY < iframeRect.top ||
+        outerY > iframeRect.bottom
+      ) {
+        hideCaret();
+        return;
+      }
+      const x = outerX - iframeRect.left;
+      const y = outerY - iframeRect.top;
+
+      let range = null;
+      if (canvasDoc.caretRangeFromPoint) {
+        range = canvasDoc.caretRangeFromPoint(x, y);
+      } else if (canvasDoc.caretPositionFromPoint) {
+        const pos = canvasDoc.caretPositionFromPoint(x, y);
+        if (pos) {
+          range = canvasDoc.createRange();
+          range.setStart(pos.offsetNode, pos.offset);
+          range.collapse(true);
+        }
+      }
+
+      if (range) {
+        // Save the range whenever it points anywhere inside the iframe body —
+        // heading/paragraph blocks may not report contenteditable during
+        // drag, so a strict editable check would drop valid drop targets.
+        savedRangeRef.current = range.cloneRange();
+      }
+      showCaretAtRange(range, outerX, outerY);
+    };
+
+    // Use screenX/Y so events from either the outer document or the iframe
+    // resolve to the same outer-viewport coordinate space.
+    const outerScreenOffsetX = window.screenX;
+    const outerScreenOffsetY = window.screenY;
+    const eventToOuterViewport = (ev) => ({
+      x: ev.screenX - outerScreenOffsetX,
+      y: ev.screenY - outerScreenOffsetY
+    });
+
+    const onOuterMouseMove = (ev) => {
+      const { x, y } = eventToOuterViewport(ev);
+      handleMoveAtOuterCoords(x, y);
+    };
+    const onIframeMouseMove = (ev) => {
+      const { x, y } = eventToOuterViewport(ev);
+      handleMoveAtOuterCoords(x, y);
+    };
+
+    const cleanup = () => {
+      document.removeEventListener("mousemove", onOuterMouseMove, true);
+      document.removeEventListener("mouseup", onOuterMouseUp, true);
+      canvasDoc.removeEventListener("mousemove", onIframeMouseMove, true);
+      canvasDoc.removeEventListener("mouseup", onIframeMouseUp, true);
+      document.body.classList.remove("placeholder-dragging");
+      ghost.remove();
+      caret.remove();
+    };
+    const onOuterMouseUp = () => {
+      cleanup();
+      insertPlaceholder(value);
+      if (setShowPlaceholders) setShowPlaceholders(false);
+    };
+    const onIframeMouseUp = () => {
+      cleanup();
+      insertPlaceholder(value);
+      if (setShowPlaceholders) setShowPlaceholders(false);
+    };
+
+    document.addEventListener("mousemove", onOuterMouseMove, true);
+    document.addEventListener("mouseup", onOuterMouseUp, true);
+    canvasDoc.addEventListener("mousemove", onIframeMouseMove, true);
+    canvasDoc.addEventListener("mouseup", onIframeMouseUp, true);
   };
 
   return (
@@ -130,30 +386,24 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
           <div
             key={index}
             className="placeholderItem"
-            draggable
             onMouseDown={(e) => {
+              // preventDefault stops focus loss and prevents native HTML5 drag
+              // from initiating; the drag is handled manually below.
               e.preventDefault();
-            }}
-            onClick={() => {
-              insertPlaceholder(item.value);
-              if (setShowPlaceholders) setShowPlaceholders(false);
-            }}
-            onDragStart={(e) => {
-              e.dataTransfer.setData("text/plain", item.value);
-              e.dataTransfer.setData(
-                "text/html",
-                `<mj-text font-family="Inter" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">${item.value}</mj-text>`
-              );
-              e.dataTransfer.setData("application/x-placeholder", "true");
-            }}
-            onDragEnd={() => {
-              if (setShowPlaceholders) setShowPlaceholders(false);
+              startManualDrag(item.value, e.nativeEvent);
             }}
           >
-            <div className="iconContainer">
-              <img src={placeholderIcon} alt="placeholderIcon" />
+            <div className="iconContainer" style={{ pointerEvents: "none" }}>
+              <img
+                src={placeholderIcon}
+                alt="placeholderIcon"
+                draggable={false}
+              />
             </div>
-            <div className="placeholderTextContainer">
+            <div
+              className="placeholderTextContainer"
+              style={{ pointerEvents: "none" }}
+            >
               <p className="placeholderText">
                 {item.label} - {item.value}
               </p>

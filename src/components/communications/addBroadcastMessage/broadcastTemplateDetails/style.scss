@@ -44,17 +44,32 @@
             $jc: center
           );
           position: relative;
-          padding: 32px 52px;
+          // padding: 32px 52px;
+          width: 200px;
+          height: 200px;
           border: 1px solid variable.$color-white-10;
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.3s ease;
 
           .savedTemplateSs {
-            width: 200px;
-            height: 200px;
+            width: 92px;
+            height: 92px;
             border-radius: 8px;
             object-fit: cover;
+          }
+
+          .savedTemplateTitle {
+            color: var(--UI-Text-Secondary, #404b5a);
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 20px;
+            text-align: center;
+            margin: 0;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
 
           .templateOptionIcon {
