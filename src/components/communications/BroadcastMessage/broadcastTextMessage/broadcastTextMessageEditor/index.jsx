@@ -4,14 +4,6 @@ import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "./style.scss";
 
-import underlineIcon from "../../../../../assets/textStyleIcons/underlineIcon.svg";
-import italicIcon from "../../../../../assets/textStyleIcons/italicIcon.svg";
-import strikethroughIcon from "../../../../../assets/textStyleIcons/strikethroughIcon.svg";
-import highlightIcon from "../../../../../assets/textStyleIcons/highlightIcon.svg";
-import codeIcon from "../../../../../assets/textStyleIcons/codeIcon.svg";
-import subscriptIcon from "../../../../../assets/textStyleIcons/subscriptIcon.svg";
-import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIcon.svg";
-import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
 import ReusableLinkModal from "../../../../../reusableComponents/reusableLinkModal/index";
 import { smsSegmentInfo } from "../../../../../utils/smsSegmentInfo";
 import { htmlToSmsText } from "../../../../../utils/htmlToSmsText";
@@ -433,220 +425,25 @@ const BroadcastTextMessageEditor = ({
             }
           }
         });
-        doc.addEventListener(
-          "dragover",
-          (e) => {
-            const isPlaceholder = e.dataTransfer.types.includes(
-              "application/x-placeholder"
-            );
-            if (isPlaceholder) {
-              e.preventDefault();
-              e.stopPropagation();
-              // Show the caret at the current mouse position
-              let range;
-              if (doc.caretRangeFromPoint) {
-                range = doc.caretRangeFromPoint(e.clientX, e.clientY);
-              } else if (doc.caretPositionFromPoint) {
-                const pos = doc.caretPositionFromPoint(e.clientX, e.clientY);
-                range = doc.createRange();
-                range.setStart(pos.offsetNode, pos.offset);
-                range.collapse(true);
-              }
-
-              if (range) {
-                const sel = doc.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-              }
-            }
-          },
-          true
-        );
-
-        doc.addEventListener(
-          "drop",
-          (e) => {
-            const isPlaceholder = e.dataTransfer.getData(
-              "application/x-placeholder"
-            );
-            if (isPlaceholder) {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-
-              const text = e.dataTransfer.getData("text/plain");
-
-              // Ensure the editor is focused and the RTE is enabled on the content section
-              if (contentComp) {
-                editor.select(contentComp);
-                editor.runCommand("rte:enable", { target: contentComp });
-
-                // Small delay to ensure RTE is ready
-                setTimeout(() => {
-                  const el = contentComp.getEl();
-                  if (el) {
-                    // Move cursor to the end of the content
-                    const range = doc.createRange();
-                    range.selectNodeContents(el);
-                    range.collapse(false);
-                    const sel = doc.getSelection();
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-
-                    // Add a space if the content is not empty and doesn't end with a space
-                    const currentText = el.innerText || "";
-                    const prefix =
-                      currentText.length > 0 && !currentText.endsWith(" ")
-                        ? " "
-                        : "";
-
-                    // Insert the text at the end
-                    doc.execCommand("insertText", false, prefix + text);
-                    updateContent();
-                  }
-                }, 20);
-              }
-            }
-          },
-          true
-        );
       }
     });
 
     const rte = editor.RichTextEditor;
 
-    // Remove default actions to replace with custom ones
+    // Strip all default RTE toolbar actions \u2014 no bold/italic/link/font/color/etc.
     rte.remove("bold");
     rte.remove("italic");
     rte.remove("underline");
     rte.remove("strikethrough");
     rte.remove("link");
 
-    const customBoldIcon = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4.5 3H9C10.6569 3 12 4.34315 12 6C12 7.65685 10.6569 9 9 9H4.5V3Z" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M4.5 9H10.5C12.1569 9 13.5 10.3431 13.5 12C13.5 13.6569 12.1569 15 10.5 15H4.5V9Z" stroke="#606E80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>`;
-
-    rte.add("bold", {
-      icon: customBoldIcon,
-      attributes: { title: "Bold" },
-      result: (rteInstance) => rteInstance.exec("bold")
-    });
-
-    rte.add("italic", {
-      icon: `<img src="${italicIcon}" width="18" height="18" />`,
-      attributes: { title: "Italic" },
-      result: (rteInstance) => rteInstance.exec("italic")
-    });
-
-    rte.add("underline", {
-      icon: `<img src="${underlineIcon}" width="18" height="18" />`,
-      attributes: { title: "Underline" },
-      result: (rteInstance) => rteInstance.exec("underline")
-    });
-
-    rte.add("strikethrough", {
-      icon: `<img src="${strikethroughIcon}" width="18" height="18" />`,
-      attributes: { title: "Strikethrough" },
-      result: (rteInstance) => rteInstance.exec("strikethrough")
-    });
-
-    rte.add("superscript", {
-      icon: `<img src="${superscriptIcon}" width="18" height="18" />`,
-      attributes: { title: "Superscript" },
-      result: (rteInstance) => rteInstance.exec("superscript")
-    });
-
-    rte.add("subscript", {
-      icon: `<img src="${subscriptIcon}" width="18" height="18" />`,
-      attributes: { title: "Subscript" },
-      result: (rteInstance) => rteInstance.exec("subscript")
-    });
-
-    rte.add("highlight", {
-      icon: `<img src="${highlightIcon}" width="18" height="18" />`,
-      attributes: { title: "Highlight" },
-      result: (rteInstance) => {
-        const selection = rteInstance.selection();
-        if (selection) {
-          rteInstance.insertHTML(
-            `<span style="background-color: yellow; color: black;">${selection}</span>`
-          );
-        }
-      }
-    });
-
-    rte.add("code", {
-      icon: `<img src="${codeIcon}" width="18" height="18" />`,
-      attributes: { title: "Code Block" },
-      result: (rteInstance) => {
-        const selection = rteInstance.selection();
-        if (selection) {
-          rteInstance.insertHTML(
-            `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">${selection}</code>`
-          );
-        } else {
-          rteInstance.insertHTML(
-            `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">&nbsp;</code>`
-          );
-        }
-      }
-    });
-
-    rte.add("link", {
-      icon: `<img src="${linkIcon}" width="18" height="18" />`,
-      attributes: { title: "Link" },
-      result: (rteInstance) => {
-        const selection = rteInstance.selection();
-
-        const doc = rteInstance.el.ownerDocument;
-        const win = doc.defaultView;
-        const sel = win.getSelection();
-
-        let plainText = "";
-        if (selection) {
-          plainText =
-            typeof selection === "string"
-              ? selection.replace(/<[^>]*>/g, "")
-              : selection.toString
-                ? selection.toString()
-                : "";
-        }
-
-        const PLACEHOLDER_URL = "__GJS_LINK_PLACEHOLDER__";
-        if (sel.rangeCount > 0) {
-          const range = sel.getRangeAt(0);
-          if (range.collapsed) {
-            const placeholder = doc.createElement("a");
-            placeholder.href = PLACEHOLDER_URL;
-            placeholder.textContent = "\u200B"; // Zero-width space
-            placeholder.style.color = "#1570EF";
-            placeholder.style.textDecoration = "underline";
-            range.insertNode(placeholder);
-            range.selectNodeContents(placeholder);
-            sel.removeAllRanges();
-            sel.addRange(range);
-          } else {
-            doc.execCommand("createLink", false, PLACEHOLDER_URL);
-          }
-        }
-
-        const selectedComp = editor.getSelected();
-        currentCompRef.current = selectedComp;
-        currentRteContentRef.current = rteInstance.el.innerHTML;
-
-        setLinkModalText(plainText);
-        setLinkModalUrl("");
-        setIsLinkModalOpen(true);
-      }
-    });
-
-    // Ensure the RTE toolbar is visible when enabled; also track which component is active
+    // Track which component was last edited so insertion helpers have a target;
+    // hide the (now empty) RTE toolbar entirely.
     editor.on("rte:enable", () => {
       lastRteComp = editor.getSelected() || lastRteComp;
       const rteToolbar = editor.RichTextEditor.getToolbarEl();
       if (rteToolbar) {
-        rteToolbar.style.setProperty("display", "flex", "important");
+        rteToolbar.style.setProperty("display", "none", "important");
       }
     });
 

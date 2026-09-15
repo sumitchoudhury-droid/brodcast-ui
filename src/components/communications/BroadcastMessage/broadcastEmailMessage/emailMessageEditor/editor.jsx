@@ -3379,13 +3379,13 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("heading", {
       label: "Heading",
       category: "Content",
-      content: `<div data-placeholder="Title goes here" style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;"></div>`
+      content: `<div data-placeholder="Title goes here" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("paragraph", {
       label: "Paragraph",
       category: "Content",
-      content: `<div data-placeholder="Paragraph Text" style="padding: 10px 20px; text-align: center; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;"></div>`
+      content: `<div data-placeholder="Paragraph Text" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("image", {
@@ -3504,7 +3504,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Arial" font-size="32px" font-weight="600" color="#404B5A" align="center" line-height="42px" padding="0px" margin="0px">
+          <mj-text font-family="Arial" font-size="32px" font-weight="600" color="#404B5A" align="left" line-height="42px" padding="0px" margin="0px">
             <div data-placeholder="Title goes here"></div>
           </mj-text>
         </mj-column>
@@ -3516,7 +3516,7 @@ function registerBlocks(editor, initialTemplate) {
       category: "Content",
       content: `<mj-section full-width="full-width" padding="0px" margin="0px" width="100%">
         <mj-column padding="0px" margin="0px" width="100%">
-          <mj-text font-family="Arial" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="center" line-height="22px" padding="0px" margin="0px">
+          <mj-text font-family="Arial" font-size="16px" font-style="normal" font-weight="400" color="#404B5A" align="left" line-height="22px" padding="0px" margin="0px">
             <div data-placeholder="Paragraph Text"></div>
           </mj-text>
         </mj-column>

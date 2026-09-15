@@ -115,3 +115,12 @@
     transform: translateX(0);
   }
 }
+
+body.placeholder-dragging {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+body.placeholder-dragging * {
+  cursor: grabbing !important;
+}

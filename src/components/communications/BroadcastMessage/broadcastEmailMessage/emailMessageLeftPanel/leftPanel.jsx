@@ -25,6 +25,7 @@ import {
 } from "../../../../../api/api.jsx";
 import SkeletonLoader from "../../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 import { EmojiSection } from "./emojiSection";
+import { PlaceHolderSection } from "./placeHolderSection";
 
 const tabOptions = [
   { label: "Library", value: "library" },
@@ -378,8 +379,15 @@ export default function LeftPanel({
               item.title.toLowerCase().includes(debouncedQuery.toLowerCase())
             );
             if (filtered.length === 0) return null;
+            const hasPlaceholders = filtered.some(
+              (item) => item.id === "customPlaceholders"
+            );
             return (
-              <div className="gjs-block-category" key={category.title}>
+              <div
+                className="gjs-block-category"
+                key={category.title}
+                style={hasPlaceholders ? { position: "relative" } : undefined}
+              >
                 <div className="gjs-title">{category.title}</div>
                 <div className="gjs-blocks-c">
                   {filtered.map((item) =>
@@ -394,6 +402,12 @@ export default function LeftPanel({
                     )
                   )}
                 </div>
+                {hasPlaceholders && showPlaceholders && (
+                  <PlaceHolderSection
+                    editorRef={editorRef}
+                    setShowPlaceholders={setShowPlaceholders}
+                  />
+                )}
               </div>
             );
           })}

@@ -2,7 +2,6 @@ import "./style.scss";
 import LeftPanel from "./emailMessageLeftPanel/leftPanel";
 import Editor from "./emailMessageEditor/editor";
 import RightPanel from "./emailMessageRightPanel/rightPanel";
-import { PlaceHolderSection } from "./emailMessageLeftPanel/placeHolderSection";
 
 export const BroadcastEmailMessage = ({
   editorRef,
@@ -23,13 +22,6 @@ export const BroadcastEmailMessage = ({
           showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
         />
-
-        {showPlaceholders && (
-          <PlaceHolderSection
-            editorRef={editorRef}
-            setShowPlaceholders={setShowPlaceholders}
-          />
-        )}
       </div>
 
       <div className="editorArea">

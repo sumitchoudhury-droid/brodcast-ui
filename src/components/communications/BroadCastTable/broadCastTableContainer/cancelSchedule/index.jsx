@@ -546,7 +546,9 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
             variant="secondary"
             disabled={
               isCancelling ||
-              (selectedOccurrence === "specific" && dateFilter.length === 0)
+              (selectedOccurrence === "specific" && dateFilter.length === 0) ||
+              (modesList.length > 0 &&
+                !Object.values(selectedModes).some(Boolean))
             }
             onClick={() => {
               const activeModes = Object.keys(selectedModes).filter(
