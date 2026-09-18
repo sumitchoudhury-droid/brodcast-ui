@@ -136,7 +136,6 @@ export default function Footer({
   };
 
   const handleSaveTemplate = () => {
-    if (!validateMailSubject()) return;
     setTemplateName(newTemplateName || "");
     setIsModalOpen(true);
   };
@@ -270,7 +269,6 @@ export default function Footer({
   });
 
   const handleSaveBranch = () => {
-    if (!validateMailSubject()) return;
     if (!selectedTemplateData?.id) return;
 
     const rawMailBody =
