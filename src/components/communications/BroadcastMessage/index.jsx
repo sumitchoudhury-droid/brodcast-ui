@@ -25,6 +25,11 @@ import {
 
 function BroadcastMessageInner({ handleCancel }) {
   const [currentStep, setCurrentStep] = useState("setup");
+  // Once the user has entered the editor, keep it mounted for the rest of the
+  // session so its internal state (GrapesJS instance, text editor content,
+  // attachments, etc.) survives Back → Next cycles. We just toggle visibility
+  // with CSS instead of unmounting.
+  const [hasEnteredEditor, setHasEnteredEditor] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
   const [mountedModes, setMountedModes] = useState(() => new Set());
   const {
@@ -151,8 +156,9 @@ function BroadcastMessageInner({ handleCancel }) {
 
   return (
     <>
-      {currentStep === "editor" ? (
+      {hasEnteredEditor && (
         <div
+          style={{ display: currentStep === "editor" ? undefined : "none" }}
           className={`broadcastMessageContainer ${selectedModes.length > 1 ? "multiple" : ""}`}
         >
           {/* Header */}
@@ -207,19 +213,25 @@ function BroadcastMessageInner({ handleCancel }) {
             />
           </div>
         </div>
-      ) : (
+      )}
+      <div style={{ display: currentStep === "setup" ? undefined : "none" }}>
         <AddBroadcastMessage
           onNext={(templateData) => {
             if (templateData) {
               setSelectedTemplateData(templateData);
             }
             setCurrentStep("editor");
-            setActiveTab(selectedModes[0]);
-            setMountedModes(new Set([selectedModes[0]]));
+            setHasEnteredEditor(true);
+            // Preserve activeTab / mountedModes from a previous editor session
+            // so the user's in-progress work stays selected on re-entry.
+            setActiveTab((prev) => prev ?? selectedModes[0]);
+            setMountedModes((prev) =>
+              prev.size > 0 ? prev : new Set([selectedModes[0]])
+            );
           }}
           handleCancel={handleCancel}
         />
-      )}
+      </div>
     </>
   );
 }
