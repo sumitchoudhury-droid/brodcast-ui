@@ -33,8 +33,10 @@ export default function ReusableDateRangePicker({
   const [rightMonth, setRightMonth] = useState(
     addMonths(startOfMonth(new Date()), 1)
   );
-  const [startDate, setStartDate] = useState(initialStartDate);
-  const [endDate, setEndDate] = useState(initialEndDate);
+  const [startDate, setStartDate] = useState(
+    () => initialStartDate ?? new Date()
+  );
+  const [endDate, setEndDate] = useState(() => initialEndDate ?? new Date());
   const [hoverDate, setHoverDate] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [showLeftYearPicker, setShowLeftYearPicker] = useState(false);
