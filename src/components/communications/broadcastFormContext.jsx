@@ -70,6 +70,7 @@ const FIELD_ACTIONS = {
   modality: broadcastFormActions.setModality,
   includeOptOut: broadcastFormActions.setIncludeOptOut,
   patientsFoundForType: broadcastFormActions.setPatientsFoundForType,
+  totalPatientsFound: broadcastFormActions.setTotalPatientsFound,
   selectedTemplateType: broadcastFormActions.setSelectedTemplateType,
   existingTemplateValues: broadcastFormActions.setExistingTemplateValues,
   newTemplateName: broadcastFormActions.setNewTemplateName,

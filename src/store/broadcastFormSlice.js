@@ -45,6 +45,7 @@ const initialState = {
   modality: "",
   includeOptOut: false,
   patientsFoundForType: null,
+  totalPatientsFound: 0,
 
   selectedTemplateType: "newTemplate",
   existingTemplateValues: "",
@@ -115,6 +116,7 @@ const broadcastFormSlice = createSlice({
     setModality: makeSetter("modality"),
     setIncludeOptOut: makeSetter("includeOptOut"),
     setPatientsFoundForType: makeSetter("patientsFoundForType"),
+    setTotalPatientsFound: makeSetter("totalPatientsFound"),
     setSelectedTemplateType: makeSetter("selectedTemplateType"),
     setExistingTemplateValues: makeSetter("existingTemplateValues"),
     setNewTemplateName: makeSetter("newTemplateName"),

@@ -84,7 +84,8 @@ export default function Footer({
     gender,
     modality,
     uploadedFile,
-    setMailSubjectError
+    setMailSubjectError,
+    totalPatientsFound
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
@@ -103,9 +104,8 @@ export default function Footer({
     mutate: sendCustomRecipientsBroadcast,
     isPending: isSendingCustomRecipients
   } = usePost(ENDPOINTS.broadcastSchedule.CUSTOM_RECIPIENTS_UPLOAD);
-  const { mutate: saveTemplateConfig } = usePost(
-    ENDPOINTS.broadcastConfig.TEMPLATE_CONFIGURATIONS
-  );
+  const { mutate: saveTemplateConfig, isPending: isSavingTemplateConfig } =
+    usePost(ENDPOINTS.broadcastConfig.TEMPLATE_CONFIGURATIONS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Added state for second modal
   const [templateName, setTemplateName] = useState("");
@@ -113,6 +113,17 @@ export default function Footer({
   const [isFilterExpanded, setIsFilterExpanded] = useState(false); // Added for collapsible section
 
   const isMailMode = selectedModes.some((m) => m?.toLowerCase() === "mail");
+
+  const isBroadcastInFlight =
+    isSending ||
+    isSendingCustomRecipients ||
+    isSaving ||
+    isSavingEnterprise ||
+    isBranching ||
+    isSavingTemplateConfig;
+
+  const isSaveTemplateInFlight =
+    isSaving || isSavingEnterprise || isSavingTemplateConfig;
 
   const validateMailSubject = () => {
     if (!isMailMode) return true;
@@ -794,7 +805,8 @@ export default function Footer({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title="Save as New"
-        confirmText={isSaving || isSavingEnterprise ? "Saving…" : "Save"}
+        confirmText={isSaveTemplateInFlight ? "Saving…" : "Save"}
+        confirmDisabled={isSaveTemplateInFlight}
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"
@@ -825,12 +837,8 @@ export default function Footer({
         isOpen={isConfirmModalOpen}
         onClose={handleCancelBroadcast}
         title={getModalTitle()}
-        confirmText={
-          isSending || isSendingCustomRecipients
-            ? "Scheduling…"
-            : "Confirm & Schedule"
-        }
-        confirmDisabled={isSending || isSendingCustomRecipients}
+        confirmText={isBroadcastInFlight ? "Scheduling…" : "Confirm & Schedule"}
+        confirmDisabled={isBroadcastInFlight}
         cancelText="Back to Editing"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"
@@ -879,7 +887,7 @@ export default function Footer({
                   <div className="filterSection">
                     <p className="filterLabel">Total Patients</p>
                     <div className="filterValue">
-                      <p>—</p>
+                      <p>{totalPatientsFound || "0"}</p>
                       {/* <img
                       src={externalLinkIcon}
                       alt="External link icon"

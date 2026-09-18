@@ -2751,7 +2751,7 @@ export default function RightPanel({ editorRef, isEditorEmpty }) {
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"
-        confirmBtnDisabled={
+        confirmDisabled={
           hasEmptyBroadcastEditor ||
           !testEmail ||
           isSavingTemplate ||

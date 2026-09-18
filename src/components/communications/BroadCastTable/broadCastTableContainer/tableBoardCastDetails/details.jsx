@@ -168,10 +168,9 @@ export default function Details({ broadcastData }) {
 
   const { colorClass, iconSrc } = getBadgeDetails(broadcastStatus);
 
-  // Schedule type comes from sendType (Immediately / NotifyLater / Recurring).
   const sendTypeLabelMap = {
     Immediately: "Immediately",
-    NotifyLater: "Scheduled",
+    NotifyLater: "Notify Later",
     Recurring: "Recurring"
   };
   const isRecurring = sendType === "Recurring";
@@ -182,7 +181,7 @@ export default function Details({ broadcastData }) {
     if (lowerStatus.includes("daily")) return "Everyday";
     if (lowerStatus.includes("weekly")) return "Every Monday";
     if (lowerStatus.includes("monthly")) return "First Monday of the Month";
-    return "Every Monday, Wednesday, and Friday"; // default
+    return "Every Monday, Wednesday, and Friday";
   };
 
   const repeatText = getRepeatText(broadcastStatus);

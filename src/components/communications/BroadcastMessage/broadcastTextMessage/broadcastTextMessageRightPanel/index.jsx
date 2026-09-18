@@ -290,7 +290,7 @@ export default function BroadcastTextMessageRightPanel({
         cancelText="Cancel"
         confirmBtnVariant="primary"
         cancelBtnVariant="secondary"
-        confirmBtnDisabled={
+        confirmDisabled={
           hasEmptyBroadcastEditor ||
           !phoneNumber ||
           isSavingTemplate ||

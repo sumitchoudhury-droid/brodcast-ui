@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { useBroadcastForm } from "../../broadcastFormContext";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
@@ -149,7 +149,8 @@ function BroadcastPatientDetails({
     setIncludeOptOut,
     patientsFoundForType,
     setPatientsFoundForType,
-    uploadedFile
+    uploadedFile,
+    setTotalPatientsFound
   } = useBroadcastForm();
 
   const { data: patientTypesData } = useGet(
@@ -189,6 +190,15 @@ function BroadcastPatientDetails({
   const uploadTotalCount = uploadedPatients.length;
   const uploadErrorCount = uploadedPatients.filter(isError).length;
   const uploadEligibleCount = uploadTotalCount - uploadErrorCount;
+
+  const totalPatientsCount = useMemo(() => {
+    if (patientType === "uploadFile") return uploadTotalCount;
+    return searchTotalCount;
+  }, [patientType, searchTotalCount, uploadTotalCount]);
+
+  useEffect(() => {
+    setTotalPatientsFound(totalPatientsCount);
+  }, [totalPatientsCount, setTotalPatientsFound]);
 
   const handlePatientTypeChange = (newType) => {
     setPatientType(newType);
