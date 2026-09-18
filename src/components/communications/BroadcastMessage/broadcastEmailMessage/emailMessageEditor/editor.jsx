@@ -972,6 +972,23 @@ export default function Editor({
                   opacity: 1;
                 }
 
+                /* Allow native text selection inside text-editable blocks so
+                   trackpad click-drag selects text instead of starting a
+                   component drag. The user-select override defeats the
+                   GrapesJS-wide 'user-select: none' that ships with grapes.min.css. */
+                [data-gjs-type="mj-text"],
+                [data-gjs-type="mj-text"] *,
+                [data-gjs-type="mj-button"],
+                [data-gjs-type="mj-button"] *,
+                [data-placeholder],
+                [data-placeholder] * {
+                  -webkit-user-select: text !important;
+                  -moz-user-select: text !important;
+                  -ms-user-select: text !important;
+                  user-select: text !important;
+                  cursor: text !important;
+                }
+
                 /* Override GrapesJS default empty component placeholder (black box with </> icon) */
                 [data-gjs-type="mj-image"].gjs-no-app {
                   background-image: none !important;
@@ -2838,6 +2855,108 @@ export default function Editor({
         if (!src) {
           imageInputRef.current?.click();
         }
+      }
+    });
+
+    // ── Text-selection fix for mj-text / mj-button ────────────────────────────
+    // Without this, click-dragging over text starts a GrapesJS component drag
+    // (because the model has draggable:true) which preempts native browser
+    // text selection. We:
+    //   1. Force `draggable:false` on a text component the moment it becomes
+    //      selected, so the Sorter cannot pick up subsequent mousedown/move.
+    //      Restore the previous draggable state on deselect so users can still
+    //      re-order the block via its parent section drag handle.
+    //   2. Programmatically enable RTE on selection so the component enters
+    //      contenteditable mode without needing an explicit double-click —
+    //      trackpad users can then immediately drag to select, then copy/cut.
+    const restoreDraggableFor = (comp) => {
+      try {
+        const type = comp.get("type");
+        const inFrame =
+          COLUMN_VALID_CHILDREN.includes(type) && isInsideFrame(comp);
+        const isSignature =
+          comp.getAttributes?.()?.["data-type"] === "signature-section";
+        comp.set("draggable", !inFrame && !isSignature);
+      } catch {
+        /* ignore destroyed components */
+      }
+    };
+
+    const isTextEditableComp = (c) => {
+      if (!c) return false;
+      if (c.is?.("mj-text") || c.is?.("mj-button")) return true;
+      // HTML-template mode drops heading/paragraph as a plain <div
+      // data-placeholder="..."> — those need the same drag-free treatment
+      // so trackpad click-drag can select the typed text.
+      const attrs = c.getAttributes?.() || {};
+      return !!attrs["data-placeholder"];
+    };
+
+    const activateRteFor = (comp) => {
+      try {
+        const view = comp.getView?.();
+        if (!view) return;
+        // Skip if RTE is already active for this view.
+        if (view.activeRte || view.rteActive) return;
+        // Prefer the built-in onActive() hook exposed by MJML text/button
+        // views (subclass of GrapesJS TextView). Fallback to dispatching a
+        // synthetic double-click on the content element, which is what
+        // GrapesJS listens for by default.
+        if (typeof view.onActive === "function") {
+          view.onActive();
+          return;
+        }
+        const el = view.getChildrenContainer?.() || view.el;
+        if (el) {
+          const dblEvt = new MouseEvent("dblclick", {
+            bubbles: true,
+            cancelable: true,
+            view: el.ownerDocument?.defaultView || window
+          });
+          el.dispatchEvent(dblEvt);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    editor.on("component:selected", (cmp) => {
+      if (!isTextEditableComp(cmp)) return;
+      // Freeze drag so a trackpad click-drag over the text becomes a text
+      // selection instead of a component drag.
+      try {
+        cmp.set("draggable", false);
+      } catch {
+        /* ignore */
+      }
+      // Defer RTE activation to next tick so the view is finished rendering
+      // and GrapesJS has attached its own mouse handlers. Without this, the
+      // synthetic dblclick fires before the listeners exist and is dropped.
+      setTimeout(() => activateRteFor(cmp), 0);
+    });
+
+    editor.on("component:deselected", (cmp) => {
+      if (!isTextEditableComp(cmp)) return;
+      restoreDraggableFor(cmp);
+    });
+
+    // Some GrapesJS builds emit rte:enable/rte:disable — use them as a
+    // second line of defense. `view` here is the ComponentView.
+    editor.on("rte:enable", (view) => {
+      try {
+        const comp = view?.model;
+        if (comp) comp.set("draggable", false);
+      } catch {
+        /* ignore */
+      }
+    });
+
+    editor.on("rte:disable", (view) => {
+      try {
+        const comp = view?.model;
+        if (comp) restoreDraggableFor(comp);
+      } catch {
+        /* ignore */
       }
     });
 

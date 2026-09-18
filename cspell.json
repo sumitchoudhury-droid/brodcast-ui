@@ -65,7 +65,8 @@
     "imgfile",
     "xlsfile",
     "defval",
-    "ETSI"
+    "ETSI",
+    "trackpad"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }
