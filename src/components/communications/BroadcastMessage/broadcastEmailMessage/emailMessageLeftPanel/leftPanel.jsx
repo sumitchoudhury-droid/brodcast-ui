@@ -134,6 +134,21 @@ export default function LeftPanel({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Close the placeholder popup when the user clicks anywhere outside it.
+  // The toggle block (customPlaceholders) is excluded so its own click keeps
+  // owning the open/close toggle behavior; clicks inside the popup itself are
+  // also excluded so interactions there don't dismiss it.
+  useEffect(() => {
+    if (!showPlaceholders) return;
+    const handleClickOutside = (e) => {
+      if (e.target.closest(".placeholderSection")) return;
+      if (e.target.closest('[data-block-id="customPlaceholders"]')) return;
+      setShowPlaceholders(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showPlaceholders, setShowPlaceholders]);
+
   const handleDragStart = (blockId) => (e) => {
     e.dataTransfer.setData("text/plain", blockId);
 
@@ -305,6 +320,7 @@ export default function LeftPanel({
     <div
       key={blockId + title}
       className={`customBlock ${blockId === "customPlaceholders" && showPlaceholders ? "active" : ""}`}
+      data-block-id={blockId}
       draggable={isDraggable}
       onDragStart={isDraggable ? handleDragStart(blockId) : undefined}
       onDragEnd={isDraggable ? handleDragEnd : undefined}
