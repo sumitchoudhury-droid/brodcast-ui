@@ -209,6 +209,15 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
 
     document.body.classList.add("placeholder-dragging");
 
+    // Disable iframe pointer events during the drag so every mouse event flows
+    // to the outer document. This gives us one coordinate system (outer
+    // viewport CSS pixels via clientX/Y) that stays consistent at any browser
+    // zoom, monitor size, or left-panel width — no cross-frame translation and
+    // no screenX/window.screenX subtraction (which is in screen-CSS pixels and
+    // drifts under page zoom).
+    const prevIframePointerEvents = iframeEl.style.pointerEvents;
+    iframeEl.style.pointerEvents = "none";
+
     // Ghost chip that follows the mouse.
     const ghost = document.createElement("div");
     ghost.textContent = value;
@@ -323,48 +332,26 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
       showCaretAtRange(range, outerX, outerY);
     };
 
-    // Use screenX/Y so events from either the outer document or the iframe
-    // resolve to the same outer-viewport coordinate space.
-    const outerScreenOffsetX = window.screenX;
-    const outerScreenOffsetY = window.screenY;
-    const eventToOuterViewport = (ev) => ({
-      x: ev.screenX - outerScreenOffsetX,
-      y: ev.screenY - outerScreenOffsetY
-    });
-
-    const onOuterMouseMove = (ev) => {
-      const { x, y } = eventToOuterViewport(ev);
-      handleMoveAtOuterCoords(x, y);
-    };
-    const onIframeMouseMove = (ev) => {
-      const { x, y } = eventToOuterViewport(ev);
-      handleMoveAtOuterCoords(x, y);
+    const onMouseMove = (ev) => {
+      handleMoveAtOuterCoords(ev.clientX, ev.clientY);
     };
 
     const cleanup = () => {
-      document.removeEventListener("mousemove", onOuterMouseMove, true);
-      document.removeEventListener("mouseup", onOuterMouseUp, true);
-      canvasDoc.removeEventListener("mousemove", onIframeMouseMove, true);
-      canvasDoc.removeEventListener("mouseup", onIframeMouseUp, true);
+      document.removeEventListener("mousemove", onMouseMove, true);
+      document.removeEventListener("mouseup", onMouseUp, true);
+      iframeEl.style.pointerEvents = prevIframePointerEvents;
       document.body.classList.remove("placeholder-dragging");
       ghost.remove();
       caret.remove();
     };
-    const onOuterMouseUp = () => {
-      cleanup();
-      insertPlaceholder(value);
-      if (setShowPlaceholders) setShowPlaceholders(false);
-    };
-    const onIframeMouseUp = () => {
+    const onMouseUp = () => {
       cleanup();
       insertPlaceholder(value);
       if (setShowPlaceholders) setShowPlaceholders(false);
     };
 
-    document.addEventListener("mousemove", onOuterMouseMove, true);
-    document.addEventListener("mouseup", onOuterMouseUp, true);
-    canvasDoc.addEventListener("mousemove", onIframeMouseMove, true);
-    canvasDoc.addEventListener("mouseup", onIframeMouseUp, true);
+    document.addEventListener("mousemove", onMouseMove, true);
+    document.addEventListener("mouseup", onMouseUp, true);
   };
 
   return (

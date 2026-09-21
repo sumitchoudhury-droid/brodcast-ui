@@ -180,6 +180,15 @@ function BroadcastTextMessageLeftPanel({ editorInstance }) {
 
     document.body.classList.add("placeholder-dragging");
 
+    // Disable iframe pointer events during the drag so every mouse event flows
+    // to the outer document. This gives us one coordinate system (outer
+    // viewport CSS pixels via clientX/Y) that stays consistent at any browser
+    // zoom, monitor size, or left-panel width — no cross-frame translation and
+    // no screenX/window.screenX subtraction (which is in screen-CSS pixels and
+    // drifts under page zoom).
+    const prevIframePointerEvents = iframeEl.style.pointerEvents;
+    iframeEl.style.pointerEvents = "none";
+
     // Ghost chip that follows the mouse.
     const ghost = document.createElement("div");
     ghost.textContent = value;
@@ -308,35 +317,14 @@ function BroadcastTextMessageLeftPanel({ editorInstance }) {
       showCaretAtRange(range, outerX, outerY);
     };
 
-    // We use screenX/Y to compute a consistent offset regardless of which
-    // document dispatched the event. screenX/Y measures from the screen
-    // origin, and window.screenX/Y gives the window's screen origin, so
-    // (event.screenX - window.screenX) is the outer-viewport client X.
-    const outerScreenOffsetX = window.screenX;
-    const outerScreenOffsetY = window.screenY;
-
-    // Convert any event (from outer doc or iframe doc) to outer viewport
-    // coordinates via screen coords — bypasses cross-frame client coord quirks.
-    const eventToOuterViewport = (ev) => ({
-      x: ev.screenX - outerScreenOffsetX,
-      y: ev.screenY - outerScreenOffsetY
-    });
-
-    const onOuterMouseMove = (ev) => {
-      const { x, y } = eventToOuterViewport(ev);
-      handleMoveAtOuterCoords(x, y);
-    };
-
-    const onIframeMouseMove = (ev) => {
-      const { x, y } = eventToOuterViewport(ev);
-      handleMoveAtOuterCoords(x, y);
+    const onMouseMove = (ev) => {
+      handleMoveAtOuterCoords(ev.clientX, ev.clientY);
     };
 
     const cleanup = () => {
-      document.removeEventListener("mousemove", onOuterMouseMove, true);
+      document.removeEventListener("mousemove", onMouseMove, true);
       document.removeEventListener("mouseup", onMouseUp, true);
-      canvasDoc.removeEventListener("mousemove", onIframeMouseMove, true);
-      canvasDoc.removeEventListener("mouseup", onIframeMouseUp, true);
+      iframeEl.style.pointerEvents = prevIframePointerEvents;
       document.body.classList.remove("placeholder-dragging");
       ghost.remove();
       caret.remove();
@@ -346,15 +334,9 @@ function BroadcastTextMessageLeftPanel({ editorInstance }) {
       cleanup();
       insertPlaceholder(value);
     };
-    const onIframeMouseUp = () => {
-      cleanup();
-      insertPlaceholder(value);
-    };
 
-    document.addEventListener("mousemove", onOuterMouseMove, true);
+    document.addEventListener("mousemove", onMouseMove, true);
     document.addEventListener("mouseup", onMouseUp, true);
-    canvasDoc.addEventListener("mousemove", onIframeMouseMove, true);
-    canvasDoc.addEventListener("mouseup", onIframeMouseUp, true);
   };
 
   return (
