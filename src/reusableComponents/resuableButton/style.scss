@@ -36,9 +36,9 @@
   border-radius: 8px;
   border: 1px solid variable.$primary-color;
 
-  &:disabled {
-    border-color: transparent;
-  }
+  // &:disabled {
+  //   border-color: transparent;
+  // }
 }
 
 .reusable-btn--secondary {

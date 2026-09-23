@@ -436,7 +436,13 @@ function TargetRecipients({
           label={isSearching ? "Searching…" : "Search"}
           variant="primary"
           onClick={handleSearch}
-          disabled={isSearching}
+          disabled={
+            isSearching ||
+            !(Array.isArray(startDateTime)
+              ? startDateTime.length > 0
+              : !!startDateTime) ||
+            !endDateTime
+          }
         />
       </div>
 
