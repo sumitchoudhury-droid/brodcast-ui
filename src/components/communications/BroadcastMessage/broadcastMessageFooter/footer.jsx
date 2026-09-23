@@ -958,7 +958,13 @@ export default function Footer({
                     <div className="filterValue">
                       <p>
                         {patientStartDateTime
-                          ? new Date(patientStartDateTime).toLocaleString()
+                          ? new Date(patientStartDateTime).toLocaleString([], {
+                              year: "numeric",
+                              month: "numeric",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit"
+                            })
                           : "—"}
                       </p>
                     </div>
@@ -970,7 +976,13 @@ export default function Footer({
                     <div className="filterValue">
                       <p>
                         {patientEndDateTime
-                          ? new Date(patientEndDateTime).toLocaleString()
+                          ? new Date(patientEndDateTime).toLocaleString([], {
+                              year: "numeric",
+                              month: "numeric",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit"
+                            })
                           : "—"}
                       </p>
                     </div>

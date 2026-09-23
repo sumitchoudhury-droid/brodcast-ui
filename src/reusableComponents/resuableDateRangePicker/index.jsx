@@ -4,6 +4,7 @@ import {
   addMonths,
   subMonths,
   startOfMonth,
+  endOfMonth,
   startOfWeek,
   isSameMonth,
   isSameDay,
@@ -102,7 +103,7 @@ export default function ReusableDateRangePicker({
       label: "Current Month",
       getDates: () => {
         const today = new Date();
-        return { start: startOfMonth(today), end: today };
+        return { start: startOfMonth(today), end: endOfMonth(today) };
       }
     },
     {

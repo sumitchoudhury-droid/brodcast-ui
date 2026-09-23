@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import ReusableDateTime from "../../../../reusableComponents/reusableDate&TimePicker/index";
 import { usePost } from "../../../../hooks/usePost";
@@ -21,6 +22,13 @@ function OneTimeBroadcast({
   const { mutate: searchPatients, isPending: isSearching } = usePost(
     ENDPOINTS.patients.SEARCH
   );
+
+  useEffect(() => {
+    if (!endDateTime) {
+      setEndDateTime(new Date());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = () => {
     if (!startDateTime || !endDateTime) return;
