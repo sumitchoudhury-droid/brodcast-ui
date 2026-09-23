@@ -84,6 +84,13 @@ const emptyFilters = {
 
 const cleanExportVal = (v) => (v == null || v === "-" ? "" : v);
 
+const buildErrorMessage = (phone, email) => {
+  const errors = [];
+  if (isPhoneInvalid(phone)) errors.push("Invalid Mobile Number");
+  if (isEmailInvalid(email)) errors.push("Invalid Email Address");
+  return errors.join(", ");
+};
+
 const exportToExcel = (patients, fileName) => {
   const rows = patients.map(
     ({ firstName, lastName, dob, phone, email, balanceAmount }) => ({
@@ -95,7 +102,8 @@ const exportToExcel = (patients, fileName) => {
       "Balance Amount ($)":
         balanceAmount === null || balanceAmount === undefined
           ? ""
-          : balanceAmount
+          : balanceAmount,
+      Error: buildErrorMessage(phone, email)
     })
   );
   const ws = XLSX.utils.json_to_sheet(rows);
