@@ -212,6 +212,13 @@ function TargetRecipients({
 
   const [showOptOutModal, setShowOptOutModal] = useState(false);
 
+  useEffect(() => {
+    if (!endDateTime) {
+      setEndDateTime(new Date());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleToggleOptOut = (val) => {
     if (val) {
       setShowOptOutModal(true);
