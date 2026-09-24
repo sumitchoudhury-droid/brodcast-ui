@@ -56,6 +56,11 @@ export default function ReusableDateRangePicker({
   if (initialStartDate !== prevStart) {
     setStartDate(initialStartDate);
     setPrevStart(initialStartDate);
+    const baseMonth = startOfMonth(initialStartDate ?? new Date());
+    setLeftMonth(baseMonth);
+    setRightMonth(addMonths(baseMonth, 1));
+    setShowLeftYearPicker(false);
+    setShowRightYearPicker(false);
   }
   if (initialEndDate !== prevEnd) {
     setEndDate(initialEndDate);
