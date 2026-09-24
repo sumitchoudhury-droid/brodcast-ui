@@ -105,6 +105,28 @@ function ResuablePagination({
     }
   };
 
+  const handlePageClick = (page, index) => {
+    if (page === "...") {
+      const nextItem = pageNumbers[index + 1];
+      const prevItem = pageNumbers[index - 1];
+      const isRightEllipsis =
+        typeof nextItem === "number" && nextItem > currentPage;
+      if (isRightEllipsis) {
+        const lastVisible =
+          typeof prevItem === "number" ? prevItem : currentPage;
+        onPageChange(Math.min(totalPages, lastVisible + 1));
+      } else {
+        const firstVisible =
+          typeof nextItem === "number" ? nextItem : currentPage;
+        onPageChange(Math.max(1, firstVisible - 1));
+      }
+      return;
+    }
+    if (typeof page === "number") {
+      onPageChange(page);
+    }
+  };
+
   return (
     <div className="reusable-pagination-container">
       <div className="pagination-left">
@@ -172,7 +194,7 @@ function ResuablePagination({
               className={`page-number ${page === currentPage ? "active" : ""} ${
                 page === "..." ? "dots" : ""
               }`}
-              onClick={() => typeof page === "number" && onPageChange(page)}
+              onClick={() => handlePageClick(page, index)}
             >
               {page}
             </div>
