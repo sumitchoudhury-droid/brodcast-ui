@@ -429,6 +429,8 @@ function BroadcastPatientDetails({
       <UploadFileViewList
         isOpen={showUploadViewList}
         onClose={() => setShowUploadViewList(false)}
+        patients={uploadedPatients}
+        onPatientsChange={setUploadedPatients}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
 import * as XLSX from "xlsx";
 import "./style.scss";
@@ -7,14 +7,12 @@ import { ReusableCheckbox } from "../../../../../reusableComponents/reusableChec
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
 import ResuablePagination from "../../../../../reusableComponents/resuablePagination/index.jsx";
 import { useToast } from "../../../../../hooks/useToast";
-import { useBroadcastForm } from "../../../broadcastFormContext";
 import {
   computeReason,
   isError,
   isPhoneInvalid,
   isEmailInvalid,
-  formatPhone,
-  parseUploadedFileToPatients
+  formatPhone
 } from "../uploadFileUtils";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 import circleCross from "../../../../../assets/commonIcons/circleCross.svg";
@@ -112,24 +110,18 @@ const exportToExcel = (patients, fileName) => {
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 };
 
-const UploadFileViewList = ({ isOpen, onClose }) => {
+const UploadFileViewList = ({
+  isOpen,
+  onClose,
+  patients,
+  onPatientsChange
+}) => {
   const toast = useToast();
-  const { uploadedFile } = useBroadcastForm();
-  const [patients, setPatients] = useState([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    parseUploadedFileToPatients(uploadedFile)
-      .then((rows) => {
-        if (!cancelled) setPatients(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setPatients([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [uploadedFile]);
+  const setPatients = (updater) => {
+    onPatientsChange(
+      typeof updater === "function" ? updater(patients) : updater
+    );
+  };
   const [editPatients, setEditPatients] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAddingRow, setIsAddingRow] = useState(false);
@@ -202,6 +194,18 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    const deletedCount = selectedIds.size;
+    setPatients((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+    setSelectedIds(new Set());
+    setCurrentPage(1);
+    toast.success(
+      "Patients Deleted",
+      `${deletedCount} ${deletedCount === 1 ? "patient has" : "patients have"} been removed from the list.`
+    );
   };
 
   const handleSelectAll = (list) => {
@@ -366,6 +370,7 @@ const UploadFileViewList = ({ isOpen, onClose }) => {
                   label="Delete"
                   variant="primary"
                   deleteImage={true}
+                  onClick={handleDeleteSelected}
                 />
                 <ReusableButton
                   label="Export"
