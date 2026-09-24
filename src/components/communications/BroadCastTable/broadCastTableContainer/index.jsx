@@ -1142,18 +1142,22 @@ function BroadCastTableContainer({
                 {row.getVisibleCells().map((cell) => {
                   const isInteractiveColumn =
                     cell.column.id === "select" || cell.column.id === "actions";
+                  const isCancelledNonClickableCol =
+                    (cell.column.id === "messageStatus" ||
+                      cell.column.id === "broadcastStatus") &&
+                    row.original.broadcastStatus === "Cancelled";
+                  const isClickable =
+                    !isInteractiveColumn && !isCancelledNonClickableCol;
                   return (
                     <td
                       key={cell.id}
                       className={`col-${cell.column.id}`}
                       onClick={
-                        !isInteractiveColumn
+                        isClickable
                           ? () => setSelectedDetailsRow(row.original)
                           : undefined
                       }
-                      style={
-                        !isInteractiveColumn ? { cursor: "pointer" } : undefined
-                      }
+                      style={isClickable ? { cursor: "pointer" } : undefined}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
