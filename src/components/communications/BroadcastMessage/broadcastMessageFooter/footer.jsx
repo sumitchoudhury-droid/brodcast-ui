@@ -129,6 +129,7 @@ export default function Footer({
     if (!isMailMode) return true;
     if (!mailSubject || !mailSubject.trim()) {
       setMailSubjectError(true);
+      toast.error("Please enter Email Subject to continue");
       return false;
     }
     setMailSubjectError(false);
