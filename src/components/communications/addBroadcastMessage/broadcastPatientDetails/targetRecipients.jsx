@@ -9,6 +9,7 @@ import { ReusableMultiSelectDropdown } from "../../../../reusableComponents/reus
 import ReusableModal from "../../../../reusableComponents/reusableModal";
 import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
 import { usePost } from "../../../../hooks/usePost";
+import { useToast } from "../../../../hooks/useToast";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import { useBroadcastForm } from "../../broadcastFormContext";
@@ -147,6 +148,7 @@ function TargetRecipients({
     ? "Recall End Date"
     : "Appointment End Date / Time";
 
+  const toast = useToast();
   const { mutate: searchPatients, isPending: isSearching } = usePost(
     ENDPOINTS.patients.SEARCH
   );
@@ -234,7 +236,7 @@ function TargetRecipients({
 
   const handleSearch = () => {
     if (ageFilter && !ageYear && !ageMonth) {
-      setAgeError("Enter Patient Age");
+      setAgeError("Enter patient age");
       return;
     }
     const hasStartDateTime = Array.isArray(startDateTime)
@@ -268,6 +270,9 @@ function TargetRecipients({
       onSuccess: (res) => {
         const patients = res?.data?.patients ?? [];
         const totalCount = res?.data?.totalCount ?? 0;
+        if (totalCount === 0) {
+          toast.error("No patient record found");
+        }
         onSearch(patients, totalCount);
       }
     });
@@ -345,7 +350,7 @@ function TargetRecipients({
                 onChange={(val) => {
                   setAgeFilter(val);
                   setAgeError(
-                    val && !ageYear && !ageMonth ? "Enter Patient Age" : ""
+                    val && !ageYear && !ageMonth ? "Enter patient age" : ""
                   );
                 }}
               />

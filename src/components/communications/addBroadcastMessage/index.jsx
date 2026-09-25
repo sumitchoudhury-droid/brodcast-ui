@@ -214,7 +214,7 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
               !ageYear &&
               !ageMonth
             ) {
-              setAgeError("Enter Patient Age");
+              setAgeError("Enter patient age");
               return;
             }
             let finalTemplateData = selectedTemplateData;
