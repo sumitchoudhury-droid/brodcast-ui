@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 
 export const PHONE_REGEX = /^\+?\d{10,13}$/;
+export const NAME_REGEX = /^[A-Za-z][A-Za-z\s'.-]*$/;
 
 export const isPhoneInvalid = (phone) => {
   if (!phone || phone === "-") return true;
@@ -13,29 +14,40 @@ export const isEmailInvalid = (email) => {
   return !email.includes("@") || !email.includes(".");
 };
 
+export const isNameInvalid = (name) => {
+  if (!name || name === "-") return true;
+  const trimmed = String(name).trim();
+  if (!trimmed) return true;
+  return !NAME_REGEX.test(trimmed);
+};
+
+export const isDobInvalid = (dob) => {
+  if (!dob || dob === "-") return true;
+  const str = String(dob).trim();
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(str);
+  if (!match) return true;
+  const [, mm, dd, yyyy] = match;
+  const month = Number(mm);
+  const day = Number(dd);
+  const year = Number(yyyy);
+  if (month < 1 || month > 12) return true;
+  if (year < 1900 || year > new Date().getFullYear()) return true;
+  const d = new Date(year, month - 1, day);
+  return (
+    d.getFullYear() !== year ||
+    d.getMonth() !== month - 1 ||
+    d.getDate() !== day
+  );
+};
+
 export const computeReason = (patient) => {
-  const missing = [];
-  if (
-    !patient.firstName ||
-    !String(patient.firstName).trim() ||
-    patient.firstName === "-"
-  )
-    missing.push("First Name");
-  if (
-    !patient.lastName ||
-    !String(patient.lastName).trim() ||
-    patient.lastName === "-"
-  )
-    missing.push("Last Name");
-  if (
-    !patient.dob ||
-    patient.dob === "-" ||
-    String(patient.dob).replace(/\D/g, "").length < 8
-  )
-    missing.push("DOB");
-  if (isPhoneInvalid(patient.phone)) missing.push("Phone");
-  if (isEmailInvalid(patient.email)) missing.push("Email");
-  return missing.length > 0 ? `Missing: ${missing.join(", ")}` : "-";
+  const errors = [];
+  if (isNameInvalid(patient.firstName)) errors.push("First Name");
+  if (isNameInvalid(patient.lastName)) errors.push("Last Name");
+  if (isDobInvalid(patient.dob)) errors.push("DOB");
+  if (isPhoneInvalid(patient.phone)) errors.push("Phone");
+  if (isEmailInvalid(patient.email)) errors.push("Email");
+  return errors.length > 0 ? `Invalid: ${errors.join(", ")}` : "-";
 };
 
 export const isError = (patient) => patient.reason && patient.reason !== "-";
