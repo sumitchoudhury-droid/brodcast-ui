@@ -12,6 +12,8 @@ import {
   isError,
   isPhoneInvalid,
   isEmailInvalid,
+  isNameInvalid,
+  isDobInvalid,
   formatPhone
 } from "../uploadFileUtils";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
@@ -82,28 +84,30 @@ const emptyFilters = {
 
 const cleanExportVal = (v) => (v == null || v === "-" ? "" : v);
 
-const buildErrorMessage = (phone, email) => {
+const buildErrorMessage = (patient) => {
   const errors = [];
-  if (isPhoneInvalid(phone)) errors.push("Invalid Mobile Number");
-  if (isEmailInvalid(email)) errors.push("Invalid Email Address");
+  if (isNameInvalid(patient.firstName)) errors.push("Invalid First Name");
+  if (isNameInvalid(patient.lastName)) errors.push("Invalid Last Name");
+  if (isDobInvalid(patient.dob))
+    errors.push("Invalid Date of Birth (MM/DD/YYYY)");
+  if (isPhoneInvalid(patient.phone)) errors.push("Invalid Mobile Number");
+  if (isEmailInvalid(patient.email)) errors.push("Invalid Email Address");
   return errors.join(", ");
 };
 
 const exportToExcel = (patients, fileName) => {
-  const rows = patients.map(
-    ({ firstName, lastName, dob, phone, email, balanceAmount }) => ({
-      "Patient First Name": cleanExportVal(firstName),
-      "Patient Last Name": cleanExportVal(lastName),
-      "Date of Birth (MM/DD/YYYY)": cleanExportVal(dob),
-      "Mobile Number": cleanExportVal(phone),
-      Email: cleanExportVal(email),
-      "Balance Amount ($)":
-        balanceAmount === null || balanceAmount === undefined
-          ? ""
-          : balanceAmount,
-      Error: buildErrorMessage(phone, email)
-    })
-  );
+  const rows = patients.map((patient) => ({
+    "Patient First Name": cleanExportVal(patient.firstName),
+    "Patient Last Name": cleanExportVal(patient.lastName),
+    "Date of Birth (MM/DD/YYYY)": cleanExportVal(patient.dob),
+    "Mobile Number": cleanExportVal(patient.phone),
+    Email: cleanExportVal(patient.email),
+    "Balance Amount ($)":
+      patient.balanceAmount === null || patient.balanceAmount === undefined
+        ? ""
+        : patient.balanceAmount,
+    Error: buildErrorMessage(patient)
+  }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Patients");
@@ -516,16 +520,17 @@ const UploadFileViewList = ({
                 {isAddingRow &&
                   (() => {
                     const hasAddRowError =
-                      !newPatient.firstName.trim() ||
-                      !newPatient.lastName.trim() ||
-                      !newPatient.dob ||
-                      newPatient.dob.replace(/\D/g, "").length < 8 ||
+                      isNameInvalid(newPatient.firstName) ||
+                      isNameInvalid(newPatient.lastName) ||
+                      isDobInvalid(newPatient.dob) ||
                       (isPhoneInvalid(newPatient.phone) &&
                         isEmailInvalid(newPatient.email));
                     return (
                       <tr className="addNewRow">
                         <td></td>
-                        <td className="editableCell">
+                        <td
+                          className={`editableCell ${newPatient.firstName && isNameInvalid(newPatient.firstName) ? "invalidCell" : ""}`}
+                        >
                           <input
                             type="text"
                             placeholder="First Name"
@@ -536,10 +541,12 @@ const UploadFileViewList = ({
                                 e.target.value
                               )
                             }
-                            className={`editInput${!newPatient.firstName.trim() ? " editInput--invalid" : ""}`}
+                            className={`editInput${newPatient.firstName && isNameInvalid(newPatient.firstName) ? " editInput--invalid" : ""}`}
                           />
                         </td>
-                        <td className="editableCell">
+                        <td
+                          className={`editableCell ${newPatient.lastName && isNameInvalid(newPatient.lastName) ? "invalidCell" : ""}`}
+                        >
                           <input
                             type="text"
                             placeholder="Last Name"
@@ -547,10 +554,12 @@ const UploadFileViewList = ({
                             onChange={(e) =>
                               handleNewPatientChange("lastName", e.target.value)
                             }
-                            className={`editInput${!newPatient.lastName.trim() ? " editInput--invalid" : ""}`}
+                            className={`editInput${newPatient.lastName && isNameInvalid(newPatient.lastName) ? " editInput--invalid" : ""}`}
                           />
                         </td>
-                        <td className="editableCell">
+                        <td
+                          className={`editableCell ${newPatient.dob && isDobInvalid(newPatient.dob) ? "invalidCell" : ""}`}
+                        >
                           <input
                             type="text"
                             placeholder="MM/DD/YYYY"
@@ -558,7 +567,7 @@ const UploadFileViewList = ({
                             onChange={(e) =>
                               handleNewPatientChange("dob", e.target.value)
                             }
-                            className={`editInput${newPatient.dob && newPatient.dob.replace(/\D/g, "").length < 8 ? " editInput--invalid" : ""}`}
+                            className={`editInput${newPatient.dob && isDobInvalid(newPatient.dob) ? " editInput--invalid" : ""}`}
                           />
                         </td>
                         <td
@@ -629,6 +638,9 @@ const UploadFileViewList = ({
                 {paginatedPatients.map((patient) => {
                   const emailErr = isEmailInvalid(patient.email);
                   const phoneErr = isPhoneInvalid(patient.phone);
+                  const firstNameErr = isNameInvalid(patient.firstName);
+                  const lastNameErr = isNameInvalid(patient.lastName);
+                  const dobErr = isDobInvalid(patient.dob);
 
                   return (
                     <tr
@@ -645,13 +657,74 @@ const UploadFileViewList = ({
                           />
                         </td>
                       )}
-                      <td>
-                        {highlightText(patient.firstName, filters.firstName)}
+                      <td
+                        className={`${firstNameErr ? "invalidCell" : ""} ${isEditMode ? "editableCell" : ""}`}
+                      >
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            placeholder="First Name"
+                            value={
+                              patient.firstName === "-" ? "" : patient.firstName
+                            }
+                            onChange={(e) =>
+                              handleCellEdit(
+                                patient.id,
+                                "firstName",
+                                e.target.value
+                              )
+                            }
+                            className={`editInput${firstNameErr ? " editInput--invalid" : ""}`}
+                          />
+                        ) : (
+                          highlightText(patient.firstName, filters.firstName)
+                        )}
                       </td>
-                      <td>
-                        {highlightText(patient.lastName, filters.lastName)}
+                      <td
+                        className={`${lastNameErr ? "invalidCell" : ""} ${isEditMode ? "editableCell" : ""}`}
+                      >
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            placeholder="Last Name"
+                            value={
+                              patient.lastName === "-" ? "" : patient.lastName
+                            }
+                            onChange={(e) =>
+                              handleCellEdit(
+                                patient.id,
+                                "lastName",
+                                e.target.value
+                              )
+                            }
+                            className={`editInput${lastNameErr ? " editInput--invalid" : ""}`}
+                          />
+                        ) : (
+                          highlightText(patient.lastName, filters.lastName)
+                        )}
                       </td>
-                      <td>{highlightText(patient.dob, filters.dob)}</td>
+                      <td
+                        className={`${dobErr ? "invalidCell" : ""} ${isEditMode ? "editableCell" : ""}`}
+                      >
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="MM/DD/YYYY"
+                            value={patient.dob === "-" ? "" : patient.dob}
+                            onChange={(e) =>
+                              handleCellEdit(
+                                patient.id,
+                                "dob",
+                                formatDob(e.target.value)
+                              )
+                            }
+                            className={`editInput${dobErr ? " editInput--invalid" : ""}`}
+                          />
+                        ) : (
+                          highlightText(patient.dob, filters.dob)
+                        )}
+                      </td>
                       <td
                         className={`${phoneErr ? "invalidCell" : ""} ${isEditMode ? "editableCell" : ""}`}
                       >

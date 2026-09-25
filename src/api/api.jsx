@@ -1,9 +1,28 @@
 import { QueryClient, QueryCache, MutationCache } from "@tanstack/react-query";
 import { ENDPOINTS } from "./endpoints";
 
+let _activeToastCount = 0;
+const TOAST_DURATION_MS = 5000;
+const TOAST_EXIT_MS = 300;
+
 let _toast = null;
 export const setToast = (toast) => {
-  _toast = toast;
+  const wrap = (type) => (title, message, duration) => {
+    if (_activeToastCount > 0) return;
+    _activeToastCount += 1;
+    toast?.[type]?.(title, message, duration);
+    setTimeout(
+      () => {
+        _activeToastCount = 0;
+      },
+      (duration ?? TOAST_DURATION_MS) + TOAST_EXIT_MS
+    );
+  };
+  _toast = {
+    success: wrap("success"),
+    error: wrap("error"),
+    warning: wrap("warning")
+  };
 };
 export const getToast = () => _toast;
 

@@ -279,7 +279,8 @@ function TargetRecipients({
           <ReusableMultiSelectDropdown
             label="Appointment Type"
             greenIcon={false}
-            placeholder="Select Appointment Type"
+            placeholder="Select"
+            showPlaceholderAsValue={true}
             options={appointmentTypeOptions}
             value={
               Array.isArray(appointmentType)
@@ -299,7 +300,8 @@ function TargetRecipients({
           <ReusableMultiSelectDropdown
             label="Location"
             greenIcon={false}
-            placeholder="Select Location"
+            placeholder="Select"
+            showPlaceholderAsValue={true}
             options={locationOptions}
             value={
               Array.isArray(location) ? location : location ? [location] : []
@@ -315,7 +317,8 @@ function TargetRecipients({
           <ReusableMultiSelectDropdown
             label="Provider"
             greenIcon={false}
-            placeholder="Select Provider"
+            placeholder="Select"
+            showPlaceholderAsValue={true}
             options={providerOptions}
             value={
               Array.isArray(provider) ? provider : provider ? [provider] : []
