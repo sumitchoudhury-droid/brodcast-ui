@@ -20,7 +20,8 @@ export const ReusableMultiSelectDropdown = ({
   required = false,
   width = "100%",
   overWriteClassName = "",
-  searchPlaceholder = ""
+  searchPlaceholder = "",
+  showPlaceholderAsValue = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showOnlySelected, setShowOnlySelected] = useState(false);
@@ -157,7 +158,12 @@ export const ReusableMultiSelectDropdown = ({
               className="multidropdownSelectContainerValueText"
               style={
                 !greenIcon
-                  ? { color: displayValue ? "#181D25" : "#929FB1" }
+                  ? {
+                      color:
+                        displayValue || showPlaceholderAsValue
+                          ? "#181D25"
+                          : "#929FB1"
+                    }
                   : {}
               }
             >
