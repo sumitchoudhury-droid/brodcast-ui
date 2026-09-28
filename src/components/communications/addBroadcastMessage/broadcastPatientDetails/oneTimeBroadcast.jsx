@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import ReusableDateTime from "../../../../reusableComponents/reusableDate&TimePicker/index";
 import { usePost } from "../../../../hooks/usePost";
+import { useToast } from "../../../../hooks/useToast";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 
 const toLocalIsoString = (value) => {
@@ -19,6 +20,7 @@ function OneTimeBroadcast({
   setEndDateTime,
   onSearch
 }) {
+  const toast = useToast();
   const { mutate: searchPatients, isPending: isSearching } = usePost(
     ENDPOINTS.patients.SEARCH
   );
@@ -51,6 +53,9 @@ function OneTimeBroadcast({
       onSuccess: (res) => {
         const patients = res?.data?.patients ?? [];
         const totalCount = res?.data?.totalCount ?? 0;
+        if (totalCount === 0) {
+          toast.error("No patient record found");
+        }
         onSearch(patients, totalCount);
       }
     });

@@ -16,7 +16,8 @@ import "./style.scss";
 
 import ReusableTab from "../../../../../reusableComponents/reusableTab";
 import { ReusableModal } from "../../../../../reusableComponents/reusableModal";
-import { useGet } from "../../../../../hooks/useGet";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "../../../../../hooks/useToast";
 import { ENDPOINTS } from "../../../../../api/endpoints.js";
 import {
   BASE_URL,
@@ -93,12 +94,38 @@ export default function LeftPanel({
   const [pendingTemplate, setPendingTemplate] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
 
-  const { data: templatesData, isLoading: isLoadingTemplates } = useGet(
-    ["templates", "Mail", selectedTab],
-    ENDPOINTS.templates.GET_ALL,
-    { methodTypes: "Mail", includeInactive: false },
-    { enabled: tab === "templates" }
-  );
+  const toast = useToast();
+
+  // Swallow error in queryFn so the global queryCache.onError does not fire —
+  // lets us show a custom toast instead of the server message.
+  const { data: templatesData, isLoading: isLoadingTemplates } = useQuery({
+    queryKey: ["templates", "Mail", selectedTab],
+    queryFn: async () => {
+      try {
+        const url = new URL(
+          `${BASE_URL}${ENDPOINTS.templates.GET_ALL}`,
+          window.location.origin
+        );
+        url.searchParams.set("methodTypes", "Mail");
+        url.searchParams.set("includeInactive", "false");
+        const res = await fetch(url.toString(), {
+          headers: { "Content-Type": "application/json", ...COMMON_HEADERS }
+        });
+        return await handleResponse(res);
+      } catch {
+        return { __templatesError: true };
+      }
+    },
+    enabled: tab === "templates"
+  });
+
+  useEffect(() => {
+    if (templatesData?.__templatesError) {
+      toast.error(
+        "An error occurred while loading the template. Please retry after some time or contact support for further assistance."
+      );
+    }
+  }, [templatesData, toast]);
 
   const apiSavedTemplates = useMemo(() => {
     const list = templatesData?.data ?? [];

@@ -4,6 +4,7 @@ import { useBroadcastForm } from "../../broadcastFormContext";
 import { ReusableButton } from "../../../../reusableComponents/resuableButton/index";
 import { ReusableRadioButton } from "../../../../reusableComponents/reusableRadioButton/index";
 import { useBroadcastConfigGet as useGet } from "../../../../hooks/useBroadcastConfigGet";
+import { useToast } from "../../../../hooks/useToast";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../api/api.jsx";
 import "./style.scss";
@@ -152,6 +153,8 @@ function BroadcastPatientDetails({
     uploadedFile,
     setTotalPatientsFound
   } = useBroadcastForm();
+
+  const toast = useToast();
 
   const { data: patientTypesData } = useGet(
     ["patient-types"],
@@ -332,6 +335,12 @@ function BroadcastPatientDetails({
                       searchPatients,
                       uploadedPatients
                     );
+                    if (!data || data.length === 0) {
+                      toast.error(
+                        "No patient records found for the selected criteria."
+                      );
+                      return;
+                    }
                     exportToExcel(data, sheet, file);
                   }}
                 />

@@ -10,7 +10,7 @@ import CloseButton from "../../../assets/commonIcons/CloseButton.svg";
 import { ReusableButton } from "../../../reusableComponents/resuableButton/index";
 import deleteIcon from "../../../assets/existingTemplate/deleteIcon.svg";
 import { useGet } from "../../../hooks/useGet";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BASE_URL,
   BROADCAST_CONFIG_HEADERS,
@@ -72,17 +72,48 @@ function ExistingTemplates({
     .map((m) => modeNameToMethodType[m])
     .filter(Boolean);
 
-  const { data: templatesData, isLoading: templatesLoading } = useGet(
-    ["templates", ...methodTypes],
-    ENDPOINTS.templates.GET_ALL,
-    methodTypes.length > 0
-      ? { methodTypes, includeInactive: false }
-      : { includeInactive: false },
-    { enabled: isOpen }
-  );
-
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  // Swallow error in queryFn so the global queryCache.onError does not fire —
+  // lets us show a custom toast instead of the server message.
+  const { data: templatesData, isLoading: templatesLoading } = useQuery({
+    queryKey: ["templates", ...methodTypes],
+    queryFn: async () => {
+      try {
+        const url = new URL(
+          `${BASE_URL}${ENDPOINTS.templates.GET_ALL}`,
+          window.location.origin
+        );
+        const params =
+          methodTypes.length > 0
+            ? { methodTypes, includeInactive: false }
+            : { includeInactive: false };
+        Object.entries(params).forEach(([k, v]) => {
+          if (Array.isArray(v)) {
+            v.forEach((val) => url.searchParams.append(k, val));
+          } else {
+            url.searchParams.set(k, String(v));
+          }
+        });
+        const res = await fetch(url.toString(), {
+          headers: { "Content-Type": "application/json", ...COMMON_HEADERS }
+        });
+        return await handleResponse(res);
+      } catch {
+        return { __templatesError: true };
+      }
+    },
+    enabled: isOpen
+  });
+
+  useEffect(() => {
+    if (templatesData?.__templatesError) {
+      toast.error(
+        "An error occurred while loading the template. Please retry after some time or contact support for further assistance."
+      );
+    }
+  }, [templatesData, toast]);
 
   const {
     setSelectedModes,

@@ -29,12 +29,15 @@ export const getToast = () => _toast;
 let _authToken = null;
 export const getAuthToken = () => _authToken;
 
+const GENERIC_ERROR_MESSAGE =
+  "An unexpected error occurred. Please try again later or contact support if the issue persists.";
+
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (error) => _toast?.error("Request Failed", error.message)
+    onError: () => _toast?.error("Request Failed", GENERIC_ERROR_MESSAGE)
   }),
   mutationCache: new MutationCache({
-    onError: (error) => _toast?.error("Request Failed", error.message)
+    onError: () => _toast?.error("Request Failed", GENERIC_ERROR_MESSAGE)
   }),
   defaultOptions: {
     queries: {

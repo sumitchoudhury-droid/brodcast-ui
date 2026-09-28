@@ -5,6 +5,7 @@ import "./style.scss";
 
 import { ReusableButton } from "../../../../../reusableComponents/resuableButton";
 import ResuablePagination from "../../../../../reusableComponents/resuablePagination/index.jsx";
+import { useToast } from "../../../../../hooks/useToast";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 import searchGreenIcon from "../../../../../assets/boardCastTableIcons/searchGreen.svg";
 
@@ -306,6 +307,7 @@ const exportToExcel = (patients, fileName) => {
 
 const TargetViewList = ({ isOpen, onClose, includeOptOut, patients = [] }) => {
   const [activeTab, setActiveTab] = useState("patientsFound");
+  const toast = useToast();
 
   if (!isOpen) return null;
 
@@ -352,12 +354,19 @@ const TargetViewList = ({ isOpen, onClose, includeOptOut, patients = [] }) => {
               onClick={() => {
                 const isOptOut =
                   includeOptOut && activeTab === "optOutPatients";
+                const exportData = isOptOut
+                  ? optOutPatients
+                  : includeOptOut
+                    ? regularPatients
+                    : mappedPatients;
+                if (exportData.length === 0) {
+                  toast.error(
+                    "No patient records found for the selected criteria."
+                  );
+                  return;
+                }
                 exportToExcel(
-                  isOptOut
-                    ? optOutPatients
-                    : includeOptOut
-                      ? regularPatients
-                      : mappedPatients,
+                  exportData,
                   isOptOut ? "Opt_Out_Patients" : "Patients_Found"
                 );
               }}

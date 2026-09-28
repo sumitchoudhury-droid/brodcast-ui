@@ -448,19 +448,17 @@ export default function ReusableDateRangePicker({
                       }
                       toast.success(
                         "Date Range Applied",
-                        `Showing results from ${startStr} – ${endStr}.`
+                        `Showing results from ${startStr} - ${endStr}.`
                       );
                       setIsOpen(false);
                     } catch {
                       toast.error(
-                        "Failed to Apply Date Range",
-                        `The selected range ${startStr} – ${endStr} could not be applied. Please try again.`
+                        "Failed to Apply Date Range Please select both a start date and an end date"
                       );
                     }
                   } else {
                     toast.error(
-                      "Failed to Apply Date Range",
-                      "Please select both a start date and an end date."
+                      "Failed to Apply Date Range Please select both a start date and an end date"
                     );
                   }
                 }}

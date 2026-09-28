@@ -1,11 +1,15 @@
 import { useState, useMemo } from "react";
 import ReactDOM from "react-dom";
 import * as XLSX from "xlsx";
-import { useQueryClient } from "@tanstack/react-query";
-import { usePost } from "../../../../../hooks/usePost";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useGet } from "../../../../../hooks/useGet";
 import { useToast } from "../../../../../hooks/useToast";
 import { ENDPOINTS } from "../../../../../api/endpoints.js";
+import {
+  BASE_URL,
+  COMMON_HEADERS,
+  handleResponse
+} from "../../../../../api/api.jsx";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
 
 // Message Status Icons
@@ -182,9 +186,25 @@ const formatScheduleDateTime = (dateTimeStr) => {
 export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
   const toast = useToast();
   const queryClient = useQueryClient();
-  const { mutate: cancelBroadcast, isPending: isCancelling } = usePost(
-    ENDPOINTS.broadcastSchedule.BULK_CANCEL
-  );
+  // Swallow the error inside mutationFn so the global mutationCache.onError
+  // does not fire — lets us show a custom toast instead of the server message.
+  const { mutate: cancelBroadcast, isPending: isCancelling } = useMutation({
+    mutationFn: async (body) => {
+      try {
+        const res = await fetch(
+          `${BASE_URL}${ENDPOINTS.broadcastSchedule.BULK_CANCEL}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...COMMON_HEADERS },
+            body: JSON.stringify(body)
+          }
+        );
+        return await handleResponse(res);
+      } catch (err) {
+        return { __cancelError: true, error: err };
+      }
+    }
+  });
 
   const modesList = useMemo(() => {
     return getModesList(broadcastData?.mode);
@@ -571,6 +591,12 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
 
               cancelBroadcast(body, {
                 onSuccess: (res) => {
+                  if (res?.__cancelError) {
+                    toast.error(
+                      "Failed to Cancel Schedule. Please try again or contact support."
+                    );
+                    return;
+                  }
                   toast.success(
                     res?.message ||
                       res?.data?.message ||
