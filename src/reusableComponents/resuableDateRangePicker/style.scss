@@ -78,10 +78,23 @@
     font-weight: 500;
     color: variable.$color-black-6;
     line-height: 20px;
-    transition: background 0.2s;
+    border-radius: 4px;
+    transition:
+      background 0.2s,
+      color 0.2s;
 
     &:hover {
       background: variable.$color-white-1;
+    }
+
+    &.selected {
+      background: variable.$primary-color;
+      color: variable.$color-white-0;
+      font-weight: 600;
+
+      &:hover {
+        background: variable.$primary-color;
+      }
     }
   }
 }
