@@ -170,6 +170,12 @@ export default function ReusableDateRangePicker({
     }
   };
 
+  const selectedRangeIdx = predefinedRanges.findIndex((range) => {
+    if (!startDate || !endDate) return false;
+    const { start, end } = range.getDates();
+    return isSameDay(start, startDate) && isSameDay(end, endDate);
+  });
+
   const handleMouseEnter = (day) => {
     setHoverDate(day);
   };
@@ -375,7 +381,7 @@ export default function ReusableDateRangePicker({
               {predefinedRanges.map((range, idx) => (
                 <button
                   key={idx}
-                  className="rangeBtn"
+                  className={`rangeBtn ${selectedRangeIdx === idx ? "selected" : ""}`}
                   onClick={() => handlePredefinedClick(range)}
                 >
                   {range.label}
