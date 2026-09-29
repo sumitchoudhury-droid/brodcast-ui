@@ -61,7 +61,7 @@ function BroadcastMessageInner({ handleCancel }) {
   const [showPlaceholders, setShowPlaceholders] = useState(false);
 
   const emptyMap = {
-    email: isEmailEditorEmpty,
+    mail: isEmailEditorEmpty,
     sms: isSmsEditorEmpty,
     voice: isVoiceEditorEmpty
   };
@@ -105,7 +105,7 @@ function BroadcastMessageInner({ handleCancel }) {
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
-          isEditorEmpty={emptyMap.email}
+          isEditorEmpty={emptyMap.mail}
           setIsEditorEmpty={setEmailEmpty}
           onTextEmptyChange={setTextEmpty}
           onVoiceEmptyChange={setVoiceEmpty}
@@ -123,7 +123,7 @@ function BroadcastMessageInner({ handleCancel }) {
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
           setShowPlaceholders={setShowPlaceholders}
-          isEditorEmpty={emptyMap.email}
+          isEditorEmpty={emptyMap.mail}
           setIsEditorEmpty={setEmailEmpty}
           onDirtyChange={handleDirtyChange}
           selectedTemplate={selectedTemplate}

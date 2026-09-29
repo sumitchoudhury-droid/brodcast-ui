@@ -85,7 +85,9 @@ export default function Footer({
     modality,
     uploadedFile,
     setMailSubjectError,
-    totalPatientsFound
+    totalPatientsFound,
+    isEmailEditorEmpty,
+    isSmsEditorEmpty
   } = useBroadcastForm();
   const { mutate: saveTemplate, isPending: isSaving } = usePost(
     ENDPOINTS.templates.CREATE
@@ -113,6 +115,13 @@ export default function Footer({
   const [isFilterExpanded, setIsFilterExpanded] = useState(false); // Added for collapsible section
 
   const isMailMode = selectedModes.some((m) => m?.toLowerCase() === "mail");
+  const isSmsMode = selectedModes.some((m) => m?.toLowerCase() === "sms");
+
+  const hasMailContent = !isEmailEditorEmpty;
+  const hasSmsContent = !isSmsEditorEmpty;
+
+  const isSaveTemplateDisabled =
+    isMailMode && isSmsMode ? !hasMailContent && !hasSmsContent : disabled;
 
   const isBroadcastInFlight =
     isSending ||
@@ -137,6 +146,16 @@ export default function Footer({
   };
 
   const handleSaveTemplate = () => {
+    if (isMailMode && isSmsMode) {
+      if (hasMailContent && !hasSmsContent) {
+        toast.error("No SMS content found. Add content to save template");
+        return;
+      }
+      if (!hasMailContent && hasSmsContent) {
+        toast.error("No Email content found. Add content to save template");
+        return;
+      }
+    }
     setTemplateName(newTemplateName || "");
     setIsModalOpen(true);
   };
@@ -775,7 +794,7 @@ export default function Footer({
             }
             variant="secondary"
             onClick={handleSaveTemplate}
-            disabled={disabled}
+            disabled={isSaveTemplateDisabled}
           />
           {selectedEmailTemplateType !== "blank" && (
             <ReusableButton
