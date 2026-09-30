@@ -889,7 +889,21 @@ function BroadCastTableContainer({
         ),
         cell: ({ row, table }) => {
           const isMenuOpen = activeMenuId === row.original.id;
-          const options = getMenuOptions(row.original.broadcastStatus);
+          const isCancelled = row.original.broadcastStatus === "Cancelled";
+          const hasUncancelledMode =
+            (row.original.hasEmail && row.original.emailCancelledCount === 0) ||
+            (row.original.hasSms && row.original.smsCancelledCount === 0);
+          const allowCancelOnCancelledRow = isCancelled && hasUncancelledMode;
+          const isButtonDisabled = isCancelled && !allowCancelOnCancelledRow;
+          const options = allowCancelOnCancelledRow
+            ? [
+                {
+                  label: "Cancel Schedule",
+                  action: "cancel",
+                  icon: CancelScheduleIcon
+                }
+              ]
+            : getMenuOptions(row.original.broadcastStatus);
           const rowIndex = table
             .getRowModel()
             .rows.findIndex((r) => r.id === row.id);
@@ -899,8 +913,15 @@ function BroadCastTableContainer({
           return (
             <div className="actions-cell">
               <button
+                disabled={isButtonDisabled}
+                style={
+                  isButtonDisabled
+                    ? { cursor: "not-allowed", opacity: 0.5 }
+                    : undefined
+                }
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (isButtonDisabled) return;
                   setActiveMenuId(isMenuOpen ? null : row.original.id);
                 }}
                 onMouseDown={(e) => {
@@ -1142,12 +1163,7 @@ function BroadCastTableContainer({
                 {row.getVisibleCells().map((cell) => {
                   const isInteractiveColumn =
                     cell.column.id === "select" || cell.column.id === "actions";
-                  const isCancelledNonClickableCol =
-                    (cell.column.id === "messageStatus" ||
-                      cell.column.id === "broadcastStatus") &&
-                    row.original.broadcastStatus === "Cancelled";
-                  const isClickable =
-                    !isInteractiveColumn && !isCancelledNonClickableCol;
+                  const isClickable = !isInteractiveColumn;
                   return (
                     <td
                       key={cell.id}

@@ -15,11 +15,11 @@ import runningWeeklyIcon from "../../../../../assets/boardCastTableIcons/running
 import failedIcon from "../../../../../assets/boardCastTableIcons/failedIcon.svg";
 import cancelledIcon from "../../../../../assets/boardCastTableIcons/cancelledIcon.svg";
 import cancelIcon from "../../../../../assets/boardCastTableIcons/cancelIcon.svg";
-import warningRedIcon from "../../../../../assets/commonIcons/warningRedIcon.svg";
-import cancelRedIcon from "../../../../../assets/commonIcons/cancelRedIcon.svg";
-import emailIcon from "../../../../../assets/existingTemplate/mail.svg";
-import textIcon from "../../../../../assets/existingTemplate/message.svg";
-import voiceIcon from "../../../../../assets/existingTemplate/phone.svg";
+// import warningRedIcon from "../../../../../assets/commonIcons/warningRedIcon.svg";
+// import cancelRedIcon from "../../../../../assets/commonIcons/cancelRedIcon.svg";
+// import emailIcon from "../../../../../assets/existingTemplate/mail.svg";
+// import textIcon from "../../../../../assets/existingTemplate/message.svg";
+// import voiceIcon from "../../../../../assets/existingTemplate/phone.svg";
 
 import "./style.scss";
 
@@ -389,7 +389,7 @@ export default function Details({ broadcastData }) {
         </div>
       )}
 
-      {isCancelled && (
+      {/* {isCancelled && (
         <>
           <div className="occurCancelled">
             <div className="topLayer">
@@ -431,7 +431,7 @@ export default function Details({ broadcastData }) {
             </div>
           </div>
         </>
-      )}
+      )} */}
 
       {isRecurring && (
         <div className="detailRow">

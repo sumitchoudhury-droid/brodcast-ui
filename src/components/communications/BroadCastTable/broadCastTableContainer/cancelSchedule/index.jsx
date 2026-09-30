@@ -214,6 +214,21 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
     return getModeSpecificStatus(broadcastData?.messageStatus, modesList);
   }, [broadcastData?.messageStatus, modesList]);
 
+  const isModeAlreadyCancelled = (modeName) => {
+    if (!broadcastData || !modeName) return false;
+    const lower = modeName.toLowerCase();
+    if (lower === "mail" || lower === "email") {
+      return (broadcastData.emailCancelledCount ?? 0) > 0;
+    }
+    if (lower === "sms") {
+      return (broadcastData.smsCancelledCount ?? 0) > 0;
+    }
+    if (lower === "voice") {
+      return (broadcastData.voiceCancelledCount ?? 0) > 0;
+    }
+    return false;
+  };
+
   const [dateFilter, setDateFilter] = useState([]);
   const [selectedOccurrence, setSelectedOccurrence] = useState("this");
 
@@ -221,12 +236,13 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
     const list = getModesList(broadcastData?.mode);
     const initial = {};
     list.forEach((m) => {
-      initial[m] = true;
+      initial[m] = !isModeAlreadyCancelled(m);
     });
     return initial;
   });
 
   const handleCheckboxChange = (m) => {
+    if (isModeAlreadyCancelled(m)) return;
     setSelectedModes((prev) => ({
       ...prev,
       [m]: !prev[m]
@@ -495,12 +511,14 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
               {modesList.length > 0 ? (
                 modesList.map((m) => {
                   const counts = modeSpecificCounts[m] || {};
+                  const alreadyCancelled = isModeAlreadyCancelled(m);
                   return (
                     <div key={m} className="modeRow">
                       <ReusableCheckbox
                         label={m}
                         name="cancelMode"
-                        checked={!!selectedModes[m]}
+                        checked={!alreadyCancelled && !!selectedModes[m]}
+                        disabled={alreadyCancelled}
                         onChange={() => handleCheckboxChange(m)}
                       />
                       <div className="messageStatusContainer">
