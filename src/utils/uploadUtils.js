@@ -1,6 +1,6 @@
 export const uploadImageToServer = async (file) => {
   if (!file) return null;
-  const { IMAGE_BASE_URL, COMMON_HEADERS, getToast } =
+  const { IMAGE_BASE_URL, IMAGE_HEADERS, getToast } =
     await import("../api/api.jsx");
   const { ENDPOINTS } = await import("../api/endpoints.js");
   const toast = getToast();
@@ -14,9 +14,9 @@ export const uploadImageToServer = async (file) => {
     const res = await fetch(`${IMAGE_BASE_URL}${ENDPOINTS.images.UPLOAD}`, {
       method: "POST",
       headers: {
-        TenantId: COMMON_HEADERS.TenantId,
-        OrgId: COMMON_HEADERS.OrgId,
-        AppKey: COMMON_HEADERS.Appkey
+        TenantId: IMAGE_HEADERS.TenantId,
+        OrgId: IMAGE_HEADERS.OrgId,
+        AppKey: IMAGE_HEADERS.AppKey
       },
       body: formData
     });
@@ -40,7 +40,7 @@ export const uploadImageToServer = async (file) => {
 
 export const uploadAttachmentToServer = async (file) => {
   if (!file) return null;
-  const { IMAGE_BASE_URL, COMMON_HEADERS, getToast } =
+  const { IMAGE_BASE_URL, IMAGE_HEADERS, getToast } =
     await import("../api/api.jsx");
   const { ENDPOINTS } = await import("../api/endpoints.js");
   const toast = getToast();
@@ -56,9 +56,9 @@ export const uploadAttachmentToServer = async (file) => {
       {
         method: "POST",
         headers: {
-          TenantId: COMMON_HEADERS.TenantId,
-          OrgId: COMMON_HEADERS.OrgId,
-          AppKey: COMMON_HEADERS.Appkey
+          TenantId: IMAGE_HEADERS.TenantId,
+          OrgId: IMAGE_HEADERS.OrgId,
+          AppKey: IMAGE_HEADERS.AppKey
         },
         body: formData
       }
