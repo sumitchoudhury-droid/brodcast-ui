@@ -419,13 +419,17 @@ export default function ReusableDateRangePicker({
                 label="Reset"
                 variant="primary"
                 onClick={() => {
-                  setStartDate(null);
-                  setEndDate(null);
-                  if (onReset) onReset();
+                  const today = new Date();
+                  setStartDate(today);
+                  setEndDate(today);
+                  const baseMonth = startOfMonth(today);
+                  setLeftMonth(baseMonth);
+                  setRightMonth(addMonths(baseMonth, 1));
+                  if (onReset) onReset(today);
                   setIsOpen(false);
                   toast.success(
                     "Date Range Reset",
-                    `Showing results for ${format(new Date(), "MM/dd/yyyy")}.`
+                    `Showing results for ${format(today, "MM/dd/yyyy")}.`
                   );
                 }}
               />

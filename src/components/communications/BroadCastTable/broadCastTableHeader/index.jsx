@@ -51,7 +51,9 @@ function BroadCastTableHeader({
           initialStartDate={selectedDateRange?.startDate}
           initialEndDate={selectedDateRange?.endDate}
           onApply={(range) => onDateRangeChange(range)}
-          onReset={() => onDateRangeChange({ startDate: null, endDate: null })}
+          onReset={() =>
+            onDateRangeChange({ startDate: new Date(), endDate: new Date() })
+          }
         />
 
         <div style={{ display: "flex", gap: "12px" }}>
