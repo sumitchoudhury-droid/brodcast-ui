@@ -651,6 +651,54 @@ export default function Editor({
         const targetFromRef = capturedTarget;
         const selected = editor.getSelected();
 
+        // HTML-template placeholder path: existing templates are stored as
+        // compiled HTML, so the dropped Image block renders as a plain
+        // <div class="image-click-area">… — not an mj-image. Swap it for
+        // an <img> in place; the MJML cases below only handle mj-column
+        // containers and would silently drop the upload here.
+        if (isHtmlTemplate.current && (targetFromRef || selected)) {
+          let probe = targetFromRef || selected;
+          let clickAreaComp = null;
+          while (probe) {
+            try {
+              if (probe.get?.("tagName") === "img" || probe.is?.("image")) {
+                break;
+              }
+              const el = probe.getView?.()?.el;
+              if (el?.classList?.contains?.("image-click-area")) {
+                clickAreaComp = probe;
+                break;
+              }
+            } catch {
+              /* ignore destroyed */
+            }
+            probe = probe.parent?.();
+          }
+
+          if (clickAreaComp) {
+            const parent = clickAreaComp.parent();
+            if (parent) {
+              const idx = parent.components().indexOf(clickAreaComp);
+              isUnwrapping.current = true;
+              try {
+                clickAreaComp.remove();
+                const added = parent
+                  .components()
+                  .add(
+                    `<img src="${dataUrl}" width="${widthAttr}" height="${heightAttr}" style="display:block;max-width:100%;height:auto;" />`,
+                    { at: idx }
+                  );
+                const newComp = Array.isArray(added) ? added[0] : added;
+                if (newComp) editor.select(newComp);
+              } finally {
+                isUnwrapping.current = false;
+              }
+              editor.trigger("component:update", parent);
+              return;
+            }
+          }
+        }
+
         if (targetFromRef || selected) {
           // Case 1: An mj-image or standard HTML image is selected (or targeted) — update src and dimensions directly
           let target = targetFromRef || selected;
@@ -2468,23 +2516,46 @@ export default function Editor({
       body.addEventListener("click", (e) => {
         // ── Image upload area click ───────────────────────────────────────
         if (e.target.closest(".image-click-area")) {
-          const allColumns = [];
-          const collectCols = (comp) => {
-            if (comp.get("type") === "mj-column") allColumns.push(comp);
-            comp.components().each(collectCols);
-          };
-          collectCols(editor.getWrapper());
-          const clickedColumn = allColumns.find((col) => {
-            try {
-              const view = col.getView?.();
-              return view?.el?.contains?.(e.target);
-            } catch {
-              return false;
+          if (isHtmlTemplate.current) {
+            // HTML-template image blocks have no mj-column ancestor —
+            // target the component that owns the clicked placeholder div.
+            const clickAreaEl = e.target.closest(".image-click-area");
+            const allComps = [];
+            const collectAll = (comp) => {
+              allComps.push(comp);
+              comp.components().each(collectAll);
+            };
+            collectAll(editor.getWrapper());
+            const clickAreaComp = allComps.find((c) => {
+              try {
+                return c.getView?.()?.el === clickAreaEl;
+              } catch {
+                return false;
+              }
+            });
+            if (clickAreaComp) {
+              editor.select(clickAreaComp);
+              imageTargetCompRef.current = clickAreaComp;
             }
-          });
-          if (clickedColumn) {
-            editor.select(clickedColumn);
-            imageTargetCompRef.current = clickedColumn;
+          } else {
+            const allColumns = [];
+            const collectCols = (comp) => {
+              if (comp.get("type") === "mj-column") allColumns.push(comp);
+              comp.components().each(collectCols);
+            };
+            collectCols(editor.getWrapper());
+            const clickedColumn = allColumns.find((col) => {
+              try {
+                const view = col.getView?.();
+                return view?.el?.contains?.(e.target);
+              } catch {
+                return false;
+              }
+            });
+            if (clickedColumn) {
+              editor.select(clickedColumn);
+              imageTargetCompRef.current = clickedColumn;
+            }
           }
           imageInputRef.current?.click();
           return;
