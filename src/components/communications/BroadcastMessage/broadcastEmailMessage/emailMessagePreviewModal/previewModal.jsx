@@ -27,24 +27,6 @@ const PreviewModal = ({ isOpen, onClose, html }) => {
       -ms-overflow-style: none;  /* IE and Edge */
       scrollbar-width: none;  /* Firefox */
     }
-    /* Column-frame side-by-side layout.
-       The preview uses captured canvas HTML where the table is wrapped in extra
-       divs, so use a descendant selector instead of a direct-child one.
-       :has() targets only the td that holds the mj-column-per-* siblings. */
-    [data-type="column-frame-section"] table tbody tr td:has(> [class*="mj-column-per-"]) {
-      display: flex !important;
-      flex-direction: row !important;
-      flex-wrap: nowrap !important;
-      align-items: flex-start !important;
-    }
-    /* Nested column-frame-sections get MJML's default max-width:600px wrapper.
-       Override it so the inner section fills its parent column. */
-    [data-type="column-frame-section"] [data-type="column-frame-section"] > div {
-      max-width: 100% !important;
-      width: 100% !important;
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-    }
   </style>`;
 
     try {

@@ -334,17 +334,16 @@ function reconcileFramePlaceholders(editor, isReconciling) {
           return;
         }
 
-        // Check if it's real content:
-        // - If it's a textnode or text, it must have non-whitespace content
-        // - If it's a frame placeholder UI component, skip it
-        // - Otherwise, any component (sections, columns, images, etc.) is real content
-        if (childType === "textnode" || childType === "text") {
+        // Only inline textnodes (whitespace between elements) can be empty.
+        // A `text` component is a user-dropped editable block (heading /
+        // paragraph in HTML-template mode) and counts as real content even
+        // before the user types anything into it.
+        if (childType === "textnode") {
           const content = c.get("content")?.trim();
           if (content && content.length > 0) {
             hasReal = true;
           }
         } else if (childDt !== "frame-placeholder-ui") {
-          // Any other component (mj-section, mj-column, mj-image, etc.) counts as content
           hasReal = true;
         }
       });
@@ -1914,11 +1913,13 @@ export default function Editor({
         scheduleSignatureReconcile();
       }
 
-      // Auto-remove placeholder when something is added to its container
+      // Auto-remove placeholder when something is added to its container.
+      // Only `textnode` (whitespace between elements) is excluded here —
+      // `text` components are user-dropped blocks and must flip the frame's
+      // `data-is-empty` state so the "Drag and drop…" overlay disappears.
       if (
         comp.getAttributes()["data-type"] !== "frame-placeholder-ui" &&
-        type !== "textnode" &&
-        type !== "text"
+        type !== "textnode"
       ) {
         let container = comp.parent();
         while (container) {
@@ -2039,7 +2040,7 @@ export default function Editor({
 
       if (isUnwrapping.current) return;
 
-      if (type && type !== "textnode" && type !== "text") {
+      if (type && type !== "textnode") {
         pendingFixups.push(comp);
         if (!fixupScheduled) {
           fixupScheduled = true;
@@ -3485,32 +3486,32 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("row", {
       label: "Frame - Row",
       category: "Blocks",
-      content: `<div data-type="row-frame-column" data-is-empty="true" style="padding: 20px 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: column;"></div>`
+      content: `<div data-type="row-frame-column" data-is-empty="true" style="padding: 0px; margin: 0px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("column", {
       label: "Frame - Column",
       category: "Blocks",
-      content: `<div data-type="column-frame-section" data-is-empty="true" style="padding: 20px; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; gap: 20px;"></div>`
+      content: `<div data-type="column-frame-section" data-is-empty="true" style="padding: 20px; width: 100%; box-sizing: border-box; display: flex; flex-direction: row;"></div>`
     });
 
     // ── Content blocks ────────────────────────────────────────────────────────
     bm.add("heading", {
       label: "Heading",
       category: "Content",
-      content: `<div data-placeholder="Title goes here" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;"></div>`
+      content: `<div data-gjs-type="text" data-placeholder="Title goes here" style="padding: 0px; margin: 0px; text-align: left; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("paragraph", {
       label: "Paragraph",
       category: "Content",
-      content: `<div data-placeholder="Paragraph Text" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;"></div>`
+      content: `<div data-gjs-type="text" data-placeholder="Paragraph Text" style="padding: 0px; margin: 0px; text-align: left; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("image", {
       label: "Image",
       category: "Content",
-      content: `<div style="padding: 10px 20px; width: 100%; box-sizing: border-box;">
+      content: `<div style="padding: 0px; margin: 0px; width: 100%; box-sizing: border-box;">
         <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100%;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3527,7 +3528,7 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("button", {
       label: "Button",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
+      content: `<div style="padding: 0px; margin: 0px; text-align: center; width: 100%; box-sizing: border-box;">
         <a href="#" style="display: inline-block; background-color: #295E3F; color: #ffffff; border-radius: 8px; padding: 10px 20px; font-family: Arial, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 20px;">
           Click Here
         </a>

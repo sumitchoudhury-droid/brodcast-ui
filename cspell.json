@@ -67,7 +67,8 @@
     "defval",
     "ETSI",
     "trackpad",
-    "blankrows"
+    "blankrows",
+    "textnodes"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }
