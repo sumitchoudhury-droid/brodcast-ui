@@ -3498,19 +3498,19 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("heading", {
       label: "Heading",
       category: "Content",
-      content: `<div data-placeholder="Title goes here" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;"></div>`
+      content: `<div data-gjs-type="text" data-placeholder="Title goes here" style="padding: 0px; margin: 0px; text-align: left; font-family: Arial, sans-serif; font-size: 32px; font-weight: 600; color: #404B5A; line-height: 42px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("paragraph", {
       label: "Paragraph",
       category: "Content",
-      content: `<div data-placeholder="Paragraph Text" style="padding: 10px 20px; text-align: left; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;"></div>`
+      content: `<div data-gjs-type="text" data-placeholder="Paragraph Text" style="padding: 0px; margin: 0px; text-align: left; font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; color: #404B5A; line-height: 22px; width: 100%; box-sizing: border-box;"></div>`
     });
 
     bm.add("image", {
       label: "Image",
       category: "Content",
-      content: `<div style="padding: 10px 20px; width: 100%; box-sizing: border-box;">
+      content: `<div style="padding: 0px; margin: 0px; width: 100%; box-sizing: border-box;">
         <div class="image-click-area" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:6px; width:100%;margin:0 auto;cursor:pointer; height: 116px; background-color:#F6F7F9; border-radius: 8px; border: 1px dashed #1570EF;">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M16 5H22" stroke="#606E80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3527,7 +3527,7 @@ function registerBlocks(editor, initialTemplate) {
     bm.add("button", {
       label: "Button",
       category: "Content",
-      content: `<div style="padding: 10px 20px; text-align: center; width: 100%; box-sizing: border-box;">
+      content: `<div style="padding: 0px; margin: 0px; text-align: center; width: 100%; box-sizing: border-box;">
         <a href="#" style="display: inline-block; background-color: #295E3F; color: #ffffff; border-radius: 8px; padding: 10px 20px; font-family: Arial, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none; line-height: 20px;">
           Click Here
         </a>
