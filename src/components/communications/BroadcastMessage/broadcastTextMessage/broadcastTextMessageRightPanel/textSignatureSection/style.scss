@@ -6,6 +6,17 @@
   width: 100%;
 }
 
+.importedTemplateName {
+  @include variable.font-style($fs: 14px, $fw: 600, $lh: 20px);
+  color: #181d25;
+  padding: 8px 12px;
+  background: #f1f5f4;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
 .formsMultiSelect {
   position: relative;
   width: 100%;

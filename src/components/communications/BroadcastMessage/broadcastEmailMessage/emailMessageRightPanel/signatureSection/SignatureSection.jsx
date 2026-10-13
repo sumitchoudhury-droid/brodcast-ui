@@ -18,8 +18,22 @@ import { ReusableButton } from "../../../../../../reusableComponents/resuableBut
 import { useBroadcastForm } from "../../../../broadcastFormContext";
 
 export default function SignatureSection({ editorRef, isEditorEmpty }) {
-  const { mailSubject, setMailSubject, mailSubjectError, setMailSubjectError } =
-    useBroadcastForm();
+  const {
+    mailSubject,
+    setMailSubject,
+    mailSubjectError,
+    setMailSubjectError,
+    importedTemplateName,
+    setImportedTemplateName,
+    newTemplateName,
+    selectedTemplateData
+  } = useBroadcastForm();
+
+  const displayTemplateName =
+    importedTemplateName ||
+    selectedTemplateData?.title ||
+    newTemplateName ||
+    "";
   const [signature, setSignature] = useState("");
   const [showFormsDropdown, setShowFormsDropdown] = useState(false);
   const [selectedForms, setSelectedForms] = useState([]);
@@ -416,6 +430,7 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
     setFormSearch("");
     setShowFormsDropdown(false);
     setExpandedForm(null);
+    setImportedTemplateName("");
   };
 
   const handleFormsCancel = () => {
@@ -432,6 +447,11 @@ export default function SignatureSection({ editorRef, isEditorEmpty }) {
   return (
     <>
       <div className="signatureSectionContainer">
+        {displayTemplateName && (
+          <div className="importedTemplateName">
+            Template: {displayTemplateName}
+          </div>
+        )}
         <ReusableInput
           // label="Mail Subject"
           placeholder="Enter Mail Subject (Required)"

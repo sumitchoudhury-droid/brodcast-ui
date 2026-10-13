@@ -10,11 +10,20 @@ import chevronRight from "../../../../../../assets/mainScreen/chevronRight.svg";
 // import { ReusableDropDown } from "../../../../../../reusableComponents/reusableDropDown/index";
 import { ReusableModal } from "../../../../../../reusableComponents/reusableModal/index";
 import { useToast } from "../../../../../../hooks/useToast";
+import { useBroadcastForm } from "../../../../broadcastFormContext";
 
 export default function TextSignatureSection({
   editorInstance
   // isEditorEmpty
 }) {
+  const { importedTemplateName, newTemplateName, selectedTemplateData } =
+    useBroadcastForm();
+
+  const displayTemplateName =
+    importedTemplateName ||
+    selectedTemplateData?.title ||
+    newTemplateName ||
+    "";
   // const [signature, setSignature] = useState("");
   const [showFormsDropdown, setShowFormsDropdown] = useState(false);
   const [selectedForms, setSelectedForms] = useState([]);
@@ -193,6 +202,11 @@ export default function TextSignatureSection({
   return (
     <>
       <div className="signatureSectionContainer">
+        {displayTemplateName && (
+          <div className="importedTemplateName">
+            Template: {displayTemplateName}
+          </div>
+        )}
         {/* <ReusableDropDown
           options={SignatureOptions}
           value={signature}

@@ -77,6 +77,7 @@ const FIELD_ACTIONS = {
   selectedEmailTemplateType: broadcastFormActions.setSelectedEmailTemplateType,
   mailSubject: broadcastFormActions.setMailSubject,
   mailSubjectError: broadcastFormActions.setMailSubjectError,
+  importedTemplateName: broadcastFormActions.setImportedTemplateName,
   isEmailEditorEmpty: broadcastFormActions.setIsEmailEditorEmpty,
   isSmsEditorEmpty: broadcastFormActions.setIsSmsEditorEmpty,
   isVoiceEditorEmpty: broadcastFormActions.setIsVoiceEditorEmpty

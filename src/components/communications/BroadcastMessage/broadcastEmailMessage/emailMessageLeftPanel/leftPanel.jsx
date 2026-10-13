@@ -27,6 +27,7 @@ import {
 import SkeletonLoader from "../../../../../reusableComponents/reusableSkeletonLoader/SkeletonLoader";
 import { EmojiSection } from "./emojiSection";
 import { PlaceHolderSection } from "./placeHolderSection";
+import { useBroadcastForm } from "../../../broadcastFormContext";
 
 const tabOptions = [
   { label: "Library", value: "library" },
@@ -95,6 +96,7 @@ export default function LeftPanel({
   const [isImporting, setIsImporting] = useState(false);
 
   const toast = useToast();
+  const { setImportedTemplateName } = useBroadcastForm();
 
   // Swallow error in queryFn so the global queryCache.onError does not fire —
   // lets us show a custom toast instead of the server message.
@@ -224,6 +226,7 @@ export default function LeftPanel({
       if (templateBody) {
         editorRef?.current?.loadTemplate?.(templateBody);
         if (subjectLine != null) setMailSubject?.(subjectLine);
+        setImportedTemplateName(pendingTemplate.name ?? "");
         setTab("blocks");
       }
     } finally {
