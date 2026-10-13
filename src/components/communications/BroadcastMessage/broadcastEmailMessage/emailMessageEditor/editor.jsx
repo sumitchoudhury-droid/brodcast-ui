@@ -42,7 +42,7 @@ const EMPTY_TEMPLATE = `
 const SIGNATURE_SECTION_HTML = `<mj-section full-width="full-width" data-type="signature-section" padding="0px" padding-top="0px" padding-right="0px" padding-bottom="0px" padding-left="0px" margin="0px" width="100%" background-color="transparent">
   <mj-column padding="0px" margin="0px" width="100%">
     <mj-text padding="16px" margin="0px" color="#181D25" font-size="16px" font-weight="500" font-family="Arial" line-height="20px">
-      Add Signature
+      <div data-placeholder="Add Signature"></div>
     </mj-text>
   </mj-column>
 </mj-section>`;
