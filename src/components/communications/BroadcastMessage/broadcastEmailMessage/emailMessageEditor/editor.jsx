@@ -11,6 +11,7 @@ import "grapesjs/dist/css/grapes.min.css";
 import emptyTemplateIcon from "../../../../../assets/editor/emptyTemplate.svg";
 import pdfIcon from "../../../../../assets/mainScreen/pdfImage.svg";
 import uploadImage from "../../../../../assets/commonIcons/uploadImage.svg";
+import deleteIconUrl from "../../../../../assets/commonIcons/deleteIcon.svg";
 
 import underlineIcon from "../../../../../assets/textStyleIcons/underlineIcon.svg";
 import italicIcon from "../../../../../assets/textStyleIcons/italicIcon.svg";
@@ -2929,6 +2930,124 @@ export default function Editor({
           imageInputRef.current?.click();
         }
       }
+    });
+
+    // ── Row / Column / Heading / Paragraph / Button delete toolbar button ───
+    // Resolves the top-level section to remove when the delete icon is
+    // clicked. Supports:
+    //   - Row:       mj-section wrapping mj-column[data-type="row-frame-column"]
+    //   - Column:    mj-section[data-type="column-frame-section"]
+    //   - Heading/Paragraph/Button:
+    //                mj-section > mj-column > mj-text|mj-button where the
+    //                section is a direct child of mj-body (standalone block)
+    const getFrameSection = (comp) => {
+      if (!comp) return null;
+      const attrs = comp.getAttributes?.() || {};
+      const type = comp.get?.("type");
+
+      if (attrs["data-type"] === "row-frame-column") return comp.parent();
+      if (attrs["data-type"] === "column-frame-section") return comp;
+
+      if (type === "mj-section") {
+        let hasRowFrame = false;
+        comp.components().each((c) => {
+          if (c.getAttributes?.()?.["data-type"] === "row-frame-column") {
+            hasRowFrame = true;
+          }
+        });
+        if (hasRowFrame) return comp;
+      }
+
+      // Heading / Paragraph / Button: walk up from the selected descendant
+      // (which may be the inner placeholder div, the mj-text, or the
+      // mj-button) to the enclosing standalone mj-section — direct child of
+      // mj-body, not a frame / signature / attachment, holding mj-column >
+      // mj-text|mj-button.
+      let ancestor = comp;
+      while (ancestor) {
+        if (ancestor.get?.("type") === "mj-section") {
+          const dt = ancestor.getAttributes?.()?.["data-type"];
+          if (
+            dt === "signature-section" ||
+            dt === "column-frame-section" ||
+            dt === "attachment-filled"
+          )
+            return null;
+          let hasRowFrame = false;
+          ancestor.components().each((c) => {
+            if (c.getAttributes?.()?.["data-type"] === "row-frame-column") {
+              hasRowFrame = true;
+            }
+          });
+          if (hasRowFrame) return null;
+          if (ancestor.parent()?.get?.("type") !== "mj-body") return null;
+          let hasContent = false;
+          ancestor.components().each((col) => {
+            if (col.get?.("type") === "mj-column") {
+              col.components().each((t) => {
+                const tType = t.get?.("type");
+                if (tType === "mj-text" || tType === "mj-button") {
+                  hasContent = true;
+                }
+              });
+            }
+          });
+          return hasContent ? ancestor : null;
+        }
+        ancestor = ancestor.parent();
+      }
+
+      return null;
+    };
+
+    const toggleRowToolbarVisibility = (visible) => {
+      const apply = () => {
+        const container = editor.getContainer?.();
+        const toolbarEl = container?.querySelector?.(".gjs-toolbar");
+        if (toolbarEl) toolbarEl.classList.toggle("rowToolbarVisible", visible);
+      };
+      apply();
+      // Re-apply next tick to cover cases where the toolbar is (re)rendered
+      // after selection — e.g. mj-text when RTE activation kicks in.
+      setTimeout(apply, 0);
+    };
+
+    const ROW_DELETE_CMD = "row-delete";
+    if (!editor.Commands.has(ROW_DELETE_CMD)) {
+      editor.Commands.add(ROW_DELETE_CMD, {
+        run(ed) {
+          const frame = getFrameSection(ed.getSelected());
+          if (frame) {
+            frame.remove();
+            ed.select(null);
+            toggleRowToolbarVisibility(false);
+          }
+        }
+      });
+    }
+
+    const ROW_DELETE_SVG = `<img src="${deleteIconUrl}" alt="Delete" class="rowDeleteToolbarIcon" />`;
+
+    editor.on("component:selected", (cmp) => {
+      const isFrame = !!getFrameSection(cmp);
+      toggleRowToolbarVisibility(isFrame);
+      if (!isFrame) return;
+      cmp.set("toolbar", [
+        {
+          attributes: { title: "Delete", class: "rowDeleteToolbarBtn" },
+          command: ROW_DELETE_CMD,
+          label: ROW_DELETE_SVG
+        }
+      ]);
+    });
+
+    editor.on("component:deselected", () => {
+      // GrapesJS fires deselect/select around selection swaps — defer so the
+      // next selection (if any) has settled before we decide to hide.
+      setTimeout(() => {
+        const current = editor.getSelected();
+        toggleRowToolbarVisibility(!!getFrameSection(current));
+      }, 0);
     });
 
     // ── Text-selection fix for mj-text / mj-button ────────────────────────────
