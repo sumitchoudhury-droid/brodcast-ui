@@ -16,10 +16,10 @@ import underlineIcon from "../../../../../assets/textStyleIcons/underlineIcon.sv
 import italicIcon from "../../../../../assets/textStyleIcons/italicIcon.svg";
 import strikethroughIcon from "../../../../../assets/textStyleIcons/strikethroughIcon.svg";
 import highlightIcon from "../../../../../assets/textStyleIcons/highlightIcon.svg";
-import codeIcon from "../../../../../assets/textStyleIcons/codeIcon.svg";
+// import codeIcon from "../../../../../assets/textStyleIcons/codeIcon.svg";
 import subscriptIcon from "../../../../../assets/textStyleIcons/subscriptIcon.svg";
 import superscriptIcon from "../../../../../assets/textStyleIcons/superscriptIcon.svg";
-import linkIcon from "../../../../../assets/commonIcons/externalLinkIcon.svg";
+import linkIcon from "../../../../../assets/textStyleIcons/linkIcon.svg";
 import imgIcon from "../../../../../assets/commonIcons/imgIcon.svg";
 
 import "../style.scss";
@@ -869,6 +869,7 @@ export default function Editor({
       !url.includes("://") &&
       !url.startsWith("#") &&
       !url.startsWith("/") &&
+      !url.startsWith("$") &&
       !url.startsWith("mailto:") &&
       !url.startsWith("tel:")
     ) {
@@ -2350,22 +2351,22 @@ export default function Editor({
         }
       });
 
-      rte.add("code", {
-        icon: `<img src="${codeIcon}" width="18" height="18" />`,
-        attributes: { title: "Code Block" },
-        result: (rteInstance) => {
-          const selection = rteInstance.selection();
-          if (selection) {
-            rteInstance.insertHTML(
-              `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">${selection}</code>`
-            );
-          } else {
-            rteInstance.insertHTML(
-              `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">&nbsp;</code>`
-            );
-          }
-        }
-      });
+      // rte.add("code", {
+      //   icon: `<img src="${codeIcon}" width="18" height="18" />`,
+      //   attributes: { title: "Code Block" },
+      //   result: (rteInstance) => {
+      //     const selection = rteInstance.selection();
+      //     if (selection) {
+      //       rteInstance.insertHTML(
+      //         `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">${selection}</code>`
+      //       );
+      //     } else {
+      //       rteInstance.insertHTML(
+      //         `<code style="background-color: #f4f4f4; color: #d63384; padding: 2px 4px; border-radius: 4px; font-family: monospace;">&nbsp;</code>`
+      //       );
+      //     }
+      //   }
+      // });
 
       rte.add("link", {
         icon: `<img src="${linkIcon}" width="18" height="18" />`,

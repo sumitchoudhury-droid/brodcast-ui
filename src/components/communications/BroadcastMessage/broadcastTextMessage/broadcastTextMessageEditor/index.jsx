@@ -1148,6 +1148,7 @@ const BroadcastTextMessageEditor = ({
       !url.includes("://") &&
       !url.startsWith("#") &&
       !url.startsWith("/") &&
+      !url.startsWith("$") &&
       !url.startsWith("mailto:") &&
       !url.startsWith("tel:")
     ) {
