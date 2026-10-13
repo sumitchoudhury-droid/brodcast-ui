@@ -224,6 +224,7 @@ export default function LeftPanel({
       if (templateBody) {
         editorRef?.current?.loadTemplate?.(templateBody);
         if (subjectLine != null) setMailSubject?.(subjectLine);
+        setTab("blocks");
       }
     } finally {
       setIsImporting(false);
