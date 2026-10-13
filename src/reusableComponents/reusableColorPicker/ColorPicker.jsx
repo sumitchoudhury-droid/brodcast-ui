@@ -200,6 +200,13 @@ export function ColorPicker({ color, onChange, defaultColors = [] }) {
         <div className="documentColors">
           <p className="documentColorsLabel">Default colors</p>
           <div className="documentColorSwatches">
+            <div
+              className={`documentSwatch transparentSwatch ${
+                color?.toLowerCase() === "transparent" ? "active" : ""
+              }`}
+              title="Transparent (no background)"
+              onClick={() => onChange("transparent")}
+            />
             {defaultColors.map((c) => (
               <div
                 key={c}

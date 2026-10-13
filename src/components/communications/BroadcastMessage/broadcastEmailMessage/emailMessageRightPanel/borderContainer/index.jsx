@@ -63,6 +63,24 @@ const BorderContainer = ({
     };
   }, [showColorPopover]);
 
+  useEffect(() => {
+    if (!showColorPopover) return;
+    const updatePos = () => {
+      if (!anchorRef.current) return;
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPopoverPos({
+        bottom: window.innerHeight - rect.top + 6,
+        left: rect.left
+      });
+    };
+    window.addEventListener("scroll", updatePos, true);
+    window.addEventListener("resize", updatePos);
+    return () => {
+      window.removeEventListener("scroll", updatePos, true);
+      window.removeEventListener("resize", updatePos);
+    };
+  }, [showColorPopover]);
+
   const borderOptions = [
     { value: "solid", label: "Solid" },
     { value: "dashed", label: "Dashed" },

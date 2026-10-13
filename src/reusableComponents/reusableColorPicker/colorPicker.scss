@@ -126,6 +126,17 @@
             0 0 0 2px #fff,
             0 0 0 4px #3b82f6;
         }
+
+        &.transparentSwatch {
+          background-color: #fff;
+          background-image: linear-gradient(
+            to top right,
+            transparent calc(50% - 1.5px),
+            #020202 calc(50% - 1.5px),
+            #000000 calc(50% + 1.5px),
+            transparent calc(50% + 1.5px)
+          );
+        }
       }
     }
   }
