@@ -54,6 +54,7 @@ const initialState = {
 
   mailSubject: "",
   mailSubjectError: false,
+  importedTemplateName: "",
 
   isEmailEditorEmpty: true,
   isSmsEditorEmpty: true,
@@ -123,6 +124,7 @@ const broadcastFormSlice = createSlice({
     setSelectedEmailTemplateType: makeSetter("selectedEmailTemplateType"),
     setMailSubject: makeSetter("mailSubject"),
     setMailSubjectError: makeSetter("mailSubjectError"),
+    setImportedTemplateName: makeSetter("importedTemplateName"),
     setIsEmailEditorEmpty: makeSetter("isEmailEditorEmpty"),
     setIsSmsEditorEmpty: makeSetter("isSmsEditorEmpty"),
     setIsVoiceEditorEmpty: makeSetter("isVoiceEditorEmpty")

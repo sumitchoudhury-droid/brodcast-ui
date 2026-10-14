@@ -94,6 +94,21 @@ export const TextFontStyleContainer = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showColorPopover]);
 
+  useEffect(() => {
+    if (!showColorPopover) return;
+    const updatePos = () => {
+      if (!anchorRef.current) return;
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPopoverPos({ top: rect.bottom + 6, left: rect.left });
+    };
+    window.addEventListener("scroll", updatePos, true);
+    window.addEventListener("resize", updatePos);
+    return () => {
+      window.removeEventListener("scroll", updatePos, true);
+      window.removeEventListener("resize", updatePos);
+    };
+  }, [showColorPopover]);
+
   const handleSelectFontFamily = (font) => {
     handleTypographyChange("fontFamily", font);
     setIsFontFamilyOpen(false);
