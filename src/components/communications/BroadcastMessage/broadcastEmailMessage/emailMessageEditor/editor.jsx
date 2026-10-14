@@ -2958,6 +2958,35 @@ export default function Editor({
         if (hasRowFrame) return comp;
       }
 
+      // Content dropped inside a frame: the block:drag:stop fixup unwraps the
+      // original mj-section so the leaf lives directly inside a row-frame-column
+      // (as a leaf) or inside an auto-created mj-column within a column-frame-
+      // section. Walk up to the frame's direct child so delete removes just
+      // that item instead of the whole frame.
+      const nearestFrame = findNearestFrame(comp);
+      if (nearestFrame) {
+        const frameDt = nearestFrame.getAttributes?.()?.["data-type"];
+        let candidate = comp;
+        while (candidate && candidate.parent() !== nearestFrame) {
+          candidate = candidate.parent();
+        }
+        if (candidate && candidate !== nearestFrame) {
+          const candidateType = candidate.get?.("type");
+          if (
+            frameDt === "row-frame-column" &&
+            COLUMN_VALID_CHILDREN.includes(candidateType)
+          ) {
+            return candidate;
+          }
+          if (
+            frameDt === "column-frame-section" &&
+            candidateType === "mj-column"
+          ) {
+            return candidate;
+          }
+        }
+      }
+
       // Heading / Paragraph / Button: walk up from the selected descendant
       // (which may be the inner placeholder div, the mj-text, or the
       // mj-button) to the enclosing standalone mj-section — direct child of
