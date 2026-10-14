@@ -2945,7 +2945,15 @@ export default function Editor({
       const attrs = comp.getAttributes?.() || {};
       const type = comp.get?.("type");
 
-      if (attrs["data-type"] === "row-frame-column") return comp.parent();
+      // In MJML mode a Row block is <mj-section><mj-column data-type=
+      // "row-frame-column">…</mj-column></mj-section>, so the deletable node
+      // is the outer section. In HTML mode the Row block is a single
+      // <div data-type="row-frame-column"> with no outer wrapper, so the div
+      // itself is the deletable node — returning its parent would nuke the
+      // body wrapper.
+      if (attrs["data-type"] === "row-frame-column") {
+        return isHtmlTemplate.current ? comp : comp.parent();
+      }
       if (attrs["data-type"] === "column-frame-section") return comp;
 
       if (type === "mj-section") {
@@ -2972,6 +2980,20 @@ export default function Editor({
         }
         if (candidate && candidate !== nearestFrame) {
           const candidateType = candidate.get?.("type");
+          // HTML template mode: compiled HTML stores leaves as plain
+          // <div>/<img>/<p>/<a>/<table> components without mj-* types, so
+          // the type-based match below never fires. The frame's data-type
+          // boundary is still intact (attrs survive the MJML→HTML compile),
+          // so trust it and return the direct frame child. Blast radius
+          // stays inside the user-authored frame.
+          if (
+            isHtmlTemplate.current &&
+            candidateType !== "textnode" &&
+            (frameDt === "row-frame-column" ||
+              frameDt === "column-frame-section")
+          ) {
+            return candidate;
+          }
           if (
             frameDt === "row-frame-column" &&
             COLUMN_VALID_CHILDREN.includes(candidateType)
