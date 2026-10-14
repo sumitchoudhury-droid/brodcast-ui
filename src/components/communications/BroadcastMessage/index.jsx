@@ -94,10 +94,17 @@ function BroadcastMessageInner({ handleCancel }) {
           ? "Add SMS Message for Broadcast"
           : "Add Voice Message for Broadcast";
 
+  // Remount the editor subtree when the user picks a different template so
+  // GrapesJS reloads from the new template body. Same template re-entered →
+  // same key → in-progress edits are preserved across Back → Next.
+  const templateKey =
+    selectedTemplate?.id ?? `blank:${selectedTemplate?.title ?? ""}`;
+
   const renderBuilder = () => {
     if (selectedModes.length > 1) {
       return (
         <MultipleBroadMessages
+          key={templateKey}
           selectedModes={selectedModes}
           activeTab={activeTab}
           mountedModes={mountedModes}
@@ -119,6 +126,7 @@ function BroadcastMessageInner({ handleCancel }) {
     if (lowerModes.includes("mail")) {
       return (
         <BroadcastEmailMessage
+          key={templateKey}
           editorRef={emailEditorRef}
           handleLoadTemplate={handleLoadTemplate}
           showPlaceholders={showPlaceholders}
@@ -134,6 +142,7 @@ function BroadcastMessageInner({ handleCancel }) {
     if (lowerModes.includes("sms")) {
       return (
         <BroadcastTextMessage
+          key={templateKey}
           selectedTemplate={selectedTemplate}
           onEmptyChange={setTextEmpty}
           onEditorReady={handleTextEditorReady}
@@ -145,6 +154,7 @@ function BroadcastMessageInner({ handleCancel }) {
     if (lowerModes.includes("voice")) {
       return (
         <BroadcastTextVoiceMessage
+          key={templateKey}
           selectedTemplate={selectedTemplate}
           onEmptyChange={setVoiceEmpty}
         />
