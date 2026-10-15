@@ -14,6 +14,7 @@ import {
   isEmailInvalid,
   isNameInvalid,
   isDobInvalid,
+  isBalanceAmountInvalid,
   formatPhone
 } from "../uploadFileUtils";
 import CloseButton from "../../../../../assets/commonIcons/CloseButton.svg";
@@ -27,6 +28,19 @@ const formatDob = (value) => {
   if (digits.length <= 2) return digits;
   if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
+
+const sanitizeBalanceAmount = (value) => {
+  const str = String(value ?? "");
+  let cleaned = str.replace(/[^0-9.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+  if (firstDot !== -1) {
+    cleaned =
+      cleaned.slice(0, firstDot + 1) +
+      cleaned.slice(firstDot + 1).replace(/\./g, "");
+  }
+  const [whole, decimal] = cleaned.split(".");
+  return decimal === undefined ? whole : `${whole}.${decimal.slice(0, 2)}`;
 };
 
 const SortIcon = ({ columnKey, sortConfig }) => {
@@ -92,6 +106,8 @@ const buildErrorMessage = (patient) => {
     errors.push("Invalid Date of Birth (MM/DD/YYYY)");
   if (isPhoneInvalid(patient.phone)) errors.push("Invalid Mobile Number");
   if (isEmailInvalid(patient.email)) errors.push("Invalid Email Address");
+  if (isBalanceAmountInvalid(patient.balanceAmount))
+    errors.push("Invalid Balance Amount");
   return errors.join(", ");
 };
 
@@ -154,7 +170,22 @@ const UploadFileViewList = ({
     setIsEditMode(true);
   };
 
+  const hasEditErrors = useMemo(
+    () =>
+      editPatients.some(
+        (p) => isNameInvalid(p.firstName) || isNameInvalid(p.lastName)
+      ),
+    [editPatients]
+  );
+
   const handleSaveEdits = () => {
+    if (hasEditErrors) {
+      toast.error(
+        "Unresolved Errors",
+        "Please provide a valid First Name and Last Name for all rows before saving."
+      );
+      return;
+    }
     setPatients(editPatients);
     setIsEditMode(false);
     toast.success(
@@ -233,7 +264,9 @@ const UploadFileViewList = ({
             ? formatDob(value)
             : field === "phone"
               ? formatPhone(value)
-              : value
+              : field === "balanceAmount"
+                ? sanitizeBalanceAmount(value)
+                : value
       };
       updated.reason = computeReason(updated);
       return updated;
@@ -467,9 +500,12 @@ const UploadFileViewList = ({
                       <SortIcon columnKey="email" sortConfig={sortConfig} />
                     </div>
                   </th>
-                  <th onClick={() => handleSort("balanceAmount")}>
+                  <th
+                    className="balanceCell"
+                    onClick={() => handleSort("balanceAmount")}
+                  >
                     <div className="headerCell">
-                      Balance Amount{" "}
+                      Balance Amount ($){" "}
                       <SortIcon
                         columnKey="balanceAmount"
                         sortConfig={sortConfig}
@@ -499,7 +535,12 @@ const UploadFileViewList = ({
                       "email",
                       "balanceAmount"
                     ].map((field) => (
-                      <th key={field}>
+                      <th
+                        key={field}
+                        className={
+                          field === "balanceAmount" ? "balanceCell" : ""
+                        }
+                      >
                         <div className="search-input-wrapper">
                           <input
                             type="text"
@@ -596,9 +637,12 @@ const UploadFileViewList = ({
                             className="editInput"
                           />
                         </td>
-                        <td className="editableCell">
+                        <td
+                          className={`editableCell balanceCell ${newPatient.balanceAmount != null && newPatient.balanceAmount !== "" && isBalanceAmountInvalid(newPatient.balanceAmount) ? "invalidCell" : ""}`}
+                        >
                           <input
                             type="text"
+                            inputMode="decimal"
                             placeholder="Balance Amount"
                             value={
                               newPatient.balanceAmount == null
@@ -611,7 +655,7 @@ const UploadFileViewList = ({
                                 e.target.value
                               )
                             }
-                            className="editInput"
+                            className={`editInput${newPatient.balanceAmount != null && newPatient.balanceAmount !== "" && isBalanceAmountInvalid(newPatient.balanceAmount) ? " editInput--invalid" : ""}`}
                           />
                         </td>
                         <td>
@@ -641,6 +685,9 @@ const UploadFileViewList = ({
                   const firstNameErr = isNameInvalid(patient.firstName);
                   const lastNameErr = isNameInvalid(patient.lastName);
                   const dobErr = isDobInvalid(patient.dob);
+                  const balanceErr = isBalanceAmountInvalid(
+                    patient.balanceAmount
+                  );
 
                   return (
                     <tr
@@ -766,23 +813,29 @@ const UploadFileViewList = ({
                           highlightText(patient.email, filters.email)
                         )}
                       </td>
-                      <td className={isEditMode ? "editableCell" : ""}>
+                      <td
+                        className={`balanceCell ${balanceErr ? "invalidCell" : ""} ${isEditMode ? "editableCell" : ""}`}
+                      >
                         {isEditMode ? (
                           <input
                             type="text"
+                            inputMode="decimal"
                             value={
                               patient.balanceAmount == null
                                 ? ""
                                 : patient.balanceAmount
                             }
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const sanitized = sanitizeBalanceAmount(
+                                e.target.value
+                              );
                               handleCellEdit(
                                 patient.id,
                                 "balanceAmount",
-                                e.target.value === "" ? null : e.target.value
-                              )
-                            }
-                            className="editInput"
+                                sanitized === "" ? null : sanitized
+                              );
+                            }}
+                            className={`editInput${balanceErr ? " editInput--invalid" : ""}`}
                           />
                         ) : patient.balanceAmount == null ? (
                           ""

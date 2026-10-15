@@ -21,6 +21,18 @@ export const isNameInvalid = (name) => {
   return !NAME_REGEX.test(trimmed);
 };
 
+export const isBalanceAmountInvalid = (balance) => {
+  if (
+    balance === null ||
+    balance === undefined ||
+    balance === "" ||
+    balance === "-"
+  )
+    return false;
+  const str = String(balance).trim();
+  return !/^\d+(\.\d{1,2})?$/.test(str);
+};
+
 export const isDobInvalid = (dob) => {
   if (!dob || dob === "-") return true;
   const str = String(dob).trim();
@@ -47,6 +59,8 @@ export const computeReason = (patient) => {
   if (isDobInvalid(patient.dob)) errors.push("DOB");
   if (isPhoneInvalid(patient.phone)) errors.push("Phone");
   if (isEmailInvalid(patient.email)) errors.push("Email");
+  if (isBalanceAmountInvalid(patient.balanceAmount))
+    errors.push("Balance Amount");
   return errors.length > 0 ? `Invalid: ${errors.join(", ")}` : "-";
 };
 
