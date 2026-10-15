@@ -68,7 +68,8 @@
     "ETSI",
     "trackpad",
     "blankrows",
-    "textnodes"
+    "textnodes",
+    "behaviour"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

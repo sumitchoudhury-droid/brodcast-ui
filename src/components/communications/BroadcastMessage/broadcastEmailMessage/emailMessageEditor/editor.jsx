@@ -176,6 +176,72 @@ function findNearestColumnFrame(comp) {
   return null;
 }
 
+// Resolve the specific block (one of several siblings in a frame) that
+// contains `comp` when the frame's direct child is a wrapping <table>
+// produced by MJML compilation. Used by getFrameSection in HTML template
+// mode so delete removes just the clicked item instead of every item in
+// the frame.
+//   row-frame-column: siblings are <tr> rows directly under <tbody>/<table>.
+//   column-frame-section: siblings are column divs directly under the
+//                         single <td> inside <tbody>/<table>.
+// Returns null when `candidate` isn't an MJML wrapping table (e.g. the
+// user has added content directly in HTML mode as plain divs) — the
+// caller falls back to the direct-child candidate in that case.
+function refineHtmlBlockCandidate(candidate, comp, frameDt) {
+  const tagOf = (c) => c?.get?.("tagName")?.toLowerCase?.();
+  if (tagOf(candidate) !== "table") return null;
+
+  if (frameDt === "row-frame-column") {
+    let p = comp;
+    while (p && p !== candidate) {
+      if (tagOf(p) === "tr") {
+        const parent = p.parent?.();
+        if (parent === candidate) return p;
+        if (tagOf(parent) === "tbody" && parent.parent?.() === candidate) {
+          return p;
+        }
+      }
+      p = p.parent?.();
+    }
+    return null;
+  }
+
+  if (frameDt === "column-frame-section") {
+    // The section's wrapping table has the shape
+    //   table > tbody? > tr > td > [column divs]
+    // where the final <td> directly contains the column siblings. Find
+    // that td by walking the first non-textnode child chain from the
+    // table, then return comp's ancestor whose parent is that td — i.e.
+    // the specific column.
+    const firstChild = (c) => {
+      let found = null;
+      c.components?.().each?.((child) => {
+        if (!found && child.get?.("type") !== "textnode") found = child;
+      });
+      return found;
+    };
+    let sectionTd = null;
+    let cur = candidate;
+    for (let depth = 0; depth < 4 && cur; depth++) {
+      cur = firstChild(cur);
+      if (!cur) break;
+      if (tagOf(cur) === "td") {
+        sectionTd = cur;
+        break;
+      }
+    }
+    if (!sectionTd) return null;
+    let p = comp;
+    while (p && p !== candidate) {
+      if (p.parent?.() === sectionTd) return p;
+      p = p.parent?.();
+    }
+    return null;
+  }
+
+  return null;
+}
+
 // Walk a component tree and collect every leaf-level content node
 function collectLeafContent(comp, results = []) {
   const type = comp.get("type");
@@ -1607,6 +1673,12 @@ export default function Editor({
     const suppressSigReconcile = { current: false };
     const suppressPaddingOverride = { current: false };
     const isEnsuringSig = { current: false };
+    // Set when the user explicitly deletes the signature via the delete
+    // toolbar. The reconciler skips re-adding the signature while this is
+    // true, so the delete stays sticky across subsequent edits. Reset on
+    // loadTemplate / clearAll so a fresh editor session re-enables the
+    // auto-signature behaviour.
+    const sigDeletedByUser = { current: false };
     let sigTimer = null;
     const scheduleSignatureReconcile = () => {
       if (suppressSigReconcile.current) return;
@@ -1662,6 +1734,7 @@ export default function Editor({
 
           if (!existingSig || lastComp !== existingSig) {
             if (!existingSig) {
+              if (sigDeletedByUser.current) return;
               mjBody.append(SIGNATURE_SECTION_HTML);
             } else {
               mjBody.append(existingSig);
@@ -1958,8 +2031,19 @@ export default function Editor({
         return;
       }
 
-      // Trigger signature reconcile so it stays at the bottom
-      if (type === "mj-section" && comp.parent()?.get("type") === "mj-body") {
+      // User added real content (not a textnode, not a reconciler-driven
+      // add). Clear the sticky-delete flag so the signature auto-reappears
+      // whenever the editor isn't empty — matches the user flow of
+      // "delete signature → add anything → signature should come back".
+      // Also kick the reconciler regardless of nesting depth so inner-
+      // frame drops bring the signature back too.
+      const userDrivenAdd =
+        type !== "textnode" &&
+        !isEnsuringSig.current &&
+        !isUnwrapping.current &&
+        !suppressSigReconcile.current;
+      if (userDrivenAdd) {
+        sigDeletedByUser.current = false;
         scheduleSignatureReconcile();
       }
 
@@ -2940,6 +3024,49 @@ export default function Editor({
     //   - Heading/Paragraph/Button:
     //                mj-section > mj-column > mj-text|mj-button where the
     //                section is a direct child of mj-body (standalone block)
+    // Walk up to the section-wrapper block — the compiled equivalent of one
+    // mj-section (the deletable unit from the user's perspective). Used in
+    // HTML-template mode: saved templates arrive as compiled MJML wrapped
+    // in several outer-layout <div>s that the GrapesJS canvas adds, so the
+    // "sections container" (the ancestor whose children are the siblings)
+    // is deep inside the component tree rather than at the root.
+    //
+    // Strategy: walk up from comp and return the first ancestor whose
+    // parent has more than one non-text child. That parent is the sections
+    // container and the returned ancestor is exactly one section — the
+    // right thing to delete. If we never find siblings (e.g. comp sits
+    // above the container), return null so the delete toolbar stays off
+    // the whole-document level.
+    const findTopLevelBlock = (comp) => {
+      if (!comp) return null;
+      const root = editor.getWrapper?.();
+      const countBlocks = (c) => {
+        let n = 0;
+        c.components?.().each?.((ch) => {
+          if (ch.get?.("type") !== "textnode") n++;
+        });
+        return n;
+      };
+
+      let node = comp;
+      // Hard cap to avoid pathological trees; 32 levels is far beyond any
+      // real template depth we've seen.
+      for (let depth = 0; depth < 32 && node; depth++) {
+        const parent = node.parent?.();
+        if (!parent) return null;
+        if (countBlocks(parent) > 1) {
+          // Safeguard: never return a direct child of the GrapesJS root
+          // (that's a top-level canvas div like the mj-body background
+          // layer — deleting it clears the whole document). If we got
+          // here, comp sat above the actual sections container.
+          if (parent === root) return null;
+          return node;
+        }
+        node = parent;
+      }
+      return null;
+    };
+
     const getFrameSection = (comp) => {
       if (!comp) return null;
       const attrs = comp.getAttributes?.() || {};
@@ -2947,14 +3074,24 @@ export default function Editor({
 
       // In MJML mode a Row block is <mj-section><mj-column data-type=
       // "row-frame-column">…</mj-column></mj-section>, so the deletable node
-      // is the outer section. In HTML mode the Row block is a single
-      // <div data-type="row-frame-column"> with no outer wrapper, so the div
-      // itself is the deletable node — returning its parent would nuke the
-      // body wrapper.
+      // is the outer section. In HTML mode, the row-frame-column div can be
+      // either standalone (fresh HTML block) or inside an MJML-compiled
+      // outer wrapper (saved template). Walking up to the top-level block
+      // covers both cases cleanly: for standalone the walk returns comp
+      // itself; for compiled templates it returns the outer wrapper so the
+      // whole row is removed instead of leaving an empty shell.
       if (attrs["data-type"] === "row-frame-column") {
-        return isHtmlTemplate.current ? comp : comp.parent();
+        if (!isHtmlTemplate.current) return comp.parent();
+        return findTopLevelBlock(comp) || comp;
       }
-      if (attrs["data-type"] === "column-frame-section") return comp;
+      if (attrs["data-type"] === "column-frame-section") {
+        if (!isHtmlTemplate.current) return comp;
+        return findTopLevelBlock(comp) || comp;
+      }
+      if (attrs["data-type"] === "signature-section") {
+        if (!isHtmlTemplate.current) return comp;
+        return findTopLevelBlock(comp) || comp;
+      }
 
       if (type === "mj-section") {
         let hasRowFrame = false;
@@ -2983,15 +3120,24 @@ export default function Editor({
           // HTML template mode: compiled HTML stores leaves as plain
           // <div>/<img>/<p>/<a>/<table> components without mj-* types, so
           // the type-based match below never fires. The frame's data-type
-          // boundary is still intact (attrs survive the MJML→HTML compile),
-          // so trust it and return the direct frame child. Blast radius
-          // stays inside the user-authored frame.
+          // boundary is still intact (attrs survive the MJML→HTML compile).
           if (
             isHtmlTemplate.current &&
             candidateType !== "textnode" &&
             (frameDt === "row-frame-column" ||
               frameDt === "column-frame-section")
           ) {
+            // Templates saved from this editor are MJML-compiled: a
+            // row-frame-column (mj-column) renders as a <div> whose single
+            // child is a <table> holding each content item as a sibling
+            // <tr>, and a column-frame-section (mj-section) renders as a
+            // <div> whose single child is a <table> whose single <td> holds
+            // the column divs as siblings. In both cases `candidate` is
+            // that wrapping <table>, so returning it would delete every
+            // sibling in the frame. Descend to find the specific block
+            // that contains comp and return that instead.
+            const refined = refineHtmlBlockCandidate(candidate, comp, frameDt);
+            if (refined) return refined;
             return candidate;
           }
           if (
@@ -3009,21 +3155,20 @@ export default function Editor({
         }
       }
 
-      // Heading / Paragraph / Button: walk up from the selected descendant
-      // (which may be the inner placeholder div, the mj-text, or the
-      // mj-button) to the enclosing standalone mj-section — direct child of
-      // mj-body, not a frame / signature / attachment, holding mj-column >
-      // mj-text|mj-button.
+      // Heading / Paragraph / Button / Signature: walk up from the
+      // selected descendant (which may be the inner placeholder div, the
+      // mj-text, or the mj-button) to the enclosing mj-section — direct
+      // child of mj-body. Signature sections hit this path too so the
+      // delete icon appears when clicking inside the signature in MJML
+      // mode; column-frame-section / attachment-filled remain excluded
+      // because they are handled by their own data-type branches above.
       let ancestor = comp;
       while (ancestor) {
         if (ancestor.get?.("type") === "mj-section") {
           const dt = ancestor.getAttributes?.()?.["data-type"];
-          if (
-            dt === "signature-section" ||
-            dt === "column-frame-section" ||
-            dt === "attachment-filled"
-          )
+          if (dt === "column-frame-section" || dt === "attachment-filled")
             return null;
+          if (dt === "signature-section") return ancestor;
           let hasRowFrame = false;
           ancestor.components().each((c) => {
             if (c.getAttributes?.()?.["data-type"] === "row-frame-column") {
@@ -3048,6 +3193,28 @@ export default function Editor({
         ancestor = ancestor.parent();
       }
 
+      // HTML template mode fallback: standalone content at the top level
+      // (heading, paragraph, button, image, or an outer MJML-compiled
+      // section wrapper the user clicked) has no frame ancestor and no
+      // mj-section, so none of the branches above fire. Walk up to the
+      // body-level block so the delete toolbar appears and removes the
+      // whole item instead of leaving a dangling wrapper. Attachment
+      // blocks are managed through their own flow, so skip them to keep
+      // the delete toolbar off those.
+      if (isHtmlTemplate.current) {
+        const topLevel = findTopLevelBlock(comp);
+        if (topLevel) {
+          const topDt = topLevel.getAttributes?.()?.["data-type"];
+          if (
+            topDt === "attachment-filled" ||
+            topDt === "attachment-placeholder"
+          ) {
+            return null;
+          }
+          return topLevel;
+        }
+      }
+
       return null;
     };
 
@@ -3069,6 +3236,29 @@ export default function Editor({
         run(ed) {
           const frame = getFrameSection(ed.getSelected());
           if (frame) {
+            // If the user is removing the signature, remember that so the
+            // auto-reconciler doesn't re-add it on the next edit. Also
+            // check whether the frame contains a signature-section
+            // descendant (e.g. in HTML-template mode the deleted node is
+            // the outer wrapper around the compiled signature).
+            const dt = frame.getAttributes?.()?.["data-type"];
+            if (dt === "signature-section") {
+              sigDeletedByUser.current = true;
+            } else {
+              let hasSig = false;
+              const scan = (c) => {
+                if (hasSig) return;
+                if (
+                  c.getAttributes?.()?.["data-type"] === "signature-section"
+                ) {
+                  hasSig = true;
+                  return;
+                }
+                c.components?.().each?.(scan);
+              };
+              scan(frame);
+              if (hasSig) sigDeletedByUser.current = true;
+            }
             frame.remove();
             ed.select(null);
             toggleRowToolbarVisibility(false);
@@ -3317,6 +3507,7 @@ export default function Editor({
          */
         loadTemplate: (templateString) => {
           attachmentUrlsRef.current = [];
+          sigDeletedByUser.current = false;
           suppressSigReconcile.current = true;
           suppressPaddingOverride.current = true;
           const isMjmlTemplate = !!(
@@ -3340,6 +3531,7 @@ export default function Editor({
         },
         clearAll: () => {
           attachmentUrlsRef.current = [];
+          sigDeletedByUser.current = false;
           suppressSigReconcile.current = true;
           suppressPaddingOverride.current = true;
           isHtmlTemplate.current = false;
