@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import searchIcon from "../../../../../../assets/leftPanel/leftPanelSearch.svg";
 import placeholderIcon from "../../../../../../assets/leftPanel/leftPanelPlaceholders.svg";
 import { useBroadcastConfigGet } from "../../../../../../hooks/useBroadcastConfigGet";
@@ -6,10 +7,40 @@ import { ENDPOINTS } from "../../../../../../api/endpoints.js";
 import { BROADCAST_CONFIG_HEADERS } from "../../../../../../api/api.jsx";
 import "./style.scss";
 
+const PLACEHOLDER_WIDTH = 330;
+const PLACEHOLDER_HEIGHT = 438;
+const PLACEHOLDER_GAP = 8;
+
 export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
   const [search, setSearch] = useState("");
+  const [position, setPosition] = useState(null);
   const savedRangeRef = useRef(null);
   const iframeHasFocusRef = useRef(false);
+
+  // Anchor to the "Placeholders" trigger block and keep position in sync with
+  // layout changes (scroll inside the left panel, window resize, etc.). Using
+  // a portal + fixed positioning bypasses the overflow/stacking clipping that
+  // was hiding the popup where it crossed the editor pane.
+  useLayoutEffect(() => {
+    const trigger = document.querySelector(
+      '[data-block-id="customPlaceholders"]'
+    );
+    if (!trigger) return;
+    const update = () => {
+      const rect = trigger.getBoundingClientRect();
+      setPosition({
+        left: rect.left,
+        top: rect.top - PLACEHOLDER_GAP - PLACEHOLDER_HEIGHT
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, []);
 
   const { data: placeholdersData } = useBroadcastConfigGet(
     ["placeholders"],
@@ -354,8 +385,20 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
     document.addEventListener("mouseup", onMouseUp, true);
   };
 
-  return (
-    <div className="placeholderSection">
+  if (!position) return null;
+
+  return ReactDOM.createPortal(
+    <div
+      className="placeholderSection"
+      style={{
+        position: "fixed",
+        left: `${position.left}px`,
+        top: `${position.top}px`,
+        bottom: "auto",
+        width: `${PLACEHOLDER_WIDTH}px`,
+        height: `${PLACEHOLDER_HEIGHT}px`
+      }}
+    >
       <h3 className="placeholderTitle">Placeholders</h3>
 
       <div className="placeholderSearch">
@@ -398,6 +441,7 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
           </div>
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
