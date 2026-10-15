@@ -37,9 +37,16 @@ export function ReusableUpload({
   };
 
   /* ---------- DRAG DROP ---------- */
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
+    e.stopPropagation();
+    const droppedFile = e.dataTransfer.files?.[0];
     if (droppedFile) applyFile(droppedFile);
   };
 
@@ -66,7 +73,8 @@ export function ReusableUpload({
       <div
         className="uploadBox"
         onClick={() => inputRef.current.click()}
-        onDragOver={(e) => e.preventDefault()}
+        onDragEnter={handleDragOver}
+        onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
         <input
