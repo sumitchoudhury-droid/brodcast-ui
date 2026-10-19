@@ -2598,6 +2598,98 @@ export default function Editor({
         }
       });
 
+      // Re-activate RTE on single-click when the user clicks back onto an
+      // already-selected text component. Clicking a left-panel placeholder
+      // trigger (or any UI outside the iframe) fires GrapesJS's document-
+      // level onDisable listener, which strips contenteditable and sets
+      // rteEnabled=false. The component itself stays selected because
+      // .leftPanel is in safeSelectors, so component:selected does NOT
+      // re-fire on the next click — meaning the auto-activation hook at
+      // the bottom of this effect never runs. Without this handler the
+      // user has to double-click: the first click's native caret placement
+      // is dropped (target isn't contenteditable yet) and only the second
+      // click, now against an active RTE, lands a cursor.
+      //
+      // We call view.onActive(e) rather than our shared activateRteFor
+      // helper so GrapesJS's own enable() path receives the event. Its
+      // __toggleEffects uses event.clientX/clientY to place the caret
+      // atomically with setting contenteditable + focus — doing it any
+      // other way races the async enable() and the final focus() resets
+      // the selection we just set.
+      // Walk a GrapesJS component tree to find the deepest component whose
+      // view element contains the given DOM node. Used to resolve the
+      // text-editable component for the click target even when GrapesJS has
+      // selected a parent (mj-section) instead of the mj-text itself, and
+      // when editor.getSelected() returns stale/null state after focus
+      // bounces between the iframe and the outer panels.
+      const findDeepestCompContaining = (node) => {
+        const wrapper = editor.getWrapper?.();
+        if (!wrapper || !node) return null;
+        let deepest = null;
+        const walk = (comp) => {
+          try {
+            const el = comp.getView?.()?.el;
+            if (!el || !el.contains(node)) return;
+            deepest = comp;
+            comp.components?.().each?.(walk);
+          } catch {
+            /* skip destroyed */
+          }
+        };
+        walk(wrapper);
+        return deepest;
+      };
+
+      // Re-activate RTE on single-click when the user clicks back onto an
+      // already-selected text component. Clicking a left-panel placeholder
+      // trigger (or any UI outside the iframe) fires GrapesJS's document-
+      // level onDisable listener, which strips contenteditable and resets
+      // RTE state. The component itself stays selected because .leftPanel
+      // is in safeSelectors, so component:selected does NOT re-fire on the
+      // next click — without this handler the user has to double-click.
+      //
+      // We resolve the clicked component by DOM traversal (not getSelected,
+      // which can lag or point at an ancestor), then call the RTE module's
+      // enable() directly. The default ComponentView's onActive is a no-op
+      // — only the extended TextView overrides it — so for HTML-template
+      // heading/paragraph blocks (which end up as data-gjs-type="default"
+      // when the "text" type's isComponent matcher skips the empty block)
+      // dispatching dblclick or calling onActive does nothing. rte.enable
+      // targets view.getChildrenContainer() and runs __toggleEffects,
+      // which sets contenteditable, places the caret via caretRangeFromPoint
+      // using the event's clientX/Y, and focuses — regardless of view class.
+      body.addEventListener("mousedown", (e) => {
+        const deepest = findDeepestCompContaining(e.target);
+        if (!deepest) return;
+        let comp = deepest;
+        while (comp && !isTextEditableComp(comp)) comp = comp.parent?.();
+        if (!comp) return;
+        const view = comp.getView?.();
+        if (!view?.el || view.rteEnabled) return;
+        // Pull focus into the iframe window — recovers from the "two-click"
+        // iframe quirk when focus was last on an outer panel.
+        const win = e.target.ownerDocument?.defaultView || window;
+        try {
+          win.focus?.();
+        } catch {
+          /* ignore */
+        }
+        try {
+          const rte = editor.RichTextEditor;
+          const result = rte.enable(view, view.activeRte, { event: e, view });
+          Promise.resolve(result)
+            .then((instance) => {
+              if (instance) view.activeRte = instance;
+              view.rteEnabled = true;
+            })
+            .catch(() => {
+              /* ignore */
+            });
+        } catch {
+          /* ignore */
+        }
+      });
+
       // ── Canvas click handler (for other elements) ──────────────────────────
       body.addEventListener("click", (e) => {
         // ── Image upload area click ───────────────────────────────────────
@@ -3329,8 +3421,11 @@ export default function Editor({
       try {
         const view = comp.getView?.();
         if (!view) return;
-        // Skip if RTE is already active for this view.
-        if (view.activeRte || view.rteActive) return;
+        // Skip if RTE is already active for this view. `rteEnabled` is the
+        // only field GrapesJS keeps in sync with the current RTE state —
+        // `activeRte` is set once after the first enable() resolves and is
+        // never cleared, so it can't be used as an "is active now" check.
+        if (view.rteEnabled) return;
         // Prefer the built-in onActive() hook exposed by MJML text/button
         // views (subclass of GrapesJS TextView). Fallback to dispatching a
         // synthetic double-click on the content element, which is what
