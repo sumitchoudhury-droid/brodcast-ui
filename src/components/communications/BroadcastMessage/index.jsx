@@ -24,14 +24,12 @@ import {
 // ];
 
 function BroadcastMessageInner({ handleCancel }) {
-  // TEMP: start on the email editor so it shows up as the default screen.
-  // Revert to "setup" / false to restore the Next-button flow.
-  const [currentStep, setCurrentStep] = useState("editor");
+  const [currentStep, setCurrentStep] = useState("setup");
   // Once the user has entered the editor, keep it mounted for the rest of the
   // session so its internal state (GrapesJS instance, text editor content,
   // attachments, etc.) survives Back → Next cycles. We just toggle visibility
   // with CSS instead of unmounting.
-  const [hasEnteredEditor, setHasEnteredEditor] = useState(true);
+  const [hasEnteredEditor, setHasEnteredEditor] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
   const [mountedModes, setMountedModes] = useState(() => new Set());
   const {
@@ -103,24 +101,6 @@ function BroadcastMessageInner({ handleCancel }) {
     selectedTemplate?.id ?? `blank:${selectedTemplate?.title ?? ""}`;
 
   const renderBuilder = () => {
-    // TEMP: force the email editor as the default view. Remove this block to
-    // restore mode-driven rendering.
-    if (selectedModes.length === 0) {
-      return (
-        <BroadcastEmailMessage
-          key={templateKey}
-          editorRef={emailEditorRef}
-          handleLoadTemplate={handleLoadTemplate}
-          showPlaceholders={showPlaceholders}
-          setShowPlaceholders={setShowPlaceholders}
-          isEditorEmpty={emptyMap.mail}
-          setIsEditorEmpty={setEmailEmpty}
-          onDirtyChange={handleDirtyChange}
-          selectedTemplate={selectedTemplate}
-        />
-      );
-    }
-
     if (selectedModes.length > 1) {
       return (
         <MultipleBroadMessages
