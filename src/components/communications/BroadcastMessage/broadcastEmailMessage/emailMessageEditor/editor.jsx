@@ -993,6 +993,25 @@ export default function Editor({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // GrapesJS's RichTextEditor module reuses a singleton `globalRte`
+    // across every view. Its `enable()` method short-circuits when
+    // `this.enabled` is already true — the next activation on a
+    // different element silently skips setting contenteditable, so the
+    // user sees the dropped block but can't type. Reset the flag (and
+    // let setEl handle the element swap on the next enable) before each
+    // module-level enable call. Safe no-op when globalRte isn't yet
+    // initialised.
+    const resetGlobalRte = (rteModule) => {
+      try {
+        const gr = rteModule?.globalRte;
+        if (gr?.enabled) {
+          gr.disable?.();
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
     const editor = grapesjs.init({
       container: containerRef.current,
       height: "100%",
@@ -2676,6 +2695,14 @@ export default function Editor({
         }
         try {
           const rte = editor.RichTextEditor;
+          // GrapesJS's RichTextEditor keeps a singleton `globalRte` whose
+          // `enabled` flag survives view switches. When activating on a NEW
+          // view, `globalRte.enable()` short-circuits (`if (this.enabled)
+          // return this;`) and the new element never gets
+          // contenteditable="true" — user sees the block but can't type.
+          // Force-disable the singleton first so the next enable() actually
+          // runs __toggleEffects against the new view's element.
+          resetGlobalRte(rte);
           const result = rte.enable(view, view.activeRte, { event: e, view });
           Promise.resolve(result)
             .then((instance) => {
@@ -3426,6 +3453,12 @@ export default function Editor({
         // `activeRte` is set once after the first enable() resolves and is
         // never cleared, so it can't be used as an "is active now" check.
         if (view.rteEnabled) return;
+        // GrapesJS's singleton globalRte stays `enabled=true` across view
+        // switches, which makes the next `enable()` short-circuit and
+        // leaves the new element without contenteditable. Clear it first
+        // (both for the native onActive path and the synthetic-dblclick
+        // fallback, both of which end up calling the same module API).
+        resetGlobalRte(editor.RichTextEditor);
         // Prefer the built-in onActive() hook exposed by MJML text/button
         // views (subclass of GrapesJS TextView). Fallback to dispatching a
         // synthetic double-click on the content element, which is what
