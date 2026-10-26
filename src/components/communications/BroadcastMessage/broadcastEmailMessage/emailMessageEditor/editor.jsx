@@ -997,19 +997,46 @@ export default function Editor({
     // across every view. Its `enable()` method short-circuits when
     // `this.enabled` is already true — the next activation on a
     // different element silently skips setting contenteditable, so the
-    // user sees the dropped block but can't type. Reset the flag (and
-    // let setEl handle the element swap on the next enable) before each
-    // module-level enable call. Safe no-op when globalRte isn't yet
-    // initialised.
+    // user sees the dropped block but can't type.
+    //
+    // Separately, the ComponentTextView that owns the previously-active
+    // text keeps `view.rteEnabled = true` (set via its toggleEvents
+    // helper during onActive). Because we drive activation through
+    // `rte.enable` directly rather than `view.onActive`, GrapesJS never
+    // calls `disableEditing` on the prior view when we switch — the flag
+    // outlives the actual RTE state, and the next click on that view
+    // short-circuits our own `if (view.rteEnabled) return` guard.
+    //
+    // So before every re-enable we both disable the global singleton
+    // (resetting its `enabled` flag so __toggleEffects runs on the new
+    // element) AND clear the stale `rteEnabled` on the view that was
+    // last active, so the user can come back to it and type again.
     const resetGlobalRte = (rteModule) => {
       try {
-        const gr = rteModule?.globalRte;
+        if (!rteModule) return;
+        const prevView = rteModule.model?.get?.("currentView");
+        if (prevView && prevView.rteEnabled) {
+          prevView.rteEnabled = false;
+        }
+        const gr = rteModule.globalRte;
         if (gr?.enabled) {
           gr.disable?.();
         }
       } catch {
         /* ignore */
       }
+    };
+
+    // Force the RTE toolbar to always sit directly below the active
+    // element. By default GrapesJS positions it above and only falls
+    // back to below when there's no room — near the canvas top it ends
+    // up centered on the block instead. The CanvasModule triggers
+    // `rteToolbarPosUpdate` with a mutable `result` object right before
+    // returning it, so overwriting `result.top` here changes the
+    // actual applied position.
+    const pinToolbarBelow = (result) => {
+      if (!result || !result.elRect) return;
+      result.top = result.elRect.height;
     };
 
     const editor = grapesjs.init({
@@ -1405,6 +1432,12 @@ export default function Editor({
         }
       }
     });
+
+    // Keep the RTE toolbar anchored under the active editable at all
+    // times. CanvasModule fires this before returning the computed
+    // position; we mutate `result.top` so the applied style places the
+    // toolbar directly below the element instead of above/centered.
+    editor.on("rteToolbarPosUpdate", pinToolbarBelow);
 
     // ── Override Asset Manager to use native file picker ─────────────────────
     editor.Commands.add("open-assets", {
@@ -3663,12 +3696,31 @@ export default function Editor({
           suppressSigReconcile.current = true;
           suppressPaddingOverride.current = true;
           isHtmlTemplate.current = false;
+          // Tear down any active RTE / selection first. Without this,
+          // deleting the tree out from under GrapesJS leaves the toolbar
+          // DOM (`gjs-rte-toolbar`, `gjs-toolbar-items`) parented to the
+          // old wrapper view — they stay visible after the canvas resets.
+          try {
+            editor.select(null);
+            const rte = editor.RichTextEditor;
+            resetGlobalRte(rte);
+            rte?.hideToolbar?.();
+          } catch {
+            /* ignore */
+          }
           try {
             editor.setComponents(EMPTY_TEMPLATE);
           } finally {
             setTimeout(() => {
               suppressSigReconcile.current = false;
               suppressPaddingOverride.current = false;
+              // Final safety sweep in case setComponents re-rendered the
+              // toolbar from stale state.
+              try {
+                editor.RichTextEditor?.hideToolbar?.();
+              } catch {
+                /* ignore */
+              }
             }, 200);
           }
         }
