@@ -72,6 +72,15 @@
             .ageInput {
               position: relative;
 
+              .ageHintText {
+                position: absolute;
+                top: -24px;
+                left: 0;
+                @include variable.font-style($fs: 14px, $fw: 500, $lh: 20px);
+                color: variable.$color-black-9;
+                margin: 0;
+              }
+
               .ageErrorText {
                 position: absolute;
                 bottom: -20px;

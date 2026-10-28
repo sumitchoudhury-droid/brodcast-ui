@@ -368,8 +368,9 @@ function TargetRecipients({
               />
             </div>
             <div className="ageInput">
+              <p className="ageHintText">(eg: 18)</p>
               <ReusableInput
-                placeholder="Enter Year"
+                placeholder="Age(Years)"
                 numbersOnly={true}
                 value={ageYear}
                 onChange={(e) => {
@@ -380,6 +381,7 @@ function TargetRecipients({
               {ageError && <p className="ageErrorText">{ageError}</p>}
             </div>
             <div className="ageInput">
+              <p className="ageHintText">Month</p>
               <ReusableDropDown
                 greenIcon={false}
                 placeholder="Month"
