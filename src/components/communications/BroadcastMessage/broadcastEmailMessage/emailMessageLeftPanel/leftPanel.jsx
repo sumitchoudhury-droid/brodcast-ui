@@ -178,20 +178,103 @@ export default function LeftPanel({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showPlaceholders, setShowPlaceholders]);
 
-  const handleDragStart = (blockId) => (e) => {
-    e.dataTransfer.setData("text/plain", blockId);
-
-    // Create a transparent 1x1 pixel image to hide the browser's default drag ghost
-    // which often gets stuck at (0,0) when using GrapesJS's manual startDrag.
-    const img = new Image();
-    img.src =
-      "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-    e.dataTransfer.setDragImage(img, 0, 0);
+  // Start a manual drag:
+  //  1) clone the customBlock card into a cursor-following ghost (so the
+  //     user always sees what they're dragging);
+  //  2) listen to pointer events on both the outer document and the canvas
+  //     iframe's document. The editor lives in an iframe — once the cursor
+  //     crosses into it, outer-document mouse/pointer events stop firing.
+  //     Iframe-local coords are translated by the iframe's bounding rect so
+  //     the ghost (fixed-positioned in the outer document) stays glued to
+  //     the real cursor;
+  //  3) call BlockManager.startDrag so GrapesJS's pointer-event sorter
+  //     handles drop target resolution.
+  const handleBlockMouseDown = (blockId) => (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
 
     const editor = editorRef?.current?.getEditor?.();
     if (!editor) return;
     const block = editor.BlockManager.get(blockId);
-    if (block) editor.BlockManager.startDrag(block, e.nativeEvent);
+    if (!block) return;
+
+    const card = e.currentTarget;
+    const cardRect = card.getBoundingClientRect();
+    const offsetX = e.clientX - cardRect.left;
+    const offsetY = e.clientY - cardRect.top;
+
+    const ghost = card.cloneNode(true);
+    ghost.style.cssText = [
+      "position:fixed",
+      `left:${e.clientX - offsetX}px`,
+      `top:${e.clientY - offsetY}px`,
+      `width:${cardRect.width}px`,
+      "margin:0",
+      "pointer-events:none",
+      "z-index:2147483647",
+      "opacity:0.9",
+      "box-shadow:0 8px 24px rgba(16,24,40,0.18)",
+      "transition:none"
+    ].join(";");
+    document.body.appendChild(ghost);
+
+    const iframeEl = editor.Canvas?.getFrameEl?.();
+    const iframeDoc = editor.Canvas?.getDocument?.();
+    const iframeWin = editor.Canvas?.getWindow?.();
+
+    const positionGhost = (clientX, clientY) => {
+      ghost.style.left = `${clientX - offsetX}px`;
+      ghost.style.top = `${clientY - offsetY}px`;
+    };
+
+    const onOuterMove = (ev) => {
+      // Chrome retargets some pointer events from inside the iframe up to
+      // the outer document with target=iframe but keeps the original
+      // iframe-local clientX/Y. Those events would place the ghost at the
+      // wrong spot (far left of the viewport). Skip them — the iframe-doc
+      // listener handles those correctly with the rect translation.
+      if (iframeEl && ev.target === iframeEl) return;
+      positionGhost(ev.clientX, ev.clientY);
+    };
+    const onInnerMove = (ev) => {
+      if (!iframeEl) return;
+      const r = iframeEl.getBoundingClientRect();
+      positionGhost(ev.clientX + r.left, ev.clientY + r.top);
+    };
+    const cleanup = () => {
+      document.removeEventListener("pointermove", onOuterMove, true);
+      document.removeEventListener("mousemove", onOuterMove, true);
+      document.removeEventListener("pointerup", cleanup, true);
+      document.removeEventListener("mouseup", cleanup, true);
+      if (iframeDoc) {
+        iframeDoc.removeEventListener("pointermove", onInnerMove, true);
+        iframeDoc.removeEventListener("mousemove", onInnerMove, true);
+        iframeDoc.removeEventListener("pointerup", cleanup, true);
+        iframeDoc.removeEventListener("mouseup", cleanup, true);
+      }
+      if (iframeWin) {
+        iframeWin.removeEventListener("pointermove", onInnerMove, true);
+        iframeWin.removeEventListener("mousemove", onInnerMove, true);
+      }
+      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    };
+
+    document.addEventListener("pointermove", onOuterMove, true);
+    document.addEventListener("mousemove", onOuterMove, true);
+    document.addEventListener("pointerup", cleanup, true);
+    document.addEventListener("mouseup", cleanup, true);
+    if (iframeDoc) {
+      iframeDoc.addEventListener("pointermove", onInnerMove, true);
+      iframeDoc.addEventListener("mousemove", onInnerMove, true);
+      iframeDoc.addEventListener("pointerup", cleanup, true);
+      iframeDoc.addEventListener("mouseup", cleanup, true);
+    }
+    if (iframeWin) {
+      iframeWin.addEventListener("pointermove", onInnerMove, true);
+      iframeWin.addEventListener("mousemove", onInnerMove, true);
+    }
+
+    editor.BlockManager.startDrag(block, e.nativeEvent);
   };
 
   const handleTemplateSelect = (option) => () => {
@@ -241,20 +324,25 @@ export default function LeftPanel({
     setPendingTemplate(null);
   };
 
-  const handleDragEnd = () => {
-    const editor = editorRef?.current?.getEditor?.();
-    if (editor?.BlockManager?.endDrag) editor.BlockManager.endDrag();
-  };
-
   const getIcon = (blockId) => {
     switch (blockId) {
       case "row":
         return (
-          <img src={leftPanelColumn} alt="leftPanelRow" className="icon"></img>
+          <img
+            src={leftPanelColumn}
+            alt="leftPanelRow"
+            className="icon"
+            draggable={false}
+          ></img>
         );
       case "column":
         return (
-          <img src={leftPanelRow} alt="leftPanelColumn" className="icon"></img>
+          <img
+            src={leftPanelRow}
+            alt="leftPanelColumn"
+            className="icon"
+            draggable={false}
+          ></img>
         );
       case "heading":
         return (
@@ -262,19 +350,35 @@ export default function LeftPanel({
             src={leftPanelHeading}
             alt="leftPanelHeading"
             className="icon"
+            draggable={false}
           ></img>
         );
       case "paragraph":
         return (
-          <img src={leftPanelText} alt="leftPanelText" className="icon"></img>
+          <img
+            src={leftPanelText}
+            alt="leftPanelText"
+            className="icon"
+            draggable={false}
+          ></img>
         );
       case "image":
         return (
-          <img src={leftPanelPhoto} alt="leftPanelPhoto" className="icon"></img>
+          <img
+            src={leftPanelPhoto}
+            alt="leftPanelPhoto"
+            className="icon"
+            draggable={false}
+          ></img>
         );
       case "button":
         return (
-          <img src={leftPanelLink} alt="leftPanelLink" className="icon"></img>
+          <img
+            src={leftPanelLink}
+            alt="leftPanelLink"
+            className="icon"
+            draggable={false}
+          ></img>
         );
       case "Attachment":
         return (
@@ -282,6 +386,7 @@ export default function LeftPanel({
             src={leftPanelAttachment}
             alt="leftPanelAttachment"
             className="icon"
+            draggable={false}
           ></img>
         );
       case "customPlaceholders":
@@ -290,6 +395,7 @@ export default function LeftPanel({
             src={leftPanelPlaceholders}
             alt="leftPanelPlaceholders"
             className="ComponentIcon"
+            draggable={false}
           ></img>
         );
       // case "customHeader":
@@ -352,9 +458,7 @@ export default function LeftPanel({
       key={blockId + title}
       className={`customBlock ${blockId === "customPlaceholders" && showPlaceholders ? "active" : ""}`}
       data-block-id={blockId}
-      draggable={isDraggable}
-      onDragStart={isDraggable ? handleDragStart(blockId) : undefined}
-      onDragEnd={isDraggable ? handleDragEnd : undefined}
+      onMouseDown={isDraggable ? handleBlockMouseDown(blockId) : undefined}
       onClick={onClick}
     >
       {getIcon(blockId)}

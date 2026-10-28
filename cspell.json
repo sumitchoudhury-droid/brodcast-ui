@@ -70,7 +70,8 @@
     "blankrows",
     "textnodes",
     "behaviour",
-    "initialised"
+    "initialised",
+    "retargets"
   ],
   "ignorePaths": ["dist", "node_modules", "package-lock.json"]
 }

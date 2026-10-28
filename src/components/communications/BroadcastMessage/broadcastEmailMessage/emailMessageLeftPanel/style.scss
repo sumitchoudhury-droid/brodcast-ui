@@ -212,6 +212,15 @@
   padding: 8px 12px;
   transition: all 0.2s ease;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+
+  * {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+  }
 
   &.active {
     border-color: variable.$color-blue-0;
