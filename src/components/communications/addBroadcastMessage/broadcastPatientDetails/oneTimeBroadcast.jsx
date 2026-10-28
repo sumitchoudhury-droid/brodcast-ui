@@ -5,6 +5,12 @@ import { usePost } from "../../../../hooks/usePost";
 import { useToast } from "../../../../hooks/useToast";
 import { ENDPOINTS } from "../../../../api/endpoints.js";
 
+const endOfToday = () => {
+  const d = new Date();
+  d.setHours(23, 59, 0, 0);
+  return d;
+};
+
 const toLocalIsoString = (value) => {
   if (!value) return null;
   const d = value instanceof Date ? value : new Date(value);
@@ -27,7 +33,7 @@ function OneTimeBroadcast({
 
   useEffect(() => {
     if (!endDateTime) {
-      setEndDateTime(new Date());
+      setEndDateTime(endOfToday());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -70,7 +76,11 @@ function OneTimeBroadcast({
           selected={startDateTime}
           onChange={(date) => {
             setStartDateTime(date);
-            if (endDateTime && date && endDateTime <= date) {
+            if (date && date > new Date()) {
+              const endOfPicked = new Date(date);
+              endOfPicked.setHours(23, 59, 0, 0);
+              setEndDateTime(endOfPicked);
+            } else if (endDateTime && date && endDateTime <= date) {
               setEndDateTime(null);
             }
           }}

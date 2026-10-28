@@ -216,7 +216,9 @@ function BroadcastPatientDetails({
       setGender("");
       setModality("");
       setIncludeOptOut(false);
-      setStartDateTime(new Date());
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      setStartDateTime(start);
       setEndDateTime(null);
       setAgeFilter("");
       setAgeYear("");
@@ -225,7 +227,9 @@ function BroadcastPatientDetails({
     }
 
     if (newType !== "oneTimeBroadcast") {
-      setBroadcastStartDate(new Date());
+      const broadcastStart = new Date();
+      broadcastStart.setHours(0, 0, 0, 0);
+      setBroadcastStartDate(broadcastStart);
       setBroadcastEndDate(null);
     }
 

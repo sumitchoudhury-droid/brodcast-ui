@@ -1,5 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+const startOfToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
 const initialState = {
   selectedModes: [],
   selectedTemplateData: null,
@@ -8,7 +14,7 @@ const initialState = {
   priority: 2,
 
   sendType: 1,
-  scheduleStartDateTime: new Date(),
+  scheduleStartDateTime: startOfToday(),
   scheduleEndDateTime: null,
   frequency: "Daily",
   repeatType: "Week",
@@ -18,9 +24,9 @@ const initialState = {
 
   patientType: "targetRecipients",
   uploadedFile: null,
-  broadcastStartDate: new Date(),
+  broadcastStartDate: startOfToday(),
   broadcastEndDate: null,
-  patientStartDateTime: new Date(),
+  patientStartDateTime: startOfToday(),
   patientEndDateTime: null,
   ageFilter: 0,
   ageYear: "",
@@ -67,9 +73,9 @@ const makeSetter = (field) => (state, action) => {
 
 const buildInitialState = () => ({
   ...initialState,
-  scheduleStartDateTime: new Date(),
-  broadcastStartDate: new Date(),
-  patientStartDateTime: new Date()
+  scheduleStartDateTime: startOfToday(),
+  broadcastStartDate: startOfToday(),
+  patientStartDateTime: startOfToday()
 });
 
 const broadcastFormSlice = createSlice({

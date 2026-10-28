@@ -125,7 +125,11 @@ function ScheduleOptions({
             selected={startDateTime}
             onChange={(date) => {
               setStartDateTime(date);
-              if (endDateTime && date && endDateTime <= date) {
+              if (date && date > new Date()) {
+                const endOfPicked = new Date(date);
+                endOfPicked.setHours(23, 59, 0, 0);
+                setEndDateTime(endOfPicked);
+              } else if (endDateTime && date && endDateTime <= date) {
                 setEndDateTime(null);
               }
             }}
