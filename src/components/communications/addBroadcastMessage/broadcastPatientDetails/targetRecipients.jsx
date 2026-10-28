@@ -113,17 +113,20 @@ function TargetRecipients({
   }));
 
   const ageOptions = [
-    { value: "", label: "Select Filter" },
+    { value: "", label: "Select" },
     ...(ageOptionsData?.data ?? []).map((a) => ({
       value: a.id,
       label: a.ageCriteria
     }))
   ];
 
-  const genderOptions = (genderOptionsData?.data ?? []).map((g) => ({
-    value: g.id,
-    label: g.name
-  }));
+  const genderOptions = [
+    { value: "", label: "Select" },
+    ...(genderOptionsData?.data ?? []).map((g) => ({
+      value: g.id,
+      label: g.name
+    }))
+  ];
 
   const modalityOptions = (modalitiesData?.data ?? []).map((m) => ({
     value: m.catalogDataId,
@@ -374,10 +377,13 @@ function TargetRecipients({
               <ReusableDropDown
                 greenIcon={false}
                 placeholder="Month"
-                options={Array.from({ length: 11 }, (_, i) => ({
-                  value: i + 1,
-                  label: String(i + 1)
-                }))}
+                options={[
+                  { value: "", label: "Select" },
+                  ...Array.from({ length: 12 }, (_, i) => ({
+                    value: i,
+                    label: String(i)
+                  }))
+                ]}
                 value={ageMonth}
                 onChange={(val) => {
                   setAgeMonth(val);

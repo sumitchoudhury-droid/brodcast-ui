@@ -213,7 +213,7 @@ function BroadcastPatientDetails({
       setAppointmentType("");
       setLocation("");
       setProvider("");
-      setGender("all");
+      setGender("");
       setModality("");
       setIncludeOptOut(false);
       setStartDateTime(new Date());

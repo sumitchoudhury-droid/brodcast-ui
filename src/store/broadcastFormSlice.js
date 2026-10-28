@@ -41,7 +41,7 @@ const initialState = {
   allProviderIds: [],
   categoryLabel: "",
   priorityLabel: "",
-  gender: 3,
+  gender: "",
   modality: "",
   includeOptOut: false,
   patientsFoundForType: null,
