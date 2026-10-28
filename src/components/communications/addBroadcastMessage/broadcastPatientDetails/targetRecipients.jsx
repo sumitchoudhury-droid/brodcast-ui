@@ -112,10 +112,13 @@ function TargetRecipients({
     label: p.name
   }));
 
-  const ageOptions = (ageOptionsData?.data ?? []).map((a) => ({
-    value: a.id,
-    label: a.ageCriteria
-  }));
+  const ageOptions = [
+    { value: "", label: "--select--" },
+    ...(ageOptionsData?.data ?? []).map((a) => ({
+      value: a.id,
+      label: a.ageCriteria
+    }))
+  ];
 
   const genderOptions = (genderOptionsData?.data ?? []).map((g) => ({
     value: g.id,
