@@ -954,24 +954,35 @@ export default function Editor({
         const baseContent = currentRteContentRef.current || getCompHtml(comp);
         const finalUrl = url || "#";
         const linkText = linkModalText || "Link";
+        const isButton =
+          comp.is?.("mj-button") || comp.get?.("type") === "mj-button";
 
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = baseContent;
+        if (isButton) {
+          // Button: entire mj-button already renders as an <a>. Replace the
+          // button's text + href directly so the content stays white with no
+          // underline — matches the normal button appearance.
+          comp.addAttributes({ href: finalUrl, target: "_blank" });
+          comp.components().reset();
+          comp.set("content", linkText);
+        } else {
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = baseContent;
 
-        const placeholderLink =
-          tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
-          tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
-        if (placeholderLink) {
-          placeholderLink.href = finalUrl;
-          placeholderLink.target = "_blank";
-          placeholderLink.style.color = "#1570EF";
-          placeholderLink.style.textDecoration = "underline";
-          placeholderLink.textContent = linkText;
+          const placeholderLink =
+            tempDiv.querySelector(`a[href="${PLACEHOLDER_URL}"]`) ||
+            tempDiv.querySelector(`a[href='${PLACEHOLDER_URL}']`);
+          if (placeholderLink) {
+            placeholderLink.href = finalUrl;
+            placeholderLink.target = "_blank";
+            placeholderLink.style.color = "#1570EF";
+            placeholderLink.style.textDecoration = "underline";
+            placeholderLink.textContent = linkText;
+          }
+
+          const newContent = tempDiv.innerHTML;
+          comp.components().reset();
+          comp.set("content", newContent);
         }
-
-        const newContent = tempDiv.innerHTML;
-        comp.components().reset();
-        comp.set("content", newContent);
 
         const view = comp.getView?.();
         if (view && typeof view.render === "function") {
@@ -2563,8 +2574,6 @@ export default function Editor({
             }
           }
 
-          setLinkModalText(plainText || "");
-          setLinkModalUrl("");
           currentRteRef.current = rteInstance;
           // Find the DEEPEST component whose view contains rteInstance.el.
           // editor.getSelected() can return a parent (mj-column/mj-section)
@@ -2584,6 +2593,35 @@ export default function Editor({
           })(editor.Components.getWrapper());
           if (!editingComp) editingComp = editor.getSelected();
           currentCompRef.current = editingComp;
+
+          const isButton =
+            editingComp?.is?.("mj-button") ||
+            editingComp?.get?.("type") === "mj-button";
+
+          if (isButton) {
+            // Re-opening on an existing button — prefill with its current
+            // text + href so the user sees what will be replaced. Strip any
+            // just-inserted placeholder link and zero-width spaces from the
+            // visible text snapshot.
+            const buttonTextDom = rteInstance.el?.cloneNode(true) || null;
+            if (buttonTextDom) {
+              buttonTextDom
+                .querySelectorAll(`a[href="${PLACEHOLDER_URL}"]`)
+                .forEach((a) => a.remove());
+            }
+            const rawText =
+              buttonTextDom?.textContent ?? editingComp.get("content") ?? "";
+            const buttonText = rawText
+              .split(String.fromCharCode(0x200b))
+              .join("")
+              .trim();
+            const buttonHref = editingComp.getAttributes?.()?.href || "";
+            setLinkModalText(buttonText);
+            setLinkModalUrl(buttonHref === "#" ? "" : buttonHref);
+          } else {
+            setLinkModalText(plainText || "");
+            setLinkModalUrl("");
+          }
           // Snapshot rte.el.innerHTML synchronously (contains the placeholder
           // link). Used as fallback if GrapesJS hasn't synced to model yet.
           currentRteContentRef.current = rteInstance.el
