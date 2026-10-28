@@ -347,8 +347,9 @@ function TargetRecipients({
             <div className="ageSelect">
               <ReusableDropDown
                 greenIcon={false}
+                placeholder=""
                 options={ageOptions}
-                value={ageFilter ?? ""}
+                value={ageFilter || ""}
                 onChange={(val) => {
                   setAgeFilter(val);
                   setAgeError(
