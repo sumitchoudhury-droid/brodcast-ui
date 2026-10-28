@@ -113,7 +113,7 @@ function TargetRecipients({
   }));
 
   const ageOptions = [
-    { value: "", label: "--select--" },
+    { value: "", label: "Select Filter" },
     ...(ageOptionsData?.data ?? []).map((a) => ({
       value: a.id,
       label: a.ageCriteria
@@ -347,9 +347,8 @@ function TargetRecipients({
             <div className="ageSelect">
               <ReusableDropDown
                 greenIcon={false}
-                placeholder="Select Filter"
                 options={ageOptions}
-                value={ageFilter}
+                value={ageFilter ?? ""}
                 onChange={(val) => {
                   setAgeFilter(val);
                   setAgeError(
