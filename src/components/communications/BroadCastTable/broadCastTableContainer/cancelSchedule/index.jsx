@@ -232,7 +232,7 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
   const [dateFilter, setDateFilter] = useState([]);
   const [selectedOccurrence, setSelectedOccurrence] = useState("this");
 
-  const [selectedModes, setSelectedModes] = useState(() => {
+  const [selectedModes] = useState(() => {
     const list = getModesList(broadcastData?.mode);
     const initial = {};
     list.forEach((m) => {
@@ -240,14 +240,6 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
     });
     return initial;
   });
-
-  const handleCheckboxChange = (m) => {
-    if (isModeAlreadyCancelled(m)) return;
-    setSelectedModes((prev) => ({
-      ...prev,
-      [m]: !prev[m]
-    }));
-  };
 
   const formattedDate = useMemo(() => {
     return formatScheduleDateTime(broadcastData?.scheduledDateTime);
@@ -518,8 +510,7 @@ export function CancelSchedule({ isOpen, onClose, onConfirm, broadcastData }) {
                         label={m}
                         name="cancelMode"
                         checked={!alreadyCancelled && !!selectedModes[m]}
-                        disabled={alreadyCancelled}
-                        onChange={() => handleCheckboxChange(m)}
+                        disabled
                       />
                       <div className="messageStatusContainer">
                         <div className="statusItem blue">
