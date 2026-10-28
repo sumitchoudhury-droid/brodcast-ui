@@ -30,7 +30,7 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
       const rect = trigger.getBoundingClientRect();
       setPosition({
         left: rect.left,
-        top: rect.top - PLACEHOLDER_GAP - PLACEHOLDER_HEIGHT
+        top: rect.bottom + PLACEHOLDER_GAP
       });
     };
     update();
