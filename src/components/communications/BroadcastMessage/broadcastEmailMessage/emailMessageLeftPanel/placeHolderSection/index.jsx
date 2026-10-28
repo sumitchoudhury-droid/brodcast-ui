@@ -8,7 +8,7 @@ import { BROADCAST_CONFIG_HEADERS } from "../../../../../../api/api.jsx";
 import "./style.scss";
 
 const PLACEHOLDER_WIDTH = 330;
-const PLACEHOLDER_HEIGHT = 438;
+const PLACEHOLDER_HEIGHT = 380;
 const PLACEHOLDER_GAP = 8;
 
 export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
@@ -28,9 +28,15 @@ export const PlaceHolderSection = ({ editorRef, setShowPlaceholders }) => {
     if (!trigger) return;
     const update = () => {
       const rect = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const needed = PLACEHOLDER_HEIGHT + PLACEHOLDER_GAP;
+      const openUpward = spaceBelow < needed && spaceAbove > spaceBelow;
       setPosition({
         left: rect.left,
-        top: rect.bottom + PLACEHOLDER_GAP
+        top: openUpward
+          ? rect.top - PLACEHOLDER_HEIGHT - PLACEHOLDER_GAP
+          : rect.bottom + PLACEHOLDER_GAP
       });
     };
     update();
