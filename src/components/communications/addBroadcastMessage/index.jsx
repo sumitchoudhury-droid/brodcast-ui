@@ -7,6 +7,18 @@ import BroadcastTemplateDetails from "./broadcastTemplateDetails/index";
 import BroadcastPatientDetails from "./broadcastPatientDetails/index";
 import { useBroadcastForm } from "../broadcastFormContext";
 import { ReusableModal } from "../../../reusableComponents/reusableModal/index";
+import { usePost } from "../../../hooks/usePost";
+import { ENDPOINTS } from "../../../api/endpoints.js";
+
+const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+
+const toLocalIsoString = (value) => {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
 
 export function AddBroadcastMessage({ onNext, handleCancel }) {
   const {
@@ -61,8 +73,20 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
     newTemplateName,
     setNewTemplateName,
     selectedEmailTemplateType,
-    setSelectedEmailTemplateType
+    setSelectedEmailTemplateType,
+    appointmentType,
+    location,
+    provider,
+    allAppointmentTypeIds,
+    allLocationIds,
+    allProviderIds,
+    gender,
+    modality,
+    includeOptOut,
+    setTotalPatientsFound
   } = useBroadcastForm();
+
+  const { mutate: searchPatients } = usePost(ENDPOINTS.patients.SEARCH);
 
   const handleCategoryChange = (val) => {
     setCategory(val);
@@ -237,6 +261,58 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
                 )
               };
             }
+
+            if (
+              patientType === "targetRecipients" ||
+              patientType === "oneTimeBroadcast"
+            ) {
+              const effective = (selected, all) => {
+                const arr = toArray(selected);
+                return arr.length > 0 ? arr : all;
+              };
+              const isTarget = patientType === "targetRecipients";
+              const body = isTarget
+                ? {
+                    appointmentTypeIds: effective(
+                      appointmentType,
+                      allAppointmentTypeIds
+                    ),
+                    locationIds: effective(location, allLocationIds),
+                    providerIds: effective(provider, allProviderIds),
+                    ageCriteriaId: ageFilter || null,
+                    ageYears: ageYear ? Number(ageYear) : null,
+                    ageMonths: ageMonth ? Number(ageMonth) : null,
+                    genderId: gender && gender !== "all" ? gender : null,
+                    modalityId: Array.isArray(modality)
+                      ? (modality[0] ?? null)
+                      : modality || null,
+                    appointmentStartDateTime:
+                      toLocalIsoString(patientStartDateTime),
+                    appointmentEndDateTime:
+                      toLocalIsoString(patientEndDateTime),
+                    includeOptOutPatients: includeOptOut
+                  }
+                : {
+                    appointmentTypeIds: [],
+                    locationIds: [],
+                    providerIds: [],
+                    ageCriteriaId: null,
+                    ageYears: null,
+                    ageMonths: null,
+                    genderId: null,
+                    modalityId: null,
+                    appointmentStartDateTime:
+                      toLocalIsoString(broadcastStartDate),
+                    appointmentEndDateTime: toLocalIsoString(broadcastEndDate),
+                    includeOptOutPatients: false
+                  };
+              searchPatients(body, {
+                onSuccess: (res) => {
+                  setTotalPatientsFound(res?.data?.totalCount ?? 0);
+                }
+              });
+            }
+
             if (priority === 1) {
               setPendingTemplateData(finalTemplateData);
               setShowHighPriorityModal(true);
