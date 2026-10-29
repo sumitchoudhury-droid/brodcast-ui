@@ -60,6 +60,9 @@ function BroadcastTemplateDetails({
               onClick={() => {
                 if (selectedModes.length === 0) return;
                 setSelectedTemplate("existing");
+                if (!selectedTemplateData?.id && onSelectTemplate) {
+                  onSelectTemplate(null);
+                }
                 setIsDrawerOpen(true);
               }}
             >
