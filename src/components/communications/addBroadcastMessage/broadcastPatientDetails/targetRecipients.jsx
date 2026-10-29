@@ -118,13 +118,10 @@ function TargetRecipients({
     label: p.name
   }));
 
-  const ageOptions = [
-    { value: "", label: "Select" },
-    ...(ageOptionsData?.data ?? []).map((a) => ({
-      value: a.id,
-      label: a.ageCriteria
-    }))
-  ];
+  const ageOptions = (ageOptionsData?.data ?? []).map((a) => ({
+    value: a.id,
+    label: a.ageCriteria === "--Select--" ? "Select" : a.ageCriteria
+  }));
 
   const genderOptions = [
     { value: "", label: "Select" },
@@ -358,7 +355,7 @@ function TargetRecipients({
                 greenIcon={false}
                 placeholder=""
                 options={ageOptions}
-                value={ageFilter || ""}
+                value={ageFilter ?? 0}
                 onChange={(val) => {
                   setAgeFilter(val);
                   setAgeError(
