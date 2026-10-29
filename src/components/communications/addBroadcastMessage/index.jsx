@@ -8,6 +8,8 @@ import BroadcastPatientDetails from "./broadcastPatientDetails/index";
 import { useBroadcastForm } from "../broadcastFormContext";
 import { ReusableModal } from "../../../reusableComponents/reusableModal/index";
 import { usePost } from "../../../hooks/usePost";
+import { useGet } from "../../../hooks/useGet";
+import { useToast } from "../../../hooks/useToast";
 import { ENDPOINTS } from "../../../api/endpoints.js";
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
@@ -87,6 +89,14 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
   } = useBroadcastForm();
 
   const { mutate: searchPatients } = usePost(ENDPOINTS.patients.SEARCH);
+
+  const toast = useToast();
+
+  const { data: allTemplatesData } = useGet(
+    ["templates-duplicate-check"],
+    ENDPOINTS.templates.GET_ALL,
+    { includeInactive: false }
+  );
 
   const handleCategoryChange = (val) => {
     setCategory(val);
@@ -242,10 +252,31 @@ export function AddBroadcastMessage({ onNext, handleCancel }) {
               return;
             }
             let finalTemplateData = selectedTemplateData;
-            if (
+            const isNewTemplate =
               (showRadioRow && selectedTemplateType === "newTemplate") ||
-              (!showRadioRow && selectedEmailTemplateType === "blank")
-            ) {
+              (!showRadioRow && selectedEmailTemplateType === "blank");
+            if (isNewTemplate) {
+              const trimmedName = newTemplateName.trim().toLowerCase();
+              const selectedModesSet = new Set(selectedModes);
+              const duplicate = (allTemplatesData?.data ?? []).some((t) => {
+                if ((t.name ?? "").trim().toLowerCase() !== trimmedName) {
+                  return false;
+                }
+                const templateMethodTypes = new Set(
+                  (t.channels ?? []).map((c) => c.methodType)
+                );
+                if (templateMethodTypes.size !== selectedModesSet.size) {
+                  return false;
+                }
+                return [...selectedModesSet].every((m) =>
+                  templateMethodTypes.has(m)
+                );
+              });
+              if (duplicate) {
+                toast.error("Template already exists");
+                return;
+              }
+
               const modeToTemplateKey = {
                 mail: "emailTemplate",
                 sms: "textTemplate",
